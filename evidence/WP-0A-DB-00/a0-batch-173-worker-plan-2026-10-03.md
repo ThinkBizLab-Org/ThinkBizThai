@@ -176,3 +176,30 @@ db-rls-smoke` exit 0, 1200 isolation cases, `db-authz-proofs: ok — 13 claim(s)
 cluster (worker-login-authentication)`. r2 and r3 as above. After every run the role's stored credential was null and the
 temporary directory empty; no `SCRAM-SHA-256$` string in any smoke or server log. `npm run check`, the scope verifier
 and `npm run verify`: see the handoff.
+
+## 8. Re-checks of the review round (2026-10-05)
+
+C0, A1 and Q0 re-checked `f1f006a`, whose code commit is `631512b`. Their files are cherry-picked with `-x`:
+
+| Run | Original | Cherry-picked |
+|---|---|---|
+| C0 | `a206fa1` | `b25fc2f` |
+| A1 | `c43740e` | `a3796e2` |
+| Q0 | `3d1c012` | `751296b` |
+
+None of the three re-checks reports a stop-the-line, and none reports anything that blocks the merge. Q0's first-round F1 (medium) had marked the merge as blocked; Q0 now measures it closed. CI is green on `f1f006a`, and the secret scan passes with the re-check files in the tree.
+
+The measurements:
+- **Q0 F1 is closed.** The §5/10 proof now reads all 51 tables, including app.jobs.
+- **Q0 F2 and A1-173-2 are closed.** A trust line that reaches the role through +group, all or a regex now FAILs.
+- **A1-173-1 (MEDIUM) is partly resolved.** The harness half is closed: a self-set role default turns the proof red. The production runner's half is owed on `[201]` (5), because the runner does not exist yet.
+
+Owed on `[201]`:
+
+| Finding | Grade | Owed |
+|---|---|---|
+| The production worker runner must make the session-start check (A1-173-1, runner half). No static test confirms that the runner calls both checks (A1-173-6) | MEDIUM / INFO | RFC-2026-026's worker half |
+| app_worker's database-level CREATE and its per-function EXECUTE grants are not pinned. `grant create on database` still passes migrate-clean (A1-173-3) | LOW | A0: extend the role-attribute and grant pins |
+| The secret scan's verifier pattern (Q0 F3) | LOW | `[201]` (11) |
+| D13 and D14 were missing from the disposition's §4. They are now in its §6 (C0R-1, Q0 R1) | LOW | done |
+| On the failure path, the server log carries the per-run SCRAM verifier as STATEMENT; the proof's own output is scrubbed (Q0 R2). When app.jobs is unlisted, §5/10 wrongly says "no fixture row" (Q0 R3). hbaRulesTrustingTheLogin's samerole/samegroup over-count, and it does not count ident (Q0 R4, C0R-3). Two new arms are held only by the static test (Q0 R5). Database-wide defaults are not read (A1R2-1). The @file comment (A1R2-2). The readsNothing message wording (A1R2-3). VERIFICATION.md was not re-recorded (C0R-2). The control's setter (C0R-4) | INFO | recorded |

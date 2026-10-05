@@ -115,3 +115,12 @@ snapshot retaken with 173 applied (D5); Q-028-5's columns (D4); Q-028-11 (D6); A
 the reading of CI's `pg_hba` for the role off this branch's first CI run (C0-2); Q-028-3's custody runbook and
 Q-028-12's pooler; the stated limits; and this batch's independent review by C0, A1 and Q0. A1's acceptance as
 DATA-DEC-03's co-owner stays owed where it was (`open_blockers[199]`).
+
+## 6. Two more answers taken under the delegation in the review round (appended 2026-10-05)
+
+The re-checks C0R-1 and Q0 R1 found that the review round took two answers under the delegation that §4 does not list. They are listed here.
+
+- **D13.** The test credential's directory is `RUNNER_TEMP` when it is set, which is the CI job's temporary directory. Otherwise it is the OS temporary directory (`workerCredentialBase`). The limit when a run is killed is stated on `[201]` (8).
+- **D14.** The reading of RFC-2026-028 §3.3/2 and §3.6 that the review round needed is recorded in RFC-2026-028's Implemented line ("read §3.3/2 and §3.6 with it"). It is not an edit of the approved sections' text. Both are A0's recommendations, taken as the Owner's under the delegation. A1's acceptance, as DATA-DEC-03's co-owner, is owed.
+
+Q0 R1 also found D10 and D12 in §4 worded more narrowly than the plan applies them. The plan's §7 is the reading that holds.
