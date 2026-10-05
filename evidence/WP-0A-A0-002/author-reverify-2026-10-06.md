@@ -44,7 +44,7 @@ main shows today. Line numbers are at `8c089cc`.
 | C0-1 | Regex-literal state in `stripNonCode`, with cases for `/[/*]/`, a backtick in a regex, and the §3b two-line phantom payload | Answered in part. Regex-literal tracking exists; cases for `/[/*]/` and a backtick inside a regex exist. The §3b two-line payload is not a separate test case. C0 rules whether the backtick case covers it. | `scripts/verify-test-coverage-floor.mjs:190-245`; `test-kits/test-coverage-floor.test.mjs:290-295,480-500` |
 | C0-2 | Replace `assert.equal(declared, 54)` with a comparison against the runner's real `pass` | Answered. The literal is gone; the runner reconciles declared against executed (exit 88). | `scripts/run-test-suite.mjs:102-122`; `test-kits/test-coverage-floor.test.mjs:286-288` |
 | C0-3 | Every discovered test file must be a manifest key; protect the four unprotected suites | Answered (exit 87). Also re-checked after the run (A1 S1b). | `scripts/verify-test-coverage-floor.mjs:579`; `scripts/run-test-suite.mjs:112` |
-| C0-4 | Publish the round-7 author evidence with the attack matrix rows D, E, G, J and their real exit codes | Answered for D, G and J (`author-remediation-4.md:64-71`). Row E (the E4 residual) is answered by §3 of this file, measured. | `author-remediation-4.md` |
+| C0-4 | Publish the round-7 author evidence with the attack matrix rows D, E, G, J and their real exit codes | Answered for D, G and J (`author-remediation-4.md:64-71`); E4 was Row J. **Corrected 2026-10-06 (C0 F3):** this cell earlier called Row E "the E4 residual". Row E is removing the guard from `package.json`'s `check`; C0 measured it at exit 81 (`c0-contract-reverify-2026-10-05.md` §3 F3). E4 is §3 of this file, as corrected there. | `author-remediation-4.md` |
 | C0-5 | Record the tripwire, the `package.json` entry-point exposure and the E4 residual in `open_blockers` | Tripwire: `open_blockers[1]`. Entry point: `open_blockers[2]`, now closed against CI (§1.3). **E4 was not recorded until this increment**: now `open_blockers[9]`. | `work-packages/WP-0A-A0-002.json` |
 | C0-6 | `test-kits/integrity-manifest.json` in `writable_paths` and `outputs.files` | Answered. | manifest |
 | C0 non-blocking | Correct acceptance criterion 1; reconcile `outputs.files`; note undigested validators and `ci.yml` | AC1 corrected in this increment (§2). `ci.yml` is digested. | manifest; `test-kits/integrity-manifest.json` |
@@ -53,7 +53,7 @@ main shows today. Line numbers are at `8c089cc`.
 
 | # | Condition | State at main | Where |
 |---|---|---|---|
-| A1-1 | Record S1 and S1b as a documented limitation of exit 88; never describe `declared === executed` as a guarantee | **Answered differently than asked:** S1 and S1b were fixed rather than only recorded. The post-run path re-runs the digest, manifest-coverage and escaping-path checks before it counts (`author-remediation-4.md` "S1"). The "not a guarantee" wording is now `open_blockers[10]`. A1 rules whether a fix satisfies a condition that asked for a record. | `scripts/run-test-suite.mjs:106-113` |
+| A1-1 | Record S1 and S1b as a documented limitation of exit 88; never describe `declared === executed` as a guarantee | **Answered differently than asked:** S1b was fixed and S1 narrowed rather than only recorded. **Corrected 2026-10-06 (A1 T1):** this cell earlier said S1 was fixed; A1 measured that hash and count read each file twice, so a swap between the reads passes 6 of 60 (`a1-security-reverify-2026-10-05.md` §3), now `open_blockers[10]`. The post-run path re-runs the digest, manifest-coverage and escaping-path checks before it counts (`author-remediation-4.md` "S1"). The "not a guarantee" wording is now `open_blockers[10]`. A1 rules whether a fix satisfies a condition that asked for a record. | `scripts/run-test-suite.mjs:106-113` |
 | A1-2 | Constrain manifest keys to repository-relative paths before any digest is computed or printed (S2) | Answered. Drift is reported without the observed digest. | `scripts/verify-test-coverage-floor.mjs:30-33,382-398` |
 | A1-3 | Hash protected files as bytes (S3) | Answered. | `scripts/verify-test-coverage-floor.mjs:388-389` |
 | A1-4 | Mirror numeric exit-code handling in the runner (S4) | Answered. | `scripts/run-test-suite.mjs:145` |
@@ -94,10 +94,20 @@ Sandbox copy of `8c089cc` (`git archive`, extracted under the scratchpad, outsid
 | guard, digest added | 87 | 1 digested file(s) are not in DIGESTED_FLOOR |
 | `node --test test-kits/e4-probe.test.mjs` | 0 | prints `E4 PAYLOAD RAN outside test-kits`, pass 1 |
 
-So the guard never inspects imports, and the code outside the tree runs whenever the file runs. Reaching
-a green `npm run check` takes `scripts/test-suite-contract.mjs` and its digest edited in the same commit,
-which puts E4 inside the disclosed digest class: only review of the diff catches it. Recorded, not fixed.
-Not measured: the full `npm run check` with `DIGESTED_FLOOR` also edited.
+So the guard never inspects imports, and the code outside the tree runs whenever the file runs. Not
+measured: the full `npm run check` with `DIGESTED_FLOOR` also edited.
+
+**Corrected 2026-10-06 (C0 F1, R0 §3-§4).** This section earlier concluded that a green `npm run check`
+takes `scripts/test-suite-contract.mjs` and its digest edited together, putting E4 inside the disclosed
+digest class. That is false. The table above measured only one route, a NEW test file. E4 is **not** in
+the digest class: a module that is not digested but is imported by a digested test (for example
+`test-kits/db/ws905-fixture.mjs`; C0 counted 14 such modules) can import code from outside the
+repository with the guard at exit 0 and `integrity-manifest.json` unchanged, measured by C0
+(`c0-contract-reverify-2026-10-05.md` §3, `npm run check` 692/692, 23 markers outside the repository)
+and by R0 (`r0-integration-verdict-2026-10-05.md` §3). Q0-N1 (`q0-test-reverify-2026-10-05.md` §4): a
+symlink import out of the repository from an existing digested suite, with digests regenerated, also
+passes. It is an open gap on main, owner WP-0A-A0-002, to be fixed in a code increment; see
+`open_blockers[9]`.
 
 ## 4. The Owner's step 2, applied to this manifest
 
@@ -139,3 +149,25 @@ never detached. Results are in the handoff's `tests`, which `npm run verify` gat
 | Q0 re-verdict at main, including Q0-F1 closed by `ci.yml` and the Q0-F2 disposition | `/claude/q0_sentinel` |
 | New R0 verdict at main; status/tree disposition; acknowledgements of the three `amended_by` entries and of `open_blockers[3]`/`[4]` | `/claude/r0_steward` |
 | The `amended_by` entry on WP-0A-A0-001 for this package's amendment still names `/root/r0_steward` | WP-0A-A0-001's owner, then `/claude/r0_steward` |
+
+## 7. Closure of the 2026-10-05 role conditions (records only)
+
+Added 2026-10-06 by `/claude/a0_atlas`, executing under the Owner's delegation "เอาตามที่คุณแนะนำทุกอย่าง".
+A0 executes the roles' record fixes as they worded them and decides nothing. The four role files are on
+the branch by `git cherry-pick -x`: C0 `c0-contract-reverify-2026-10-05.md` (`changes_requested`, F1),
+A1 `a1-security-reverify-2026-10-05.md` (`security_approved_with_conditions`), Q0
+`q0-test-reverify-2026-10-05.md` (`test_verified_with_conditions`), R0
+`r0-integration-verdict-2026-10-05.md` (`integration_changes_requested`). No code changed (R0 §4).
+
+| Condition | Change |
+|---|---|
+| C0 F1 | `open_blockers[9]` rewritten: E4 is not in the digest class, open gap on main, owner WP-0A-A0-002, code increment; Q0-N1 added. `open_blockers[1]` amended in place so it no longer names phantom declarations or an escaping path as closed. §3 above corrected. |
+| C0 F2 | `open_blockers[11]` extended with keyword-preceded regex literals (fails closed alone at exit 88). |
+| C0 F3 | §1.1 row C0-4: the Row E / E4 label corrected. |
+| A1 T1 | §1.2 row A1-1: "S1 fixed" now "S1 narrowed"; T1 added to `open_blockers[10]`. The manifest never said "S1 fixed". |
+| Q0-C1 / Q0-N2 | `open_blockers[10]` extended: shadowing `test` defeats the count, the name digest and the assertion floor. |
+| R0 §4 item 7 | `ownership.amended_by` gains the WP-0A-CON-005 entry, `acknowledged`, citing R0's own acknowledgement (`r0-integration-verdict-2026-10-05.md` §5). The acknowledgement is R0's; A0 only records it. |
+
+Not done here: A1 I2 (optional restatement of `open_blockers[5]`), which this pass was not directed to
+make. Status stays `in_review`. Owed next: the handoff refresh (C0 F4), C0's re-check of F1-F3, A1's and
+Q0's confirmation of their wording, and a new R0 verdict on the new head with CI green.
