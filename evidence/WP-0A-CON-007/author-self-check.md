@@ -551,3 +551,12 @@ narrowings are caught.
 $ npm run check
 ℹ tests 144   pass 144   fail 0   skipped 0   todo 0
 ```
+
+## Correction (2026-10-06, C0 F8)
+
+The row "Behaviour, never pattern text" above says *"No assertion in the suite reads a `pattern`
+string."* That is false as written. Two tests read a field's `pattern` to **execute** it against values
+(`every allow-listed reference scheme is still accepted ...` and `a value at exactly the declared bound
+is accepted ...`). They compile the pattern and test values against it; they never compare its text,
+so the acceptance criterion (behaviour, never pattern text) holds, as C0 itself concluded. The
+accurate sentence is: no assertion compares a `pattern` string to an expected value.
