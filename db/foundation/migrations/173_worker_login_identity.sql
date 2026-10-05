@@ -78,8 +78,9 @@ comment on role app_worker_login is
 -- ============================================================================================
 -- WHAT THIS MIGRATION ASSERTS ABOUT THE DATABASE IT HAS JUST CHANGED (RFC-2026-028 §4/1)
 -- ============================================================================================
--- Re-run by the post-migrate pass after the last migration. It reads pg_roles, pg_auth_members, pg_shdepend,
--- pg_db_role_setting and pg_default_acl, every one readable without superuser, and never the stored credential.
+-- Re-run by the post-migrate pass after the last migration. It reads pg_roles, pg_auth_members, pg_shdepend (which
+-- records default ACLs naming the role, so pg_default_acl is covered through it, not queried) and
+-- pg_db_role_setting, every one readable without superuser, and never the stored credential.
 do $$
 declare
   offending text;

@@ -39,9 +39,9 @@ apply-time block (§4/1). It writes no policy, grants nothing to `authenticator`
 | 7 | §3.6: the authenticator negative | `SERVICE_ROLES_NOT_FOR_THE_REQUEST_PATH` gains `app_worker_login` | foundation-contract (the snapshot with `authenticator` a member of it: a finding) |
 | 8 | §3.6's last row, §5/14, A1 F2, A1R-1: the instance's snapshot | `workerLoginSnapshotLint`: once 173 is declared applied the snapshot must carry `worker_login` (attributes, memberships and members with their options per row, settings, whether a verifier is stored, the connection limit) and §3.1 is asserted against it; while declared not applied, absent is read as such | foundation-contract: clean shape; absent-when-applied; the fixture drifts §5/14 names (`rolinherit`, a membership in `app_maintenance`, `inherit_option` true, another member, the admin row with `set_option` true, a `pg_db_role_setting` row) plus A1R-1's second row for the migration owner, no verifier once applied, an unrecorded field |
 | 9 | §3.3/3, §5/7-9: logged in as the role | `scripts/db/authz-proofs.mjs`, `worker-login-can-only-become-app-worker`: a generated test credential (32 random bytes, base64url) set as a **client-computed SCRAM-SHA-256 verifier** fed on stdin, the plaintext only in a 0600 libpq password file via PGPASSFILE, removed in a `finally`; then, logged in: current_user and session_user are the login role; before SET LOCAL ROLE `42501 permission denied for schema app`; `set local role app_worker` takes; `app_command`, `app_maintenance`, `authenticated`, `anon`, `app_authz`, `postgres` each `42501 permission denied to set role`; `app.close_workspace` as app_worker `42501` (no client path); after commit it is itself again | controls, each decided by the same function and required to go red: §5/7 (a) `with inherit true` (zero rows, no error), (b) `grant usage on schema app` (`permission denied for table workspaces`), §5/8 `grant app_command` (the SET takes), §5/9 `set role` without LOCAL (persists); a self-test of the shipped topology stays green |
-| 10 | §3.2, §5/10, RFC-2026-016 §5 | `worker-login-reads-nothing-by-default`: every table app_worker may SELECT (22) read through the login role under `set local role app_worker`: zero rows each, while the connection role reads the fixture's rows in all 22 | control: a permissive `for select to app_worker using (true)` policy on `app.workspaces` turns it red (2 rows) |
+| 10 | §3.2, §5/10, RFC-2026-016 §5 | `worker-login-reads-nothing-by-default`: every table app_worker may SELECT **by table or column grant** (51; `app.jobs` asserted among them) read through the login role under `set local role app_worker`: zero rows each, while the connection role reads the fixture's rows in all 51. *Corrected in the review round (§7, Q0 F1): as first written it listed the 22 tables with a table grant and never read `app.jobs`.* | control: a permissive `for select to app_worker using (true)` policy on `app.jobs` turns it red (2 rows); RFC §5/10's own drift appended to 140 turns the proof red (measured, §7) |
 | 11 | §5/13, A1 F4, A1R-2 | `worker-login-no-workspace-lingers`: two jobs on one connection; the start-of-transaction check `workerTransactionStartProblem` | the first job with `set_config(..., true)`: the second starts clean; control with `false`: the workspace leaks and the check refuses that job. The production runner's copy is owed (§5) |
-| 12 | §5/12, C0-2 | `worker-login-authentication`: the cluster's `pg_hba` rules read; a pg_hba line trusting the login role by name is a failure; a wrong credential that connects means the cluster does not ask (NOT RUN, printed so, never counted as passed); otherwise no credential, a wrong one and the generated one | measured both ways on 5507 (§3) |
+| 12 | §5/12, C0-2 | `worker-login-authentication`: the cluster's `pg_hba` rules read; a pg_hba line trusting the login role by name — or, since the review round (§7, A1-173-2, Q0 F2), through a group it belongs to, a file, a pattern, `samerole`/`samegroup` or any user list but `all` — is a failure; a wrong credential that connects means the cluster does not ask (NOT RUN, printed so, never counted as passed); otherwise no credential, a wrong one and the generated one | measured both ways on 5507 (§3) |
 | 13 | Q0 R-1 on 170-assert (owed since) | rule 4's select and pinned filter asserted whole; the membership self-test gives `app_worker` a membership as MEMBER | foundation-contract; self-test names `app_worker -> app_authz`, `app_worker_login -> app_authz` |
 | 14 | the pins' data | `pinned-grants.json`, `read-allowlist-known-exceptions.json` regenerated (only `_how_measured` moves: the login role holds nothing); `catalog-snapshot.json` (173 pending) | the generator's own check; foundation-contract (measured through 173) |
 
@@ -114,7 +114,9 @@ Node 24.20.0; PostgreSQL 17.11 on 127.0.0.1:5507 (TCP only, `unix_socket_directo
 - **D11, measured drifts were appended to 173**, not to `140_audit.sql` as the brief's default says, because the role
   they name does not exist when 140 runs.
 - **D12, one self-test per rule** (the suite's own rule): the login role's attribute drifts other than NOLOGIN are held by
-  measured appended drifts and 173's block, not a second self-test of rule 8 (`open_blockers[201]` (8)).
+  rule 8 and 173's block, not a second self-test of rule 8 (`open_blockers[201]` (8)). *Corrected in the review round
+  (§7, C0-2, A1-173-4): of §5/1's four attribute drifts the Author measured `bypassrls` only (D4); `inherit`,
+  `createrole` and `superuser` were measured by the C0 role run (and again by A1), each refused by name.*
 
 ## 5. What is owed, and to whom
 
@@ -132,3 +134,45 @@ app_worker_login`; revert in the same diff the pins of §2 (PINNED_ROLE_MEMBERSH
 PINNED_ROLE_ATTRIBUTES, the settings rule's third name; rules 4b and 9 may stay, holding the empty sets), and
 `superseded.json` for 173's block. Every service cell returns to unreachable, which is the state on main. No credential
 exists to revoke anywhere: none is set outside a test run.
+
+## 7. Review round (2026-10-05)
+
+Written by a subagent of `/claude/a0_atlas` (A0) in its own worktree, on the branch NAME
+`agent/claude/WP-0A-DB-00-batch-173-worker`. The Author fixes and records; it approves nothing, and the re-checks of this
+round by C0, A1 and Q0 are owed (`open_blockers[201]` (9)).
+
+**Cherry-pick map** (each `git cherry-pick -x`, the review file its only change):
+
+| role run | review branch | commit there | here |
+|---|---|---|---|
+| C0 `/claude/c0_contract_reviewer` | `review/c0-batch-173-worker` | `72808c7` | `796bd67` |
+| A1 `/claude/a1_bastion` | `review/a1-batch-173-worker` | `dde46c0` | `869217c` |
+| Q0 `/claude/q0_sentinel` | `review/q0-batch-173-worker` | `faf6c60` | `b2ed62f` |
+
+No run found a stop-the-line. Q0 held the merge on F1 (medium) until remedied or disposed of by name; it is remedied.
+
+**Finding → change → measured.**
+
+| finding | grade | change | measured |
+|---|---|---|---|
+| Q0 F1 | medium | `authz-proofs.mjs` §5/10: tables listed with `has_any_column_privilege`; `WORKER_NAMED_TABLE = 'app.jobs'` must be in the list and hold a fixture row; the control's permissive policy moved to `app.jobs`; the claims corrected in the same diff (§2 row 10, `open_blockers[113]`, RFC Implemented line, handoff). 050's `service-sees-zero-*` cases through the login role: owed, `[201]` (12) | r1: "every one of the 51 reads zero rows", control on `app.jobs` red (2 rows). RFC §5/10's drift (`create policy … on app.jobs for select to app_worker using (true)`) appended to `140_audit.sql`: migrate-clean exit 2 (policy set probe) and rls-smoke exit 2 with `FAIL worker-login-reads-nothing-by-default`, "app_worker sees rows with no policy naming it: app.jobs (2)" — before the round this proof stayed ok under it; 140 restored byte for byte (`cmp`) |
+| A1-173-2, Q0 F2 | low | `hbaRulesTrustingTheLogin(rules, groups)`: a `trust` rule is a failure unless its user list is exactly `all`, when it admits the role by name, by `+group` the role is a member of (read with `pg_has_role(…, 'MEMBER')`; unread fails closed), `all` inside a longer list, `@file`, `/regex`, `samerole` or `samegroup`; NOT RUN is left only to the cluster-trusts-everyone case. Fake-driver fixture `+app_worker` added, with pure-function cases for each shape | r2, `host all +app_worker 127.0.0.1/32 trust` first: rls-smoke exit 2, `FAIL worker-login-authentication`, "pg_hba line(s) 1 trust app_worker_login by name or by a user list other than all (+app_worker)"; r3, a by-name `scram-sha-256` line first: RUN and ok, 14 discharged |
+| A1-173-1 | MEDIUM | (b) the harness's copy now: `workerSessionStartProblem` over `WORKER_SESSION_READ` (`current_user = session_user = app_worker_login`, no `pg_db_role_setting` row for it) in `worker-login-no-workspace-lingers`, with two controls decided by the same function (a self-set `set role = 'app_worker'` default; a session already switched); the runner's copy widened on `[201]` (5). (a) answered as A0 recommends (**D14**): recorded in RFC-2026-028's Implemented line ("read §3.3/2 and §3.6 with it"), not as an edit of the approved sections' text. (c) on `[201]` (7), owed before the instance gets a credential | r1: "session start … settings 0 -> starts"; self-set default `settings 1 -> red`; after `set local role` `cu app_worker -> red` |
+| A1-173-3 | LOW | owed, `[201]` (10): two probes (the database arm and a per-role EXECUTE pin), their digests and self-tests are more than a bounded change to this batch | not re-measured (A1's r13, r14 stand) |
+| Q0 F3 | low | owed, `[201]` (11): `scripts/scan-repository-secrets.mjs` is protected (the Integration Owner's path); the RFC's Implemented line now says §5/5's scan half is not implemented | not re-measured (Q0's measurement stands) |
+| C0-1 | Low | condition added to `[201]` (2): 173 runs inside one transaction on the instance; read the platform runner's wrapping with Q-028-13's platform half. 173 unchanged in its statements | not re-measured (C0's measurement stands) |
+| C0-2, A1-173-4 | Low / Info | D12 above, `[201]` (8) and the RFC's Implemented line say that §5/1's `inherit`, `createrole` and `superuser` drifts are C0's measurement (and A1's r8-r10), not the Author's | — |
+| C0-3, A1-173-5 (part), Q0 F5 (part) | Low / Info | **D13**: the test credential's directory is `RUNNER_TEMP` (the job's temporary directory) when set, else the OS temporary directory (`workerCredentialBase`); the killed-run limit stated on `[201]` (8) | r1-r3 with `TMPDIR` in the private directory: the directory empty after each run; `rolpassword` null |
+| C0-5, A1-173-5, Q0 F5 | Info | 173's comment no longer says the block reads `pg_default_acl` (it reads `pg_shdepend`, which records default ACLs); `valid_until` for the snapshot's fields on `[201]` (2) | statements unchanged (foundation-contract) |
+| C0-6, Q0 F5 | Info | the column-name case stated on `[201]` (8) | — |
+| C0-4, Q0 F5 | Info | none: `evidence/VERIFICATION.md` is re-recorded only after the refresh in this round | — |
+| A1-173-6 | Info | `[201]` (5): a static test that the runner's transaction-start path calls both checks | — |
+| Q0 F4 | info | none (a record of where the weight sits) | — |
+
+**Measured in this round.** Node `v24.20.0` (checked before every run); PostgreSQL 17.11 on `127.0.0.1:5507` only, TCP only,
+`initdb --locale=C -A trust -U postgres`, `LC_ALL=C`, the shim first, re-initdb every round, private directory
+`a0-173-workerr2/`. Base rounds r1 and r5 (fresh clusters, this round's code): `make db-migrate-clean` exit 0, `make
+db-rls-smoke` exit 0, 1200 isolation cases, `db-authz-proofs: ok — 13 claim(s) discharged by execution; 1 not run on this
+cluster (worker-login-authentication)`. r2 and r3 as above. After every run the role's stored credential was null and the
+temporary directory empty; no `SCRAM-SHA-256$` string in any smoke or server log. `npm run check`, the scope verifier
+and `npm run verify`: see the handoff.

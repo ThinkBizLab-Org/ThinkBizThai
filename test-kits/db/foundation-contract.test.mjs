@@ -5845,11 +5845,31 @@ test('batch 173: the harness logs in as the worker with a generated credential i
   assert.equal(proofs.workerTransactionStartProblem(null), null);
   assert.equal(proofs.workerTransactionStartProblem(''), null);
   assert.match(proofs.workerTransactionStartProblem('c4840acc-0323-5e13-b1d3-c18d7eb615cb'), /already set/, 'A1R-2: a leaked workspace refuses the next job');
+  // A1-173-1: the session starts as the bare login role with no default of its own.
+  assert.equal(proofs.workerSessionStartProblem({ cu: 'app_worker_login', su: 'app_worker_login', settings: '0' }), null);
+  assert.match(proofs.workerSessionStartProblem({ cu: 'app_worker_login', su: 'app_worker_login', settings: '1' }), /1 pg_db_role_setting row\(s\) set defaults for app_worker_login/, 'a self-set default is refused');
+  assert.match(proofs.workerSessionStartProblem({ cu: 'app_worker', su: 'app_worker_login', settings: '0' }), /current_user app_worker and session_user app_worker_login are not both/, 'a session already switched is refused');
+  assert.match(proofs.workerSessionStartProblem(undefined), /could not be read/);
+  // A1-173-2 / Q0 F2: a trust rule reaching the role other than through a user list of exactly `all` is a failure.
+  const hbaRule = (users, auth_method = 'trust') => ({ line_number: '1', type: 'host', users, auth_method });
+  const groups = ['app_worker', 'app_worker_login'];
+  assert.deepEqual(proofs.hbaRulesTrustingTheLogin([hbaRule('all')], groups), [], 'a cluster trusting every role is the NOT RUN case');
+  for (const users of ['app_worker_login', '+app_worker', '+app_worker_login', '@workers', '/^app_', 'samerole', 'samegroup', 'postgres,all']) {
+    assert.equal(proofs.hbaRulesTrustingTheLogin([hbaRule(users)], groups).length, 1, `trust for ${users} admits the role`);
+  }
+  for (const users of ['postgres', '+app_command']) assert.deepEqual(proofs.hbaRulesTrustingTheLogin([hbaRule(users)], groups), [], `trust for ${users} does not admit it`);
+  assert.deepEqual(proofs.hbaRulesTrustingTheLogin([hbaRule('+app_worker', 'scram-sha-256')], groups), [], 'only trust rules count');
+  assert.equal(proofs.hbaRulesTrustingTheLogin([hbaRule('+app_command')], null).length, 1, 'an unread membership fails closed');
+  // C0-3 (D13): the credential lives in the job's temporary directory when there is one.
+  assert.equal(proofs.workerCredentialBase({ RUNNER_TEMP: '/runner/_temp' }), '/runner/_temp');
+  assert.equal(proofs.workerCredentialBase({}), (await import('node:os')).tmpdir());
+  assert.equal(proofs.WORKER_NAMED_TABLE, 'app.jobs', 'RFC-2026-028 §5/10 names app.jobs');
   // A FAKE DATABASE, answering as the shipped topology does (measured on 5507), and a broken one.
   const fake = (broken = false) => {
     const calls = { feed: [], login: [], control: [] };
     const answer = (prelude, statement) => {
       const local = prelude.includes('set local role app_worker;');
+      if (statement === proofs.WORKER_SESSION_READ) return { rows: [{ cu: local ? 'app_worker' : 'app_worker_login', su: 'app_worker_login', settings: '0' }] };
       if (statement === proofs.WORKER_STATEMENT_BEFORE_SET_ROLE) return broken ? { rows: [] } : { error: { code: '42501', message: 'permission denied for schema app' } };
       if (/^set local role /.test(statement)) return { error: { code: '42501', message: `permission denied to set role "${statement.split(' ')[3]}"` } };
       if (/app\.close_workspace/.test(statement)) return { error: { code: '42501', message: 'permission denied for function close_workspace' } };
@@ -5870,13 +5890,15 @@ test('batch 173: the harness logs in as the worker with a generated credential i
       if (/with inherit true/.test(drift)) return { rows: [] };
       if (/grant usage on schema app/.test(drift)) return { error: { code: '42501', message: 'permission denied for table workspaces' } };
       if (/grant app_command to app_worker_login/.test(drift)) return { rows: [] };
-      if (/create policy __proof_173_worker_reads/.test(drift)) return { rows: [{ t: 'app.workspaces', n: '2' }] };
+      if (/create policy __proof_173_worker_reads on app\.jobs /.test(drift)) return { rows: [{ t: 'app.jobs', n: '2' }] };
+      if (/alter role app_worker_login set role = 'app_worker';/.test(drift)) return { rows: [{ cu: 'app_worker_login', su: 'app_worker_login', settings: '1' }] };
       return answer(prelude, statement);
     };
     const runOne = async (sql) => {
       if (/pg_hba_file_rules/.test(sql)) return { rows: [{ line_number: '1', type: 'host', users: 'all', auth_method: 'trust' }] };
-      if (/has_table_privilege\('app_worker'/.test(sql)) return { rows: [{ t: 'app.workspaces' }] };
-      if (/count\(\*\) as n/.test(sql)) return { rows: [{ t: 'app.workspaces', n: '2' }] };
+      if (/pg_has_role\('app_worker_login', r\.oid, 'MEMBER'\)/.test(sql)) return { rows: [{ g: 'app_worker' }, { g: 'app_worker_login' }] };
+      if (/has_any_column_privilege\('app_worker'/.test(sql)) return { rows: [{ t: 'app.jobs' }, { t: 'app.workspaces' }] };
+      if (/count\(\*\) as n/.test(sql)) return { rows: [{ t: 'app.jobs', n: '3' }, { t: 'app.workspaces', n: '2' }] };
       return { error: { code: 'XX000', message: 'unexpected' } };
     };
     const feedSql = async (sql) => { calls.feed.push(sql); return { rows: [] }; };
@@ -5888,6 +5910,10 @@ test('batch 173: the harness logs in as the worker with a generated credential i
   assert.deepEqual(results.map((r) => [r.id, r.ok]), [['worker-login-can-only-become-app-worker', true], ['worker-login-reads-nothing-by-default', true],
     ['worker-login-no-workspace-lingers', true], ['worker-login-authentication', true]], JSON.stringify(results.map((r) => r.detail)));
   assert.equal(results[3].notRun, true, 'on a cluster that admits a wrong credential, §5/12 is NOT RUN, never passed');
+  assert.match(results[1].detail, /by table or column grant \(2, app\.jobs among them\)/, 'Q0 F1: column-granted tables are read, app.jobs among them');
+  assert.match(results[1].transcript, /control, a permissive policy for app_worker on app\.jobs: .* -> red/, 'the control is on app.jobs');
+  assert.match(results[2].transcript, /control, a login default set role = 'app_worker' for the role: .* -> red/, 'A1-173-1: a self-set default goes red');
+  assert.match(results[2].transcript, /control, read after set local role app_worker: .* -> red/);
   assert.match(ok.calls.feed[0], /^alter role app_worker_login password 'SCRAM-SHA-256\$4096:[A-Za-z0-9+/=]+\$[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+';\n$/, 'the verifier is set, never the plaintext');
   assert.equal(ok.calls.feed.at(-1), 'alter role app_worker_login password null;\n', 'and the role is returned to no credential');
   const verifier = ok.calls.feed[0].split("'")[1];
@@ -5920,6 +5946,21 @@ test('batch 173: the harness logs in as the worker with a generated credential i
   const t = await proofs.proveTheWorkerLogin(trusting.run, runOneTrusting, ids, { feedSql: trusting.feedSql, testUrl: 'postgresql://postgres@127.0.0.1:5507/postgres', env: {} });
   assert.equal(t[3].ok, false);
   assert.match(t[3].detail, /pg_hba line\(s\) 1 trust app_worker_login by name/);
+  // A1-173-2 / Q0 F2: the same through a group the role is a member of (+app_worker) fails too, not NOT RUN.
+  const viaGroup = fake();
+  const runOneViaGroup = async (sql) => (/pg_hba_file_rules/.test(sql)
+    ? { rows: [{ line_number: '1', type: 'host', users: '+app_worker', auth_method: 'trust' }, { line_number: '2', type: 'host', users: 'all', auth_method: 'scram-sha-256' }] }
+    : viaGroup.runOne(sql));
+  const g = await proofs.proveTheWorkerLogin(viaGroup.run, runOneViaGroup, ids, { feedSql: viaGroup.feedSql, testUrl: 'postgresql://postgres@127.0.0.1:5507/postgres', env: {} });
+  assert.equal(g[3].ok, false);
+  assert.notEqual(g[3].notRun, true, 'never NOT RUN');
+  assert.match(g[3].detail, /pg_hba line\(s\) 1 trust app_worker_login by name or by a user list other than all \(\+app_worker\)/);
+  // Q0 F1: a cluster on which app_worker cannot read app.jobs fails §5/10 (it would not read the table the RFC names).
+  const noJobs = fake();
+  const runOneNoJobs = async (sql) => (/has_any_column_privilege/.test(sql) ? { rows: [{ t: 'app.workspaces' }] } : noJobs.runOne(sql));
+  const nj = await proofs.proveTheWorkerLogin(noJobs.run, runOneNoJobs, ids, { feedSql: noJobs.feedSql, testUrl: 'postgresql://postgres@127.0.0.1:5507/postgres', env: {} });
+  assert.equal(nj[1].ok, false);
+  assert.match(nj[1].detail, /app\.jobs, the table RFC-2026-028 §5\/10 names, is not among the tables app_worker may read/);
   // Wired: rls-smoke runs them after the isolation cases, as part of the proofs.
   assert.match(await readFile('scripts/db/authz-proofs.mjs', 'utf8'), /\.\.\.await proveTheWorkerLogin\(run, runOne, ids\),\n\s+\];/, 'runProofs runs them');
 });
