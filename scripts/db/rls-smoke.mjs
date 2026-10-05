@@ -194,6 +194,14 @@ export async function loadHelpersAndFixtures() {
     stderr.write(`db-rls-smoke: a psql meta-command outside any literal, body or comment, which psql would execute, or a shape on which psql could read the text otherwise: ${meta.join(', ')}\n`);
     return 1;
   }
+  // Batch 173 (RFC-2026-028 §3.3/1, §5/5): and none of them carries a credential; the worker's test credential is set
+  // by the harness at run time (authz-proofs.mjs), never by a fed source.
+  const { workerCredentialLint } = await import('./run.mjs');
+  const credentials = workerCredentialLint(fed.map(([name, sql]) => ({ name, sql })));
+  if (credentials.length) {
+    stderr.write(`db-rls-smoke: ${credentials.join('; ')}\n`);
+    return 1;
+  }
   const installed = await feed(helpers);
   if (installed.error) {
     stderr.write(`db-rls-smoke: the auth-context helpers did not install: ${installed.error.message}\n`

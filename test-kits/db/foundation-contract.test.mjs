@@ -671,7 +671,11 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   '171_workspace_lifecycle_visibility.sql',
   // Batch 141's migration, 172: RFC-2026-023's acting-user helpers (owned by 011's app_authz), the closing command
   // and RFC-2026-026's command producer policy; it needs 011, 021 and 140, and sorts after 171.
-  '172_acting_user_and_closing_command.sql'];
+  '172_acting_user_and_closing_command.sql',
+  // Batch 173's migration: the worker's login role (RFC-2026-028). It could apply on its own, but it sorts after 172,
+  // and Q-028-13 holds it to migrate-clean clusters until a non-superuser applier and the platform's
+  // createrole_self_grant are measured.
+  '173_worker_login_identity.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -2592,7 +2596,8 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
     'and a COPY to a server file and a server-file function call, each by line (C0-OT-2, Q0-OT-3)');
   // Since batch 129 the system object fingerprint is scanned with them and taken first (C0 G1, Q0 F1 on 128's
   // re-check), then the loop.
-  assert.match(runner, /const meta = metaCommandFindings\(\[\{ name: 'the system object fingerprint', sql: SYSTEM_FINGERPRINT_SNAPSHOT_SQL \}, \.\.\.steps\]\);\n\s*if \(meta\.length\) \{[^\n]*return 1; \}\n(?:\s*\/\/[^\n]*\n)*\s*const \{ query, feed: readRows \} = await import\('\.\/psql-driver\.mjs'\);\n\s*const taken = await script\(SYSTEM_FINGERPRINT_SNAPSHOT_SQL\);\n[\s\S]*?\n\s*for \(const \{ name, sql \} of steps\) \{/,
+  // Since batch 173 the credential rule runs between the two (RFC-2026-028 §3.3/1, §5/5), over every fed source.
+  assert.match(runner, /const meta = metaCommandFindings\(\[\{ name: 'the system object fingerprint', sql: SYSTEM_FINGERPRINT_SNAPSHOT_SQL \}, \.\.\.steps\]\);\n\s*if \(meta\.length\) \{[^\n]*return 1; \}\n(?:\s*\/\/[^\n]*\n)*\s*const credentials = workerCredentialLint\(await fedSqlSources\(\)\);\n\s*if \(credentials\.length\) \{[^\n]*return 1; \}\n(?:\s*\/\/[^\n]*\n)*\s*const \{ query, feed: readRows \} = await import\('\.\/psql-driver\.mjs'\);\n\s*const taken = await script\(SYSTEM_FINGERPRINT_SNAPSHOT_SQL\);\n[\s\S]*?\n\s*for \(const \{ name, sql \} of steps\) \{/,
     'and the scan runs before the fingerprint and the loop that applies them');
 });
 
@@ -3239,6 +3244,15 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // 7ebb13f1c66bd33a to 6bb73ce79c56f132 (a comment only: a logical-replication subscription writes past these
   // triggers, and the producer rule's part (h) refuses one, A1 F2). No rule and no drift of either changed. Every
   // other digest stays.
+  // Batch 173 (migration 173; RFC-2026-028 §3.6, Q-028-10 answered as A0 recommended): client membership
+  // d82a36c9fbe730c6 to ebe66b570210169e (the settings rule reads app_worker_login too and its message says so; the
+  // membership drift grants the login role to authenticated, the settings drift gives it a role and a search_path);
+  // pinned grant 6510923f1a2732fc to 710c5dc430afa672 (PINNED_ROLE_MEMBERSHIPS gains 'app_worker_login ->
+  // app_worker'; rule 4b reads each direct membership row's three options; rule 8 admits exactly 'app_worker_login
+  // rolcanlogin' and names it missing; rule 9 refuses a stored credential for a non-superuser role; the membership
+  // drift gains a role granted to app_worker as member, Q0 R-1 on 170-assert, and the login role's two; drifts for
+  // rules 4b and 9; the rule-8 drift makes the login role NOLOGIN and gives it a default privilege). Every other
+  // digest stays.
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -3252,7 +3266,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'permissive policy probe': '770b8ece86c08d53',
     'client privilege probe': '86e1f9ff6b3eda34',
     'client schema probe': '6c400e229948cda6',
-    'client membership probe': 'd82a36c9fbe730c6',
+    'client membership probe': 'ebe66b570210169e',
     'system object fingerprint probe': 'f75c1e00bd908cd5',
     'pinned check probe': '9fbe921cb30965f5',
     'pinned policy probe': 'a7be93780c68245a',
@@ -3260,7 +3274,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'policy helper probe': '39249ae657cfd196',
     'trigger probe': '6bb73ce79c56f132',
     'pinned trigger probe': '8412a302b7f190a7',
-    'pinned grant probe': '6510923f1a2732fc',
+    'pinned grant probe': '710c5dc430afa672',
     'read allowlist probe': 'a97a58b338e52627',
     'data classification probe': 'a848ca33af3460e3',
     'pinned shape probe': '11ba1271ffc00d70',
@@ -3434,8 +3448,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // AND WHAT EVERY CLIENT SESSION STARTS WITH (batch 129's review round; A1 R2: pg_db_role_setting was read for
   // session_replication_role alone). Every default for anon, authenticated or every role, in any database.
   assert.deepEqual(m.CLIENT_ROLE_SETTINGS, [], 'no role default applies to a client session, measured at batch 129: a pin is an RFC-sized decision');
-  assert.match(m.CLIENT_MEMBERSHIP_PROBE_SQL, /from pg_catalog\.pg_db_role_setting s\n\s+left join pg_catalog\.pg_roles r on r\.oid = s\.setrole\n\s+left join pg_catalog\.pg_database d on d\.oid = s\.setdatabase\n\s+cross join lateral unnest\(s\.setconfig\) as g\(setting\)\n\s+where s\.setrole = 0::pg_catalog\.oid or r\.rolname in \('anon', 'authenticated'\)\n\s+\) f\n\s+where not \(x = any \(array\[\]::text\[\]\)\);/,
-    'every setting default for a client role or for every role, in any database, none pinned');
+  assert.match(m.CLIENT_MEMBERSHIP_PROBE_SQL, /from pg_catalog\.pg_db_role_setting s\n\s+left join pg_catalog\.pg_roles r on r\.oid = s\.setrole\n\s+left join pg_catalog\.pg_database d on d\.oid = s\.setdatabase\n\s+cross join lateral unnest\(s\.setconfig\) as g\(setting\)\n\s+where s\.setrole = 0::pg_catalog\.oid or r\.rolname in \('anon', 'authenticated', 'app_worker_login'\)\n\s+\) f\n\s+where not \(x = any \(array\[\]::text\[\]\)\);/,
+    'every setting default for a client role, for every role or for the worker\'s login role (batch 173, RFC-2026-028 §3.6), in any database, none pinned');
   assert.equal((m.CLIENT_MEMBERSHIP_PROBE_SQL.match(/\bselect\b/g) ?? []).length, 10, 'ten selects, counted at batch 129\'s review round (four at 128, the attribute rule\'s four, and the settings rule\'s two)');
   // WHAT initdb MADE, AS initdb MADE IT (batch 129; C0 G1, Q0 F1 on 128's re-check: a view, a function and a
   // grant initdb made, redefined or re-granted in place, kept OIDs below 16384 and passed every layer). The
@@ -3638,9 +3652,18 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'the first rule also names every view, materialized view and foreign table in app and private (A1 R2 d05b, d06; Q0 Q-2 T07)');
   assert.match(m.PINNED_GRANT_PROBE_SQL, /select string_agg\(r\.rolname::text, ', ' order by r\.rolname\) into offending\n\s+from pg_catalog\.pg_roles r\n\s+where r\.rolsuper and r\.rolname <> session_user;\n  if offending is not null then\n    raise exception 'superuser role\(s\) other than the migration owner/,
     'no superuser but the migration owner, whom the role set leaves out (A1 R1 d01; Q0 G18, Q-5)');
-  assert.match(m.PINNED_GRANT_PROBE_SQL, /with recursive reach\(member, roleid\) as \(\n\s+select r\.rolname::text, m\.roleid\n\s+from pg_catalog\.pg_roles r join pg_catalog\.pg_auth_members m on m\.member = r\.oid\n\s+where not r\.rolsuper and r\.rolname !~ '\^pg_'\n\s+union\n\s+select reach\.member, m\.roleid\n\s+from reach join pg_catalog\.pg_auth_members m on m\.member = reach\.roleid\n\s+\)[\s\S]*?where not \(x = any \(array\[\]::text\[\]\)\);\n  if offending is not null then\n    raise exception 'role membership\(s\) of a non-superuser role not pinned/,
-    'every non-superuser, non-pg_* role\'s memberships, recursively and whatever the option, none pinned (A1 R1 d03, d04b; Q0 G17, Q-1)');
-  assert.deepEqual(m.PINNED_ROLE_MEMBERSHIPS, [], 'no non-superuser role is a member of another, measured in batch 170\'s review round');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /with recursive reach\(member, roleid\) as \(\n\s+select r\.rolname::text, m\.roleid\n\s+from pg_catalog\.pg_roles r join pg_catalog\.pg_auth_members m on m\.member = r\.oid\n\s+where not r\.rolsuper and r\.rolname !~ '\^pg_'\n\s+union\n\s+select reach\.member, m\.roleid\n\s+from reach join pg_catalog\.pg_auth_members m on m\.member = reach\.roleid\n\s+\)\n  select string_agg\(x, ', ' order by x\) into offending from \(\n    select distinct format\('%s -> %s', reach\.member, pg_catalog\.pg_get_userbyid\(reach\.roleid\)\) as x from reach\n  \) f\n   where not \(x = any \(array\['app_worker_login -> app_worker'\]::text\[\]\)\);\n  if offending is not null then\n    raise exception 'role membership\(s\) of a non-superuser role not pinned/,
+    'every non-superuser, non-pg_* role\'s memberships, recursively and whatever the option, exactly the pinned (A1 R1 d03, d04b; Q0 G17, Q-1); the select and the filter anchored whole, with nothing between the CTE and the filter (batch 173; Q0 R-1 on 170-assert: a condition inside a `[\\s\\S]*?` gap passed)');
+  assert.deepEqual(m.PINNED_ROLE_MEMBERSHIPS, ['app_worker_login -> app_worker'],
+    'exactly one non-superuser membership: the worker\'s login role in app_worker (batch 173, RFC-2026-028 §3.1, §3.6), measured on the clean set through 173');
+  // RULE 4b (batch 173; Q-028-10, RFC-2026-028 §5/2): every DIRECT membership row of a non-superuser role, per row,
+  // with its three options, exactly the pinned rows, each once.
+  assert.deepEqual(m.PINNED_ROLE_MEMBERSHIP_OPTIONS, ['app_worker_login -> app_worker (admin false, inherit false, set true)'],
+    'the pinned membership pinned with its three options: INHERIT FALSE, SET TRUE, ADMIN FALSE');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /with direct as \(\n\s+select format\('%s -> %s \(admin %s, inherit %s, set %s\)', r\.rolname, pg_catalog\.pg_get_userbyid\(m\.roleid\),\n\s+m\.admin_option::text, m\.inherit_option::text, m\.set_option::text\) as g\n\s+from pg_catalog\.pg_roles r join pg_catalog\.pg_auth_members m on m\.member = r\.oid\n\s+where not r\.rolsuper and r\.rolname !~ '\^pg_'\n\s+\)\n/,
+    'rule 4b reads every direct row of every non-superuser, non-pg_* member, with no filter on the role or the options');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /select 'unlisted: ' \|\| d\.g as x from direct d where not[\s\S]*?select 'missing: ' \|\| p\.g from unnest[\s\S]*?select 'more than one row: ' \|\| d\.g from direct d group by d\.g having count\(\*\) > 1\n  \) f;\n  if offending is not null then\n    raise exception 'role membership row\(s\) of a non-superuser role not exactly their pinned options, read per row/,
+    'rule 4b names an unlisted row, a missing pin and a second row for the same membership (A1R-1: per row, not per member)');
   // The owed-tooling batch (A1 S1, Q0 R-2, A1 S3 on batch 170-assert's re-check): the schemas' owner and every
   // non-superuser role's USAGE and CREATE on them (rule 7), and every non-superuser role's attributes and every
   // default privilege entry (rule 8).
@@ -3651,9 +3674,17 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.deepEqual(m.PINNED_SCHEMA_PRIVILEGES, ['app_authz USAGE on app', 'app_command USAGE on app', 'app_worker USAGE on app', 'authenticated USAGE on app'], 'measured on the clean set through 172: USAGE on app for four roles (batch 141 gave app_command its USAGE, RFC-2026-023 §5, A1 F5), nothing on private, no CREATE');
   assert.match(m.PINNED_GRANT_PROBE_SQL, /\(values \('rolbypassrls', r\.rolbypassrls\), \('rolcanlogin', r\.rolcanlogin\), \('rolcreatedb', r\.rolcreatedb\),\n\s+\('rolcreaterole', r\.rolcreaterole\), \('rolinherit', r\.rolinherit\), \('rolreplication', r\.rolreplication\)\) as a\(a, v\)\n\s+where not r\.rolsuper and r\.rolname !~ '\^pg_' and a\.v/,
     'rule 8: the six attributes of every non-superuser, non-pg_* role, each pinned false (Q0 R-2, A1 S3: app_worker BYPASSRLS was held by rls-smoke alone)');
+  // Batch 173 (RFC-2026-028 §3.6's eighth-rule row): exactly one attribute admitted, read both ways.
+  assert.deepEqual(m.PINNED_ROLE_ATTRIBUTES, ['app_worker_login rolcanlogin'], 'the login role\'s LOGIN, and nothing else, admitted by rule 8');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /where not r\.rolsuper and r\.rolname !~ '\^pg_' and a\.v\n\s+and not \(format\('%s %s', r\.rolname, a\.a\) = any \(array\['app_worker_login rolcanlogin'\]::text\[\]\)\)\n\s+union all\n\s+select 'missing: ' \|\| p\.g from unnest\(array\['app_worker_login rolcanlogin'\]::text\[\]\) as p\(g\)\n/,
+    'rule 8 excepts exactly the pinned attribute, by role and attribute together, and names it when it no longer holds');
+  // RULE 9 (batch 173; RFC-2026-028 §3.3, §5/5's live half): no stored credential for a non-superuser role on a
+  // migrate-clean cluster, read from pg_authid by the superuser that runs the probe (never by a migration).
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /select string_agg\(a\.rolname::text, ', ' order by a\.rolname\) into offending\n\s+from pg_catalog\.pg_authid a\n\s+where not a\.rolsuper and a\.rolname !~ '\^pg_' and a\.rolpassword is not null;\n  if offending is not null then\n    raise exception 'a non-superuser role holds a stored credential on a migrate-clean cluster/,
+    'rule 9: every non-superuser, non-pg_* role, its stored credential null');
   assert.match(m.PINNED_GRANT_PROBE_SQL, /from pg_catalog\.pg_default_acl d left join pg_catalog\.pg_namespace n on n\.oid = d\.defaclnamespace\n\s+\) d;\n  if offending is not null then\n    raise exception 'a non-superuser role holds an attribute pinned false, or a default privilege entry exists/,
     'rule 8: and no default privilege entry at all, whoever it grants to (A1 S3)');
-  assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'missing: ' \|\| p\.g/g) ?? []).length, 3, 'and a missing one, at both levels and on a schema');
+  assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'missing: ' \|\| p\.g/g) ?? []).length, 5, 'and a missing one, at both levels, on a schema, and (batch 173) a membership row and an attribute');
   // EVERY TABLE AND EVERY ROLE, AS DATA (the batch 170 draft; plan (a)). The pinned list is the lint file,
   // one entry per table, and its tables are exactly the tables the migrations create in app and private.
   {
@@ -5712,4 +5743,183 @@ test('the §11.4 purge order is a topological order of the foreign keys the migr
     assert.deepEqual([c.child_behaviour, c.parent_behaviour], [beh.get(c.child), beh.get(c.parent)], `${c.fk}: the behaviours are the map's`);
   }
   assert.ok(conflicts.length >= 1, 'measured 12 at 75c9274; the finding is F160-14');
+});
+
+// BATCH 173 (migration 173; RFC-2026-028, approved 2026-10-05): the worker's login identity. Three tests: the migration
+// and the static credential rule (§3.1, §3.3/1, §4/1, §5/5); the snapshot lint where the probes never run (§3.6's last
+// row, §5/14); and the rls-smoke harness that logs in as the role (§3.3/3, §5/7-10, §5/12-13), driven by a fake.
+test('batch 173: the worker\'s login role is created with no credential and its block reads each membership row, and no fed source carries a credential', async () => {
+  const m = await import('../../scripts/db/run.mjs');
+  const name = '173_worker_login_identity.sql';
+  const sql = await readFile(`db/foundation/migrations/${name}`, 'utf8');
+  const statements = canonicalStatements(sql.replace(SQL_LINE_COMMENTS, '')).filter((s) => s.depth === 0).map((s) => s.text);
+  // EXACTLY these top-level statements, in this order (RFC-2026-028 §3.1, A1R-1's remedy first).
+  assert.deepEqual(statements.slice(0, 3), [
+    "set local createrole_self_grant = ''",
+    'create role app_worker_login with login nosuperuser nobypassrls noinherit nocreatedb nocreaterole noreplication password null',
+    'grant app_worker to app_worker_login with inherit false , set true , admin false',
+  ], 'createrole_self_grant emptied before the role is created; LOGIN and every other attribute stated false; one membership, all three options stated');
+  assert.equal(statements.length, 5, 'and nothing else: the comment on the role and the one apply-time block');
+  assert.match(statements[3], /^comment on role app_worker_login is ''/);
+  assert.match(statements[4], /^do ''$/);
+  const [block] = m.applyTimeBlocks(name, sql);
+  assert.ok(block, 'one apply-time block, re-run by the post-migrate pass');
+  assert.doesNotMatch(block.sql, /pg_authid\b(?!'::)/, 'the block never reads the credential table (020\'s rule; it names its class only to read pg_shdepend)');
+  assert.match(block.sql, /from pg_catalog\.pg_auth_members m where m\.member = login_oid/, 'memberships read per row');
+  assert.match(block.sql, /from pg_catalog\.pg_auth_members m where m\.roleid = login_oid/, 'members read per row');
+  assert.match(block.sql, /when applier_is_superuser then null\n\s+else format\('%s \(admin true, inherit false, set false\)', current_user\) end/,
+    'no member on a superuser-applied cluster; exactly the applier\'s admin row otherwise (A1R-1: createrole_self_grant\'s second row is a second row)');
+  assert.match(block.sql, /from pg_catalog\.pg_shdepend d\n\s+where d\.refclassid = 'pg_catalog\.pg_authid'::pg_catalog\.regclass and d\.refobjid = login_oid;/, 'owns nothing, named in no ACL or policy');
+  assert.match(block.sql, /where rs\.setrole = login_oid/, 'and no default setting');
+  // THE STATIC RULE, over every fed source (none carries a credential), and its drifts.
+  const fed = await m.fedSqlSources();
+  for (const path of [m.CI_SHIM, m.PREREQUISITE, m.AUTH_CONTEXT_HELPERS, `db/foundation/migrations/${name}`, 'db/foundation/invariants/171_workspace_lifecycle_visibility.1.sql', 'tests/db/identity/fixtures/140-audit-fixture.sql']) {
+    assert.ok(fed.some((f) => f.name === path), `${path} is a fed source the rule reads`);
+  }
+  assert.ok(fed.length >= 90, 'the shim, the prerequisite, every migration, replacement, helper and fixture');
+  assert.deepEqual(m.workerCredentialLint(fed), [], 'no fed source carries a credential');
+  const lint = (text) => m.workerCredentialLint([{ name: '999_drift.sql', sql: text }]);
+  assert.deepEqual(lint('create role r login password null;\n-- password \'x\' in a comment\nselect 1;'), [], 'password null and a comment are admitted');
+  assert.match(lint("alter role app_worker_login password 'drift';").join(), /999_drift\.sql line 1: a PASSWORD clause that is not PASSWORD NULL/, 'a credential set in a migration');
+  assert.match(lint("select 1;\ncreate role r login encrypted password 'x';").join(), /line 2: a PASSWORD clause/, 'ENCRYPTED PASSWORD, by line');
+  assert.match(lint("do $$ begin execute 'alter role app_worker_login password ''x'''; end $$;").join(), /a PASSWORD clause that is not PASSWORD NULL \(inside a literal or body, level 2\)/,
+    'a clause inside EXECUTE inside a DO block, two levels down');
+  assert.match(lint("select 'SCRAM-SHA-256$4096:YWJj$ZGVm:Z2hp';").join(), /shaped like a stored credential verifier/, 'a SCRAM verifier in any literal');
+  assert.match(lint(`select 'md5${'0'.repeat(32)}';`).join(), /shaped like a stored credential verifier/, 'an md5 verifier');
+  assert.match(lint('\\password app_worker_login\n').join(), /a \\password meta-command/, 'the psql meta-command');
+  assert.match(lint("select 'unterminated;").join(), /cannot classify line 1/, 'a source the lexer cannot read is refused, fail closed');
+  // AND THE TARGETS RUN IT: schema-lint over every fed source, migrate-clean before the first script, rls-smoke over what it feeds.
+  const runner = await readFile('scripts/db/run.mjs', 'utf8');
+  assert.match(runner, /if \(!files\) problems\.push\(\.\.\.workerCredentialLint\(await fedSqlSources\(\)\)\);/, 'schema-lint');
+  assert.match(await readFile('scripts/db/rls-smoke.mjs', 'utf8'), /const credentials = workerCredentialLint\(fed\.map\(\(\[name, sql\]\) => \(\{ name, sql \}\)\)\);\n\s+if \(credentials\.length\) \{/, 'rls-smoke');
+});
+
+test('batch 173: the snapshot reads the worker\'s login role per row where the probes never run, each drift a finding by name', async () => {
+  const m = await import('../../scripts/db/run.mjs');
+  const GOOD = () => ({ worker_login: {
+    role: 'app_worker_login',
+    attributes: { canlogin: true, superuser: false, inherit: false, bypassrls: false, createdb: false, createrole: false, replication: false },
+    has_password: true, connection_limit: -1,
+    memberships: [{ role: 'app_worker', admin: false, inherit: false, set: true }],
+    members: [{ member: 'postgres', admin: true, inherit: false, set: false }],
+    settings: [],
+  } });
+  assert.deepEqual(m.workerLoginSnapshotLint(GOOD(), { applied: true }), [], 'the shape §3.1 describes, applied, is clean');
+  assert.deepEqual(m.workerLoginSnapshotLint({}, { applied: false }), [], 'absent while 173 is declared not applied: nothing to read');
+  assert.match(m.workerLoginSnapshotLint({}, { applied: true }).join(), /declares 173_worker_login_identity\.sql applied but does not record app_worker_login/, 'absent once applied is a finding');
+  const finds = (mutate, pattern, label) => {
+    const c = GOOD();
+    mutate(c.worker_login);
+    const problems = m.workerLoginSnapshotLint(c, { applied: true });
+    assert.ok(problems.some((p) => pattern.test(p)), `${label}: expected ${pattern}, got ${JSON.stringify(problems)}`);
+  };
+  // RFC-2026-028 §5/14's drifts, each a fixture edit, and A1R-1's second row.
+  finds((w) => { w.attributes.inherit = true; }, /attribute inherit is true, pinned false/, 'rolinherit true');
+  finds((w) => { w.memberships.push({ role: 'app_maintenance', admin: false, inherit: false, set: true }); }, /membership row not pinned: app_maintenance/, 'a membership in app_maintenance');
+  finds((w) => { w.memberships[0].inherit = true; }, /membership row not pinned: app_worker \(admin false, inherit true, set true\)/, 'the app_worker membership with inherit true');
+  finds((w) => { w.memberships[0].inherit = true; }, /pinned membership row missing: app_worker \(admin false, inherit false, set true\)/, 'and the pinned row named missing');
+  finds((w) => { w.members.push({ member: 'authenticator', admin: false, inherit: false, set: true }); }, /member row not pinned: authenticator/, 'a member other than the migration owner\'s admin row');
+  finds((w) => { w.members[0].set = true; }, /member row not pinned: postgres \(admin true, inherit false, set true\)/, 'that admin row with set true');
+  finds((w) => { w.members.push({ member: 'postgres', admin: false, inherit: true, set: true }); }, /member row not pinned: postgres \(admin false, inherit true, set true\)/, 'createrole_self_grant\'s second row for the migration owner (A1R-1)');
+  finds((w) => { w.settings.push('role=app_worker'); }, /a default setting applies at every login: role=app_worker/, 'a pg_db_role_setting row');
+  finds((w) => { w.has_password = false; }, /can log in with no password on the instance/, 'no verifier on the provisioned instance (§3.3/4)');
+  finds((w) => { delete w.members; }, /the field members is not recorded/, 'an unmeasured field');
+  // The authenticator negative, extended by one name (RFC-2026-019 §5; §3.6's authenticator row), through catalogLint.
+  const snap = await snapshot();
+  snap.catalog.authenticator_memberships = [...snap.catalog.authenticator_memberships, 'app_worker_login'];
+  assert.ok((await catalogLint(snap)).some((p) => /^authenticator is a member of app_worker_login/.test(p)), 'authenticator granted the login role is a finding');
+  assert.ok(m.pendingMigrations(await snapshot()).includes(m.WORKER_LOGIN_MIGRATION), 'and 173 is declared not applied, so today the field is absent and read as such');
+});
+
+test('batch 173: the harness logs in as the worker with a generated credential it sets as a verifier, prints nowhere and removes', async () => {
+  const proofs = await import('../../scripts/db/authz-proofs.mjs');
+  // The verifier against an independent vector: RFC 7677's example (password "pencil", its salt, 4096 iterations)
+  // gives the server signature the RFC prints, computed from this verifier's ServerKey.
+  const { createHmac } = await import('node:crypto');
+  const v = proofs.scramVerifier('pencil', Buffer.from('W22ZaJ0SNY7soEsUEjb6gQ==', 'base64'));
+  assert.match(v, /^SCRAM-SHA-256\$4096:W22ZaJ0SNY7soEsUEjb6gQ==\$[A-Za-z0-9+/=]{44}:[A-Za-z0-9+/=]{44}$/);
+  const serverKey = Buffer.from(v.split(':').at(-1), 'base64');
+  const authMessage = 'n=user,r=rOprNGfwEbeRWgbNEkqO,r=rOprNGfwEbeRWgbNEkqO%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0,s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096,c=biws,r=rOprNGfwEbeRWgbNEkqO%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0';
+  assert.equal(createHmac('sha256', serverKey).update(authMessage).digest('base64'), '6rriTRBi23WpRR/wtup+mMhUZUn/dB5nLTJRsjl95G4=', 'RFC 7677 §3\'s server signature');
+  assert.equal(proofs.workerLoginUrl('postgresql://postgres:pw@localhost:5432/thinkbizthai_test'), 'postgresql://app_worker_login@localhost:5432/thinkbizthai_test', 'the user replaced and the password dropped');
+  assert.equal(proofs.workerTransactionStartProblem(null), null);
+  assert.equal(proofs.workerTransactionStartProblem(''), null);
+  assert.match(proofs.workerTransactionStartProblem('c4840acc-0323-5e13-b1d3-c18d7eb615cb'), /already set/, 'A1R-2: a leaked workspace refuses the next job');
+  // A FAKE DATABASE, answering as the shipped topology does (measured on 5507), and a broken one.
+  const fake = (broken = false) => {
+    const calls = { feed: [], login: [], control: [] };
+    const answer = (prelude, statement) => {
+      const local = prelude.includes('set local role app_worker;');
+      if (statement === proofs.WORKER_STATEMENT_BEFORE_SET_ROLE) return broken ? { rows: [] } : { error: { code: '42501', message: 'permission denied for schema app' } };
+      if (/^set local role /.test(statement)) return { error: { code: '42501', message: `permission denied to set role "${statement.split(' ')[3]}"` } };
+      if (/app\.close_workspace/.test(statement)) return { error: { code: '42501', message: 'permission denied for function close_workspace' } };
+      if (/current_user as u;/.test(statement)) return { rows: [{ u: 'app_worker_login' }] };
+      if (/current_user as cu, session_user as su;/.test(statement)) return { rows: [{ cu: local ? 'app_worker' : 'app_worker_login', su: 'app_worker_login' }] };
+      if (/current_user as cu;/.test(statement)) return { rows: [{ cu: prelude.includes('set role app_worker;') ? 'app_worker' : 'app_worker_login' }] };
+      if (/count\(\*\) as n/.test(statement)) return { rows: [{ t: 'app.workspaces', n: '0' }] };
+      if (/app\.workspace_id', true/.test(statement)) return { rows: [{ ws: prelude.some((p) => /, false\) as s;/.test(p)) ? 'c4840acc-0323-5e13-b1d3-c18d7eb615cb' : '' }] };
+      return { error: { code: 'XX000', message: `unexpected statement ${statement}` } };
+    };
+    const run = async ({ prelude, statement }, options) => {
+      if (options?.url) {
+        calls.login.push(options);
+        return answer(prelude, statement);
+      }
+      calls.control.push(prelude.join(' '));
+      const drift = prelude.join(' ');
+      if (/with inherit true/.test(drift)) return { rows: [] };
+      if (/grant usage on schema app/.test(drift)) return { error: { code: '42501', message: 'permission denied for table workspaces' } };
+      if (/grant app_command to app_worker_login/.test(drift)) return { rows: [] };
+      if (/create policy __proof_173_worker_reads/.test(drift)) return { rows: [{ t: 'app.workspaces', n: '2' }] };
+      return answer(prelude, statement);
+    };
+    const runOne = async (sql) => {
+      if (/pg_hba_file_rules/.test(sql)) return { rows: [{ line_number: '1', type: 'host', users: 'all', auth_method: 'trust' }] };
+      if (/has_table_privilege\('app_worker'/.test(sql)) return { rows: [{ t: 'app.workspaces' }] };
+      if (/count\(\*\) as n/.test(sql)) return { rows: [{ t: 'app.workspaces', n: '2' }] };
+      return { error: { code: 'XX000', message: 'unexpected' } };
+    };
+    const feedSql = async (sql) => { calls.feed.push(sql); return { rows: [] }; };
+    return { calls, run, runOne, feedSql };
+  };
+  const ids = { workspace: 'c4840acc-0323-5e13-b1d3-c18d7eb615cb' };
+  const ok = fake();
+  const results = await proofs.proveTheWorkerLogin(ok.run, ok.runOne, ids, { feedSql: ok.feedSql, testUrl: 'postgresql://postgres@127.0.0.1:5507/postgres', env: { PGPASSWORD: 'inherited-not-used' } });
+  assert.deepEqual(results.map((r) => [r.id, r.ok]), [['worker-login-can-only-become-app-worker', true], ['worker-login-reads-nothing-by-default', true],
+    ['worker-login-no-workspace-lingers', true], ['worker-login-authentication', true]], JSON.stringify(results.map((r) => r.detail)));
+  assert.equal(results[3].notRun, true, 'on a cluster that admits a wrong credential, §5/12 is NOT RUN, never passed');
+  assert.match(ok.calls.feed[0], /^alter role app_worker_login password 'SCRAM-SHA-256\$4096:[A-Za-z0-9+/=]+\$[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+';\n$/, 'the verifier is set, never the plaintext');
+  assert.equal(ok.calls.feed.at(-1), 'alter role app_worker_login password null;\n', 'and the role is returned to no credential');
+  const verifier = ok.calls.feed[0].split("'")[1];
+  assert.ok(results.every((r) => !`${r.transcript}${r.detail}`.includes(verifier) && !`${r.transcript}`.includes('SCRAM-SHA-256')), 'the verifier is in no transcript');
+  for (const o of ok.calls.login) {
+    assert.ok(!('PGPASSWORD' in o.env), 'an inherited PGPASSWORD is dropped');
+    assert.match(o.env.PGPASSFILE, /tbt-worker-login-[^/]+\/(pgpass|wrong\.pgpass|empty\.pgpass)$/, 'the credential reaches the login only through PGPASSFILE');
+    assert.equal(new URL(o.url).password, '', 'and never in a URL');
+  }
+  const { existsSync } = await import('node:fs');
+  assert.ok(!existsSync(ok.calls.login[0].env.PGPASSFILE), 'the password file is deleted with its directory');
+  assert.ok(ok.calls.control.every((c) => /set local session authorization app_worker_login;/.test(c)), 'every control runs as the login role inside one rolled-back transaction');
+  // Broken: the login role reads app before SET LOCAL ROLE (an inherited membership). The topology proof goes red, and
+  // the credential is still removed.
+  const bad = fake(true);
+  const red = await proofs.proveTheWorkerLogin(bad.run, bad.runOne, ids, { feedSql: bad.feedSql, testUrl: 'postgresql://postgres@127.0.0.1:5507/postgres', env: {} });
+  assert.equal(red[0].ok, false);
+  assert.match(red[0].detail, /§5\/7: expected 42501 "permission denied for schema app", saw 0 row\(s\) and no error/);
+  assert.equal(bad.calls.feed.at(-1), 'alter role app_worker_login password null;\n', 'removed when a proof fails');
+  // And when the driver throws, the finally still removes it.
+  const thrown = fake();
+  const throwing = async () => { throw new Error('driver died'); };
+  await assert.rejects(proofs.proveTheWorkerLogin(throwing, thrown.runOne, ids, { feedSql: thrown.feedSql, testUrl: 'postgresql://postgres@127.0.0.1:5507/postgres', env: {} }), /driver died/);
+  assert.equal(thrown.calls.feed.at(-1), 'alter role app_worker_login password null;\n', 'removed when the driver throws');
+  // A pg_hba line trusting the login role by name fails §5/12 (its drift), wherever it stands.
+  const trusting = fake();
+  const runOneTrusting = async (sql) => (/pg_hba_file_rules/.test(sql)
+    ? { rows: [{ line_number: '1', type: 'host', users: 'app_worker_login', auth_method: 'trust' }, { line_number: '2', type: 'host', users: 'app_worker_login', auth_method: 'scram-sha-256' }] }
+    : trusting.runOne(sql));
+  const t = await proofs.proveTheWorkerLogin(trusting.run, runOneTrusting, ids, { feedSql: trusting.feedSql, testUrl: 'postgresql://postgres@127.0.0.1:5507/postgres', env: {} });
+  assert.equal(t[3].ok, false);
+  assert.match(t[3].detail, /pg_hba line\(s\) 1 trust app_worker_login by name/);
+  // Wired: rls-smoke runs them after the isolation cases, as part of the proofs.
+  assert.match(await readFile('scripts/db/authz-proofs.mjs', 'utf8'), /\.\.\.await proveTheWorkerLogin\(run, runOne, ids\),\n\s+\];/, 'runProofs runs them');
 });

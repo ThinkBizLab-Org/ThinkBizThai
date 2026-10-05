@@ -21,7 +21,7 @@ import { readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { psqlLex } from './psql-driver.mjs';
-import { SQL_LINE_COMMENTS, keyword, lexSql } from './sql-lexer.mjs';
+import { SQL_LINE_COMMENTS, STRING_KINDS, isTrivia, keyword, lexSql, walkLevels, word } from './sql-lexer.mjs';
 import { AUDIT_PRODUCER_DRIFTS, AUDIT_PRODUCER_READ_SQL, AUDIT_PRODUCER_RULE_LABEL, AUDIT_PRODUCERS, WORKSPACES_READERS, decideAuditProducerJobs } from './audit-producer-rule.mjs';
 import { argv, env, exit, stdout, stderr, hrtime } from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -645,6 +645,14 @@ end \$\$;
 // names any not pinned, as `<role> in <database>: <name>=<value>`. Measured on the clean set at batch 129:
 // none (the shim sets none and no migration does). The platform may set some, a statement timeout for
 // example (read, not measured here); pinning those is an RFC-sized decision in the same diff as its reason.
+//
+// AND THE WORKER'S LOGIN ROLE (batch 173, migration 173; RFC-2026-028 §3.6's settings row). app_worker_login is not
+// a client role, but a default set for it applies at login in the same way, and one default defeats the whole
+// identity: `alter role app_worker_login set role = 'app_worker'` makes every session the worker from its first
+// statement, ambiently, which is what SET LOCAL ROLE per transaction exists to prevent. So the settings rule reads
+// its defaults too, pinned empty (measured on the clean set through 173: none). Its memberships and attributes are
+// the pinned grant probe's (rules 4, 4b and 8), not this probe's: it is not a member of a client role, and a client
+// role is not a member of it, which the first rule here already holds.
 export const CLIENT_ROLE_MEMBERSHIPS = [];
 export const CLIENT_ROLE_SETTINGS = [];
 export const CLIENT_ROLE_FALSE_ATTRIBUTES = ['rolbypassrls', 'rolcanlogin', 'rolcreatedb', 'rolcreaterole', 'rolinherit', 'rolreplication', 'rolsuper'];
@@ -684,11 +692,11 @@ begin
       left join pg_catalog.pg_roles r on r.oid = s.setrole
       left join pg_catalog.pg_database d on d.oid = s.setdatabase
       cross join lateral unnest(s.setconfig) as g(setting)
-     where s.setrole = 0::pg_catalog.oid or r.rolname in ('anon', 'authenticated')
+     where s.setrole = 0::pg_catalog.oid or r.rolname in ('anon', 'authenticated', 'app_worker_login')
   ) f
    where not (x = any (array[${CLIENT_ROLE_SETTINGS.map((m) => `'${m}'`).join(', ')}]::text[]));
   if offending is not null then
-    raise exception 'client role setting default(s) not pinned, each applied to every session of the role: %', offending;
+    raise exception 'client role setting default(s) not pinned, each applied to every session of the role (anon, authenticated, every role, and app_worker_login): %', offending;
   end if;
 end \$\$;
 `;
@@ -1356,7 +1364,17 @@ const pinnedGrantTables = `array[${Object.keys(PINNED_GRANTS).map((t) => `'${t}'
 // this round (the only memberships are the migration owner's in each app_* role it created, and
 // pg_monitor's own, both outside the role set). The client membership probe holds anon and authenticated
 // the same way; this one holds every other role.
-export const PINNED_ROLE_MEMBERSHIPS = [];
+//
+// Batch 173 (migration 173; RFC-2026-028 §3.6, Q-028-10 answered as A0 recommended). The first pinned membership:
+// the worker's login role in app_worker, and nothing reached through it (app_worker is a member of nothing). And
+// the rule now reads a pinned membership's OPTIONS (rule 4b): every DIRECT pg_auth_members row whose member is a
+// non-superuser, non-pg_* role, PER ROW, as `<member> -> <role> (admin <b>, inherit <b>, set <b>)`, must be
+// exactly PINNED_ROLE_MEMBERSHIP_OPTIONS, each once. Rule 4 read membership "whatever the option", so a re-grant
+// `with admin option` (or a second row from another grantor, which PostgreSQL 16+ keeps beside the first) passed
+// it; `with inherit true` was refused only one rule later, by the table-level grant rule (Q0-R5). Per row, not
+// per pair: a second row is a second membership (A1R-1).
+export const PINNED_ROLE_MEMBERSHIPS = ['app_worker_login -> app_worker'];
+export const PINNED_ROLE_MEMBERSHIP_OPTIONS = ['app_worker_login -> app_worker (admin false, inherit false, set true)'];
 // The owed-tooling batch (A1 S1, Q0 R-2 and A1 S3 on batch 170-assert's re-check). Two premises of the rules
 // above were read by no layer. (a) The schemas' OWNER: `alter schema private owner to app_command` passed every
 // layer, and a schema's owner may drop and re-create what is in it and grant USAGE on it. And no rule read a
@@ -1373,6 +1391,16 @@ export const PINNED_ROLE_MEMBERSHIPS = [];
 // Batch 141 (migration 172; RFC-2026-023 §5, A1 F5, Q0-R1): app_command's USAGE on app, without which every helper
 // call as app_command and every app_command-owned command body naming an app relation fails 42501 on the schema.
 export const PINNED_SCHEMA_PRIVILEGES = ['app_authz USAGE on app', 'app_command USAGE on app', 'app_worker USAGE on app', 'authenticated USAGE on app'];
+// Batch 173 (migration 173; RFC-2026-028 §3.6's eighth-rule row). Exactly one attribute is admitted, the worker's
+// login role's LOGIN, and it is read both ways: any other true attribute of any non-superuser role is named, and
+// the pinned one missing (the role absent, or made NOLOGIN) is named too. Every other attribute of the login role,
+// rolinherit included, is still pinned false. And a NINTH rule (RFC-2026-028 §3.3, §5/5's live half): on a
+// migrate-clean cluster no non-superuser, non-pg_* role holds a stored credential. The probe runs as the superuser
+// that applied the set, so it reads pg_authid, which a migration never does (020's rule); the static half is
+// workerCredentialLint, over every SQL source migrate-clean and rls-smoke feed. Like rules 2-4 and 7-8 it fails BY
+// DESIGN on a provisioned instance, where the operator has set the login role's verifier; the snapshot lint reads
+// that instance (workerLoginSnapshotLint).
+export const PINNED_ROLE_ATTRIBUTES = ['app_worker_login rolcanlogin'];
 export const PINNED_GRANT_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -1421,6 +1449,23 @@ begin
    where not (x = any (array[${PINNED_ROLE_MEMBERSHIPS.map((m) => `'${m}'`).join(', ')}]::text[]));
   if offending is not null then
     raise exception 'role membership(s) of a non-superuser role not pinned, which SET ROLE reaches past every privilege rule: %', offending;
+  end if;
+  with direct as (
+    select format('%s -> %s (admin %s, inherit %s, set %s)', r.rolname, pg_catalog.pg_get_userbyid(m.roleid),
+                  m.admin_option::text, m.inherit_option::text, m.set_option::text) as g
+      from pg_catalog.pg_roles r join pg_catalog.pg_auth_members m on m.member = r.oid
+     where not r.rolsuper and r.rolname !~ '^pg_'
+  )
+  select string_agg(x, ', ' order by x) into offending from (
+    select 'unlisted: ' || d.g as x from direct d where not (d.g = any (array[${PINNED_ROLE_MEMBERSHIP_OPTIONS.map((m) => `'${m}'`).join(', ')}]::text[]))
+    union all
+    select 'missing: ' || p.g from unnest(array[${PINNED_ROLE_MEMBERSHIP_OPTIONS.map((m) => `'${m}'`).join(', ')}]::text[]) as p(g)
+     where not exists (select 1 from direct d where d.g = p.g)
+    union all
+    select 'more than one row: ' || d.g from direct d group by d.g having count(*) > 1
+  ) f;
+  if offending is not null then
+    raise exception 'role membership row(s) of a non-superuser role not exactly their pinned options, read per row: %', offending;
   end if;
   with roles as (
     select rolname as r from pg_catalog.pg_roles where not rolsuper and rolname !~ '^pg_'
@@ -1478,12 +1523,25 @@ begin
       cross join lateral (values ('rolbypassrls', r.rolbypassrls), ('rolcanlogin', r.rolcanlogin), ('rolcreatedb', r.rolcreatedb),
                                  ('rolcreaterole', r.rolcreaterole), ('rolinherit', r.rolinherit), ('rolreplication', r.rolreplication)) as a(a, v)
      where not r.rolsuper and r.rolname !~ '^pg_' and a.v
+       and not (format('%s %s', r.rolname, a.a) = any (array[${PINNED_ROLE_ATTRIBUTES.map((m) => `'${m}'`).join(', ')}]::text[]))
+    union all
+    select 'missing: ' || p.g from unnest(array[${PINNED_ROLE_ATTRIBUTES.map((m) => `'${m}'`).join(', ')}]::text[]) as p(g)
+     where not exists (select 1 from pg_catalog.pg_roles r
+                        cross join lateral (values ('rolbypassrls', r.rolbypassrls), ('rolcanlogin', r.rolcanlogin), ('rolcreatedb', r.rolcreatedb),
+                                                   ('rolcreaterole', r.rolcreaterole), ('rolinherit', r.rolinherit), ('rolreplication', r.rolreplication)) as a(a, v)
+                        where not r.rolsuper and format('%s %s', r.rolname, a.a) = p.g and a.v)
     union all
     select format('default privilege entry in %s, of role %s', coalesce('schema ' || n.nspname, 'every schema'), pg_catalog.pg_get_userbyid(d.defaclrole))
       from pg_catalog.pg_default_acl d left join pg_catalog.pg_namespace n on n.oid = d.defaclnamespace
   ) d;
   if offending is not null then
     raise exception 'a non-superuser role holds an attribute pinned false, or a default privilege entry exists: %', offending;
+  end if;
+  select string_agg(a.rolname::text, ', ' order by a.rolname) into offending
+    from pg_catalog.pg_authid a
+   where not a.rolsuper and a.rolname !~ '^pg_' and a.rolpassword is not null;
+  if offending is not null then
+    raise exception 'a non-superuser role holds a stored credential on a migrate-clean cluster, which no fed source may set: %', offending;
   end if;
 end \$\$;
 `;
@@ -2137,22 +2195,26 @@ export const CATALOG_RULE_PROBES = [
         'unlisted: authenticated CREATE on schema information_schema', 'unlisted: authenticated CREATE on database', 'unlisted: authenticated CREATE on database template1'] }] },
   // Batch 128 (Q0 N2, A1 N3 on 127's re-check): what a client role may become.
   { label: 'client membership probe', sql: CLIENT_MEMBERSHIP_PROBE_SQL,
-    claim: `anon and authenticated are members, directly or through another role, of exactly the ${CLIENT_ROLE_MEMBERSHIPS.length} pinned role(s), each has ${CLIENT_ROLE_FALSE_ATTRIBUTES.join(', ')} false, and they and every role default exactly the ${CLIENT_ROLE_SETTINGS.length} pinned setting(s)`,
+    claim: `anon and authenticated are members, directly or through another role, of exactly the ${CLIENT_ROLE_MEMBERSHIPS.length} pinned role(s), each has ${CLIENT_ROLE_FALSE_ATTRIBUTES.join(', ')} false, and they, every role and the worker's login role default exactly the ${CLIENT_ROLE_SETTINGS.length} pinned setting(s)`,
     // Q0 R0 and A1 V14d (superuser by SET ROLE), and a membership two roles deep, with no INHERIT. The
     // superuser is a role of the drift's own, not `postgres`: the driver redacts the connection's user
     // name from stderr, so a refusal naming `postgres` could not be tied to its object (measured).
     selfTests: [
-      { drift: 'create role probe_member_super superuser nologin; grant probe_member_super to authenticated; create role probe_member_mid nologin; create role probe_member_top nologin; grant probe_member_top to probe_member_mid; grant probe_member_mid to anon with inherit false;',
+    // Batch 173 (RFC-2026-028 §5/3): and the worker's login role granted to a client, which reaches app_worker through it.
+      { drift: 'create role probe_member_super superuser nologin; grant probe_member_super to authenticated; create role probe_member_mid nologin; create role probe_member_top nologin; grant probe_member_top to probe_member_mid; grant probe_member_mid to anon with inherit false; grant app_worker_login to authenticated with inherit false, set true;',
       raises: 'client role(s) members of a role not pinned',
-      names: ['authenticated -> probe_member_super', 'anon -> probe_member_mid', 'anon -> probe_member_top'] },
+      names: ['authenticated -> probe_member_super', 'anon -> probe_member_mid', 'anon -> probe_member_top', 'authenticated -> app_worker_login', 'authenticated -> app_worker'] },
       // Batch 129 (A1 R2, C0 F3 and X6 on 128's re-check): bypassrls, and two more attributes on the other role.
       { drift: 'alter role authenticated bypassrls; alter role anon inherit createdb;',
         raises: 'client role attribute(s) not their pinned value',
         names: ['authenticated rolbypassrls = true', 'anon rolcreatedb = true', 'anon rolinherit = true'] },
       // Batch 129's review round (A1 R2): a client role's search_path, and a default for every role in one database.
-      { drift: "alter role authenticated set search_path = public, app; alter role all in database template1 set work_mem = '64kB';",
+      // Batch 173 (RFC-2026-028 §3.6, §5/4): and the worker's login role given a session-level role at login, which would
+      // defeat SET LOCAL ROLE, and a search_path in one database.
+      { drift: "alter role authenticated set search_path = public, app; alter role all in database template1 set work_mem = '64kB'; alter role app_worker_login set role = 'app_worker'; alter role app_worker_login in database template1 set search_path = app;",
         raises: 'client role setting default(s) not pinned',
-        names: ['authenticated in every database: search_path=public, app', 'every role in database template1: work_mem=64kB'] },
+        names: ['authenticated in every database: search_path=public, app', 'every role in database template1: work_mem=64kB',
+          'app_worker_login in every database: role=app_worker', 'app_worker_login in database template1: search_path=app'] },
     ] },
   // Batch 129 (C0 G1, Q0 F1 on 128's re-check): what initdb made, redefined or re-granted in place. One rule,
   // one drift with the three shapes the re-checks named: a view replaced, a function made SECURITY DEFINER,
@@ -2265,7 +2327,7 @@ export const CATALOG_RULE_PROBES = [
   // Batch 126, from batch 091's third round (C0 H1, A1 R1 and R3); every table and every role since the
   // batch 170 draft, with the table-list rule first.
   { label: 'pinned grant probe', sql: PINNED_GRANT_PROBE_SQL,
-    claim: `the ${Object.keys(PINNED_GRANTS).length} tables in app and private are exactly the pinned list and no other relation is there, each owned by a superuser, no superuser but the migration owner exists, every non-superuser role is a member of exactly the ${PINNED_ROLE_MEMBERSHIPS.length} pinned role(s), and every non-superuser role's privileges on them are exactly the ${pinnedGrantRows('table').length} table-level and ${pinnedGrantRows('column').length} column-level grants pinned in ${PINNED_GRANTS_FILE}, none with grant option; app and private are owned by the migration owner and every non-superuser role's USAGE and CREATE on them are exactly the ${PINNED_SCHEMA_PRIVILEGES.length} pinned; and no non-superuser role holds BYPASSRLS, LOGIN, CREATEDB, CREATEROLE, INHERIT or REPLICATION, and no default privilege entry exists`,
+    claim: `the ${Object.keys(PINNED_GRANTS).length} tables in app and private are exactly the pinned list and no other relation is there, each owned by a superuser, no superuser but the migration owner exists, every non-superuser role is a member of exactly the ${PINNED_ROLE_MEMBERSHIPS.length} pinned role(s) (${PINNED_ROLE_MEMBERSHIPS.join(', ')}), each direct membership row exactly its pinned options, and every non-superuser role's privileges on them are exactly the ${pinnedGrantRows('table').length} table-level and ${pinnedGrantRows('column').length} column-level grants pinned in ${PINNED_GRANTS_FILE}, none with grant option; app and private are owned by the migration owner and every non-superuser role's USAGE and CREATE on them are exactly the ${PINNED_SCHEMA_PRIVILEGES.length} pinned; and no non-superuser role holds BYPASSRLS, LOGIN, CREATEDB, CREATEROLE, INHERIT or REPLICATION but the ${PINNED_ROLE_ATTRIBUTES.length} pinned (${PINNED_ROLE_ATTRIBUTES.join(', ')}), no default privilege entry exists, and no non-superuser role holds a stored credential`,
     selfTests: [
       // The batch 170 draft: a table no entry names, in each schema, and a pinned one renamed away. Since
       // its review round (A1 R2, Q0 Q-2), a materialized view in app over a SECRET-4 table and a definer
@@ -2285,9 +2347,19 @@ export const CATALOG_RULE_PROBES = [
         names: ['probe_pinned_super', 'app_command'] },
       // Batch 170's review round (A1 R1 d03, d04b; Q0 G17 and Q-1): a role granted to a NOINHERIT role,
       // a membership two roles deep, and a predefined role granted to a service role.
-      { drift: 'grant app_worker to app_command; create role probe_pinned_mid nologin noinherit; grant probe_pinned_mid to app_maintenance; grant app_authz to probe_pinned_mid; grant pg_monitor to service_role;',
+      // Batch 173 (RFC-2026-028 §5/2-3; and Q0 R-1 on batch 170-assert's re-check, owed since: no self-test
+      // membership had app_worker as the MEMBER, so a filter on `reach.member <> 'app_worker'` passed every layer):
+      // a role granted to app_worker, reached by the login role through it; the login role granted another service
+      // role; and the login role granted to a service role, which reaches app_worker through it.
+      { drift: 'grant app_worker to app_command; create role probe_pinned_mid nologin noinherit; grant probe_pinned_mid to app_maintenance; grant app_authz to probe_pinned_mid; grant pg_monitor to service_role; grant app_authz to app_worker; grant app_command to app_worker_login; grant app_worker_login to app_maintenance;',
         raises: 'role membership(s) of a non-superuser role not pinned',
-        names: ['app_command -> app_worker', 'app_maintenance -> probe_pinned_mid', 'app_maintenance -> app_authz', 'probe_pinned_mid -> app_authz', 'service_role -> pg_monitor'] },
+        names: ['app_command -> app_worker', 'app_maintenance -> probe_pinned_mid', 'app_maintenance -> app_authz', 'probe_pinned_mid -> app_authz', 'service_role -> pg_monitor',
+          'app_worker -> app_authz', 'app_worker_login -> app_authz', 'app_worker_login -> app_command', 'app_maintenance -> app_worker_login', 'app_maintenance -> app_worker'] },
+      // Batch 173 (Q-028-10, RFC-2026-028 §5/2): the pinned membership re-granted with the admin option and with
+      // inheritance, which rule 4 (membership whatever the option) passed; rule 4b names the row and the missing pin.
+      { drift: 'grant app_worker to app_worker_login with admin option, inherit true;',
+        raises: 'role membership row(s) of a non-superuser role not exactly their pinned options, read per row',
+        names: ['unlisted: app_worker_login -> app_worker (admin true, inherit true, set true)', 'missing: app_worker_login -> app_worker (admin false, inherit false, set true)'] },
       // A1's R1, and the grant option (C0 F3, A1 F3, Q0 F7 on batch 126). Since the batch 170 draft, a
       // privilege for a role no rule read (app_maintenance) on a table outside 091's two, and one revoked.
       { drift: 'grant truncate on app.content_schedules to authenticated with grant option; grant delete on app.audit_logs to app_maintenance; revoke select on app.ai_models from app_worker;',
@@ -2310,9 +2382,17 @@ export const CATALOG_RULE_PROBES = [
         names: ['schema private owned by app_command', 'unlisted: app_worker CREATE on app', 'unlisted: service_role USAGE WITH GRANT OPTION on private', 'missing: app_worker USAGE on app'] },
       // The owed-tooling batch (Q0 R-2, A1 S3 on batch 170-assert's re-check): the worker bypassing RLS, a
       // command role that inherits and creates roles, and a default privilege for the worker.
-      { drift: 'alter role app_worker bypassrls; alter role app_command inherit createrole; alter role app_maintenance login replication createdb; alter default privileges in schema app grant select on tables to app_worker;',
+      // Batch 173 (RFC-2026-028 §3.6's eighth-rule row, §5/4): the login role's one pinned attribute read both ways (made
+      // NOLOGIN, it is named missing), and a default privilege FOR the login role is an entry like any other. Its other
+      // attributes made true (inherit, bypassrls) were measured refused on migrate-clean as appended drifts (plan §3).
+      { drift: 'alter role app_worker bypassrls; alter role app_command inherit createrole; alter role app_maintenance login replication createdb; alter default privileges in schema app grant select on tables to app_worker; alter role app_worker_login nologin; alter default privileges for role app_worker grant select on tables to app_worker_login;',
         raises: 'a non-superuser role holds an attribute pinned false, or a default privilege entry exists',
-        names: ['app_worker rolbypassrls', 'app_command rolinherit', 'app_command rolcreaterole', 'app_maintenance rolcanlogin', 'app_maintenance rolreplication', 'app_maintenance rolcreatedb', 'default privilege entry in schema app'] },
+        names: ['app_worker rolbypassrls', 'app_command rolinherit', 'app_command rolcreaterole', 'app_maintenance rolcanlogin', 'app_maintenance rolreplication', 'app_maintenance rolcreatedb', 'default privilege entry in schema app',
+          'missing: app_worker_login rolcanlogin', 'default privilege entry in every schema, of role app_worker'] },
+      // Batch 173 (RFC-2026-028 §3.3, §5/5's live half): a credential set for the login role, as a migration would.
+      { drift: "alter role app_worker_login password 'probe-not-a-credential';",
+        raises: 'a non-superuser role holds a stored credential on a migrate-clean cluster',
+        names: ['app_worker_login'] },
     ] },
   // The batch 170 draft (RFC-2026-021 §8.2, §8.5): the read allowlist, both ways.
   { label: 'read allowlist probe', sql: READ_ALLOWLIST_PROBE_SQL,
@@ -2860,7 +2940,65 @@ export async function schemaLint(files) {
     }
   }
   problems.push(...identityExpressionLint(all));
+  // Batch 173 (RFC-2026-028 §3.3/1, §5/5): no fed source carries a credential. Over EVERY SQL source a target or CI
+  // feeds when called as the target (no files given), not only the migrations; a caller's own files are its own.
+  if (!files) problems.push(...workerCredentialLint(await fedSqlSources()));
   return problems;
+}
+
+// THE WORKER'S CREDENTIAL IS IN NO FED SOURCE (batch 173, migration 173; RFC-2026-028 §3.3/1 and §5/5, credential
+// custody). The login role is created with no credential and is inert until an operator sets a verifier out of
+// band; the rls-smoke harness sets a generated test one at run time and removes it. So no SQL source this
+// repository feeds a database -- the CI shim, the prerequisite, every migration, every superseded block's
+// replacement, the test helpers and every fixture -- may carry a PASSWORD clause but `password null`, a SCRAM or
+// md5 verifier in any literal, or a `\password` meta-command, for app_worker_login or any other role. Read through
+// the repository's lexer at EVERY level (a literal or dollar body EXECUTE or a DO block would run is read as SQL
+// too), so a clause hidden in `execute 'alter role ... password ...'` is found, and a comment that mentions one is
+// not. A source the lexer cannot classify at its top level is refused (fail closed). What it cannot see: a clause
+// COMPUTED at run time (format(), a concatenation), which the pinned grant probe's ninth rule holds live on every
+// migrate-clean cluster (no non-superuser role holds a stored credential there). A pure function over (name, sql).
+export const WORKER_LOGIN_ROLE = 'app_worker_login';
+export const CI_SHIM = 'db/foundation/ci/supabase-shim.sql';
+export const AUTH_CONTEXT_HELPERS = 'db/foundation/test-helpers/auth-context.sql';
+const VERIFIER_SHAPE = /SCRAM-SHA-256\$\d+:|\bmd5[0-9a-f]{32}\b/i;
+export function workerCredentialLint(sources) {
+  const problems = [];
+  for (const { name, sql } of sources) {
+    const text = String(sql);
+    const lineOf = (pos) => text.slice(0, pos).split('\n').length;
+    walkLevels(text, ({ tokens, refusals, depth, at }) => {
+      if (depth === 0 && refusals.length) {
+        problems.push(`${name}: the SQL lexer cannot classify line ${refusals[0].line} (${refusals[0].reason}), so no credential clause in it can be ruled out`);
+        return;
+      }
+      const sig = tokens.filter((t) => !isTrivia(t));
+      sig.forEach((t, k) => {
+        const line = lineOf(at === null ? t.start : at);
+        if (word(t) === 'password' && keyword(sig[k + 1]) !== 'null') {
+          problems.push(`${name} line ${line}: a PASSWORD clause that is not PASSWORD NULL${depth ? ` (inside a literal or body, level ${depth})` : ''} -- no fed source sets a credential (RFC-2026-028 §3.3/1)`);
+        }
+        if (t.kind === 'meta' && /^\\password\b/i.test(t.text ?? '')) {
+          problems.push(`${name} line ${line}: a \\password meta-command -- no fed source sets a credential (RFC-2026-028 §3.3/1)`);
+        }
+        if (STRING_KINDS.includes(t.kind) && VERIFIER_SHAPE.test(String(t.value ?? t.text ?? ''))) {
+          problems.push(`${name} line ${line}: a literal shaped like a stored credential verifier (SCRAM-SHA-256 or md5) -- no fed source carries one (RFC-2026-028 §3.3/1)`);
+        }
+      });
+    }, { psql: true, beyond: ({ at }) => problems.push(`${name} line ${lineOf(at)}: literals nested deeper than the lexer reads, so no credential clause in them can be ruled out`) });
+  }
+  return problems;
+}
+
+// Every SQL source a target or CI feeds a database, in no particular order: the CI shim, the prerequisite, every
+// migration, every superseded block's replacement, the auth-context helpers and every rls-smoke fixture.
+export async function fedSqlSources() {
+  const { FIXTURE_SQL_FILES } = await import('../../tests/db/identity/run-isolation.mjs');
+  const replacements = (await readdir(INVARIANTS)).filter((n) => n.endsWith('.sql')).sort().map((n) => join(INVARIANTS, n));
+  const paths = [CI_SHIM, PREREQUISITE, ...replacements, AUTH_CONTEXT_HELPERS, ...FIXTURE_SQL_FILES];
+  const out = [];
+  for (const path of paths) out.push({ name: path, sql: await readFile(path, 'utf8') });
+  for (const f of await migrationFiles()) out.push({ name: join(MIGRATIONS, f.name), sql: f.sql });
+  return out;
 }
 
 // RFC-2026-020 §6.1/7, the half of it that is decidable from migration TEXT.
@@ -3554,6 +3692,57 @@ export async function servicePolicyMapCheck(mapPath = SERVICE_POLICY_MAP, files)
   return servicePolicyMapLint(map, await tablesCreatedByMigrations(files));
 }
 
+// THE WORKER'S LOGIN ROLE WHERE THE PROBES NEVER RUN (batch 173; RFC-2026-028 §3.6's last row, §5/14, A1 F2 and
+// A1R-1). The fourth, eighth and settings rules run on migrate-clean clusters only; on the provisioned instance an
+// operator's `grant app_maintenance to app_worker_login`, `alter role ... inherit` or `alter role ... set role =
+// 'app_worker'` would be read by nothing. So the snapshot carries the login role as `worker_login` -- its attributes,
+// its memberships and its members each with their three options, PER pg_auth_members ROW, its pg_db_role_setting
+// rows, whether a verifier is stored, and its connection limit -- and this lint asserts §3.1 against it: exactly one
+// membership (app_worker, admin false, inherit false, set true); exactly one member row, the migration owner's
+// CREATE ROLE admin row (admin true, inherit false, set false), so createrole_self_grant's second row is a finding
+// (A1R-1); no setting; every attribute but LOGIN false; and, once the snapshot declares 173 applied, a stored
+// verifier (§3.3/4: on the instance a login role with none is an operator step not taken). The connection limit is
+// recorded and not pinned: Q-028-11's number is the worker pool's size, which no decision has fixed
+// (open_blockers[201] (4)). While 173 is declared not applied the field may be absent; once it is applied, absent
+// is a finding, because an unmeasured property must not read as a passing one. The custody runbook re-takes the
+// snapshot after each credential change (RFC-2026-028 §3.3/2); that runbook is the Integration Owner's, owed.
+export const WORKER_LOGIN_MIGRATION = '173_worker_login_identity.sql';
+export const INSTANCE_MIGRATION_OWNER = 'postgres';
+export const WORKER_LOGIN_SNAPSHOT_FIELDS = ['role', 'attributes', 'has_password', 'connection_limit', 'memberships', 'members', 'settings'];
+export function workerLoginSnapshotLint(c, { applied }) {
+  const w = c?.worker_login;
+  if (w === undefined) {
+    return applied ? [`the snapshot declares ${WORKER_LOGIN_MIGRATION} applied but does not record ${WORKER_LOGIN_ROLE} (RFC-2026-028 §3.6: `
+      + 'its attributes, its memberships and members with their options, its settings and its connection limit), so §3.1 cannot be '
+      + 'checked on the instance, and an unmeasured property must not read as a passing one'] : [];
+  }
+  const problems = [];
+  const where = `${WORKER_LOGIN_ROLE} (snapshot)`;
+  for (const field of WORKER_LOGIN_SNAPSHOT_FIELDS) if (!(field in (w ?? {}))) problems.push(`${where}: the field ${field} is not recorded, and an unmeasured property must not read as a passing one`);
+  if (w?.role !== WORKER_LOGIN_ROLE) problems.push(`${where}: names the role ${JSON.stringify(w?.role)}`);
+  const want = { canlogin: true, superuser: false, inherit: false, bypassrls: false, createdb: false, createrole: false, replication: false };
+  for (const [k, v] of Object.entries(want)) {
+    if (w?.attributes?.[k] !== v) problems.push(`${where}: attribute ${k} is ${JSON.stringify(w?.attributes?.[k])}, pinned ${v} (RFC-2026-028 §3.1)`);
+  }
+  if (applied && w?.has_password !== true) problems.push(`${where}: can log in with no password on the instance (RFC-2026-028 §3.3/4): the operator's verifier is not set`);
+  if ('connection_limit' in (w ?? {}) && !Number.isInteger(w.connection_limit)) problems.push(`${where}: connection_limit ${JSON.stringify(w.connection_limit)} is not a number`);
+  const exactRows = (label, rows, key, pinned) => {
+    if (!Array.isArray(rows)) { problems.push(`${where}: ${label} are not recorded as a list of rows`); return; }
+    const found = rows.map((r) => `${r?.[key]} (admin ${r?.admin}, inherit ${r?.inherit}, set ${r?.set})`);
+    const left = [...pinned];
+    for (const f of found) {
+      const i = left.indexOf(f);
+      if (i >= 0) left.splice(i, 1); else problems.push(`${where}: ${label.replace(/s$/, '')} row not pinned: ${f}`);
+    }
+    for (const m of left) problems.push(`${where}: pinned ${label.replace(/s$/, '')} row missing: ${m}`);
+  };
+  exactRows('memberships', w?.memberships, 'role', ['app_worker (admin false, inherit false, set true)']);
+  exactRows('members', w?.members, 'member', [`${INSTANCE_MIGRATION_OWNER} (admin true, inherit false, set false)`]);
+  if (!Array.isArray(w?.settings)) problems.push(`${where}: settings are not recorded as a list`);
+  else for (const setting of w.settings) problems.push(`${where}: a default setting applies at every login: ${setting} (RFC-2026-028 §3.6)`);
+  return problems;
+}
+
 export async function catalogLint(snapshot, digest, exemptions) {
   const problems = [];
   const snap = snapshot ?? JSON.parse(await readFile(SNAPSHOT, 'utf8'));
@@ -3758,7 +3947,8 @@ export async function catalogLint(snapshot, digest, exemptions) {
   // and a negative is the strongest thing a lint can hold: nobody has to remember it, and a later
   // grant fails the build until an RFC changes the decision. RFC-2026-018 proposed the opposite and
   // would have made this rule impossible to write.
-  const SERVICE_ROLES_NOT_FOR_THE_REQUEST_PATH = ['app_worker', 'app_command', 'app_maintenance'];
+  // Batch 173 (RFC-2026-028 §3.6's authenticator row): and the worker's login role, extending §5's negative by one name.
+  const SERVICE_ROLES_NOT_FOR_THE_REQUEST_PATH = ['app_worker', 'app_command', 'app_maintenance', WORKER_LOGIN_ROLE];
   if (c.authenticator_memberships === undefined) {
     problems.push('the snapshot does not record what authenticator is a member of, so RFC-2026-019 §4/1 '
       + 'cannot be checked — and an unmeasured property must not read as a passing one');
@@ -3770,6 +3960,9 @@ export async function catalogLint(snapshot, digest, exemptions) {
         + 'which skips the function entirely.');
     }
   }
+
+  // Batch 173: the worker's login role, read where the probes never run (workerLoginSnapshotLint, above).
+  problems.push(...workerLoginSnapshotLint(c, { applied: !pending.has(WORKER_LOGIN_MIGRATION) }));
 
   // RFC-2026-017 §3's ownership rule moved into `tenantTableLint`, several hundred lines up, with
   // the rest of the per-table rules. It used to be a second loop over the same list here, which is
@@ -3943,6 +4136,9 @@ async function runLive(target) {
     const steps = await migrateCleanSteps();
     const meta = metaCommandFindings([{ name: 'the system object fingerprint', sql: SYSTEM_FINGERPRINT_SNAPSHOT_SQL }, ...steps]);
     if (meta.length) { for (const m of meta) stderr.write(`  ${m}\n`); return 1; }
+    // Batch 173 (RFC-2026-028 §3.3/1, §5/5): no source this target feeds carries a credential, checked before the first.
+    const credentials = workerCredentialLint(await fedSqlSources());
+    if (credentials.length) { for (const c of credentials) stderr.write(`  ${c}\n`); return 1; }
     // THE SYSTEM OBJECT FINGERPRINT (batch 129; C0 G1, Q0 F1 on 128's re-check), taken BEFORE the
     // prerequisite and the first migration, on the database as initdb and the shim left it, and sealed:
     // the seal read again after the last migration must be the same. The seal alone pins one query's answer,

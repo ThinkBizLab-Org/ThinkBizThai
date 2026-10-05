@@ -87,8 +87,10 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // (2026-10-03, no migration): the retention map, the §11.1 export manifest fixture and the §11.4 purge order,
 // three tests: 77 to 80. The sql-lexer batch (2026-10-04, no migration): one test, the one lexer's golden corpus,
 // fail-closed refusals and measured statement split: 80 to 81. Batch 141 (2026-10-05, migration 172): one test,
-// the closing command's succeeded row tied to its CTR-AUD-001 conformance fixture: 81 to 82.
-  'test-kits/db/foundation-contract.test.mjs': 82,
+// the closing command's succeeded row tied to its CTR-AUD-001 conformance fixture: 81 to 82. Batch 173 (2026-10-05,
+// migration 173, RFC-2026-028): three tests -- the login role's migration and the static credential rule over every
+// fed source, the snapshot lint of the login role per row, and the worker login proofs driven by a fake: 82 to 85.
+  'test-kits/db/foundation-contract.test.mjs': 85,
   'test-kits/db/rls-assertions.test.mjs': 20,
 // Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
 // -- 296 to 301 tests and 2101 to 2130 assertions -- and the assertion half moved only
@@ -308,7 +310,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
-  'test-kits/db/foundation-contract.test.mjs': '9493dc7066b86d36',
+  'test-kits/db/foundation-contract.test.mjs': 'd4851295dd024f20',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
   'tests/db/identity/identity-isolation.test.mjs': '25aa50b576c0925b',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
