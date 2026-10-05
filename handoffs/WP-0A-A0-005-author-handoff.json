@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-005",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "e1fa28ec0232ccbb4dadb5faa079df5b1579b469",
-  "head_revision_or_patch_checksum": "25cff93a8d54447e7e9dc09c62d4102cc2b5c5c4",
+  "base_revision": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
+  "head_revision_or_patch_checksum": "82071f5bc6e1c50f1ed2e875921a591455c8afcc",
   "task_ids": [
     "WP-0A-A0-005",
     "G0-step-2"

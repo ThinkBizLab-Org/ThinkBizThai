@@ -112,3 +112,16 @@ The four `required_tests` are covered by `test-kits/secret-scan.test.mjs`:
 - the full-repository scan, which exited 0.
 
 This is the Author's reading of a green suite. Independent testing has not attested it at this head.
+
+## 6. Re-run at main 8c089cc
+
+Main moved during this work: PR #185 (DB-00 batch 174) merged as `8c089cc`. It was merged into this
+branch (merge `82071f5`) with no conflict, and none of its paths belong to this package.
+
+| Command | Exit | Result |
+|---|---|---|
+| `node scripts/scan-repository-secrets.mjs` | 0 | no output |
+| `node --test test-kits/secret-scan.test.mjs` | 0 | tests 46, pass 46, fail 0, skipped 0, todo 0 |
+| `node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-005` | 0 | all 3 changed path(s) are declared, and every amendment explains one |
+
+`npm run verify` gated the commit that carries this section. Its count is recorded in the handoff.
