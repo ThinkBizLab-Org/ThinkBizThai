@@ -4,102 +4,76 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "700715ebfc986211421b440ed396f274da69395d",
-  "head_revision_or_patch_checksum": "566f52f3be2ba2d8d06db836e18a99cc33d738df",
+  "base_revision": "921efb59fafe8c0670330cb73df2a2df6589c268",
+  "head_revision_or_patch_checksum": "885d254f771cc7dadde6b6689531540f18ed4039",
   "task_ids": [],
   "files_added": [
-    "db/foundation/invariants/011_authorization_helpers.2.sql",
-    "db/foundation/invariants/021_member_scope.1.sql",
-    "db/foundation/migrations/171_workspace_lifecycle_visibility.sql",
-    "evidence/WP-0A-DB-00/a0-batch-171-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-171-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-171-security-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-171-contract-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-171-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-171.md",
-    "evidence/WP-0A-DB-00/q0-batch-171-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/q0-batch-171-test-review-2026-10-03.md"
+    "architecture/decisions/RFC-2026-028-worker-identity.md",
+    "evidence/WP-0A-DB-00/a0-batch-rfc-023-028-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-rfc-023-028-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-rfc-023-028-security-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-rfc-023-028-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-rfc-023-028-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-023-028.md",
+    "evidence/WP-0A-DB-00/q0-batch-rfc-023-028-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/q0-batch-rfc-023-028-test-review-2026-10-03.md"
   ],
   "files_modified": [
-    "architecture/decisions/RFC-2026-026-audit-row-producer.md",
-    "architecture/decisions/RFC-2026-027-lifecycle-visibility.md",
-    "db/foundation/README.md",
-    "db/foundation/TRY-IT.md",
-    "db/foundation/invariants/superseded.json",
+    "architecture/decisions/RFC-2026-023-acting-user-narrowing.md",
     "db/foundation/lint/audit-coverage-map.json",
-    "db/foundation/lint/catalog-snapshot.json",
-    "db/foundation/lint/pinned-grants.json",
-    "db/foundation/lint/read-allowlist-known-exceptions.json",
     "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/db/authz-proofs.mjs",
-    "scripts/db/explain-harness.mjs",
-    "scripts/db/run.mjs",
-    "scripts/db/try-it.mjs",
-    "scripts/test-suite-contract.mjs",
+    "scripts/verify-test-coverage-floor.mjs",
     "test-kits/branch-identity.test.mjs",
-    "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
-    "tests/db/identity/identity-isolation.test.mjs",
-    "tests/db/identity/isolation-cases.mjs",
-    "tests/db/identity/run-isolation.mjs",
+    "test-kits/repository-json.test.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "The Owner's words of 2026-10-05, `คุณตะลุยไล่ไปได้เลนไม่ต้องรอผม` / `เอาตามที่คุณแนะนำทุกอย่าง` (go ahead without waiting for me; take everything you recommend), read by A0 as a delegation of its recommendations; transcribed in evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-171.md §1. That the words reach the two approvals and the SLO ratification is A0's reading; no message of A0's naming them before the words is recorded, and the Owner's confirmation is owed (disposition §1, open_blockers[195] (e); C0 M1).",
-    "Taken through that delegation as the Owner's decisions, A0 executing them: RFC-2026-027 is in effect when migration 171 is integrated; RFC-2026-026 is not in effect until RFC-2026-023 and DATA-DEC-03 hold (its §9); the batch-150 p95 values are the Pilot budget; the migration number is 171 (Q-027-6). evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-171.md §3.",
-    "The standing delegation of evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6, under which A0 pressed the merge of #180 at its reviewed head 61a01f6 (main 700715e, bootstrap run 37235924563 green).",
-    "RFC-2026-027 §3.1-§3.3, §4, §5, §6 and §7 as merged; RFC-2026-020 §5/3 and §6.1/5-6 read with RFC-2026-027 §3.4 applied by reference."
+    "The Owner's words of 2026-10-05, `ทำต่อตามแนะนำเลย` (continue as recommended), answering A0's recommendation to draft the RFC for DATA-DEC-03 (the worker's identity) and review RFC-2026-023; transcribed in evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-023-028.md §1. A0 reads them as directing both texts, approving neither (disposition §2).",
+    "The standing merge delegation (product-owner-disposition-2026-10-03-batch-127.md §6), executed by A0 in merging #181 (921efb5, head d99d22c, run 37245602888 green); disposition §3.",
+    "Q-027-4, answered yes on 2026-10-04 (RFC-2026-027 §10.1): write the admitted-state gate into RFC-2026-023 now -- done in its §3.2.",
+    "Q-026-6, answered yes (RFC-2026-026 §10.1): the command half may land with RFC-2026-023's first command function, before the worker RFC.",
+    "RFC-2026-016 §4 (the exemption register replacing 'force where compatible'), RFC-2026-019 §4/3, RFC-2026-022 §5/8 and §9, read as the frame RFC-2026-028 answers."
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH 171: one migration (db/foundation/migrations/171_workspace_lifecycle_visibility.sql), its pins and final-state replacements, 42 rls-smoke cases, one authz proof, two RFC Status lines, the ratified SLO in db/foundation/README.md and one try-it demo step. Plan evidence/WP-0A-DB-00/a0-batch-171-plan-2026-10-03.md.",
-    "RFC-2026-020 is outside WP-0A-DB-00's writable_paths, so its text is not edited; RFC-2026-027 §3.4 applies by reference and the edit is owed (open_blockers[195] (b)).",
-    "Since batch 170 no client role writes lifecycle_state, so each case moves the populated workspace A into its state as the connection role inside its own rolled-back transaction; RFC-2026-027 §5/9's six fixture workspaces are substituted by that (open_blockers[198] (1)).",
-    "Every local and CI cluster applies the set as a superuser; whether 171's create or replace of an app_authz-owned function applies under a non-superuser migration owner is read, not measured (open_blockers[198] (2)).",
-    "REVIEW ROUND (2026-10-05): C0 b450465, A1 ff844b4 and Q0 4271532, all on d3ffe6a, are cherry-picked with -x; none is stop-the-line. 171 is not integrated, so it is edited in place: its §6/6 block now covers permissive policies TO PUBLIC and TO anon as well as TO authenticated, and exempts the three kept 010 policies by (table, name). The finding -> change -> measured map is plan §8."
+    "THIS INCREMENT IS BATCH RFC-023-028: text only. RFC-2026-023 brought current (still In review); RFC-2026-028 drafted (Proposed); the writable-path amendment for RFC-2026-028; blockers [113] and [195] appended and [199] added. Then a REVIEW ROUND (code commit abd48b3): the C0, A1 and Q0 reviews cherry-picked with -x (c008820, ceca0b6, 9fa8f84), their 23 findings folded into both RFC texts, open_blockers[199] (8) appended with what stays owed, new Q-028-13. Plan evidence/WP-0A-DB-00/a0-batch-rfc-023-028-plan-2026-10-03.md, §7 for the round.",
+    "Neither RFC is approved; A0's recommendation to approve each, with conditions, is the plan's §6, for a later batch to take through the Owner's delegation.",
+    "Nothing the DB layer reads changed, in the batch or its review round, so migrate-clean and rls-smoke were not run; every PostgreSQL behaviour either RFC relies on is owed to execution by the batch that lands it (open_blockers[199] (6)). The role runs A1 and Q0 prototyped parts of both RFCs on their own clusters; the revisions cite those measurements and discharge no obligation.",
+    "A0's recommendation that the Owner's words answered is not itself recorded in the repository; the disposition states its content as A0's summary."
   ],
   "acceptance_results": [
     {
-      "criterion": "(1) Status lines; RFC-2026-020's amendment",
+      "criterion": "(1) RFC-2026-023 brought current with everything decided since 2026-09-15, questions listed with recommendations, status kept In review",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-171-plan-2026-10-03.md §1 rows 1, 1a: both Status lines carry the 2026-10-05 decision and its effect; RFC-2026-020 is not writable here, so §3.4 applies by reference and the edit is owed on open_blockers[195] (b)"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-023-028-plan-2026-10-03.md §1 row 1; RFC-2026-023 §0 (seven rows), §3.2 (Q-027-4 gate; scope_type and the app_authz policy), §8 (closing command), §9 (Q-023-1..8)"
     },
     {
-      "criterion": "(2) migration 171 as RFC-2026-027 writes it, with every pin moved through the repository's mechanisms and an apply-time block",
+      "criterion": "(2) RFC-2026-028 drafted, Proposed, answering DATA-DEC-03 (login role and app_worker membership, FORCE RLS, custody, id sources, S cells, probes, migrations, tests with drifts, alternatives, rollback, questions)",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-171-plan-2026-10-03.md §2 and §1 rows 2-2d: grant and policy (§3.1), the helper (§3.2), five 010 rewrites (§3.3), timeouts, the block; run.mjs pins, pinned-grants.json regenerated, superseded.json entries for 011#2 and 021#1, the snapshot declaration; §6/6 census 89 in scope, 3 exempt"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-023-028-plan-2026-10-03.md §1 row 2; RFC-2026-028 §1-§10, Q-028-1..12"
     },
     {
-      "criterion": "(3) rls-smoke cases per RFC-2026-027 §5",
+      "criterion": "(3) writable-path amendment, rationale, plan and disposition",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-171-plan-2026-10-03.md §4.1: 42 cases, 1087 -> 1129, green twice; with 171 reverted in place 30 of the 42 fail; cases 7, 8, 10, 11 executed by the lifecycle-gate proof (§4.2)"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-023-028-plan-2026-10-03.md §1 rows 3-8, §2 D1-D7; evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-023-028.md; verify-branch-scope 921efb5 exit 0"
     },
     {
-      "criterion": "(4) RFC-2026-026: no implementation",
+      "criterion": "(4) A0 recommendation on approving RFC-2026-023 and RFC-2026-028, with conditions",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-171.md §3 D2; open_blockers[195] (d)"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-023-028-plan-2026-10-03.md §6"
     },
     {
-      "criterion": "(5) the SLO written where budgets live; whether a timing assertion is owed",
+      "criterion": "every finding owed with a named owner or cross-referenced",
       "result": "met",
-      "evidence": "db/foundation/README.md; evidence/WP-0A-DB-00/a0-batch-171-plan-2026-10-03.md §4.3: harness exit 0 with --fail-on-seq-scan; a timing assertion is owed (open_blockers[194])"
+      "evidence": "open_blockers[199] (1)-(7); [113] and [195] appended; evidence/WP-0A-DB-00/a0-batch-rfc-023-028-plan-2026-10-03.md §4"
     },
     {
-      "criterion": "(6) try-it demo step, its plan checker valid",
+      "criterion": "(5) review round: C0, A1 and Q0 findings acted on, each folded into text or recorded as owed with an owner; no migration, no approval, no rule weakened",
       "result": "met",
-      "evidence": "scripts/db/try-it.mjs step 7 (two case steps); demoPlanProblems held by the contract test"
-    },
-    {
-      "criterion": "blockers: [53] and [95] closed with evidence; every finding owed by name or cross-referenced",
-      "result": "met",
-      "evidence": "work-packages/WP-0A-DB-00.json open_blockers[53], [95], [194], [195], [198]; evidence/WP-0A-DB-00/a0-batch-171-plan-2026-10-03.md §5"
-    },
-    {
-      "criterion": "review round: every C0, A1 and Q0 finding acted on, or recorded as owed with the reason",
-      "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-171-plan-2026-10-03.md §8.2: M1 reworded as A0's reading with the Owner's confirmation owed ([195] (e)); M2/F1 Status lines and D1; L1/F2/Q0-171-1 171 (6) widened and keyed on (table, name); L2 cases 8 and 11 in six states; L3 recorded ([198] (8)); L4 per-family before-read; L5/F3/Q0-171-2 text; L6 A1 Security named; F4 closures qualified; N2, N4 wording"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-023-028-plan-2026-10-03.md §7.2 (finding -> change -> measured); open_blockers[199] (8); RFC-2026-023 and RFC-2026-028 'Revised' lines"
     }
   ],
   "tests": [
@@ -109,124 +83,105 @@
       "result": "v24.20.0"
     },
     {
-      "command": "main 700715e: make db-migrate-clean; make db-rls-smoke (port 5507, fresh initdb, shim first)",
-      "exit_code": 0,
-      "result": "1087 cases, 6 proofs"
-    },
-    {
-      "command": "round m1: make db-migrate-clean; make db-rls-smoke (port 5507, fresh initdb, shim first)",
-      "exit_code": 0,
-      "result": "52 apply-time blocks, 14 superseded; 1129 cases passed; 7 proofs discharged"
-    },
-    {
-      "command": "round m2, a fresh cluster: make db-migrate-clean; make db-rls-smoke",
-      "exit_code": 0,
-      "result": "the same: 1129 cases, 7 proofs"
-    },
-    {
-      "command": "CI's 56 per-family negative-control entries replayed on m2's cluster",
-      "exit_code": 0,
-      "result": "56 ok, 0 bad"
-    },
-    {
-      "command": "171 reverted in place on a migrated cluster, the cases run without reloading",
-      "exit_code": 1,
-      "result": "30 of the 42 batch-171 cases fail, no older case fails (the expected red of a negative control)"
-    },
-    {
-      "command": "four drifts appended to 140_audit.sql, migrate-clean each on a fresh cluster",
-      "exit_code": 2,
-      "result": "each refused by 171's apply-time block; 140_audit.sql restored byte for byte (cmp)"
-    },
-    {
-      "command": "node scripts/db/explain-harness.mjs --scale 0.2 --analyze --fail-on-seq-scan --json (fresh migrate-clean cluster)",
-      "exit_code": 0,
-      "result": "no membership-class seq scan; membership check 0.066 ms, one sample"
-    },
-    {
-      "command": "npm run regenerate:manifest",
-      "exit_code": 0,
-      "result": "rebuilt 90 digest(s)"
-    },
-    {
-      "command": "npm run check before the code commit, branch name",
-      "exit_code": 1,
-      "result": "685 tests, 683 pass; the only reds were the not-yet-refreshed handoff guard (the handoff describes this branch; the handoff ratchet)"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs 700715e WP-0A-DB-00",
-      "exit_code": 0,
-      "result": "all 26 changed path(s) are declared, and every amendment explains one"
-    },
-    {
-      "command": "review round, node -v before every measured run",
-      "exit_code": 0,
-      "result": "v24.20.0"
-    },
-    {
-      "command": "review round r1 and r2, each a fresh cluster on 127.0.0.1:5507: make db-migrate-clean; make db-rls-smoke",
-      "exit_code": 0,
-      "result": "52 apply-time blocks, 38 as written, 14 superseded and replaced; 1129 cases passed; 7 proofs discharged (cases 8 and 11 in all six blocked states)"
-    },
-    {
-      "command": "review round: four drifts appended to 140_audit.sql (TO PUBLIC, TO anon, an exempt name borrowed on workspace_settings, the original probe_ungated), migrate-clean each on a fresh cluster",
-      "exit_code": 2,
-      "result": "each refused by 171 (6) naming the drift; 140_audit.sql restored byte for byte (cmp)"
-    },
-    {
-      "command": "review round: as the editor, the viewer and the owner of A in active, the families of the 40 read empty",
-      "exit_code": 0,
-      "result": "editor 4 (workspace_invitations, workspace_members, quota_buckets, billing_subscriptions), viewer 5 (those and notifications), owner 1 (workspace_member_scopes)"
-    },
-    {
-      "command": "review round: npm run check, branch name",
+      "command": "npm run check on the new branch at 921efb5, before any change",
       "exit_code": 0,
       "result": "tests 685, pass 685"
     },
     {
-      "command": "review round: node scripts/verify-branch-scope.mjs 700715e WP-0A-DB-00",
+      "command": "node --test test-kits/repository-json.test.mjs test-kits/branch-identity.test.mjs (after RFC-028 key added and manifest regenerated)",
       "exit_code": 0,
-      "result": "all 30 changed path(s) are declared, and every amendment explains one"
+      "result": "16 of 16"
     },
     {
-      "command": "review round: node scripts/commit-when-clean.mjs (code commit 155412a)",
+      "command": "node --test test-kits/db/foundation-contract.test.mjs (line pins +2)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 685, pass 685, fail 0, skipped 0, todo 0"
+      "result": "81 of 81"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (code commit)",
+      "exit_code": 1,
+      "result": "refused: 685, 683 pass, 2 fail, both the not-yet-refreshed handoff guard (the handoff test and its ratchet); 1da0b1c committed plainly for that reason alone"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs 921efb5 WP-0A-DB-00 at 1da0b1c",
+      "exit_code": 0,
+      "result": "all 8 changed path(s) are declared, and every amendment explains one"
+    },
+    {
+      "command": "drifts D1-D7 (plan §2), each restored with git checkout",
+      "exit_code": 1,
+      "result": "each red as expected: D1 1, D2 73, D3 74, D4 73, D5 1 (1 of 81), D6 86, D7 1; git status clean after"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (evidence commit 3d21389)",
+      "exit_code": 0,
+      "result": "clean: tests 685, pass 685"
+    },
+    {
+      "command": "make db-migrate-clean; make db-rls-smoke (batch and review round)",
+      "result": "NOT RUN -- no exit code recorded: no DB-read input changed (plan §3, §7.3); no cluster started"
+    },
+    {
+      "command": "git cherry-pick -x bc0cb19 c7fb1cf c4692ad (review round)",
+      "exit_code": 0,
+      "result": "c008820, ceca0b6, 9fa8f84"
+    },
+    {
+      "command": "npm run regenerate:manifest; node scripts/verify-test-coverage-floor.mjs (review round)",
+      "exit_code": 0,
+      "result": "rebuilt 91 digests; only the two RFC digests changed; floor green"
+    },
+    {
+      "command": "node --test test-kits/db/foundation-contract.test.mjs test-kits/repository-json.test.mjs test-kits/branch-identity.test.mjs (review round)",
+      "exit_code": 0,
+      "result": "97 of 97; line pins hold"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs 921efb5 WP-0A-DB-00 (review round)",
+      "exit_code": 0,
+      "result": "all 14 changed path(s) are declared, and every amendment explains one"
+    },
+    {
+      "command": "npm run check (review round, before the code commit)",
+      "exit_code": 0,
+      "result": "tests 685, pass 685"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (review-round code commit abd48b3)",
+      "exit_code": 0,
+      "result": "clean: tests 685, pass 685"
     }
   ],
-  "security_privacy_cost_impact": "Narrows client reach: a member of a workspace in access_blocked, purge_queued, held, purging, verify or deleted is refused by every family that calls the membership helpers, for reads and writes, and by the five 010 policies 171 rewrites; notifications (PII-2) included. app_authz gains SELECT on two columns of app.workspaces and one policy no wider than authenticated's own, calling no helper; its reach stays the caller's own rows. No grant to a client role, no secret, no new dependency. The helper now joins app.workspaces on its key: one sample 0.066 ms at the 0.2 scale against a 2 ms budget.",
-  "migration_and_data_impact": "One forward migration, 171_workspace_lifecycle_visibility.sql, declared not applied to the provisioned instance (it needs 011). 010 and 011 are not edited; 011's and 021's apply-time blocks are superseded with final-state replacements. No data changes. Drifts were appended to 140_audit.sql for one round each and restored byte for byte. open_blockers[198] is added at the end of the list; the amendment path list grows from two to three, so the 33 line pins in audit-coverage-map.json move +1. In the review round 171 is edited in place, before integration: its §6/6 block is widened (PUBLIC, anon; the exemption keyed on (table, name)) and its header corrected; the census is unchanged (91 client permissive policies, 89 in scope, the same 3 exempt), so no shipped policy is newly caught.",
-  "compatibility_impact": "Tests stay 685 (no test added or renamed); foundation-contract's assertion floor 1119 -> 1121 in scripts/test-suite-contract.mjs; evidence/VERIFICATION.md is not amended. Four catalog-rule probe digests move (permissive policy, security definer, pinned grant, policy set). The isolation runner gains three optional case fields (before, ownerFirst, a connection-role witness); existing cases are unchanged.",
+  "security_privacy_cost_impact": "None in the tree: two decision records, no role, credential, grant, policy or migration. RFC-2026-028 proposes a login role with no password in any migration, a verifier set out of band from the platform secret store in a secret scope no request-path runtime can read, at least 32 random bytes, and a generated per-cluster test credential; on the provisioned instance the migration owner holds ADMIN on the role and so can set its credential (recorded, Q-028-13). No secret is written anywhere by this batch (secret scan green). RFC-2026-023 proposes widening app_authz by five columns and one own-rows policy on workspace_member_scopes; that policy omits workspace_member_scopes_select_own's is_active_member conjunct, so it is wider than what authenticated holds, and reaches nothing because only app_authz's helpers, which ask is_active_member first, can use it (A1 F6).",
+  "migration_and_data_impact": "No migration and no data change. The manifest gains one writable path and one net amendment path, so the 33 line pins in db/foundation/lint/audit-coverage-map.json move +2 (open_blockers[i] on line 257+i); open_blockers[199] is added at the end. Migrations implied later (none here): RFC-2026-023 shape B with the first command function; RFC-2026-028 §4 (the login role; app.jobs tenant-context columns; the runner).",
+  "compatibility_impact": "Tests stay 685 (none added or renamed); no floor moves, so scripts/test-suite-contract.mjs is not amended and evidence/VERIFICATION.md is not amended. DECISION_RECORDS and DIGESTED_FLOOR gain RFC-2026-028; the integrity manifest has 91 digests.",
   "known_limitations": [
-    "RFC-2026-020's text is not edited; it must be read with RFC-2026-027 §3.4 applied until its owner edits it.",
-    "RFC-2026-027 §5/9's six named fixture workspaces are substituted by in-transaction moves of workspace A.",
-    "Not measured: applying 171 (and 011) under a non-superuser migration owner, as on the provisioned instance.",
-    "§6/4 and §6/6 are held live by 171's apply-time block (re-run after every migration), not by a static lint file.",
-    "The family sweep's table list is written in isolation-cases.mjs; a family added later is swept only once listed (171's block holds it to the helper meanwhile).",
-    "No timing is asserted; the harness took one sample per query.",
-    "171's §6/6 block does not see a workspace-scoped table keyed through another foreign key, or a helper call that does not bind; the permissive-policy pins hold those (open_blockers[198] (6)).",
-    "The lifecycle proof runs cases 8 and 11 on business_profiles in all six blocked states, not case 1's full sweep (open_blockers[198] (7)).",
-    "RFC-2026-027 §5/3 says 42501 for the page UPDATE; the case asserts no-effect, which is right; the RFC text is owed (open_blockers[198] (8)).",
-    "The editor's and the viewer's sweeps pass vacuously on 4 and 5 families they cannot read in active; the owner's sweeps hold those (open_blockers[198] (5))."
+    "Nothing either RFC proposes was executed on a database in this batch (open_blockers[199] (6)).",
+    "A0's recommendation that the Owner answered is summarised, not quoted, because the message is not in the repository (disposition §1).",
+    "RFC-2026-023 §8 (the closing command) and its step-up evidence (Q-023-5) are proposals; the aal claim is to be measured on the platform before relied on.",
+    "RFC-2026-028 §3.3/3: local measurement clusters authenticate by trust, where the test credential proves nothing; the CI container is read (not measured) as scram-sha-256 and is owed a measurement (C0-2, open_blockers[199] (8)(b)).",
+    "The review round re-ran no database: the A1 and Q0 measurements cited in the revisions are theirs (ports 5501, 5503), on prototypes, not this batch's.",
+    "RFC-2026-026's command half also needs app_command USAGE on schema app (A1 F5, Q0-R1); RFC-2026-026 is approved and outside this batch's writable paths, so the need is recorded on open_blockers[199] (8)(d), not edited there."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[195] (a)-(e): the named-role acceptances owed for the two RFC decisions and the number (A1, A1 Identity, A6, and A1 Security for the number); RFC-2026-020's text edit; Q-027-4's gate in RFC-2026-023; RFC-2026-026's implementation; the Owner's confirmation that the words of 2026-10-05 reach the approvals and the SLO ratification (A0's reading).",
-    "open_blockers[194]: Product/Ops's acceptance of the budget, and the timing assertion it now needs.",
-    "open_blockers[198] (1)-(8): the batch's own owed items, the review round's limits among them.",
-    "open_blockers[53] and [95] are closed in the migration set when 171 is integrated; the gap stays open on the provisioned instance until 011 and 171 are applied there.",
+    "open_blockers[199]: both RFCs unapproved; Q-023-1..8 and Q-028-1..13 (twenty-one) unanswered; findings (3) RFC-2026-023 §3.2 omissions, widened by (8)(d), (4) app.jobs has no actor/request_id/correlation_id (MEDIUM, design), (5) retention-sweep role disagreement; (8) the review round's owed items (a)-(e).",
+    "open_blockers[113]: the worker identity does not exist until RFC-2026-028 is approved and its migration lands.",
+    "open_blockers[195]: named-role acceptances, RFC-2026-020 edit, RFC-2026-026 implementation, unchanged; (c) done in text.",
     "open_blockers[188]: Integration Owner evidence for any merge is still owed."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR, or the forward migration RFC-2026-027 §9 describes (restore 011's helper body, rewrite the five 010 policies back, drop workspaces_select_authz_own_open and revoke app_authz's two columns, with the pins reverted in the same diff); no data changes either way, and rolling back re-opens open_blockers[53] and [95].",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restoring RFC-2026-023 to its 2026-09-15 text and removing RFC-2026-028 with its writable path, DECISION_RECORDS, DIGESTED_FLOOR and integrity-manifest rows, and the line pins -2; no database or migration depends on either text.",
   "recommended_next_work_packages": [
-    "C0, A1 and Q0 re-checks of batch 171's review round (plan §8): 171's widened §6/6 block and its drifts, the proof's six-state cases 8 and 11, the per-family before-read, and the reworded disposition §1.",
-    "RFC-2026-020's text edit by its owner through the Integration Owner (open_blockers[195] (b)).",
-    "A timing assertion for the Pilot p95 budget; owner: the Integration Owner with A0 (open_blockers[194])."
+    "Re-checks by C0, A1 and Q0 of the review round (code commit abd48b3): RFC-2026-028 §3.1, §3.3, §3.6, §4/1, §5 and Q-028-13; RFC-2026-023 §3.2, §5, §6, §8.",
+    "Then, on A0's recommendation (plan §6), the approvals of RFC-2026-023 and RFC-2026-028 taken through the Owner's delegation, with their conditions.",
+    "After approval: RFC-2026-023's batch (shape B, the §11.4 closing command, RFC-2026-026's command half, batch 141's range); RFC-2026-028's role migration (Q-028-9); app.jobs' tenant-context columns (Q-028-5); RFC-2026-026's worker half once RFC-2026-022 §7 holds."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-DB-00/a0-batch-171-plan-2026-10-03.md first, then evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-171.md.",
-    "Diff 700715e..d6fbf5f, then d3ffe6a..155412a for the review round: the migration, scripts/db/run.mjs (AUTHZ_POLICIES and the permissive list), db/foundation/invariants/ (the two replacements), tests/db/identity/isolation-cases.mjs (lifecycleVisibilityCases, at the end) and run-isolation.mjs (before, ownerFirst, the connection-role witness), scripts/db/authz-proofs.mjs (proveTheLifecycleGate).",
-    "Re-measure on a fresh cluster: migrate-clean and rls-smoke; then revert 171 in place (011's body, 010's five policies, no app_authz grant or policy on workspaces) and run the cases: the 30 negatives must go red.",
-    "For the review round, read plan §8 first; then drift 171 (6) with a TO PUBLIC, a TO anon and a borrowed-name policy appended to 140_audit.sql, each must be refused by 171 (6)."
+    "Read evidence/WP-0A-DB-00/a0-batch-rfc-023-028-plan-2026-10-03.md first, then evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-023-028.md.",
+    "Diff 921efb5..1da0b1c: architecture/decisions/RFC-2026-023-acting-user-narrowing.md (compare to its 2026-09-15 text), architecture/decisions/RFC-2026-028-worker-identity.md, work-packages/WP-0A-DB-00.json (branch, writable_paths, amends_without_owning, open_blockers[113], [195], [199]), the line pins in db/foundation/lint/audit-coverage-map.json.",
+    "Check RFC-2026-023 §0/7 and §3.2 against 021_member_scope.sql:208-230, :326, :415-450 and 171_workspace_lifecycle_visibility.sql:171-226; check RFC-2026-028 §2/6 and §3.4 against 050_async_kernel.sql:426-427, :490-510 and RFC-2026-026 §3.5.",
+    "Measure, do not cite: if you can, prototype RFC-2026-028 §3.1 on a scratch cluster (a NOINHERIT login granted app_worker WITH INHERIT FALSE, SET TRUE) and run §5/7-10 and the §3.6 probe drifts against today's run.mjs to confirm which rule refuses each.",
+    "Re-run the drifts of plan §2; judge A0's grading of finding (4) (MEDIUM, not stop-the-line) and A0's approval recommendation in plan §6.",
+    "Review round: read plan §7 first; diff b0adf6b..abd48b3 (both RFCs, plan, open_blockers[199] (8), integrity manifest); check each row of §7.2 against the finding in the cherry-picked review it names."
   ],
   "superseded_by": null
 }
