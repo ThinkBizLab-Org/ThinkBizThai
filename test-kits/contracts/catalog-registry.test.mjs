@@ -437,7 +437,7 @@ const ANNOTATION_DIGESTS = {
   'ctr-ntf-001': { count: 15, digest: 'b2ad9b8499a8fce6' },
   'ctr-obs-001': { count: 21, digest: '66946f6cd3e9be78' },
   'ctr-pag-001': { count: 8, digest: 'b69a983bac7678fb' },
-  'ctr-sec-001': { count: 21, digest: '0173014e4eb46481' },
+  'ctr-sec-001': { count: 21, digest: 'c6383e794198a422' },
   'ctr-ten-001': { count: 1, digest: '72dd93913f524475' },
   'ctr-usg-001': { count: 14, digest: 'cb3bf23e846b1426' },
 };

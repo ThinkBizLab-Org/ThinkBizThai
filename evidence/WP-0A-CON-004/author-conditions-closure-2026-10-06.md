@@ -72,11 +72,14 @@ unmerged. Their work is on `main`, and their open blockers are still inherited.
 ## 4. Owed by this package's Author, not done here
 
 - **22 reference-shaped fields with no upper bound**, listed in `KNOWN_UNBOUNDED` in
-  `test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs` on PR #188 as owed by WP-0A-CON-004:
-  CTR-SEC-001 x8, CTR-AUD-001 x4, CTR-OBS-001 x10 (named in the manifest's open_blockers). They are not
-  bounded in this increment for two reasons. A bound is a rule change that the next role round
-  must review. And bounding a field before #188 merges would make its `KNOWN_UNBOUNDED` entry stale
-  on that branch.
+  `test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs` as owed by WP-0A-CON-004:
+  CTR-SEC-001 x8, CTR-AUD-001 x4, CTR-OBS-001 x10 (named in the manifest's `open_blockers[14]`).
+  *Rewritten after the merge from `main` (R0 R4, C0 N-2, Q0 F-3):* PR #188 merged at `fa10229`, so
+  the earlier "until #188 merges" deferral has lapsed. The 22 bounds are now due as this package's
+  next increment (ids 128, references 256 per RFC-2026-009), with their own review round, because a
+  bound is a rule change to a Draft contract. A1's four bare CTR-SEC-001 strings come first
+  (`scope.workspace_id`, `rotation.owner.id`, `revocation.actor.id`, `correlation_id`). They are not
+  bounded in this PR.
 
 ## 5. Commands at this branch (base `main` `8c089cc` plus this increment)
 
@@ -91,3 +94,26 @@ unmerged. Their work is on `main`, and their open blockers are still inherited.
 The six moved pins in `test-kits/contracts/catalog-registry.test.mjs` (owner WP-0A-CON-008), and the
 digest of that file in `test-kits/integrity-manifest.json` (owner WP-0A-A0-002), are declared in
 `ownership.amends_without_owning`.
+
+## 6. Closure after the role round of 2026-10-05/06 (appended by A0)
+
+Written by a subagent of `/claude/a0_atlas` (Author). A0 executes the Integration Owner's
+recommended path under the Owner's delegation "เอาตามที่คุณแนะนำทุกอย่าง" (follow everything you
+recommend). It decides nothing, approves nothing, and does not move the package past `in_review`.
+This is not a governance PR: no RFC, `CONTRIBUTING_AGENTS.md`, CI or gate file is touched.
+
+| Item | Done on the branch |
+|---|---|
+| Role files | C0 `e547b64a`, A1 `fcd04da1`, Q0 `722a05b2`, R0 `c7addd95` cherry-picked with `-x`. |
+| R0 condition 2 / R1, C0 N-1, Q0 F-1 | `origin/main` `fa10229` merged into the branch (normal merge). The only conflict, `test-kits/integrity-manifest.json`, was resolved by union: this PR's `catalog-registry.test.mjs` digest, `main`'s two CTR-EVT/CTR-JOB test digests. `npm run regenerate:manifest` rebuilt 91 digests and `cmp` with the union was equal; sha256 `b192ae95…8e441`, the value R0 named. |
+| R0 R2 path (a), A1 N-1 | The self-contradicting first clause of CTR-SEC-001 `handle.x-opacity-limitation`, "It excludes mixed-case base64 and nothing else", is deleted; the facts that followed it are kept. The `ctr-sec-001` annotation pin in `catalog-registry.test.mjs` moved `0173014e4eb46481` → `c6383e794198a422` (count unchanged at 21), and that file's integrity digest with it. This is a `contract-catalog/**` change: per R2 it re-opens C0 (one annotation) and Q0 (short §2 re-run), and A1 records N-1 closed. Not recorded here as closed. |
+| R0 R4, C0 N-2, Q0 F-3, A1 N-2 first half | `open_blockers[14]` and §4 above rewritten: #188 merged at `fa10229`; the 22 bounds are this package's next increment (ids 128, references 256 per RFC-2026-009), with their own review round. |
+| R0 R3 | `ownership.amends_without_owning.rationale` corrected: WP-0A-CON-008's and WP-0A-A0-002's manifests do not record CON-004's amendment. The record is owed by those packages' next PRs; their files are not edited here. |
+| R0 R5, A1 N-3 | Recorded: A1's F5 (CTR-MOD-001 promoted to Candidate v1 without the Owner being told it fixes a syntax chartered to CTR-SEC-001) is to be disclosed to the Product Owner in the next Owner batch as a one-line disclosure, without waiting for the §4(c) RFC. |
+| A1 N-2 second half | As A1 worded it: bound or pattern the 22 fields, starting with the four unconstrained CTR-SEC-001 strings; before CTR-SEC-001 leaves Draft. Owed in the next increment. |
+| A1 carried items | As A1 worded them, unchanged: C2 (issuance format, by A1 through the RFC), the §4(c) RFC including equal accept sets (C3's other branch), SEC-003 data class, SEC-016 break-glass fields, runtime redaction tests, cross-tenant scope binding, audit immutability. All before freeze; none before this merge. |
+| Q0 O-1 | The handoff still cites base `8c089cc`; it is refreshed in a later commit, last and alone. Until then `npm run check:handoff` is expected to fail. |
+| Q0 O-2 | Next rule round: `revocation.required` `reason_key` and the `liveness.status` enum are held only by the generic pin. |
+
+Still open before `integration_verified` (R0 §6): C0 and A1 re-check of the one annotation, Q0's
+short §2 re-run at the new head, the refreshed handoff, and a green `bootstrap` on the exact head.
