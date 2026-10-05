@@ -93,6 +93,12 @@
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
+      "command": "node scripts/verify-branch-scope.mjs 8c089cc0bf30a234efa61752c6054d670f85a2a8 WP-0A-A0-004",
+      "exit_code": 0,
+      "result": "FINAL state (Q0 Q5): measured 2026-10-06 on the branch name at f2b56d9, after the closure commit, with base = merge-base with origin/main = 8c089cc: \"all 9 changed path(s) are declared, and every amendment explains one\". The exit 74 entry above is the state before the amends_without_owning edit.",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
       "command": "sandbox: scripts.check with a trailing & and with || at every position, integrity manifest regenerated, at git archive of 8c089cc",
       "exit_code": 81,
       "result": "npm run check exits 0 in both cases and runs no test; the workflow's separate guard step exits 81 in both cases. Same at e1fa28e.",

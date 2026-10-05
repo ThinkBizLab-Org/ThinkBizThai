@@ -46,3 +46,22 @@ still true of the field in `WP-0A-A0-001.json`.
 - **R4:** run `npm run refresh:handoff` as the last commit, after the re-checks are on the branch.
 - **R5:** green `bootstrap` on the final head. **R6:** leave Draft, and merge pinned to that head.
 - Flipping `acknowledgement_status` in `WP-0A-A0-001.json`, on a WP-0A-A0-001 branch (R0 §7.3).
+
+## 5. Addendum: measured after the closure commit `f2b56d9`
+
+This was run on the branch name, with Node `v24.20.0` and npm `11.19.0`. `origin/main` = `8c089cc` is an
+ancestor of the head, so no merge was needed.
+
+| Command | Exit | Result |
+|---|---|---|
+| `node scripts/commit-when-clean.mjs` (runs `npm run verify`) for `f2b56d9` | 0 | `clean: exit 0 — tests 692, pass 692, fail 0, skipped 0, todo 0` |
+| `node scripts/verify-branch-scope.mjs 8c089cc… WP-0A-A0-004` | 0 | `all 9 changed path(s) are declared, and every amendment explains one` |
+| `node scripts/validate-work-package-ownership.mjs work-packages` | 0 | |
+| `node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A0-004.json` | 0 | |
+| `node scripts/validate-work-packages.mjs` | 0 | |
+| `node scripts/verify-test-coverage-floor.mjs` | 0 | |
+| `npm run regenerate:manifest` | 0 | no digest moved |
+
+The handoff's `tests` now carries the final exit 0 next to the earlier exit 74 (Q0 Q5). The handoff is
+**not** refreshed here. Its cited head is still `40bfc8d`, so `check:handoff` is expected to be red until
+R4.
