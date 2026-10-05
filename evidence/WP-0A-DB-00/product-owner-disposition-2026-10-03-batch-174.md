@@ -125,3 +125,29 @@ These are on `open_blockers[202]`, each with its owner: the number's acceptance 
 the narrowing stated exactly (D3, D6); 174 declared not applied to the provisioned instance (D4); reading rules 10 and
 11 off this branch's first CI run; the stated limits; and this batch's independent review by C0, A1 and Q0. RFC-2026-026's
 worker half, which reads the columns, stays where it was (`[21]`, `[113]`, `[201]` (5)).
+
+## 6. Review round (2026-10-05): answered as A0 recommends under the delegation
+
+The C0, A1 and Q0 runs on `d111326` found no stop-the-line and nothing that blocks the merge. Where a finding needed a
+choice, it is answered here by name, as A0 recommends, under the same delegation as §1. The plan's §7 maps every
+finding to its change and measurement.
+
+- **D11. The narrowing of CTR-TEN-001 stands in the store until the contract is restated, and the restatement lands
+  before any producer enqueues into `app.jobs`** (C0-174-1). RFC-2026-026's worker half, or anything earlier that
+  enqueues, waits for it. No producer exists today, and the 18 valid catalog examples fit the bound (C0's measurement).
+  This is A0's recommendation as CTR-JOB-001's owner. It is not A1's acceptance as CTR-TEN-001's co-owner: A1's
+  review says it is a findings record, not that acceptance. A1's explicit acceptance or rejection is owed at its
+  re-check of this round (`open_blockers[202]` (2)).
+- **D12. Q0 F1 is remedied by correcting the two texts, not by changing CI's negative control.** Plan §1 and §3 and the
+  comment in `isolation-cases.mjs` now say the static writer test holds the enqueue's four columns. Making the
+  control for `app.jobs` require the enqueue case's "The operation was permitted" is CI policy. `.github/workflows/ci.yml`
+  is the Integration Owner's, so that is offered to it on `open_blockers[202]` (4), not done here.
+- **D13. C0-174-2 needs no code change.** Rule 11's names are `regprocedure` text, but the probe's one executor,
+  `probeJobScript`, sets `search_path = pg_catalog` before every probe, and foundation-contract pins that line. So a
+  connection's own `search_path` cannot move the names. Measured on this round's cluster: the probe as the executor runs
+  it is silent under a connection default of `app, public`. Without the executor's line it reports the 31 as missing
+  (plan §7). A comment at `PINNED_FUNCTION_EXECUTE` now says this.
+- **D14. A1-174-1 is owed to the batch that writes the first enqueue path** (with RFC-2026-026's worker half): the
+  actor derived from `app.jwt_subject()` inside a definer command, never from a parameter, and a CHECK that a `user`
+  actor is a uuid. 174 is not changed for it: no writer can insert today, and RFC-2026-028 §3.4 asks only for the
+  bounds (`open_blockers[202]` (5)).

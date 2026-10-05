@@ -3264,6 +3264,9 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // app or private; a drift for each; pinned-grants.json gains app_worker's SELECT and INSERT on the four columns);
   // vocabulary check d28d49cb3af0a0fd to 471593a8ce1de34d (vocabulary-checks.json gains jobs_actor_kind_known). Every
   // other digest stays.
+  // Batch 174's review round (Q0 F3): pinned check 3ba8cd283ac50444 to 792a2204f6d7a5da (the correlation drift re-bounds
+  // to {1,255}, a bound PostgreSQL can run; {1,256} exceeds its repetition maximum, so no row could pass it). Every
+  // other digest stays.
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -3279,7 +3282,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'client schema probe': '6c400e229948cda6',
     'client membership probe': 'ebe66b570210169e',
     'system object fingerprint probe': 'f75c1e00bd908cd5',
-    'pinned check probe': '3ba8cd283ac50444',
+    'pinned check probe': '792a2204f6d7a5da',
     'pinned policy probe': 'a7be93780c68245a',
     'security definer probe': '475c89fbab0f2fc9',
     'policy helper probe': '39249ae657cfd196',
@@ -6047,15 +6050,20 @@ test('batch 174: a job names its actor and request, NOT NULL with no default, bo
   assert.ok(block.sql.includes("!~ 'app\\.(is_active_member|workspace_member_role)\\('"), 'the helper test 171 (6) applies');
   // EVERY WRITER names the four: the 050 fixture, the isolation suite's enqueue, the WS:905 fixture (a writer that
   // omits one is refused with 23502, so a missed writer fails a live target; this fails it before a database).
+  // Any spelling of the target: quoted, mixed case, spaced around the dot (C0-174-4 on batch 174).
+  const JOBS_INSERT = /\binsert\s+into\s+(?:"app"|app)\s*\.\s*(?:"jobs"|jobs\b)/i;
+  const JOBS_INSERT_G = new RegExp(JOBS_INSERT.source, 'gi');
+  for (const spelling of ['insert into app.jobs', 'INSERT  INTO "app" . "jobs"', 'insert\ninto app."jobs"']) assert.match(spelling, JOBS_INSERT, `a writer spelled ${spelling} is read`);
+  assert.doesNotMatch('insert into app.jobs_archive', JOBS_INSERT);
   const writers = ['tests/db/identity/fixtures/050-async-kernel-fixture.sql', 'tests/db/identity/isolation-cases.mjs', 'test-kits/db/ws905-fixture.mjs'];
   for (const w of writers) {
     const text = await readFile(w, 'utf8');
-    const at = [...text.matchAll(/insert into app\.jobs/g)].map((x) => x.index);
+    const at = [...text.matchAll(JOBS_INSERT_G)].map((x) => x.index);
     assert.ok(at.length >= 1, `${w} writes app.jobs`);
     for (const i of at) for (const c of proofs.JOB_CONTEXT_COLUMNS) assert.match(text.slice(i, i + 700), new RegExp(`\\b${c}\\b`), `${w}: its insert names ${c}`);
   }
   const fed = await m.fedSqlSources();
-  const otherWriters = fed.filter((f) => /insert into app\.jobs\b/i.test(f.sql.replace(SQL_LINE_COMMENTS, '')) && !writers.includes(f.name)).map((f) => f.name);
+  const otherWriters = fed.filter((f) => JOBS_INSERT.test(f.sql.replace(SQL_LINE_COMMENTS, '')) && !writers.includes(f.name)).map((f) => f.name);
   assert.deepEqual(otherWriters, [], 'no other fed source writes app.jobs');
   // THE LIVE PROOF, driven by a fake answering as the shipped schema does (measured on 5507), and two broken ones.
   assert.deepEqual(proofs.JOB_CONTEXT_COLUMNS, ['actor_kind', 'actor_id', 'request_id', 'correlation_id']);

@@ -34,7 +34,8 @@
 -- pattern. Each is bounded here by the shape 172 gave the closing command's two identifiers (batch 141's review round,
 -- A1 F1; its disposition D9): 1 to 128 characters of [A-Za-z0-9._:-] -- which a uuid, a W3C trace id, a system
 -- actor's dotted name and every id this repository mints fit, and an e-mail address, a phone number written with
--- spaces or a sentence do not. This is a NARROWING of CTR-TEN-001 as CTR-JOB-001 reads it (a value the schema accepts,
+-- spaces or a sentence do not. It is a shape, NOT a PII control: a digits-only phone number, a 13-digit citizen-ID
+-- shape and a dotted personal name fit it too (A1-174-2, measured; open_blockers[202] (5)). This is a NARROWING of CTR-TEN-001 as CTR-JOB-001 reads it (a value the schema accepts,
 -- such as a 129-character id or one holding a space, is refused here), stated so the contract's owner can restate
 -- CTR-JOB-001's reading of tenant_context to match, which RFC-2026-028 §3.4 asks for and contract-catalog/ is
 -- read-only to this package; owed, open_blockers[202] (2). actor_kind is CTR-TEN-001's enum exactly, not a narrowing.

@@ -1428,7 +1428,10 @@ export const PINNED_ROLE_ATTRIBUTES = ['app_worker_login rolcanlogin'];
 //   own six helpers (it owns them, so it holds them with grant option), app_command's two commands (owned; 172 revokes
 //   the owner's EXECUTE, and an owner keeps its grant option implicitly, so they read WITH GRANT OPTION only) and the six
 //   helpers it calls, app_worker's knowledge_scope_applies, and authenticated's ten; PUBLIC none in app or private. A
-//   function a later batch grants to a role moves this list in the same diff as its reason. Like rules 2-4 and 7-9
+//   function a later batch grants to a role moves this list in the same diff as its reason. The names are
+//   regprocedure text, which qualifies a schema only when it is off the search_path: the one executor of this probe,
+//   probeJobScript, sets `search_path = pg_catalog` before every probe (foundation-contract pins that line), so `app.`
+//   is always qualified and pg_catalog never is, whatever the connection's own default (C0-174-2 on batch 174). Like rules 2-4 and 7-9
 //   both fail BY DESIGN on a provisioned instance until Q170-c measures the platform's own roles and grants.
 export const PINNED_FUNCTION_EXECUTE = [
   'app_authz EXECUTE WITH GRANT OPTION on app.acting_user_admits_business(uuid,uuid)',
@@ -2331,8 +2334,8 @@ export const CATALOG_RULE_PROBES = [
   { label: 'pinned check probe', sql: PINNED_CHECK_PROBE_SQL,
     claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule and a job's tenant context lean on, validated and in their pinned text, and the ${PINNED_NOT_NULL.length} NOT NULL column(s) they read`,
     selfTests: [
-      // Batch 174: and a job's correlation id re-bounded under its own name (a 256-character id the shape refuses).
-      { drift: "alter table app.approval_requests drop constraint approval_requests_decision_has_a_decider; alter table app.jobs drop constraint jobs_correlation_id_bounded, add constraint jobs_correlation_id_bounded check (correlation_id ~ '^[A-Za-z0-9._:-]{1,256}$');",
+      // Batch 174: and a job's correlation id re-bounded under its own name (to {1,255}: a valid bound PostgreSQL can run, wider than the pin; Q0 F3 on batch 174, where {1,256} was a text no row could pass).
+      { drift: "alter table app.approval_requests drop constraint approval_requests_decision_has_a_decider; alter table app.jobs drop constraint jobs_correlation_id_bounded, add constraint jobs_correlation_id_bounded check (correlation_id ~ '^[A-Za-z0-9._:-]{1,255}$');",
         raises: 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text', names: ['approval_requests.approval_requests_decision_has_a_decider', 'jobs.jobs_correlation_id_bounded'] },
       // Q0 T3 on batch 126. Batch 174: and a job's actor made optional.
       { drift: 'alter table app.approval_requests alter column created_at drop not null; alter table app.jobs alter column actor_id drop not null;',
