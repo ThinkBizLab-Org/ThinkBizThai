@@ -4,12 +4,25 @@
   "work_package_id": "WP-0A-CON-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
-  "head_revision_or_patch_checksum": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
+  "base_revision": "b5d21d554477dfb5c66d9237fd2fc0e0d65f71c7",
+  "head_revision_or_patch_checksum": "6da7487a42186b16b8d474621532ac9f41421263",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
-  "files_deleted": [],
+  "files_added": [
+    "evidence/WP-0A-CON-006/author-conditions-closure-2026-10-06.md"
+  ],
+  "files_modified": [
+    "contract-catalog/shared-kernel/ctr-ntf-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-float-cost.json",
+    "contract-catalog/shared-kernel/ctr-usg-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-usg-001/schema.json",
+    "handoffs/WP-0A-CON-006-author-handoff.json",
+    "test-kits/contracts/catalog-registry.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-CON-006.json"
+  ],
+  "files_deleted": [
+    "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-failure-missing-class-only.json"
+  ],
   "decisions_consumed": [
     "DEC-021",
     "DEC-022",
@@ -25,7 +38,7 @@
   ],
   "assumptions": [
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
-    "This branch is cut from origin/main 8c089cc. The package's original work (pull requests #9 and #62) is already on main; this branch carries the closure of the conditions the role verdicts on file set, and the Owner's 2026-10-05 step-2 decisions, then this handoff refresh committed last and alone.",
+    "This branch was cut from origin/main 8c089cc. Its own work is one commit, a9916c0; origin/main then moved to b5d21d5 (pull request #187, WP-0A-CON-005) and was taken by a normal merge, 6da7487, without conflict. This handoff refresh is committed last and alone. The package's original work (pull requests #9 and #62) is already on main.",
     "The cross-vendor condition is WITHDRAWN for this package by the Product Owner on 2026-10-05 (step 2 item 1, extending RFC-2026-024; evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md). Independence is four distinct runs plus the conditional Security run, none acting on its own work, with the §0 spawning disclosure. This handoff is written by a subagent of the Author run /claude/a0_atlas.",
     "/claude/r0_steward succeeds /root/r0_steward for the pending acknowledgements (step 2 item 2). Nothing in this package records an acknowledgement pending against /root/r0_steward. Naming a successor is not the acknowledgement, and none is given here.",
     "This PR changes no RFC, no CONTRIBUTING_AGENTS.md, no CI and no gate rule, so it is not a governance PR under RFC-2026-025 §5 item 6. It does amend two test-kit files outside its paths (catalog-registry.test.mjs pins, one integrity digest), declared in ownership.amends_without_owning."
@@ -81,13 +94,13 @@
     {
       "command": "npm run verify (via node scripts/commit-when-clean.mjs)",
       "exit_code": 0,
-      "result": "RESULT_VERIFY",
+      "result": "clean: exit 0 -- tests 692, pass 692, fail 0, skipped 0, todo 0 (commit a9916c0, before the merge of origin/main b5d21d5; re-run by commit-when-clean for the handoff commit)",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
       "command": "node --test test-kits/contracts/shared-kernel-schema-conformance.test.mjs",
       "exit_code": 0,
-      "result": "RESULT_CONF",
+      "result": "tests 6, pass 6, fail 0, skipped 0",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
@@ -99,13 +112,13 @@
     {
       "command": "node --test test-kits/contracts/catalog-registry.test.mjs test-kits/contracts/schema-mutation-coverage.test.mjs test-kits/contracts/shared-kernel-contract-catalog.test.mjs",
       "exit_code": 0,
-      "result": "RESULT_GUARDS",
+      "result": "tests 31, pass 31, fail 0, skipped 0; schema-mutation-coverage.test.mjs unedited",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-006",
       "exit_code": 0,
-      "result": "RESULT_SCOPE",
+      "result": "WP-0A-CON-006: all 10 changed path(s) are declared, and every amendment explains one (after merging origin/main b5d21d5)",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
