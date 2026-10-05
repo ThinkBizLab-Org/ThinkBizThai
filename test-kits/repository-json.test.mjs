@@ -122,6 +122,7 @@ const DECISION_RECORDS = [
   'RFC-2026-025-owner-delegated-merge.md',
   'RFC-2026-026-audit-row-producer.md',
   'RFC-2026-027-lifecycle-visibility.md',
+  'RFC-2026-028-worker-identity.md',
 ];
 
 test('the set of decision records is what it was, and each is digested', async () => {
