@@ -98,3 +98,28 @@ Branch `agent/claude/WP-0A-DB-00-batch-rfc-023-028`, from `921efb5`. No draft pr
 - It does not approve RFC-2026-023 or RFC-2026-028, and does not answer any of Q-023-1..8 or Q-028-1..12.
 - It does not sign for A1, A1 Identity, A6, operations or the Integration Owner. Where the repository requires
   a distinct human role, that role's acceptance is owed and is recorded as owed (`open_blockers[199]`).
+
+## 6. Both RFCs approved through the Owner's delegation (appended 2026-10-05)
+
+On 2026-10-05 the Owner wrote `เอาตามที่คุณแนะนำทุกอย่าง` ("take everything you recommend"). A0 later sent a plan whose next step was this batch, and the Owner replied `ครับ`. Both are transcribed in `product-owner-disposition-2026-10-03-batch-171.md`. Under that delegation, A0's recommendations become the Owner's decisions. A0 executes them; it does not decide them.
+
+A0 recommended approving both RFCs in plan §6, subject to conditions:
+- No role run of this batch reports a stop-the-line, and its findings are folded in and re-checked. This holds: the C0, A1 and Q0 re-checks (plan §8) report no stop-the-line and nothing that blocks the merge.
+- The named-role acceptances are recorded as owed.
+
+**Decided:**
+- **RFC-2026-023 is APPROVED.** Nothing takes effect until its batch lands.
+- **RFC-2026-028 is APPROVED.** This covers the identity and its pins. Q-028-5, custody (Q-028-3) and the pooler (Q-028-12) stay conditions on what follows, as §6 states.
+
+**The twenty questions** (Q-023-1..8 and Q-028-1..12) and the re-check additions (Q-028-13) are answered as A0 recommended in each RFC's question table. Each answer is binding as the Owner's. Where a question names another role (A1, A1 Identity, A6, the Integration Owner, operations), that role's own acceptance is still owed on `[199]`.
+
+**Owed:**
+- A1 Identity's acceptance of the `app_authz` widening, and the RFC-2026-020 text, which this batch amends by reference.
+- A1's acceptance as DATA-DEC-03's co-owner.
+- The platform measurements: Q-023-5 (step-up from the claims), Q-028-12 (the pooler) and Q170-c.
+
+**Next, in the order of plan §6:**
+1. RFC-2026-023's batch: shape B, the §11.4 closing command, and RFC-2026-026's command half.
+2. RFC-2026-028's role migration.
+3. The `app.jobs` columns.
+4. RFC-2026-026's worker half.
