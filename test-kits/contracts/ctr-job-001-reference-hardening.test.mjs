@@ -101,6 +101,32 @@ test('neither reference field carries a deny-list, and both carry the recorded r
   }
   // The two fields must not drift apart: result_ref carries the same exposure as input_ref.
   assert.equal(schema.properties.input_ref.pattern, schema.properties.result_ref.pattern);
+
+  // The PROPERTY, not the instances (C0 review F4 / condition C3). Every HOSTILE value above
+  // carries `//` or a body the grammar rejects, so none of them fires when only the scheme set
+  // widens -- and RFC-2026-006 leaves that set to the contract owner. WHATWG URL parsing treats
+  // the special schemes as network-dereferenceable even without `//`:
+  // `https:public.example.invalid/x` resolves to `https://public.example.invalid/x`. So a body
+  // the grammar ACCEPTS is paired with each such scheme, in EVERY letter-case spelling (WHATWG
+  // lowercases the scheme, so `Https:` is as dereferenceable as `https:`; C0 re-verify N3), and
+  // must be rejected. Widening the allow-list to any of them now fails CI instead of passing
+  // with a ledger edit.
+  const valid = await readJson(join(BASE, 'examples/valid.json'));
+  const { resolve } = await loadContract();
+  const everyCaseSpelling = (word) => Array.from({ length: 2 ** word.length }, (_, mask) =>
+    [...word].map((c, i) => ((mask >> i) & 1 ? c.toUpperCase() : c)).join(''));
+  const readmitted = [];
+  for (const scheme of ['http', 'https', 'ws', 'wss', 'ftp', 'file']) {
+    for (const spelled of everyCaseSpelling(scheme)) {
+      for (const field of ['input_ref', 'result_ref']) {
+        const body = structuredClone(valid);
+        body[field] = `${spelled}:public.example.invalid/x`;
+        if (validate(schema, body, { resolve }).length === 0) readmitted.push(`${field}=${body[field]}`);
+      }
+    }
+  }
+  assert.deepEqual(readmitted, [],
+    `a network-dereferenceable scheme is in the reference allow-list: ${readmitted.join(', ')}`);
 });
 
 // The amendment is authorized only as content-neutral. These are the invariants that claim

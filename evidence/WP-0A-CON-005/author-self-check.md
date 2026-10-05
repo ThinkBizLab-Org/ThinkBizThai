@@ -240,7 +240,7 @@ Run from the package root on `v24.20.0` / `11.19.0`.
 
 | Command | Exit | Result |
 |---|---|---|
-| `npm run check` (baseline, before any change) | `0` | 85 tests, 85 pass, 0 fail, **skipped 0 / todo 0** |
+| `npm run check` (baseline, before any change) | `0` | 87 tests, 87 pass, 0 fail, **skipped 0 / todo 0** (first recorded as 85; corrected 2026-10-05, Q0 §9(1)) |
 | `node --test test-kits/contracts/ctr-job-001-reference-hardening.test.mjs` (pre-fix schema) | **`1`** | 6 tests, 2 pass, **4 fail** — the guard naming 30 accepted forms |
 | `node --test test-kits/contracts/ctr-job-001-reference-hardening.test.mjs` (post-fix) | `0` | 6 tests, 6 pass, 0 fail, skipped 0 / todo 0 |
 | `node --test test-kits/contracts/shared-kernel-contract-catalog.test.mjs` | `0` | 6 / 6 pass |
@@ -256,7 +256,8 @@ Run from the package root on `v24.20.0` / `11.19.0`.
 | `node scripts/verify-test-coverage-floor.mjs` | `0` | |
 | **`npm run check` (final)** | **`0`** | **93 tests, 93 pass, 0 fail, skipped 0 / todo 0** |
 
-85 → 91 is the six tests the new guard adds. No existing test was removed,
+87 → 93 is the six tests the new guard adds. (First written as 85 → 91; the Tester's
+per-file declaration count sums to 93, so the baseline was 87. Corrected 2026-10-05, Q0 §9(1).) No existing test was removed,
 renamed, or skipped.
 
 ### One failure was hit and fixed along the way, recorded rather than hidden
@@ -275,7 +276,7 @@ the first draft was wrong.
 
 ## 7. Integrity manifest
 
-All **27** digests were recomputed with `sha256` over file **bytes**
+All **27** pre-existing digests were recomputed with `sha256` over file **bytes**
 (`createHash('sha256').update(fs.readFileSync(path))`, no `'utf8'` decode).
 Exactly two entries differ from the recorded values:
 
@@ -284,7 +285,8 @@ Exactly two entries differ from the recorded values:
 | `test-kits/contracts/ctr-job-001-reference-hardening.test.mjs` | **ADDED** |
 | `test-kits/contracts/shared-kernel-contract-catalog.test.mjs` | **UPDATED** |
 
-The other 25 recomputed digests matched byte-for-byte, which is itself the
+The other 26 pre-existing digests matched byte-for-byte, and the manifest afterwards
+holds **28** entries (first written as "the other 25"; corrected 2026-10-05, Q0 §9(2)), which is itself the
 evidence that no other protected file drifted.
 
 ## 8. Every file changed, and nothing else
