@@ -4,15 +4,18 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "600b48b68092eb82d80c91ce0bc00d747cf1a7a4",
-  "head_revision_or_patch_checksum": "fb62e177db32ba0231b8f37163daedb3dd8ce884",
+  "base_revision": "e1fa28ec0232ccbb4dadb5faa079df5b1579b469",
+  "head_revision_or_patch_checksum": "f787198b39e22a25eceff46f224027ad8ca86ea5",
   "task_ids": [],
   "files_added": [
     "db/foundation/migrations/174_job_tenant_context.sql",
     "evidence/WP-0A-DB-00/a0-batch-174-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-174-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/a1-batch-174-security-review-2026-10-03.md",
     "evidence/WP-0A-DB-00/c0-batch-174-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-174-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-174.md",
+    "evidence/WP-0A-DB-00/q0-batch-174-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/q0-batch-174-test-review-2026-10-03.md"
   ],
   "files_modified": [
@@ -49,6 +52,7 @@
   ],
   "contracts_produced_or_changed": [],
   "assumptions": [
+    "THE RE-CHECKS ARE DONE (2026-10-06, plan §8): C0 1b8527f, A1 14896f3, Q0 6b89d9f, carried as b68992e, 2649a09, c46d5a2; no stop-the-line, none holds the merge. The branch merged main e1fa28e (PR #186) before this refresh; A0 presses the merge under the Owner's standing delegation once CI is green on this head.",
     "THIS INCREMENT IS BATCH 174 (code commit 6bc9fc2; its review round is code commit fb62e17: the C0, A1 and Q0 reviews cherry-picked with -x, every finding mapped to a change and a measurement in plan §7, D11-D14 in the disposition §6): one forward migration, db/foundation/migrations/174_job_tenant_context.sql, giving app.jobs its tenant context (RFC-2026-028 Q-028-5) and completing 171 (6) through role inheritance; plus rules 10 and 11 of the pinned grant probe (A1-173-3). Plan evidence/WP-0A-DB-00/a0-batch-174-plan-2026-10-03.md, disposition product-owner-disposition-2026-10-03-batch-174.md.",
     "RESUMED FROM A PARTIAL PATCH: an earlier author run was cut off by a network failure before it committed anything; its unverified 11-file patch was applied to a branch from origin/main 600b48b, every hunk read against its inputs and re-measured on this run's cluster, and what was missing written (plan §1). None of the earlier run's results is cited.",
     "The Owner's words of 2026-10-05, `พร้อมแล้วลุยเลยนะ ไม่ต้องรอผม`, reached this subagent in the A0 run's task text, quoted as the Owner's; they are transcribed in the disposition §1 as relayed, and the Owner may correct the transcription.",
@@ -228,7 +232,9 @@
     "The identifier shape is not a PII control: digits-only phone numbers, 13-digit citizen-ID shapes and dotted personal names fit it (A1-174-2).",
     "That the isolation enqueue names the four columns is held by the static writer test alone: with RLS on, row level security refuses before NOT NULL, and CI's negative control for app.jobs is satisfied by service-sees-zero-job-rows either way (Q0 F1, D12; the CI change is offered to the Integration Owner).",
     "Rule 11's names are regprocedure text; they are stable because the probe's one executor pins search_path = pg_catalog (D13, measured); a second executor would have to pin it too.",
-    "INFO limits stated on open_blockers[202] (5): the proof compares SQLSTATE only (C0-174-3); NULL is set on correlation_id alone and a one-column default is read by 174's block alone (Q0 F2); the WS:905 writer is held statically and by a harness CI does not run (Q0 F4)."
+    "INFO limits stated on open_blockers[202] (5): the proof compares SQLSTATE only (C0-174-3); NULL is set on correlation_id alone and a one-column default is read by 174's block alone (Q0 F2); the WS:905 writer is held statically and by a harness CI does not run (Q0 F4).",
+    "The inheritance arm's helper test is textual, as 171 (6)'s (A1-174-3); PUBLIC EXECUTE outside app and private is held by the system object fingerprint, not rule 11 (A1-174-4).",
+    "The static writer test does not read MERGE ... INSERT, COPY, an unqualified jobs or insert/**/into; a writer omitting the four columns is still refused at run time with 23502 (C0-174R-1, A1-174R-2, Q0R-174-1)."
   ],
   "open_risks_or_blockers": [
     "open_blockers[202]: the number's acceptance (Integration Owner); CTR-JOB-001's restatement and the narrowing (the contract's owner, with A1); 174 on the provisioned instance (A0 with the Integration Owner); rules 10 and 11 read off this branch's first CI run (Integration Owner); the stated limits; this batch's independent review (C0, A1, Q0). Review round (appended to [202]): the contract restatement lands before any producer enqueues into app.jobs, and A1 accepts or rejects the narrowing explicitly at its re-check (D11); the first enqueue path binds the actor (D14).",
@@ -237,7 +243,7 @@
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a forward migration, after RFC-2026-026's worker half (which reads the columns) is reverted, dropping the four constraints and columns, with superseded.json listing 174's block and a final-state replacement keeping its 171 (6) part; PINNED_CHECKS' and PINNED_NOT_NULL's entries, pinned-grants.json, vocabulary-checks.json and the fixtures reverted in the same diff. Rules 10 and 11 are independent and stay. Never an edit of 174, never a force-push.",
   "recommended_next_work_packages": [
-    "The C0, A1 and Q0 re-checks of batch 174's review round (code commit fb62e17; plan §7, disposition §6 D11-D14): A1 to accept or reject CTR-TEN-001's narrowing explicitly as its co-owner (D11, open_blockers[202] (2)); C0 on D13's reading of C0-174-2; Q0 on D12's corrected texts and the new writer-regex cases.",
+    "Merge batch 174 under the standing delegation once CI is green on this head (the re-checks are done, plan §8). Then: A1's acceptance of CTR-TEN-001's narrowing as co-owner, taken by the Integration Owner (open_blockers[202] (2)); CTR-JOB-001's restatement before any producer enqueues into app.jobs.",
     "CTR-JOB-001's restatement of tenant_context through the contract catalog's own package (open_blockers[202] (2)).",
     "RFC-2026-026's worker half (§8.4 Audit/security INSERT for the worker), which reads these columns, with A1R-2 and A1-173-1 in its runner (open_blockers[201] (5))."
   ],
