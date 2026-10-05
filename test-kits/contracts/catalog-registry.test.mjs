@@ -303,7 +303,7 @@ test('a contract does not quietly stop declaring what its fixtures cannot demons
 // deliberate act in a diff a reviewer reads, which is the whole point of writing one down.
 const CAVEAT_DIGESTS = {
   'ctr-api-001': { freeze_boundary: '815831740f125bb3' },
-  'ctr-aud-001': { freeze_boundary: '5a435a5ce9469e0f', untestable_by_fixture: '67c4cb4f02912a5a', untestable_by_schema: '8afa0bc10012b320' },
+  'ctr-aud-001': { freeze_boundary: '5ce0fa2202a2dbc6', untestable_by_fixture: '67c4cb4f02912a5a', untestable_by_schema: '8afa0bc10012b320' },
   'ctr-err-001': { freeze_boundary: '07345b618e8388f4' },
   'ctr-evt-001': { freeze_boundary: '236e75aeda851184' },
   'ctr-flg-001': { freeze_boundary: '4eac2ca0f49b152b', untestable_by_fixture: 'a33afe671089ceac' },
@@ -311,9 +311,9 @@ const CAVEAT_DIGESTS = {
   'ctr-job-001': { freeze_boundary: '05243c910b16d414' },
   'ctr-mod-001': { freeze_boundary: '22314a6d0c859d81', untestable_by_fixture: '8053ad9e74ea24fd' },
   'ctr-ntf-001': { freeze_boundary: '0d7a35df9e223055', untestable_by_fixture: '0b3a2ecd0bb8fa68', untestable_by_schema: 'd97d8cb30f2c4735' },
-  'ctr-obs-001': { freeze_boundary: '23991f04c65fefc7', untestable_by_fixture: 'bbdf43f4298434e5', untestable_by_schema: '5f8f6304b630de9e' },
+  'ctr-obs-001': { freeze_boundary: 'f29d8f232d3ce4eb', untestable_by_fixture: 'bbdf43f4298434e5', untestable_by_schema: '5f8f6304b630de9e' },
   'ctr-pag-001': { freeze_boundary: '7cc50c9d8daf646d', untestable_by_fixture: 'd5b82746b3379dcd', untestable_by_schema: '632e77c7c5fd5e87' },
-  'ctr-sec-001': { freeze_boundary: '5a5bd1954efaabed', untestable_by_fixture: '1ffa2979d8f056c7', untestable_by_schema: 'c4809fecbc249148' },
+  'ctr-sec-001': { freeze_boundary: '76d856658740ce9c', untestable_by_fixture: '1ffa2979d8f056c7', untestable_by_schema: 'c4809fecbc249148' },
   'ctr-ten-001': { freeze_boundary: '8f0ab5a50b9a2de4' },
   'ctr-usg-001': { freeze_boundary: '8ef114c8bfe9c430', untestable_by_fixture: '39a25de940d47258', untestable_by_schema: '64599f030c306f60' },
 };
@@ -427,7 +427,7 @@ test('an accepted gap cannot be rewritten into a reassurance', async () => {
 // pinned beside the digest so that a deletion and an addition cannot cancel out.
 const ANNOTATION_DIGESTS = {
   'ctr-api-001': { count: 10, digest: 'bbe5e0cc5f6c5bbb' },
-  'ctr-aud-001': { count: 22, digest: '69cdfdb6184b0cf0' },
+  'ctr-aud-001': { count: 23, digest: '3628c9d75ed1e406' },
   'ctr-err-001': { count: 1, digest: '591ca9e7afafdece' },
   'ctr-evt-001': { count: 12, digest: '1d3766091e62de86' },
   'ctr-flg-001': { count: 19, digest: '627b839672f67d8b' },
@@ -435,9 +435,9 @@ const ANNOTATION_DIGESTS = {
   'ctr-job-001': { count: 8, digest: 'b374d6bd002c3ad4' },
   'ctr-mod-001': { count: 20, digest: '29985bb8dcd4186c' },
   'ctr-ntf-001': { count: 15, digest: 'b2ad9b8499a8fce6' },
-  'ctr-obs-001': { count: 19, digest: '117d7f1aa91e5d10' },
+  'ctr-obs-001': { count: 21, digest: '66946f6cd3e9be78' },
   'ctr-pag-001': { count: 8, digest: 'b69a983bac7678fb' },
-  'ctr-sec-001': { count: 21, digest: '7041155ebdc45bda' },
+  'ctr-sec-001': { count: 21, digest: '0173014e4eb46481' },
   'ctr-ten-001': { count: 1, digest: '72dd93913f524475' },
   'ctr-usg-001': { count: 14, digest: 'cb3bf23e846b1426' },
 };
