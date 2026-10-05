@@ -2,9 +2,10 @@
 
 Status: **Proposed** — 2026-10-05 by `/claude/a0_atlas` (A0), drafted in batch rfc-023-028 under the Owner's `ทำต่อตามแนะนำเลย` ("continue as recommended", 2026-10-05; transcribed in `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-023-028.md`), which answered A0's recommendation to draft this RFC. **Not approved; not in effect.** Nothing in this document creates a role, sets a password, writes a migration, policy, grant or pin, or changes a lint rule. The words directed that this RFC be written; they did not approve its text, which did not exist. Approval is the Owner's explicit act (which the Owner may take through the delegation of A0's recommendations), with A1's review as DATA-DEC-03's co-owner; A0's recommendation on approval is recorded in `evidence/WP-0A-DB-00/a0-batch-rfc-023-028-plan-2026-10-03.md`, not here.
 Date: 2026-10-05
+Revised: 2026-10-05, in the same batch's review round (`a0-batch-rfc-023-028-plan-2026-10-03.md` §7), folding the C0, A1 and Q0 role runs' findings into the text: §2/4 scoped to migrate-clean clusters; §3.1, §4/1 and §5/3 admit the applier's `CREATE ROLE` admin grant as the one member on an instance whose migration owner is not a superuser (C0-1, A1 F1); §3.3 records what the migration owner's credential can do, separates the credential from the request tier and states the production secret's strength (A1 F1, F3), scopes "inert" to password-asking `pg_hba` lines (A1 F8) and stops asserting that the CI container uses `trust` (C0-2); §3.6 reads the role on the provisioned instance (A1 F2); §4/1 no longer reads `pg_authid` (Q0-R3); §5 corrects §5/2's parenthetical (Q0-R5), marks §5/3's `authenticator` drift snapshot-only (Q0-R6), pins §5/7's message and replaces its control (Q0-R2), names the drifts of §5/8, §5/10 and §5/12 (Q0-R8), and adds §5/13 (a session-level `app.workspace_id`, A1 F4) and §5/14 (the snapshot reading); Q-028-3 and Q-028-12 gain conditions; new Q-028-13 (§4/1 applied by a non-superuser). Three quotations corrected (C0-6). Still Proposed; the revision approves nothing.
 Author: `/claude/a0_atlas` (A0 Integration / DB-00), co-owner of DATA-DEC-03 (ERD §15) and owner of the role-topology batches `001`-`004`; drafted by a subagent of that run
 Reviewer sought: `/claude/a1_bastion` (A1 Security), DATA-DEC-03's co-owner and author of `RFC-2026-022`; `/claude/r0_steward` (Integration Owner), for credential custody, CI and the migration number (§9)
-Answers: DATA-DEC-03 — `docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:866`, "Force RLS service path | force where compatible | A0+A1 | ก่อน G1" (before G1); `RFC-2026-022` §5/8 and §9's first bullet ("choosing it, and paying for its credential custody, belongs to the RFC that creates the worker (`DATA-DEC-03`, due before G1)"); `RFC-2026-019` §4/3 ("its shape is a dedicated login role issuing `SET LOCAL ROLE app_worker` per transaction")
+Answers: DATA-DEC-03 — `docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:866`, "Force RLS service path | force where compatible | A0+A1 | ก่อน G1" (before G1); `RFC-2026-022` §5/8 ("choosing it, and paying for its credential custody, belongs to the RFC that creates the worker (`DATA-DEC-03`, due before G1)", `RFC-2026-022:418-420`) and §9's first bullet, which says the same in other words; `RFC-2026-019` §4/3 ("its shape is a dedicated login role issuing `SET LOCAL ROLE app_worker` per transaction")
 Depends on: `RFC-2026-016` (approved) §4 (the exemption register that replaced "where compatible") and §5 (a service path that succeeds because it bypasses is indistinguishable from one a policy admitted); `RFC-2026-017` (approved) §3 (the service roles); `RFC-2026-019` (approved) §4/1, §4/3 and §5; `RFC-2026-022` (approved 2026-09-08, NOT in effect until a service identity exists) §5/2-§5/8, §7; `RFC-2026-026` (approved 2026-10-05, NOT in effect until `RFC-2026-023` and this decision hold) §3.2, §3.5, §9/2
 Read with: `RFC-2026-023` (In review; brought current in the same batch). The two are independent: the command path needs no login role and the worker path needs no acting user (`RFC-2026-023` §7).
 Holds: `work-packages/WP-0A-DB-00.json` `open_blockers[113]` (the worker identity) and `[199]` (this RFC's questions and findings)
@@ -29,8 +30,8 @@ default now means.
 ## 2. What the tree says today, read rather than assumed
 
 1. **The three service roles** (`001_service_roles.sql:30-50`): `app_worker`, `app_command` and
-   `app_maintenance`, each `NOLOGIN NOBYPASSRLS NOINHERIT`, no password, created "with no grant and no
-   membership"; a role "becomes reachable only when something is deliberately granted membership in it, in
+   `app_maintenance`, each `NOLOGIN NOBYPASSRLS NOINHERIT`, no password, created "holding no grant and no
+   membership" (`001:12`); a role "becomes reachable only when something is deliberately granted membership in it, in
    a later batch, in a diff a reviewer reads". This RFC proposes that diff for `app_worker` and no other.
 2. **The migration owner's membership** (`002`, `003`): `postgres` holds each with `inherit false, set
    true`. `003`'s header records why both switches matter: `alter role … noinherit` controls what the role
@@ -56,8 +57,11 @@ default now means.
    - the snapshot rules over the provisioned instance: a service role with `BYPASSRLS` or superuser is a
      finding, a role that `canlogin` with no password is a finding, `KNOWN_BYPASS` is pinned (`:3787-3817`).
 
-   So **today no login role other than a superuser can exist** without a pin moving. That is the property
-   this RFC must change by exactly one role, and the reason its migration moves three pins in one diff (§4).
+   So **on a migrate-clean cluster today no login role other than a superuser can exist** without a pin
+   moving. That is the property this RFC must change by exactly one role, and the reason its migration moves
+   three pins in one diff (§4). It is a statement about migrate-clean clusters only: on the provisioned
+   instance `postgres` and `authenticator` are non-superuser login roles, read by the snapshot rules, not by
+   the fourth or eighth rule (C0-1).
 5. **"Force where compatible" was already made falsifiable.** `RFC-2026-016` §4 retired the phrase for being
    unfalsifiable and replaced it with `db/foundation/lint/rls-exemption-register.json`, read both ways: an
    unforced table with no row is refused, and a row whose exemption the catalog does not show is refused.
@@ -92,8 +96,17 @@ grant app_worker to app_worker_login with inherit false, set true, admin false;
   `app_worker`'s privileges only after `SET LOCAL ROLE app_worker`, never ambiently. Both switches are set
   (`003`'s lesson): the role is `NOINHERIT` *and* the grant's `inherit_option` is false, so neither a later
   `alter role … inherit` nor a re-grant with the default option alone hands it the worker's reach.
-- **Nothing is a member of it.** `authenticator` is not (`RFC-2026-019` §5's negative, extended by one
-  name); no client role is; no service role is.
+- **No member besides the applier's `CREATE ROLE` admin grant.** `authenticator` is not (`RFC-2026-019`
+  §5's negative, extended by one name); no client role is; no service role is. On a cluster whose applier
+  is a superuser (every migrate-clean cluster) nothing is a member of it. On an instance whose migration
+  owner is not a superuser — the provisioned instance, where `postgres` is not one (`run.mjs:3821`,
+  `KNOWN_SUPERUSERS = ['supabase_admin']`; `open_blockers[198]` (2)) — PostgreSQL 16+ grants the creating
+  `CREATEROLE` role membership in the role it creates, `ADMIN TRUE, INHERIT FALSE, SET FALSE`, so exactly
+  one member is admitted there: the migration owner, with exactly those options (A1 measured it on a
+  simulated non-superuser owner: admin t, inherit f, set f, grantor `postgres`; `catalog-snapshot.json`
+  already reads the three service roles the same way, `members_besides_admin: 0`, `_membership_note`). Any
+  other member, or that row with `INHERIT` or `SET` true, is a finding. What the admin row lets its holder do
+  is §3.3/2's.
 - **Every transaction the worker runs** opens `begin; set local role app_worker;`, then, for a CARRIED
   statement, `select set_config('app.workspace_id', $1, true)` from the job's tenant context
   (`RFC-2026-022` §5/7); it never issues `SET` or `SET ROLE` without `LOCAL`, and never `RESET ROLE` inside a
@@ -101,7 +114,7 @@ grant app_worker to app_worker_login with inherit false, set true, admin false;
   has no `USAGE` on `app`, so it is refused with `42501` rather than running with some other reach.
 - **Not `app_command`, not `app_maintenance`.** `app_command` is never reached by login (`RFC-2026-019` §4/2).
   `app_maintenance` — the cross-tenant path `RFC-2026-017` gives "retention sweeps, purge verification,
-  chunked backfills" — gets its own login role, if it needs one, in its own decision when its first use is
+  backfills" (`RFC-2026-017:50`; "chunked" is `001:44`'s comment) — gets its own login role, if it needs one, in its own decision when its first use is
   written (Q-028-8). One credential that could become both the confined worker and the cross-tenant
   maintenance path would make every confinement this RFC relies on a matter of which `SET ROLE` the process
   chose.
@@ -133,7 +146,9 @@ role returns zero rows, through `postgres` returns rows) is what shows it.
 
 1. **The migration creates the role with no password** (`password null`). Under `scram-sha-256` or `md5`
    authentication a role with no password cannot authenticate, so the role the migration creates is inert
-   on every instance until an operator gives it a credential. No migration, fixture, test, evidence file,
+   on every instance **whose every `pg_hba` line reaching the role asks for a password**, until an operator
+   gives it a credential. Under a `trust` line it logs in with no password at all (A1 measured both ways,
+   A1 F8); see /3 for the clusters where that holds. No migration, fixture, test, evidence file,
    handoff, CI log or URL in this repository carries a password, verifier or connection string with a
    credential for it (`CONTRIBUTING_AGENTS.md`, non-negotiable rules); the secret scan already refuses the
    shapes it knows, and §5/5 adds a static rule for `PASSWORD` in migration text.
@@ -145,6 +160,31 @@ role returns zero rows, through `postgres` returns rows) is what shows it.
    the old one end with the pool's recycle. The cadence and the platform's secret store are Q-028-3's.
    Whether the platform's pooler accepts a custom login role, and in which mode, is read, not measured
    (Q-028-12; it rides on the platform measurement Q170-c already owes).
+
+   Three conditions on that custody, each a condition of Q-028-3's answer (A1 F1, F3):
+
+   - **The secret's scope excludes every request-path runtime.** The worker's credential lives in a secret
+     scope (deployment, environment, or secret-store path) that no runtime serving a request can read. A
+     worker that shares an environment-variable scope with the web tier hands a compromised web tier a
+     cross-tenant service identity, which is the reach this role's confinement exists to deny.
+   - **The production secret is at least as strong as the test one**: generated, at least 32 random bytes
+     (§3.3/3's), never chosen by a person. A SCRAM verifier that reaches a statement log is attackable
+     offline in proportion to the secret's entropy.
+   - **Network restriction is decided and recorded either way**: whether a `pg_hba` line (or the
+     platform's equivalent) restricts the role to the worker's egress is Q-028-3's to answer; "not
+     restricted" is an acceptable answer only if it is written down with its reason.
+
+   **Who else can mint the credential.** On the provisioned instance the migration owner holds `ADMIN` on
+   the role (§3.1), and `ADMIN` on a role is enough to `alter role … password` it. So **whoever holds
+   `postgres`'s credential can set the worker's** — the worker's credential is never stronger than the
+   migration owner's custody. That is recorded, not mitigated here: whether a non-superuser migration owner can
+   revoke the admin row after creation (its grantor is the bootstrap superuser) is read, not measured, and is
+   left to Q-028-13's measurement.
+
+   **The topology is re-read where custody happens.** Every step this paragraph takes out of band — the
+   verifier, rotation, any network rule — happens on the provisioned instance, where the fourth rule, the
+   eighth rule and the settings rule never run. So the custody runbook re-takes the catalog snapshot after
+   each credential change, and the snapshot rules of §3.6 assert §3.1 against it (A1 F2; §5/14).
 3. **Locally and in CI, a test-only credential, generated, never stored.** The harness that runs the
    worker-path cases (not the migration) sets the login role's password on the cluster it is testing, from
    32 random bytes it generates per cluster (locally) or per job (CI), held in a `0600` password file inside
@@ -152,10 +192,15 @@ role returns zero rows, through `postgres` returns rows) is what shows it.
    never printed, and deleted with the cluster. That is the pattern `scripts/db/try-it.mjs` already measured
    for the superuser credential (`open_blockers[196]` (2), done: `initdb --auth=scram-sha-256 --pwfile`, the
    password in `<dir>/pgpass` only). **On a cluster that authenticates by `trust`** — every measurement
-   cluster this package's runs start, `initdb -A trust`, and the CI service container — any password is
-   accepted, so the credential proves nothing about authentication there; the topology cases (§5/7-10) still
-   hold, because they rest on role attributes and memberships, and the authentication cases (§5/12) run only
-   on a `scram-sha-256` cluster and are reported as not run elsewhere.
+   cluster this package's runs start, `initdb -A trust` — any password is accepted, so the credential proves
+   nothing about authentication there; the topology cases (§5/7-10) still hold, because they rest on role
+   attributes and memberships, and the authentication cases (§5/12) run only on a `scram-sha-256` cluster and
+   are reported as not run elsewhere. **The CI service container is not known to be `trust`** (C0-2): CI
+   runs `postgres:17` with `POSTGRES_PASSWORD` set and connects over TCP with `PGPASSWORD` (the CI workflow
+   file, the service block and each job's environment), and that image's default host authentication when a
+   password is set is `scram-sha-256` — read, not measured. The implementing batch measures it (`select
+   type, database, user_name, address, auth_method from pg_hba_file_rules`, or a wrong password refused) and
+   records what it found; if it is `scram-sha-256`, §5/12 runs in CI too.
 4. **The snapshot rule** "a role that can log in with no password" (`run.mjs`, the service-role loop) reads
    the **provisioned** instance, where the operator has set the verifier; it is extended to this role. On a
    CI or local cluster before the harness runs, the role has no password and that is the intended state
@@ -229,13 +274,20 @@ Each probe of §2/4 keeps its meaning; three gain one pinned entry each, in the 
 | settings rule | client roles only | **extended to `app_worker_login`, pinned empty**: `alter role app_worker_login set role = 'app_worker'` (a session-level role at login, which would defeat `SET LOCAL`) fails it |
 | `authenticator` negative (`RFC-2026-019` §5) | three service roles | **plus `app_worker_login`** |
 | snapshot service-role rules, `KNOWN_BYPASS` | three roles; five bypassing | the login role read with them (no bypass, no superuser, a password on the provisioned instance, not inherited by the admin role); `KNOWN_BYPASS` **unchanged** |
+| snapshot of the login role (A1 F2) | not read | **the snapshot carries the login role's attributes, its memberships with their three options, its members with theirs, its `pg_db_role_setting` rows and its connection limit, and the snapshot lint asserts §3.1 against them**: exactly one membership (`app_worker`, inherit f, set t, admin f); no member besides the migration owner's admin row (admin t, inherit f, set f); no setting; every attribute but `LOGIN` false. These are the only rules that run where an operator's `grant app_maintenance to app_worker_login`, `alter role … inherit` or `alter role … set role = 'app_worker'` would be made. The snapshot is a point-in-time read, so the custody runbook re-takes it after each credential change (§3.3/2) |
 
 ## 4. Migrations this implies later (none in this batch)
 
 1. **The role** (after approval; Q-028-9 for the number): the `create role` and `grant` of §3.1, a comment,
    and an apply-time block asserting §3.1 in the catalog — the attributes; exactly one membership, with its
-   three options; nothing a member of it; no ownership; no schema privilege; no `pg_db_role_setting` row; no
-   password set by the migration (`pg_authid.rolpassword is null`). The three pins of §3.6 move in the same
+   three options; **no member besides, when the applier is not a superuser, the applier's own `CREATE ROLE`
+   admin row, asserted with its options (admin t, inherit f, set f)**, and none at all when it is (C0-1,
+   A1 F1); no ownership; no schema privilege; no `pg_db_role_setting` row. **The block does not read the
+   password**: `pg_authid` is readable only by a superuser, the repository's own rule forbids reading it in a
+   migration (`020_business.sql:652-655`), and `pg_roles.rolpassword` reads `********` whether or not a
+   password is set (Q0-R3, measured). "No migration sets a password" is held statically by §5/5 instead, and
+   the harness of §3.3/3 sets the test credential only after migrate-clean's post-migrate pass, so no re-run
+   of an apply-time block ever sees it. The three pins of §3.6 move in the same
    diff (`scripts/db/run.mjs`, `db/foundation/lint/catalog-snapshot.json`'s declaration), and the post-migrate
    pass says which earlier apply-time block, if any, the role makes false (a `superseded.json` entry then).
 2. **`app.jobs`' tenant-context columns** (§3.4, Q-028-5), in A0's kernel range, before `RFC-2026-026`'s worker
@@ -255,10 +307,19 @@ None is written by this RFC; each is owed by the batch that lands §4/1, unless 
    `… createrole`; `… superuser` — each fails migrate-clean by name (eighth rule, or the superuser-set rule).
 2. Its only membership is `app_worker`, with `inherit false, set true, admin false`. Drifts: `grant app_command
    to app_worker_login`; `grant app_maintenance to app_worker_login`; `grant app_worker to app_worker_login
-   with inherit true`; `… with admin option` — each fails the fourth rule (the last two only once it reads
-   options, Q-028-10).
-3. Nothing is a member of it, and `authenticator` is not. Drifts: `grant app_worker_login to authenticator`
-   (the `RFC-2026-019` negative); `grant app_worker_login to authenticated` (the client membership probe).
+   with inherit true`; `… with admin option`. The first two fail the fourth rule. `with inherit true`
+   **already fails today**, through the table-level grant rule (the login role then holds `app_worker`'s
+   table privileges ambiently: "unlisted: app_worker_login INSERT on app.ai_model_policies; …", Q0
+   measured, Q0-R5); only `with admin option` passes today and needs the fourth rule to read a pinned
+   entry's options (Q-028-10), which also holds the `SET` option.
+3. No member besides the applier's admin row (§3.1), and `authenticator` is not one. Drifts: `grant
+   app_worker_login to authenticated` (the client membership probe); `grant app_worker_login to
+   app_maintenance` (the fourth rule). **Snapshot-only:** `grant app_worker_login to authenticator` (the
+   `RFC-2026-019` negative) cannot be applied on a migrate-clean cluster, because the shim creates no
+   `authenticator` role (Q0 measured: `role "authenticator" does not exist`, Q0-R6); it is held by the
+   snapshot rule over `catalog-snapshot.json` (`run.mjs:3714-3724`) and its drift is a snapshot fixture
+   naming the membership, not a migration. If the shim later creates `authenticator`, the live drift joins
+   this list.
 4. It holds no privilege and no setting. Drifts: `grant usage on schema app to app_worker_login` (seventh
    rule); `grant select on app.jobs to app_worker_login` (the pinned grant probe); `alter role
    app_worker_login set role = 'app_worker'` and `… set search_path = app` (the settings rule, extended);
@@ -273,10 +334,17 @@ None is written by this RFC; each is owed by the batch that lands §4/1, unless 
 
 **Live** (`make db-rls-smoke`, as a connection that logs in as the role):
 
-7. Before `SET LOCAL ROLE`: `select 1 from app.workspaces limit 1` is refused `42501` (no `USAGE`).
-   Negative control: with `grant usage on schema app to app_worker_login` applied, the case goes red.
+7. Before `SET LOCAL ROLE`: `select 1 from app.workspaces limit 1` is refused `42501` **with the message
+   `permission denied for schema app`** — the SQLSTATE and the message both asserted, because a refusal
+   one layer later carries the same SQLSTATE (Q0-R2, measured: with `grant usage on schema app to
+   app_worker_login` the same statement is refused `42501` `permission denied for table workspaces`).
+   Negative controls: (a) the membership re-granted `with inherit true` — the statement then returns zero
+   rows with no error (Q0 measured), so the case goes red whatever it asserts; (b) `grant usage on schema
+   app to app_worker_login` — the message changes, so the message assertion goes red.
 8. `set local role app_worker` succeeds; `set local role app_command`, `… app_maintenance`, `… authenticated`
-   and `… postgres` are each refused `42501`.
+   and `… postgres` are each refused `42501`. Drift: `grant app_command to app_worker_login` — the
+   `set local role app_command` case then succeeds and goes red (the fourth rule refuses the same grant
+   statically, §5/2).
 9. After `commit`, `current_user` is `app_worker_login` again (`SET LOCAL` ended with the transaction).
    Negative control: the same case written with `set role` instead of `set local role` goes red — the
    pooled-connection leak `RFC-2026-019` §4/3 names.
@@ -284,12 +352,30 @@ None is written by this RFC; each is owed by the batch that lands §4/1, unless 
     `set local role app_worker`, a read of `app.jobs` (DISCOVERED, no policy) returns **zero** rows; the same
     statement through `postgres` returns the fixture's rows. Batch `050`'s `service-sees-zero-*` cases are
     re-run through the login role, not only through `as_service()`, and stay permanent (`RFC-2026-022` §8).
+    Drift: a permissive `for select to app_worker using (true)` policy on `app.jobs` — the login role then
+    reads the fixture's rows and the zero-row case goes red.
 11. Owed to `RFC-2026-026`'s worker-half batch, not this one: a CARRIED insert through the login role with
     the setting matching succeeds, with another workspace's id is refused by the policy, unset is refused
     (not `42704`, not `22P02`) — `RFC-2026-022` §7.4/9-10.
 12. **Authentication, on a `scram-sha-256` cluster only**: no password refused (`fe_sendauth: no password
     supplied`), a wrong one refused, the generated one connects; the password appears in no printed line,
-    log or URL. On a `trust` cluster these are reported as not run, never as passed (§3.3/3).
+    log or URL. On a `trust` cluster these are reported as not run, never as passed (§3.3/3). Drift: a
+    `host all app_worker_login 127.0.0.1/32 trust` line placed before the `scram-sha-256` line — the
+    no-password case then connects and goes red. The harness connects with `-w` (no prompt).
+13. **No session-level `app.workspace_id` survives into the next job** (A1 F4). A1 measured that
+    `set_config('app.workspace_id', …, false)` in one transaction is still set in the next on the same
+    connection, so a job that forgets to set its workspace would run with the previous job's, and a CARRIED
+    policy reading the setting would admit it. The worker harness refuses to start a job's transaction when
+    `current_setting('app.workspace_id', true)` is neither null nor empty at its start (after `set local
+    role app_worker`, before its own `set_config(…, true)`). Case: two consecutive jobs on one connection,
+    the first setting it with `true` — the second starts clean. Negative control: the first job sets it with
+    `set_config(…, false)` — the second refuses to start, and a harness without the check goes red. The
+    pooler's reset behaviour between clients is Q-028-12's.
+14. **The provisioned instance's snapshot reads §3.1** (A1 F2, §3.6's last row): the snapshot lint run over
+    a fixture snapshot. Drifts, each a fixture edit: the login role with `rolinherit` true; a membership in
+    `app_maintenance`; the `app_worker` membership with `inherit_option` true; a member other than the
+    migration owner's admin row; that admin row with `set_option` true; a `pg_db_role_setting` row
+    (`role=app_worker`) — each a finding by name.
 
 ## 6. Alternatives
 
@@ -333,16 +419,17 @@ All UNANSWERED. A0's recommendation is **a recommendation, not an answer**; each
 |---|---|---|---|
 | Q-028-1 | Owner, A1 | Approve §3.1's shape: a dedicated `LOGIN NOINHERIT NOBYPASSRLS` role, member of `app_worker` alone with `inherit false, set true, admin false`, `SET LOCAL ROLE` per transaction? | **Yes**, after this batch's role runs report no stop-the-line and their findings are folded in. |
 | Q-028-2 | A1 | The role's name. | **`app_worker_login`**; not load-bearing, but every pin of §3.6 spells it. |
-| Q-028-3 | Integration Owner, operations, A1 | Custody on the provisioned instance: secret store, verifier set out of band, rotation cadence; or certificates (§6 E)? | **A SCRAM verifier set by the provisioning runbook from the platform's secret store; rotation at least every 90 days and on any suspicion; certificates revisited after the platform measurement (Q-028-12).** The cadence is operations' to set before G1. |
+| Q-028-3 | Integration Owner, operations, A1 | Custody on the provisioned instance: secret store, verifier set out of band, rotation cadence; or certificates (§6 E)? | **A SCRAM verifier set by the provisioning runbook from the platform's secret store; rotation at least every 90 days and on any suspicion; certificates revisited after the platform measurement (Q-028-12).** The cadence is operations' to set before G1. **Conditions of any answer (§3.3/2, A1 F3):** no request-path runtime can read the credential's secret scope; the production secret is generated with at least 32 random bytes; a decision on network restriction to the worker's egress is recorded either way; and the snapshot is re-taken after each credential change (A1 F2). |
 | Q-028-4 | A0, A1, Q0 | Local and CI test credential as §3.3/3, with authentication cases on `scram-sha-256` clusters only? | **Yes**, reusing `try-it`'s measured password-file pattern; the harness, not the migration, sets it. |
 | Q-028-5 | A0 (kernel range `050`), A6 (whose `RFC-2026-026` worker half needs it), CTR-JOB-001's owner | `app.jobs` keeps no `actor`, `request_id` or `correlation_id` (§2/6): add `CTR-TEN-001`'s fields as columns before `RFC-2026-026`'s worker half, or carry them in `input_ref`? | **Columns**, `not null` with `CTR-TEN-001`'s bounds, in a forward migration of A0's kernel range; `CTR-JOB-001`'s reading of `tenant_context` restated to match. |
 | Q-028-6 | A1, A6 | §3.4's sources: `request_id` minted per attempt, `correlation_id` carried from the enqueuing request (or the sweep's run id), `causation_id` the job id, `actor` the job's (or `system_actor` for a sweep)? | **Yes**, as the table states; the database mints none of them. |
 | Q-028-7 | Owner, A1 | The order of §3.5: the audit worker half first, then §11.4's purge, then the retention sweep? | **Yes.** The audit row is a precondition of every honest worker act; purge and sweep carry further dependencies listed beside each. |
 | Q-028-8 | A1, Owner | The retention sweep: `app_worker` through the broker (the service-policy map's row) or `app_maintenance` (`RFC-2026-017` §3)? And does `app_maintenance` get a login? | **The broker, as `app_worker`**: a sweep is a job, claimed like any other, and the map's DISCOVERED row already says so; `app_maintenance` keeps purge verification and chunked backfills, each use with a recorded reason, and its login is its own RFC when the first such use is written. `RFC-2026-017` §3's row corrected by its owner (A0) then. |
 | Q-028-9 | Integration Owner | The role migration's number. | **The next free number above the highest merged migration** when it is written (migrations apply in filename order, and a number below the applied set would run out of order on an instance that holds later ones), recorded as a one-time exception to the registry's ranges the way Q150-c's was; the role topology is A0's foundation work (`001`-`004`). |
-| Q-028-10 | A0 | The fourth rule reads memberships "whatever the grant's INHERIT, SET or ADMIN option": should it read the options of a pinned entry? | **Yes**, in the same diff as the pin: a pinned membership is pinned with its three options, so §5/2's last two drifts fail. |
+| Q-028-10 | A0 | The fourth rule reads memberships "whatever the grant's INHERIT, SET or ADMIN option": should it read the options of a pinned entry? | **Yes**, in the same diff as the pin: a pinned membership is pinned with its three options, so §5/2's `with admin option` drift fails (its `with inherit true` drift already fails today through the table-level grant rule, Q0-R5). |
 | Q-028-11 | A1 | A connection limit on the role? | **Yes, set to the worker pool's size and pinned in the snapshot**; a resource bound, not a security boundary, and recorded as such. |
-| Q-028-12 | Integration Owner, A0 | The platform pooler: does it accept a custom login role, in which mode, and does `SET LOCAL ROLE` / `set_config(…, true)` end with the transaction there (`RFC-2026-022` §7.3 (d))? | **Measure it on the provisioned instance as part of Q170-c's read-only measurement, before the worker connects through the pooler; until measured, the worker connects directly or through a session-mode pool.** |
+| Q-028-12 | Integration Owner, A0 | The platform pooler: does it accept a custom login role, in which mode, and does `SET LOCAL ROLE` / `set_config(…, true)` end with the transaction there (`RFC-2026-022` §7.3 (d))? | **Measure it on the provisioned instance as part of Q170-c's read-only measurement, before the worker connects through the pooler; until measured, the worker connects directly or through a session-mode pool.** The same measurement reads what the pooler resets between clients — in particular whether a session-level custom setting such as `app.workspace_id` survives into another client's transaction (§5/13, A1 F4). |
+| Q-028-13 | A0, Integration Owner | §4/1 applied by a non-superuser `CREATEROLE` role, as on the provisioned instance (C0-1, A1 F1): does the apply-time block hold with the applier's admin row (admin t, inherit f, set f) as the one member, does `createrole_self_grant` on the platform add `INHERIT` or `SET` to it, and can that owner revoke the row? | **Measure it before §4/1 is applied to the provisioned instance**: once on a local cluster where the applier is a non-superuser `CREATEROLE` role (as A1 simulated), and on the platform as part of Q170-c's read-only measurement (`createrole_self_grant`, the row's options, its grantor). Until measured, §4/1 is applied to migrate-clean clusters only. |
 
 ## 10. Provenance, and what a reviewer should discount
 
@@ -351,5 +438,9 @@ asks to move; it proposes the identity its own batches will consume. Every file 
 `921efb5`; nothing was measured on a database for this text (no DB-read input changed in this batch), so
 every claim about PostgreSQL behaviour above — `SET LOCAL ROLE`'s scope, a no-password role's inertness
 under `scram-sha-256`, `has_schema_privilege` under `inherit false` — is **to be executed by the batch that
-lands §4/1, never cited** (`RFC-2026-020` §6.2's rule). The reviewer should weigh §3.4's finding on its own:
+lands §4/1, never cited** (`RFC-2026-020` §6.2's rule). The review round's role runs prototyped §3.1 on
+throwaway clusters (A1 R0, Q0 §4: `evidence/WP-0A-DB-00/a1-batch-rfc-023-028-security-review-2026-10-03.md`,
+`q0-batch-rfc-023-028-test-review-2026-10-03.md`), and the revision cites what they measured where it
+changed the text; those prototypes are theirs, not the implementing batch's migration, and discharge no
+obligation of §5. The reviewer should weigh §3.4's finding on its own:
 it is about `RFC-2026-026`'s worker half, which this author also wrote.
