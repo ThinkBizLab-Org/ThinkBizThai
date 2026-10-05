@@ -146,3 +146,12 @@ a file — walking back in through the tool's own default. `--no-renames`.
 `^evidence/.*notes\.md$`, which matches `evidence/XYZnotes.md`; a shell globstar does
 not. Latent, because no manifest uses that form today, and fixed rather than left
 because the next one will.
+
+## 2026-10-06: superseded in part
+
+`evidence/WP-0A-A0-004/author-step2-and-retest-2026-10-06.md` re-measures this file's verification at
+main `e1fa28e`. It corrects the human-authority line (RFC-2026-007, not RFC-2026-003). It records that
+native protection on `main` is now live, so the protected-CI line above is no longer an external block.
+It also applies the Owner's 2026-10-05 step-2 decisions. The cross-vendor condition is withdrawn for this
+package, `/claude/r0_steward` succeeds `/root/r0_steward`, and no Product reviewer is needed. The text
+above is left as written on 2026-09-01.
