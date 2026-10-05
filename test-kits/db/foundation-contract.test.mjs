@@ -675,7 +675,10 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   // Batch 173's migration: the worker's login role (RFC-2026-028). It could apply on its own, but it sorts after 172,
   // and Q-028-13 holds it to migrate-clean clusters until a non-superuser applier and the platform's
   // createrole_self_grant are measured.
-  '173_worker_login_identity.sql'];
+  '173_worker_login_identity.sql',
+  // Batch 174's migration: app.jobs' tenant-context columns (RFC-2026-028 §3.4, Q-028-5). It alters 050's table, which
+  // the instance has never received, and sorts after 173.
+  '174_job_tenant_context.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -3253,6 +3256,17 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // drift gains a role granted to app_worker as member, Q0 R-1 on 170-assert, and the login role's two; drifts for
   // rules 4b and 9; the rule-8 drift makes the login role NOLOGIN and gives it a default privilege). Every other
   // digest stays.
+  // Batch 174 (migration 174; RFC-2026-028 §3.4, Q-028-5; A1-173-3): pinned check 9fbe921cb30965f5 to 3ba8cd283ac50444
+  // (PINNED_CHECKS gains app.jobs' four tenant-context CHECKs and PINNED_NOT_NULL its four columns; each drift also
+  // re-bounds a job's correlation id or drops its actor's NOT NULL); pinned grant 710c5dc430afa672 to 2f5a4bfb2897d642
+  // (rule 10, no non-superuser role holds CREATE on a database or a database privilege with grant option; rule 11,
+  // every non-superuser role's EXECUTE beyond PUBLIC's is exactly PINNED_FUNCTION_EXECUTE and PUBLIC executes nothing in
+  // app or private; a drift for each; pinned-grants.json gains app_worker's SELECT and INSERT on the four columns);
+  // vocabulary check d28d49cb3af0a0fd to 471593a8ce1de34d (vocabulary-checks.json gains jobs_actor_kind_known). Every
+  // other digest stays.
+  // Batch 174's review round (Q0 F3): pinned check 3ba8cd283ac50444 to 792a2204f6d7a5da (the correlation drift re-bounds
+  // to {1,255}, a bound PostgreSQL can run; {1,256} exceeds its repetition maximum, so no row could pass it). Every
+  // other digest stays.
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -3268,17 +3282,17 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'client schema probe': '6c400e229948cda6',
     'client membership probe': 'ebe66b570210169e',
     'system object fingerprint probe': 'f75c1e00bd908cd5',
-    'pinned check probe': '9fbe921cb30965f5',
+    'pinned check probe': '792a2204f6d7a5da',
     'pinned policy probe': 'a7be93780c68245a',
     'security definer probe': '475c89fbab0f2fc9',
     'policy helper probe': '39249ae657cfd196',
     'trigger probe': '6bb73ce79c56f132',
     'pinned trigger probe': '8412a302b7f190a7',
-    'pinned grant probe': '710c5dc430afa672',
+    'pinned grant probe': '2f5a4bfb2897d642',
     'read allowlist probe': 'a97a58b338e52627',
     'data classification probe': 'a848ca33af3460e3',
     'pinned shape probe': '11ba1271ffc00d70',
-    'vocabulary check probe': 'd28d49cb3af0a0fd',
+    'vocabulary check probe': '471593a8ce1de34d',
     'policy set probe': 'd4c82a795a93f485',
     'index coverage probe': '2d47460e43a5c68e',
     'pinned default probe': '570796093410bc0a',
@@ -3572,8 +3586,9 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     }
   }
   assert.match(m.PINNED_CHECK_PROBE_SQL, /con\.convalidated\s+and pg_catalog\.pg_get_constraintdef\(con\.oid\) = pin\.def/, 'CHECKs compared by TEXT and validated (Q0 on 123, F1)');
-  assert.deepEqual(Object.keys(m.PINNED_CHECKS).sort(), ['approval_requests.approval_requests_decided_after_created', 'approval_requests.approval_requests_decider_is_a_pair', 'approval_requests.approval_requests_decision_has_a_decider'],
-    '090\'s equivalence and 123\'s pair, which together make a cancelled, pending or expired request name no decider, and 126\'s order of creation and decision');
+  assert.deepEqual(Object.keys(m.PINNED_CHECKS).sort(), ['approval_requests.approval_requests_decided_after_created', 'approval_requests.approval_requests_decider_is_a_pair', 'approval_requests.approval_requests_decision_has_a_decider',
+    'jobs.jobs_actor_id_bounded', 'jobs.jobs_actor_kind_known', 'jobs.jobs_correlation_id_bounded', 'jobs.jobs_request_id_bounded'],
+    '090\'s equivalence and 123\'s pair, which together make a cancelled, pending or expired request name no decider, and 126\'s order of creation and decision; and (batch 174) a job\'s tenant context');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /where p\.prosecdef and \(n\.nspname not in \('pg_catalog', 'information_schema'\) or p\.oid >= 16384\)\n\s+and not exists \(select 1 from pg_catalog\.pg_depend d/, 'every schema (A1 F3, Q0 F3), and a function made after initdb in a system one (C0 X5, Q0 ISF on 128)');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /md5\(p\.prosrc\) <> pin\.digest/, 'body digests (A1 F2)');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /has_function_privilege\('public', p\.oid, 'EXECUTE'\)/, 'no EXECUTE for PUBLIC (A1 F3)');
@@ -3591,7 +3606,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.match(m.PINNED_TRIGGER_PROBE_SQL, /pg_get_userbyid\(p\.proowner\) <> case when pin\.owner = 'migration owner' then current_user::text else pin\.owner end\n\s+then ' \[owner is not the pinned owner\]'/,
     'and by owner (Q0 F8 on 126)');
   assert.ok(m.PINNED_TRIGGER_FUNCTIONS.every((row) => row.length === 4 && row[3].length > 0), 'every pinned trigger function names its owner');
-  assert.deepEqual(m.PINNED_NOT_NULL, ['app.approval_requests.created_at'], 'the column 126\'s order CHECK reads that must never be NULL (Q0 F8 on 126)');
+  assert.deepEqual(m.PINNED_NOT_NULL, ['app.approval_requests.created_at', 'app.jobs.actor_kind', 'app.jobs.actor_id', 'app.jobs.request_id', 'app.jobs.correlation_id'],
+    'the column 126\'s order CHECK reads that must never be NULL (Q0 F8 on 126), and (batch 174) the four tenant-context columns of app.jobs, whose CHECKs pass a NULL');
   assert.match(m.PINNED_CHECK_PROBE_SQL, /and a\.attname = split_part\(pin\.k, '\.', 3\) and a\.attnum > 0 and not a\.attisdropped and a\.attnotnull\);/, 'read from attnotnull');
   assert.match(m.REWRITE_RULE_PROBE_SQL, /where n\.nspname in \('app', 'private'\)\n\s+and not \(r\.rulename = '_RETURN' and c\.relkind in \('v', 'm'\)\);/,
     'no rewrite rule in app or private but a view\'s _RETURN (Q0 F5 on 126)');
@@ -3646,7 +3662,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'its second rule: the owner the role set leaves out is a superuser, stated rather than assumed (C0 F5 on 126)');
   assert.match(m.PINNED_GRANT_PROBE_SQL, /where pg_catalog\.has_column_privilege\(roles\.r, cols\.rel, cols\.attnum, p\.p \|\| go\.opt\)\n\s+and not pg_catalog\.has_table_privilege\(roles\.r, cols\.rel, p\.p \|\| go\.opt\)\n\s+\), pinned as/,
     'a column privilege is read unless a table-level privilege, with the same grant option, already implies it (the table-level rule reads that one)');
-  assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'unlisted: ' \|\| f\.g/g) ?? []).length, 3, 'an unlisted grant named at both levels, and an unlisted schema privilege (rule 7, the owed-tooling batch)');
+  assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'unlisted: ' \|\| f\.g/g) ?? []).length, 4, 'an unlisted grant named at both levels, an unlisted schema privilege (rule 7, the owed-tooling batch), and (batch 174) an unlisted EXECUTE (rule 11)');
   // Batch 170's review round (A1 R1, R2; Q0 Q-1, Q-2, Q-5): the three premises of the reading are rules.
   assert.match(m.PINNED_GRANT_PROBE_SQL, /union all\n    select 'not a table: ' \|\| format\('%s\.%s \(relkind %s\)', n\.nspname, c\.relname, c\.relkind\)\n\s+from pg_catalog\.pg_class c join pg_catalog\.pg_namespace n on n\.oid = c\.relnamespace\n\s+where n\.nspname in \('app', 'private'\) and c\.relkind in \('v', 'm', 'f'\)\n  \) d;\n  if offending is not null then\n    raise exception 'app or private table\(s\) not exactly the pinned grant table list: %'/,
     'the first rule also names every view, materialized view and foreign table in app and private (A1 R2 d05b, d06; Q0 Q-2 T07)');
@@ -3684,7 +3700,24 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'rule 9: every non-superuser, non-pg_* role, its stored credential null');
   assert.match(m.PINNED_GRANT_PROBE_SQL, /from pg_catalog\.pg_default_acl d left join pg_catalog\.pg_namespace n on n\.oid = d\.defaclnamespace\n\s+\) d;\n  if offending is not null then\n    raise exception 'a non-superuser role holds an attribute pinned false, or a default privilege entry exists/,
     'rule 8: and no default privilege entry at all, whoever it grants to (A1 S3)');
-  assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'missing: ' \|\| p\.g/g) ?? []).length, 5, 'and a missing one, at both levels, on a schema, and (batch 173) a membership row and an attribute');
+  assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'missing: ' \|\| p\.g/g) ?? []).length, 6, 'and a missing one, at both levels, on a schema, (batch 173) a membership row and an attribute, and (batch 174) an EXECUTE');
+  // RULES 10 AND 11 (batch 174; A1-173-3 on batch 173's review, open_blockers[201] (10)): the database arm and EXECUTE
+  // per role, over every non-superuser, non-pg_* role, the client roles included.
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /from pg_catalog\.pg_roles r, pg_catalog\.pg_database d, unnest\(array\['CREATE', 'TEMPORARY', 'CONNECT'\]\) as p\(p\),\n\s+\(values \(''\), \(' WITH GRANT OPTION'\)\) as go\(opt\)\n\s+where not r\.rolsuper and r\.rolname !~ '\^pg_' and \(p\.p = 'CREATE' or go\.opt <> ''\)\n\s+and pg_catalog\.has_database_privilege\(r\.rolname, d\.oid, p\.p \|\| go\.opt\)/,
+    'rule 10: every database, CREATE with or without grant option, and TEMPORARY or CONNECT with it, for every non-superuser, non-pg_* role (A1-173-3: `grant create on database` to app_worker passed every layer)');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /case when d\.datname = pg_catalog\.current_database\(\) then 'the current database' else 'database ' \|\| d\.datname end/,
+    'rule 10 names the current database as such, so a finding reads the same on CI\'s database and on a local one');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /with fns as \(\n\s+select p\.oid, p\.oid::pg_catalog\.regprocedure::text as f, n\.nspname as s\n\s+from pg_catalog\.pg_proc p join pg_catalog\.pg_namespace n on n\.oid = p\.pronamespace\n\s+\), found as \(/,
+    'rule 11: every function in every schema, pg_catalog included, with no filter');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /where not r\.rolsuper and r\.rolname !~ '\^pg_'\n\s+and pg_catalog\.has_function_privilege\(r\.rolname, fns\.oid, 'EXECUTE' \|\| go\.opt\)\n\s+and \(go\.opt <> '' or not pg_catalog\.has_function_privilege\('public', fns\.oid, 'EXECUTE'\)\)\n\s+union all\n\s+select format\('public EXECUTE on %s', fns\.f\)\n\s+from fns where fns\.s in \('app', 'private'\) and pg_catalog\.has_function_privilege\('public', fns\.oid, 'EXECUTE'\)/,
+    'rule 11: each role\'s EXECUTE beyond what PUBLIC holds, every grant option, and PUBLIC\'s own EXECUTE in app and private');
+  assert.equal(m.PINNED_FUNCTION_EXECUTE.length, 31, 'measured on the clean set through 174: 31 rows');
+  assert.deepEqual([...new Set(m.PINNED_FUNCTION_EXECUTE.map((g) => g.split(' ')[0]))], ['app_authz', 'app_command', 'app_worker', 'authenticated'],
+    'four roles execute beyond PUBLIC; app_maintenance, app_worker_login and anon nothing');
+  assert.deepEqual(m.PINNED_FUNCTION_EXECUTE.filter((g) => g.startsWith('app_worker ')), ['app_worker EXECUTE on app.knowledge_scope_applies(uuid,uuid,uuid,uuid)'],
+    'the worker executes one function beyond PUBLIC, and neither command');
+  assert.ok(m.PINNED_FUNCTION_EXECUTE.every((g) => / on app\./.test(g)), 'every pinned EXECUTE is on a function in app: none in pg_catalog, none in private');
+  assert.deepEqual([...m.PINNED_FUNCTION_EXECUTE].sort(), m.PINNED_FUNCTION_EXECUTE, 'sorted, so a diff of the list reads as what moved');
   // EVERY TABLE AND EVERY ROLE, AS DATA (the batch 170 draft; plan (a)). The pinned list is the lint file,
   // one entry per table, and its tables are exactly the tables the migrations create in app and private.
   {
@@ -4039,7 +4072,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     const file = JSON.parse(await readFile(m.VOCABULARY_CHECKS_FILE, 'utf8'));
     assert.deepEqual(m.VOCABULARY_CHECKS, file.checks, 'the probe reads the lint file and nothing else');
     const keys = Object.keys(m.VOCABULARY_CHECKS);
-    assert.equal(keys.length, 60, 'sixty vocabulary CHECKs, measured at 1319042');
+    assert.equal(keys.length, 61, 'sixty vocabulary CHECKs, measured at 1319042, and (batch 174) app.jobs\' jobs_actor_kind_known, CTR-TEN-001\'s actor.kind enum');
     assert.deepEqual(keys, [...keys].sort(), 'sorted');
     const all = (await Promise.all((await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql')).map((n) => readFile(`db/foundation/migrations/${n}`, 'utf8')))).join('\n');
     for (const [k, def] of Object.entries(m.VOCABULARY_CHECKS)) {
@@ -5963,4 +5996,103 @@ test('batch 173: the harness logs in as the worker with a generated credential i
   assert.match(nj[1].detail, /app\.jobs, the table RFC-2026-028 §5\/10 names, is not among the tables app_worker may read/);
   // Wired: rls-smoke runs them after the isolation cases, as part of the proofs.
   assert.match(await readFile('scripts/db/authz-proofs.mjs', 'utf8'), /\.\.\.await proveTheWorkerLogin\(run, runOne, ids\),\n\s+\];/, 'runProofs runs them');
+});
+
+// BATCH 174 (migration 174; RFC-2026-028 §3.4, Q-028-5 answered as A0 recommended; A1-173-3; 171 (6) by inheritance):
+// a job names its actor, its enqueuing request and its correlation, NOT NULL and bounded, and every writer of app.jobs
+// names them; the live half is the rls-smoke proof job-names-its-tenant-context, driven here by a fake.
+test('batch 174: a job names its actor and request, NOT NULL with no default, bounded as 172 bounds an id, and every writer names them', async () => {
+  const m = await import('../../scripts/db/run.mjs');
+  const proofs = await import('../../scripts/db/authz-proofs.mjs');
+  const name = '174_job_tenant_context.sql';
+  const sql = await readFile(`db/foundation/migrations/${name}`, 'utf8');
+  const statements = canonicalStatements(sql.replace(SQL_LINE_COMMENTS, '')).filter((s) => s.depth === 0).map((s) => s.text);
+  const SHAPE = "'^[A-Za-z0-9._:-]{1,128}$'";
+  assert.equal(statements[0].replace(/\s+/g, ' '), 'alter table app . jobs '
+    + 'add column actor_kind text not null , add column actor_id text not null , '
+    + 'add column request_id text not null , add column correlation_id text not null , '
+    + "add constraint jobs_actor_kind_known check ( actor_kind in ( '' , '' ) ) , "
+    + "add constraint jobs_actor_id_bounded check ( actor_id ~ '' ) , "
+    + "add constraint jobs_request_id_bounded check ( request_id ~ '' ) , "
+    + "add constraint jobs_correlation_id_bounded check ( correlation_id ~ '' )",
+  'one ALTER: four text columns, NOT NULL, no DEFAULT (the database mints none of them, RFC-2026-028 §3.4), and four CHECKs');
+  // The literals the canonical form blanks: CTR-TEN-001's actor.kind enum exactly, and 172's identifier shape (D9) three times.
+  assert.match(sql, /add constraint jobs_actor_kind_known check \(actor_kind in \('user', 'system_actor'\)\),/);
+  for (const c of ['actor_id', 'request_id', 'correlation_id']) {
+    assert.ok(sql.includes(`add constraint jobs_${c}_bounded check (${c} ~ ${SHAPE})`), `${c}: 172's bound`);
+  }
+  const closing = await readFile('db/foundation/migrations/172_acting_user_and_closing_command.sql', 'utf8');
+  assert.ok(closing.includes(SHAPE.slice(1, -1)), 'the same shape 172 gives the closing command\'s two identifiers');
+  const contract = JSON.parse(await readFile('contract-catalog/shared-kernel/ctr-ten-001/schema.json', 'utf8'));
+  assert.deepEqual(contract.properties.actor.properties.kind.enum, ['user', 'system_actor'], 'CTR-TEN-001\'s enum, not a narrowing');
+  for (const k of ['request_id', 'correlation_id']) {
+    assert.deepEqual(contract.properties[k], { type: 'string', minLength: 1 }, `CTR-TEN-001 bounds ${k} by minLength alone: 174 narrows it, owed to the contract owner`);
+  }
+  assert.deepEqual(statements.slice(1).map((s) => s.replace(/ is ''$/, ' is')), [
+    'comment on column app . jobs . actor_kind is', 'comment on column app . jobs . actor_id is',
+    'comment on column app . jobs . request_id is', 'comment on column app . jobs . correlation_id is',
+    'grant select ( actor_kind , actor_id , request_id , correlation_id ) on app . jobs to app_worker',
+    'grant insert ( actor_kind , actor_id , request_id , correlation_id ) on app . jobs to app_worker',
+    "do ''",
+  ], 'and nothing else: four comments, SELECT and INSERT for app_worker alone (050\'s rule for an enqueuer-supplied column), no UPDATE, no policy, one block');
+  const [block] = m.applyTimeBlocks(name, sql);
+  assert.ok(block, 'one apply-time block, re-run by the post-migrate pass');
+  for (const raise of ['tenant-context columns are not text, NOT NULL and default-free', 'tenant-context CHECK(s) missing, unvalidated or not in their text',
+    'not exactly app_worker\'\'s to read and enqueue and nobody\'\'s to update', 'a policy TO a role a client role is a member of reads membership without the helper']) {
+    assert.ok(block.sql.includes(raise), `the block raises: ${raise}`);
+  }
+  for (const [k, def] of Object.entries(m.PINNED_CHECKS).filter(([key]) => key.startsWith('jobs.'))) {
+    assert.ok(block.sql.includes(`'${k.split('.')[1]}', '${def.replace(/'/g, "''")}'`), `${k}: the block and the probe pin one text`);
+  }
+  // 171 (6) by inheritance (C0 R3, A1 R1, Q0-171R-1): every role anon or authenticated reaches, recursively, whatever the options.
+  assert.match(block.sql, /with recursive reached\(roleid\) as \(\n\s+select m\.roleid\n\s+from pg_catalog\.pg_auth_members m join pg_catalog\.pg_roles c on c\.oid = m\.member\n\s+where c\.rolname in \('anon', 'authenticated'\)\n\s+union\n\s+select m\.roleid from reached join pg_catalog\.pg_auth_members m on m\.member = reached\.roleid\n\s+\)/,
+    'the client roles\' memberships, recursively, with no filter on the grant\'s options');
+  assert.ok(block.sql.includes("!~ 'app\\.(is_active_member|workspace_member_role)\\('"), 'the helper test 171 (6) applies');
+  // EVERY WRITER names the four: the 050 fixture, the isolation suite's enqueue, the WS:905 fixture (a writer that
+  // omits one is refused with 23502, so a missed writer fails a live target; this fails it before a database).
+  // Any spelling of the target: quoted, mixed case, spaced around the dot (C0-174-4 on batch 174).
+  const JOBS_INSERT = /\binsert\s+into\s+(?:"app"|app)\s*\.\s*(?:"jobs"|jobs\b)/i;
+  const JOBS_INSERT_G = new RegExp(JOBS_INSERT.source, 'gi');
+  for (const spelling of ['insert into app.jobs', 'INSERT  INTO "app" . "jobs"', 'insert\ninto app."jobs"']) assert.match(spelling, JOBS_INSERT, `a writer spelled ${spelling} is read`);
+  assert.doesNotMatch('insert into app.jobs_archive', JOBS_INSERT);
+  const writers = ['tests/db/identity/fixtures/050-async-kernel-fixture.sql', 'tests/db/identity/isolation-cases.mjs', 'test-kits/db/ws905-fixture.mjs'];
+  for (const w of writers) {
+    const text = await readFile(w, 'utf8');
+    const at = [...text.matchAll(JOBS_INSERT_G)].map((x) => x.index);
+    assert.ok(at.length >= 1, `${w} writes app.jobs`);
+    for (const i of at) for (const c of proofs.JOB_CONTEXT_COLUMNS) assert.match(text.slice(i, i + 700), new RegExp(`\\b${c}\\b`), `${w}: its insert names ${c}`);
+  }
+  const fed = await m.fedSqlSources();
+  const otherWriters = fed.filter((f) => JOBS_INSERT.test(f.sql.replace(SQL_LINE_COMMENTS, '')) && !writers.includes(f.name)).map((f) => f.name);
+  assert.deepEqual(otherWriters, [], 'no other fed source writes app.jobs');
+  // THE LIVE PROOF, driven by a fake answering as the shipped schema does (measured on 5507), and two broken ones.
+  assert.deepEqual(proofs.JOB_CONTEXT_COLUMNS, ['actor_kind', 'actor_id', 'request_id', 'correlation_id']);
+  const answers = ['ok 1', 'ok 1', 'raised 23502', 'raised 23502', 'raised 23514', 'raised 23514', 'raised 23514', 'raised 23514', 'ok 1', 'raised 23514',
+    'ok 1', 'raised 42501 rls', 'raised 42501 grant', 'raised 42501 grant', 'ok 0'];
+  const fake = (seen) => {
+    const calls = [];
+    return { calls, run: async (q) => { calls.push(q); return { rows: [{ v: seen[calls.length - 1] }] }; } };
+  };
+  const ids = { workspace: 'c4840acc-0323-5e13-b1d3-c18d7eb615cb', owner: '6a3f2e7c-0000-5000-8000-000000000001' };
+  const good = fake(answers);
+  const p = await proofs.proveTheJobTenantContext(good.run, ids);
+  assert.equal(p.ok, true, p.detail);
+  assert.equal(good.calls.length, answers.length, 'fifteen attempts, each its own');
+  for (const q of good.calls) {
+    assert.equal(q.prelude[0], 'begin;');
+    assert.deepEqual(q.epilogue, ['rollback;'], 'each attempt rolled back');
+  }
+  assert.match(good.calls[0].prelude.at(-1), /actor_kind, actor_id, request_id, correlation_id\) values \('c4840acc-0323-5e13-b1d3-c18d7eb615cb', [^$]*'user', '6a3f2e7c-0000-5000-8000-000000000001', 'proof-174-request', 'proof-174-correlation'\)/,
+    'the baseline names all four, the owner as the actor');
+  assert.ok(good.calls[9].prelude.at(-1).includes(`'${'c'.repeat(129)}'`), 'one past the bound');
+  assert.match(good.calls[11].prelude.at(-1), /set_config\('role', 'app_worker', true\)/, 'the grant cases run as app_worker');
+  assert.ok(good.calls[12].prelude.includes('revoke insert (actor_id) on app.jobs from app_worker;'), 'the INSERT control revokes one column');
+  // A loosened bound (the 129-character id admitted) and a minted context (an insert naming none admitted) each go red, by name.
+  const loose = await proofs.proveTheJobTenantContext(fake(answers.map((a, i) => (i === 9 ? 'ok 1' : a))).run, ids);
+  assert.equal(loose.ok, false);
+  assert.match(loose.detail, /correlation_id of 129 characters: "ok 1", should be "raised 23514"/);
+  const minted = await proofs.proveTheJobTenantContext(fake(answers.map((a, i) => (i === 2 ? 'ok 1' : a))).run, ids);
+  assert.equal(minted.ok, false);
+  assert.match(minted.detail, /no tenant context: the database mints none: "ok 1"/);
+  assert.match(await readFile('scripts/db/authz-proofs.mjs', 'utf8'), /await proveTheJobTenantContext\(run, ids\),\n/, 'runProofs runs it');
 });

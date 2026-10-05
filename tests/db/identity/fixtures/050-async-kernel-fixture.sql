@@ -50,15 +50,23 @@ begin;
 -- due (available_at in the past), unleased, unattempted and uncancelled — the plainest state a job
 -- can be in, so that a case failing here is failing about a policy rather than about a fixture that
 -- put a row into a corner.
+--
+-- Batch 174 (RFC-2026-028 §3.4, Q-028-5): every job names its tenant context -- its actor, the enqueuing
+-- request and the correlation it carries -- because the columns are NOT NULL and the database mints none of
+-- them. Both rows are a sweep's (system_actor), the one kind a fixture can name without a user id, with
+-- synthetic ids in the shape 174 bounds them to.
 insert into app.jobs
   (workspace_id, job_type, job_version, priority, available_at, attempt, max_attempts,
-   timeout_seconds, dedupe_key, input_ref, progress_percent, progress_stage) values
+   timeout_seconds, dedupe_key, input_ref, progress_percent, progress_stage,
+   actor_kind, actor_id, request_id, correlation_id) values
   ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'fixture.job', 1, 0,
    timestamptz '2026-09-01 00:00:00+00', 0, 5, 30,
-   'fixture-job-a', 'job:fixture.input.a', 0, 'fixture-stage'),
+   'fixture-job-a', 'job:fixture.input.a', 0, 'fixture-stage',
+   'system_actor', 'fixture.sweep', 'fixture-request-a', 'fixture-correlation-a'),
   ('43fd5c24-ebea-528f-9ce9-eedf1f8f9765', 'fixture.job', 1, 0,
    timestamptz '2026-09-01 00:00:00+00', 0, 5, 30,
-   'fixture-job-b', 'job:fixture.input.b', 0, 'fixture-stage')
+   'fixture-job-b', 'job:fixture.input.b', 0, 'fixture-stage',
+   'system_actor', 'fixture.sweep', 'fixture-request-b', 'fixture-correlation-b')
 -- Keyed on the natural key batch 050 declares, which is also the pair every case addresses a job
 -- through.
 on conflict (workspace_id, dedupe_key) do nothing;
