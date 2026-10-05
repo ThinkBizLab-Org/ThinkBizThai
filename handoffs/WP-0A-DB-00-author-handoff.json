@@ -5,16 +5,20 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "921efb59fafe8c0670330cb73df2a2df6589c268",
-  "head_revision_or_patch_checksum": "3d2138928605d2d4f74aebc963d8739ae90f83e2",
+  "head_revision_or_patch_checksum": "abd48b384a4dad62e8f71589b9cca1db3a94508c",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-028-worker-identity.md",
     "evidence/WP-0A-DB-00/a0-batch-rfc-023-028-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-023-028.md"
+    "evidence/WP-0A-DB-00/a1-batch-rfc-023-028-security-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-rfc-023-028-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-023-028.md",
+    "evidence/WP-0A-DB-00/q0-batch-rfc-023-028-test-review-2026-10-03.md"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-023-acting-user-narrowing.md",
     "db/foundation/lint/audit-coverage-map.json",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/verify-test-coverage-floor.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/integrity-manifest.json",
@@ -32,9 +36,9 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH RFC-023-028: text only. RFC-2026-023 brought current (still In review); RFC-2026-028 drafted (Proposed); the writable-path amendment for RFC-2026-028; blockers [113] and [195] appended and [199] added. Plan evidence/WP-0A-DB-00/a0-batch-rfc-023-028-plan-2026-10-03.md.",
+    "THIS INCREMENT IS BATCH RFC-023-028: text only. RFC-2026-023 brought current (still In review); RFC-2026-028 drafted (Proposed); the writable-path amendment for RFC-2026-028; blockers [113] and [195] appended and [199] added. Then a REVIEW ROUND (code commit abd48b3): the C0, A1 and Q0 reviews cherry-picked with -x (c008820, ceca0b6, 9fa8f84), their 23 findings folded into both RFC texts, open_blockers[199] (8) appended with what stays owed, new Q-028-13. Plan evidence/WP-0A-DB-00/a0-batch-rfc-023-028-plan-2026-10-03.md, §7 for the round.",
     "Neither RFC is approved; A0's recommendation to approve each, with conditions, is the plan's §6, for a later batch to take through the Owner's delegation.",
-    "Nothing the DB layer reads changed, so migrate-clean and rls-smoke were not run; every PostgreSQL behaviour RFC-2026-028 relies on is owed to execution by the batch that lands its migration (open_blockers[199] (6)).",
+    "Nothing the DB layer reads changed, in the batch or its review round, so migrate-clean and rls-smoke were not run; every PostgreSQL behaviour either RFC relies on is owed to execution by the batch that lands it (open_blockers[199] (6)). The role runs A1 and Q0 prototyped parts of both RFCs on their own clusters; the revisions cite those measurements and discharge no obligation.",
     "A0's recommendation that the Owner's words answered is not itself recorded in the repository; the disposition states its content as A0's summary."
   ],
   "acceptance_results": [
@@ -62,6 +66,11 @@
       "criterion": "every finding owed with a named owner or cross-referenced",
       "result": "met",
       "evidence": "open_blockers[199] (1)-(7); [113] and [195] appended; evidence/WP-0A-DB-00/a0-batch-rfc-023-028-plan-2026-10-03.md §4"
+    },
+    {
+      "criterion": "(5) review round: C0, A1 and Q0 findings acted on, each folded into text or recorded as owed with an owner; no migration, no approval, no rule weakened",
+      "result": "met",
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-023-028-plan-2026-10-03.md §7.2 (finding -> change -> measured); open_blockers[199] (8); RFC-2026-023 and RFC-2026-028 'Revised' lines"
     }
   ],
   "tests": [
@@ -106,29 +115,60 @@
       "result": "clean: tests 685, pass 685"
     },
     {
-      "command": "make db-migrate-clean; make db-rls-smoke",
+      "command": "make db-migrate-clean; make db-rls-smoke (batch and review round)",
+      "result": "NOT RUN -- no exit code recorded: no DB-read input changed (plan §3, §7.3); no cluster started"
+    },
+    {
+      "command": "git cherry-pick -x bc0cb19 c7fb1cf c4692ad (review round)",
       "exit_code": 0,
-      "result": "not run: no DB-read input changed (plan §3); no cluster started"
+      "result": "c008820, ceca0b6, 9fa8f84"
+    },
+    {
+      "command": "npm run regenerate:manifest; node scripts/verify-test-coverage-floor.mjs (review round)",
+      "exit_code": 0,
+      "result": "rebuilt 91 digests; only the two RFC digests changed; floor green"
+    },
+    {
+      "command": "node --test test-kits/db/foundation-contract.test.mjs test-kits/repository-json.test.mjs test-kits/branch-identity.test.mjs (review round)",
+      "exit_code": 0,
+      "result": "97 of 97; line pins hold"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs 921efb5 WP-0A-DB-00 (review round)",
+      "exit_code": 0,
+      "result": "all 14 changed path(s) are declared, and every amendment explains one"
+    },
+    {
+      "command": "npm run check (review round, before the code commit)",
+      "exit_code": 0,
+      "result": "tests 685, pass 685"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (review-round code commit abd48b3)",
+      "exit_code": 0,
+      "result": "clean: tests 685, pass 685"
     }
   ],
-  "security_privacy_cost_impact": "None in the tree: two decision records, no role, credential, grant, policy or migration. RFC-2026-028 proposes a login role with no password in any migration, a verifier set out of band from the platform secret store, and a generated per-cluster test credential; no secret is written anywhere by this batch (secret scan green). RFC-2026-023 proposes widening app_authz by five columns and one own-rows policy on workspace_member_scopes, no wider than authenticated holds.",
+  "security_privacy_cost_impact": "None in the tree: two decision records, no role, credential, grant, policy or migration. RFC-2026-028 proposes a login role with no password in any migration, a verifier set out of band from the platform secret store in a secret scope no request-path runtime can read, at least 32 random bytes, and a generated per-cluster test credential; on the provisioned instance the migration owner holds ADMIN on the role and so can set its credential (recorded, Q-028-13). No secret is written anywhere by this batch (secret scan green). RFC-2026-023 proposes widening app_authz by five columns and one own-rows policy on workspace_member_scopes; that policy omits workspace_member_scopes_select_own's is_active_member conjunct, so it is wider than what authenticated holds, and reaches nothing because only app_authz's helpers, which ask is_active_member first, can use it (A1 F6).",
   "migration_and_data_impact": "No migration and no data change. The manifest gains one writable path and one net amendment path, so the 33 line pins in db/foundation/lint/audit-coverage-map.json move +2 (open_blockers[i] on line 257+i); open_blockers[199] is added at the end. Migrations implied later (none here): RFC-2026-023 shape B with the first command function; RFC-2026-028 §4 (the login role; app.jobs tenant-context columns; the runner).",
   "compatibility_impact": "Tests stay 685 (none added or renamed); no floor moves, so scripts/test-suite-contract.mjs is not amended and evidence/VERIFICATION.md is not amended. DECISION_RECORDS and DIGESTED_FLOOR gain RFC-2026-028; the integrity manifest has 91 digests.",
   "known_limitations": [
     "Nothing either RFC proposes was executed on a database in this batch (open_blockers[199] (6)).",
     "A0's recommendation that the Owner answered is summarised, not quoted, because the message is not in the repository (disposition §1).",
     "RFC-2026-023 §8 (the closing command) and its step-up evidence (Q-023-5) are proposals; the aal claim is to be measured on the platform before relied on.",
-    "RFC-2026-028 §3.3: on trust-authenticated clusters (every local measurement cluster and the CI container) the test credential proves nothing about authentication; those cases run on scram clusters only."
+    "RFC-2026-028 §3.3/3: local measurement clusters authenticate by trust, where the test credential proves nothing; the CI container is read (not measured) as scram-sha-256 and is owed a measurement (C0-2, open_blockers[199] (8)(b)).",
+    "The review round re-ran no database: the A1 and Q0 measurements cited in the revisions are theirs (ports 5501, 5503), on prototypes, not this batch's.",
+    "RFC-2026-026's command half also needs app_command USAGE on schema app (A1 F5, Q0-R1); RFC-2026-026 is approved and outside this batch's writable paths, so the need is recorded on open_blockers[199] (8)(d), not edited there."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[199]: both RFCs unapproved; Q-023-1..8 and Q-028-1..12 unanswered; findings (3) RFC-2026-023 §3.2 omissions, (4) app.jobs has no actor/request_id/correlation_id (MEDIUM, design), (5) retention-sweep role disagreement.",
+    "open_blockers[199]: both RFCs unapproved; Q-023-1..8 and Q-028-1..13 (twenty-one) unanswered; findings (3) RFC-2026-023 §3.2 omissions, widened by (8)(d), (4) app.jobs has no actor/request_id/correlation_id (MEDIUM, design), (5) retention-sweep role disagreement; (8) the review round's owed items (a)-(e).",
     "open_blockers[113]: the worker identity does not exist until RFC-2026-028 is approved and its migration lands.",
     "open_blockers[195]: named-role acceptances, RFC-2026-020 edit, RFC-2026-026 implementation, unchanged; (c) done in text.",
     "open_blockers[188]: Integration Owner evidence for any merge is still owed."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restoring RFC-2026-023 to its 2026-09-15 text and removing RFC-2026-028 with its writable path, DECISION_RECORDS, DIGESTED_FLOOR and integrity-manifest rows, and the line pins -2; no database or migration depends on either text.",
   "recommended_next_work_packages": [
-    "C0, A1 and Q0 role runs of this batch: RFC-2026-023 §0, §3.2, §8, §9 and RFC-2026-028 §3, §5, §9 first; A1 as DATA-DEC-03 co-owner on RFC-2026-028 §3.1-§3.3.",
+    "Re-checks by C0, A1 and Q0 of the review round (code commit abd48b3): RFC-2026-028 §3.1, §3.3, §3.6, §4/1, §5 and Q-028-13; RFC-2026-023 §3.2, §5, §6, §8.",
     "Then, on A0's recommendation (plan §6), the approvals of RFC-2026-023 and RFC-2026-028 taken through the Owner's delegation, with their conditions.",
     "After approval: RFC-2026-023's batch (shape B, the §11.4 closing command, RFC-2026-026's command half, batch 141's range); RFC-2026-028's role migration (Q-028-9); app.jobs' tenant-context columns (Q-028-5); RFC-2026-026's worker half once RFC-2026-022 §7 holds."
   ],
@@ -137,7 +177,8 @@
     "Diff 921efb5..1da0b1c: architecture/decisions/RFC-2026-023-acting-user-narrowing.md (compare to its 2026-09-15 text), architecture/decisions/RFC-2026-028-worker-identity.md, work-packages/WP-0A-DB-00.json (branch, writable_paths, amends_without_owning, open_blockers[113], [195], [199]), the line pins in db/foundation/lint/audit-coverage-map.json.",
     "Check RFC-2026-023 §0/7 and §3.2 against 021_member_scope.sql:208-230, :326, :415-450 and 171_workspace_lifecycle_visibility.sql:171-226; check RFC-2026-028 §2/6 and §3.4 against 050_async_kernel.sql:426-427, :490-510 and RFC-2026-026 §3.5.",
     "Measure, do not cite: if you can, prototype RFC-2026-028 §3.1 on a scratch cluster (a NOINHERIT login granted app_worker WITH INHERIT FALSE, SET TRUE) and run §5/7-10 and the §3.6 probe drifts against today's run.mjs to confirm which rule refuses each.",
-    "Re-run the drifts of plan §2; judge A0's grading of finding (4) (MEDIUM, not stop-the-line) and A0's approval recommendation in plan §6."
+    "Re-run the drifts of plan §2; judge A0's grading of finding (4) (MEDIUM, not stop-the-line) and A0's approval recommendation in plan §6.",
+    "Review round: read plan §7 first; diff b0adf6b..abd48b3 (both RFCs, plan, open_blockers[199] (8), integrity manifest); check each row of §7.2 against the finding in the cherry-picked review it names."
   ],
   "superseded_by": null
 }
