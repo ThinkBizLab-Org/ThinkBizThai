@@ -5,13 +5,18 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "e1fa28ec0232ccbb4dadb5faa079df5b1579b469",
-  "head_revision_or_patch_checksum": "e1fa28ec0232ccbb4dadb5faa079df5b1579b469",
+  "head_revision_or_patch_checksum": "25cff93a8d54447e7e9dc09c62d4102cc2b5c5c4",
   "task_ids": [
     "WP-0A-A0-005",
     "G0-step-2"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-A0-005/author-reverify-2026-10-06.md"
+  ],
+  "files_modified": [
+    "handoffs/WP-0A-A0-005-author-handoff.json",
+    "work-packages/WP-0A-A0-005.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -81,7 +86,7 @@
     {
       "command": "npm run verify (via node scripts/commit-when-clean.mjs, on the records commit)",
       "exit_code": 0,
-      "result": "clean; it gates the commit this handoff cites as head",
+      "result": "clean: tests 691, pass 691, fail 0, skipped 0, todo 0. It gated commit 25cff93, the head this handoff cites",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
