@@ -30,20 +30,22 @@
     "integration_owner_agent_run_id": "/claude/r0_steward",
     "security_reviewer_agent_run_id": "/claude/a1_bastion",
     "product_reviewer_agent_run_id": null,
-    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner and must record its own capability declaration before this package leaves backlog. /root/r0_steward (OpenAI Codex) is a DIFFERENT run: it is the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001 and is named in open_blockers solely because it must countersign the amendments made to those two packages and record the WP-0A-CON-001 npm run check addendum. Neither run substitutes for the other. Independent testing flagged the near-identical names as ambiguous; both are intended."
+    "product_reviewer_note": "product_reviewer_agent_run_id is null by decision, not a gap: the Product Owner decided on 2026-10-05 that tooling and contract work packages need no Product reviewer (step 2 item 3, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 row 3). This is a contract package with no UX surface, and review_and_test_gates carries no product step.",
+    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner and must record its own capability declaration before this package leaves backlog. /root/r0_steward (OpenAI Codex) is a DIFFERENT run: it is the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001 and is named in open_blockers solely because it must countersign the amendments made to those two packages and record the WP-0A-CON-001 npm run check addendum. Neither run substitutes for the other. Independent testing flagged the near-identical names as ambiguous; both are intended. (2026-10-05: the Product Owner named /claude/r0_steward successor to /root/r0_steward for the acknowledgements recorded pending against /root/r0_steward, step 2 item 2, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 row 2. This package records no acknowledgement pending against /root/r0_steward. Any owed to WP-0A-A0-001 or WP-0A-CON-001 are given by /claude/r0_steward in those packages, not here. /claude/r0_steward remains this package's Integration Owner.)"
   },
   "independence": {
     "no_self_approval": true,
     "require_distinct_author_reviewer": true,
     "require_distinct_author_tester": true,
-    "prefer_cross_vendor_review": true,
-    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (§ cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+    "prefer_cross_vendor_review": false,
+    "cross_vendor_exception": "WITHDRAWN 2026-10-05 BY THE PRODUCT OWNER for this package. RFC-2026-024 (approved 2026-09-15) withdrew the cross-vendor condition and applied it to WP-0A-DB-00 only (§3/1). On 2026-10-05 the Owner answered \"บืนยันขั้น 2\" to step 2 item 1, \"Apply RFC-024's cross-vendor exception to all 15 work packages\", and WP-0A-CON-007 is one of those 15 (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 row 1). Until then this field read that every assigned run is Anthropic claude-opus-5, which was permitted only as the Decision Register's recorded exception and was not equivalent to cross-vendor review. That history is why each of this package's role files says so. What remains is all of CONTRIBUTING_AGENTS.md § Separation of duties: four distinct agent_run_ids in the four roles, plus the conditional Security reviewer; no run approves, test-verifies, integrates or gate-approves its own work; a distinct same-vendor run in a named role IS that role's signature; and every role file opens with the §0 spawning disclosure (RFC-2026-024 §3/3-4). G0's external verification is unchanged and nothing an agent here can do satisfies it (RFC-2026-024 §3/5)."
   },
   "accountable_owners": [
     "A0"
   ],
   "required_human_authorities": [
-    "Product Owner disposition of RFC-2026-009 before the manual merge described in RFC-2026-002"
+    "Product Owner disposition of RFC-2026-009: GIVEN. Approved 2026-09-02 (commit 82aae60). The merge of this package's first increment (959ebcc, PR #12, 2026-09-02 13:35 +0700) PRECEDED that approval (16:21 +0700), against the order this field required (C0 §5, blocker 1). That sequencing is the Integration Owner's to dispose of. The approval stands on main.",
+    "The 2026-10-06 record corrections to RFC-2026-009 change its record, not its decision. Merging the PR that carries them is the Product Owner's personal act under RFC-2026-025 §5 item 6, because it changes an RFC. Never a delegated merge."
   ],
   "purpose": "CTR-EVT-001 shipped metadata.schema_ref as an unconstrained string, and it accepted all sixteen hostile forms probed against it -- file:///etc/passwd, javascript:, a data: URI, a protocol-relative //host, traversal, a cloud instance-metadata address and a 100000-character value -- on the envelope that carries every event in the system. Separately, no reference field anywhere in the catalog carried an upper bound: an allow-list pattern says what a value may look like, not how much of it there may be.",
   "scope": {
@@ -100,6 +102,9 @@
       "*.pfx",
       "db/**",
       "migrations/**"
+    ],
+    "authorized_cross_package_amendments": [
+      "test-kits/integrity-manifest.json (WP-0A-A0-002 output; that package is in_review) - permitted change: update exactly two digests, test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs and architecture/decisions/RFC-2026-009-reference-bounds.md, to match their 2026-10-06 bytes. Both files are this package's own. The edit is not discretionary: scripts/verify-test-coverage-floor.mjs exits 86 when a digested file's bytes move, and the manifest's cross_package_note says any package that changes a digested file must update it. npm run regenerate:manifest rebuilt 91 digests and exactly those two entries changed. Acknowledgement runs to WP-0A-A0-002's Integration Owner, /claude/r0_steward."
     ]
   },
   "inputs": {
@@ -151,9 +156,16 @@
   },
   "rollback_or_forward_fix": "Revert through a reviewed revert PR. Constraints on four Candidate contracts and one test file; no persisted data, provider state, credential, migration or customer-data effect.",
   "open_blockers": [
-    "RFC-2026-009 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
-    "CTR-NTF-001 deep_link.target_ref remains unbounded. It belongs to A5 and is reported, not fixed.",
-    "The 256-character bound is a DECLARED INFERENCE. The longest reference in the catalog is 51 characters; no baseline task states a limit. A reviewer who knows the real ceiling should set it."
+    "RESOLVED 2026-10-06 (was: \"RFC-2026-009 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.\"). RFC-2026-009 carries the Product Owner disposition of 2026-09-02, commit 82aae60, on its status line (A1 condition 8, C0 §5). What is still open is the sequencing, in required_human_authorities[0], for the Integration Owner.",
+    "CTR-NTF-001 deep_link.target_ref remains unbounded. It belongs to A5 (contract owner) through WP-0A-CON-006, and it is reported, not fixed. Since 2026-10-06 it and its three unbounded neighbours (notification_id, message_key, dedupe_key) are in the guard's KNOWN_UNBOUNDED list, so they are visible, and the list fails when the owner bounds them until the entry is removed.",
+    "RESOLVED 2026-10-06 (was: \"The 256-character bound is a DECLARED INFERENCE. The longest reference in the catalog is 51 characters; no baseline task states a limit. A reviewer who knows the real ceiling should set it.\"). The figure was wrong: the longest is 85 (ctr-usg-001 dedupe_key, valid fixture), or 48 counting *_ref only (A1 S-8, C0 F6). No baseline document states a limit. The bounds are now recorded as A0's decision as owner of the four contracts, under the Owner's 2026-09-28 instruction to carry out the work as A0 recommends (RFC-2026-009 R-2). 256 is load-bearing in migrations 050, 110 and 140 as length(...) <= 256 CHECK constraints, so a change in either direction needs a forward migration in the same change. A1's suggestion to lower schema_ref to 24 is recorded, not taken; it is CTR-EVT-001's owner's before freeze.",
+    "OWED by WP-0A-CON-001 (CTR-EVT-001's package; acknowledgement to /claude/r0_steward): the x-bound-note repeated on eight fields of contract-catalog/shared-kernel/ctr-evt-001/schema.json says the neighbouring fields accepted \"four of the sixteen\" hostile forms before the fix. They accepted sixteen of sixteen, and the note is wrong in every clause about event_type (A1 S-7, condition 1). The file is outside this package's writable paths. RFC-2026-009 R-3 records the true figures.",
+    "REPORTED, NOT FIXED: 49 reference-shaped fields in nine contracts this package does not own carry no bound. They are listed by owning package in RFC-2026-009 R-4 and in the guard's KNOWN_UNBOUNDED list: WP-0A-CON-001 (CTR-TEN-001 x7, which ride inside every CTR-EVT-001 event through tenant_context, and CTR-ERR-001 x2); WP-0A-CON-004 (CTR-SEC-001 x8, CTR-AUD-001 x4, CTR-OBS-001 x10); WP-0A-CON-003 (CTR-FLG-001 x4, CTR-MOD-001 x4); WP-0A-CON-006 (CTR-NTF-001 x4, CTR-USG-001 x6).",
+    "ESCALATED to CTR-JOB-001's owner (WP-0A-CON-001), required_before_freeze: job_type, lease_owner, progress_stage and last_error_code are bare {\"type\":\"string\"} on a contract this package bounded (A1 S-5). Also recorded on WP-0A-CON-005.",
+    "DEFERRED with the anchor-semantics test: occurred_at and five date-time siblings on the bounded contracts are defended only by format: \"date-time\", which JSON Schema 2020-12 makes an annotation by default (A1 S-6). This repository's validator asserts it. A cross-validator conformance test belongs with the first non-JS consumer (RFC-2026-009 R-5).",
+    "The declared assertion floor for test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs in scripts/test-suite-contract.mjs stays at 11 while the file now makes more assertions. A floor below the count still holds. Raising it is the owner of scripts/ (Integration Owner path), not this package. The test count (8) and the test-name digest are unchanged, because every 2026-10-06 change is inside an existing test.",
+    "OWED before this package can leave in_review: C0, A1 and Q0 re-checks of the 2026-10-06 head against their own conditions, and an Integration Owner verdict by /claude/r0_steward. The verdicts on file (03c584b) predate this increment.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
   ],
   "review_and_test_gates": [
     "author_complete",
