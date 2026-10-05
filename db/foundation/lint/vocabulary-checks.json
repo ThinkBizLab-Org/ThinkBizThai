@@ -1,7 +1,7 @@
 {
   "_what": "Every CHECK in app and private that names a fixed text vocabulary, by exact pg_get_constraintdef: a deparse holding ARRAY['...' (= ANY, <@ or a key list) or of the single-column form CHECK ((col = 'value'::text)). The vocabulary check probe reads the catalog with the same selector and compares both ways (weak-assertion survey §6 item 6: the TEXT-relative pins of 051 channel, 060 provider and 061 dimension and quantity_unit passed an identical rewrite of every home).",
-  "_measured": "Read from the catalog on a clean migrate-clean at 1319042: 60 of the 269 CHECKs in app and private (59 in app, 1 in private).",
-  "_selector_limit": "A vocabulary written another way (OR of equalities, a regex, a domain, a lookup table) is outside the selector and is not read here; the 209 other CHECKs are not pinned by this file.",
+  "_measured": "Read from the catalog on a clean migrate-clean at 1319042: 60 of the 269 CHECKs in app and private (59 in app, 1 in private). Batch 174 adds app.jobs.jobs_actor_kind_known (CTR-TEN-001's actor.kind enum, migration 174), read from the catalog of its own migrate-clean: 61 of the 273 (60 in app, 1 in private).",
+  "_selector_limit": "A vocabulary written another way (OR of equalities, a regex, a domain, a lookup table) is outside the selector and is not read here; the 209 other CHECKs (212 since batch 174, which adds three identifier-shape CHECKs on app.jobs) are not pinned by this file; those three are pinned by text in scripts/db/run.mjs (PINNED_CHECKS) and by 174's own block.",
   "checks": {
     "app.ai_models.ai_models_provider_known": "CHECK ((provider = ANY (ARRAY['openai'::text, 'claude'::text, 'gemini'::text, 'grok'::text, 'openrouter'::text])))",
     "app.approval_policies.approval_policies_required_role_known": "CHECK (((required_role IS NULL) OR (required_role = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text, 'approver'::text, 'viewer'::text]))))",
@@ -33,6 +33,7 @@
     "app.content_schedules.content_schedules_status_known": "CHECK ((status = ANY (ARRAY['draft'::text, 'armed'::text, 'dispatched'::text, 'cancelled'::text, 'completed'::text, 'failed'::text])))",
     "app.content_variants.content_variants_platform_known": "CHECK ((platform = ANY (ARRAY['facebook'::text, 'instagram'::text])))",
     "app.content_versions.content_versions_source_known": "CHECK ((source = ANY (ARRAY['generated'::text, 'manual'::text, 'revision'::text])))",
+    "app.jobs.jobs_actor_kind_known": "CHECK ((actor_kind = ANY (ARRAY['user'::text, 'system_actor'::text])))",
     "app.knowledge_items.knowledge_items_kind_known": "CHECK ((kind = ANY (ARRAY['voice'::text, 'audience'::text, 'offers'::text, 'restrictions'::text])))",
     "app.notification_preferences.notification_preferences_channel_known": "CHECK ((channel = ANY (ARRAY['in_app'::text, 'email'::text, 'line'::text])))",
     "app.notifications.notifications_channel_known": "CHECK ((channel = ANY (ARRAY['in_app'::text, 'email'::text, 'line'::text])))",

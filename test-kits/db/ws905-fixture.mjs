@@ -158,9 +158,10 @@ select ${uuidOf('ws', ws('c'))}, ${uuidOf('bp', bp('c'))}, ${uuidOf('ci', 'c')},
 insert into app.assets (workspace_id, business_profile_id, kind, title, source, created_at)
 select ${uuidOf('ws', ws('a'))}, ${uuidOf('bp', bp('a'))}, (array['image', 'video'])[a % 2 + 1], 'ws905 asset ' || a, 'upload', ${base} + a * interval '13 seconds'
   from generate_series(1, ${Math.floor(p.contentRows / p.assetEvery)}) a;
-insert into app.jobs (id, workspace_id, job_type, job_version, priority, available_at, max_attempts, timeout_seconds, dedupe_key, input_ref, progress_stage)
+insert into app.jobs (id, workspace_id, job_type, job_version, priority, available_at, max_attempts, timeout_seconds, dedupe_key, input_ref, progress_stage,
+                      actor_kind, actor_id, request_id, correlation_id)
 select ${uuidOf('job', 'j')}, ${uuidOf('ws', `(j - 1) % ${W} + 1`)}, 'ws905.synthetic', 1, j % 3, now() + (j % 7 - 3) * interval '1 hour', 3, 60,
-       'ws905:job:' || j, 'job:ws905-' || j, 'queued'
+       'ws905:job:' || j, 'job:ws905-' || j, 'queued', 'system_actor', 'ws905.sweep', 'ws905-req-job-' || j, 'ws905-cor-job-' || j
   from generate_series(1, ${W * p.jobsPerWorkspace}) j;
 insert into app.usage_events (occurred_at, dimension, quantity_amount, quantity_unit, workspace_id, business_profile_id, job_id, provider_key,
                               cost_amount, cost_currency, cost_basis, dedupe_key)
