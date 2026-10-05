@@ -54,11 +54,15 @@
 // invocation per read, so a transaction is never expected to survive an exit.
 import { argv, exit, stdout, stderr } from 'node:process';
 
-import { query, queryFinal, connectionString } from './psql-driver.mjs';
+import { query, queryFinal, connectionString, feed } from './psql-driver.mjs';
+import { createHash, createHmac, pbkdf2Sync, randomBytes } from 'node:crypto';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   AUTHZ_IDENTITY_SQL, AUTHZ_MIGRATION, AUTHZ_POLICY, AUTHZ_POLICY_QUAL, AUTHZ_ROLE, AUTHZ_TABLE,
   AUTHZ_WORKSPACES_POLICY, AUTHZ_WORKSPACES_POLICY_QUAL, AUTHZ_WORKSPACES_TABLE, AUTHZ_SCOPES_POLICY_QUAL,
-  authzLint,
+  authzLint, WORKER_LOGIN_ROLE,
 } from './run.mjs';
 import { fixtureResolver } from '../../tests/db/identity/run-isolation.mjs';
 import { realpathSync } from 'node:fs';
@@ -930,6 +934,354 @@ export async function provePoliciesContainTheClose(run, ids) {
   return p;
 }
 
+// -------------------------------------------------------------------------------------------
+// RFC-2026-028 §5/7-10, §5/12-13: the worker's login identity, logged in as (batch 173, migration 173).
+// -------------------------------------------------------------------------------------------
+//
+// Every service case before this batch became app_worker by `private.as_service()`, a SET ROLE from the superuser
+// connection: current_user was app_worker, so policies applied, but session_user was postgres and no case had ever
+// CONNECTED as anything else (RFC-2026-028 §2/7). These proofs connect as app_worker_login itself.
+//
+// THE TEST CREDENTIAL (RFC-2026-028 §3.3/3, Q-028-4). The migration leaves the role with none. Here, after
+// migrate-clean and the fixtures, the harness draws 32 random bytes (base64url) per run, computes the SCRAM-SHA-256
+// verifier CLIENT-SIDE and sets only the verifier (`alter role ... password '<verifier>'`, fed on stdin, never on a
+// command line), so the plaintext never reaches the server or a statement log. The plaintext lives in one libpq
+// password file, mode 0600, exclusive create, in a directory made for this run under the OS temporary directory,
+// passed to the login connections through PGPASSFILE (an inherited PGPASSWORD is dropped); it is never printed and
+// never in a URL. In a `finally` the role is returned to no credential (`password null`, the migrated state) and the
+// directory is deleted, so the pinned grant probe's ninth rule holds again on the same cluster.
+//
+// AUTHENTICATION (§5/12) is asked first, with a WRONG credential: where it connects, the cluster does not ask this
+// role for one (`initdb -A trust`, every local measurement cluster), and the authentication cases are REPORTED NOT
+// RUN, never passed; where it is refused, the three cases run (no credential refused, the wrong one refused, the
+// generated one connects). The topology cases hold either way: they rest on attributes and memberships.
+//
+// THE NEGATIVE CONTROLS cannot be run through the login connection without committing a drift to the cluster
+// another session would see. So each runs inside ONE rolled-back superuser transaction: the drift, then
+// `set local session authorization app_worker_login` (session_user and current_user become the login role, so SET
+// ROLE is checked against ITS memberships), then the same statement, decided by the same function as the real case.
+// That proves the decision discriminates; the real login proves the identity.
+
+export const WORKER_STATEMENT_BEFORE_SET_ROLE = 'select 1 as one from app.workspaces limit 1;';
+export const WORKER_REFUSAL_BEFORE_SET_ROLE = 'permission denied for schema app';
+// The table RFC-2026-028 §5/10 names: read through the login role, and the one its drift (a permissive policy for
+// app_worker) is put on.
+export const WORKER_NAMED_TABLE = 'app.jobs';
+export const WORKER_NOT_ASSUMABLE = ['app_command', 'app_maintenance', 'authenticated', 'anon', 'app_authz', 'postgres'];
+
+// The SCRAM-SHA-256 verifier PostgreSQL stores (RFC 5802, RFC 7677; PostgreSQL's scram_build_secret): computed here
+// so the server is given the verifier and never the plaintext. The password is ASCII base64url, so SASLprep is the
+// identity on it.
+export function scramVerifier(password, salt = randomBytes(16), iterations = 4096) {
+  const salted = pbkdf2Sync(Buffer.from(password, 'utf8'), salt, iterations, 32, 'sha256');
+  const clientKey = createHmac('sha256', salted).update('Client Key').digest();
+  const storedKey = createHash('sha256').update(clientKey).digest();
+  const serverKey = createHmac('sha256', salted).update('Server Key').digest();
+  return `SCRAM-SHA-256$${iterations}:${salt.toString('base64')}$${storedKey.toString('base64')}:${serverKey.toString('base64')}`;
+}
+
+// The login role's URL: the test URL's host, port and database, its user replaced and any password removed.
+export function workerLoginUrl(testUrl) {
+  const u = new URL(testUrl);
+  u.username = WORKER_LOGIN_ROLE;
+  u.password = '';
+  return u.toString();
+}
+
+// A1R-2's check, as a pure function: a worker transaction may not START with a workspace already set, because a
+// session-level set_config(..., false) survives into the next transaction on the same connection (A1 measured it),
+// so a job that forgot to set its own would run as the previous job's workspace. Read after `set local role
+// app_worker` and before the job's own set_config(..., true); null and '' are the two clean answers (a custom
+// setting once defined reads '' after its transaction ends). RFC-2026-028 §3.1 makes the same check an obligation
+// of the PRODUCTION worker's runner, owed to RFC-2026-026's worker half (open_blockers[201] (5)); this is the test
+// harness's copy and proves the property, not that runner.
+export function workerTransactionStartProblem(setting) {
+  return setting === null || setting === undefined || setting === ''
+    ? null
+    : `the transaction starts with app.workspace_id already set (${setting}): a previous job's session-level setting leaked into it`;
+}
+
+// A1-173-1 (batch 173's review round), widening A1R-2: the login role can set its OWN session defaults (ALTER ROLE
+// app_worker_login SET role = 'app_worker', search_path, ...) and its own credential, so every later session could
+// start as app_worker with nothing on the cluster noticing. The runner therefore refuses, at connect and at the start
+// of every job transaction BEFORE set local role, unless current_user = session_user = the login role and
+// pg_db_role_setting holds no row for it (readable by the role itself). This is the harness's copy, a pure function
+// over WORKER_SESSION_READ's row; the production runner's copy is owed with A1R-2's (open_blockers[201] (5)).
+export const WORKER_SESSION_READ = `select current_user as cu, session_user as su, (select count(*) from pg_catalog.pg_db_role_setting s
+  join pg_catalog.pg_roles r on r.oid = s.setrole where r.rolname = session_user) as settings;`;
+export function workerSessionStartProblem(row) {
+  if (!row) return 'the session identity could not be read';
+  const problems = [];
+  if (row.cu !== WORKER_LOGIN_ROLE || row.su !== WORKER_LOGIN_ROLE) problems.push(`current_user ${row.cu} and session_user ${row.su} are not both ${WORKER_LOGIN_ROLE}`);
+  if (Number(row.settings) !== 0) problems.push(`${row.settings} pg_db_role_setting row(s) set defaults for ${WORKER_LOGIN_ROLE}`);
+  return problems.length ? `the session does not start as the bare login role: ${problems.join('; ')}` : null;
+}
+
+// §5/12's drift, widened in batch 173's review round (A1-173-2, Q0 F2): which pg_hba `trust` rules admit the login
+// role OTHER than as "every role" (a user list of exactly `all`, the cluster-trusts-everyone case that is reported NOT
+// RUN). A trust rule whose user list is anything else and that can admit the role is a failure wherever it stands: the
+// role by name; `+group` for a group the role is a member of (directly or not, as pg_hba reads it; `groups` is that
+// set, the role itself included); `all` inside a longer list; and, because they cannot be ruled out from here, an
+// `@file` reference, a `/regex` entry, `samerole` and `samegroup`. `groups` null (the membership read failed) fails
+// closed: every `+group` entry counts. Rules the login cannot reach by address or database are not told apart: a
+// trust rule aimed at the role is refused wherever it stands, as the by-name drift always was.
+export function hbaRulesTrustingTheLogin(rules, groups) {
+  const member = (g) => groups === null || groups === undefined || groups.includes(g);
+  const admits = (entry) => entry === WORKER_LOGIN_ROLE || entry === 'all' || entry === 'samerole' || entry === 'samegroup'
+    || entry.startsWith('@') || entry.startsWith('/') || (entry.startsWith('+') && member(entry.slice(1)));
+  return (rules ?? []).filter((r) => {
+    if (r.auth_method !== 'trust') return false;
+    const users = String(r.users).split(',');
+    if (users.length === 1 && users[0] === 'all') return false;
+    return users.some(admits);
+  });
+}
+
+// What each case must see, as pure functions over a driver outcome ({ rows } or { error }), so a negative control
+// is decided by exactly the code that decides the real case.
+export const WORKER_CASES = {
+  // §5/7: before SET LOCAL ROLE, refused 42501 with exactly the schema message (a refusal one layer later carries the
+  // same SQLSTATE with another message, Q0-R2).
+  refusedBeforeSetRole: (o) => (o.error && o.error.code === '42501' && o.error.message.startsWith(WORKER_REFUSAL_BEFORE_SET_ROLE)
+    ? null : `expected 42501 "${WORKER_REFUSAL_BEFORE_SET_ROLE}", saw ${o.error ? `${o.error.code}: ${o.error.message}` : `${o.rows.length} row(s) and no error`}`),
+  // §5/8: SET LOCAL ROLE to anything but app_worker is refused 42501.
+  setRoleRefused: (o) => (o.error && o.error.code === '42501' && /^permission denied to set role/.test(o.error.message)
+    ? null : `expected 42501 "permission denied to set role", saw ${o.error ? `${o.error.code}: ${o.error.message}` : 'the role taken'}`),
+  // §5/10: every table app_worker may read, read under SET LOCAL ROLE app_worker, holds no row it can see.
+  readsNothing: (o) => {
+    if (o.error) return `the read failed: ${o.error.code}: ${o.error.message}`;
+    const seen = o.rows.filter((r) => Number(r.n) !== 0).map((r) => `${r.t} (${r.n})`);
+    return seen.length ? `app_worker sees rows with no policy naming it: ${seen.join(', ')}` : null;
+  },
+};
+
+// Where the test credential's password file lives (RFC-2026-028 §3.3/3, plan D13 of batch 173's review round, C0-3):
+// the job's temporary directory (RUNNER_TEMP, which GitHub Actions sets per job) when there is one, otherwise the
+// process's temporary directory. Either way a 0700 mkdtemp directory holding 0600 exclusive-create files, removed in
+// the proofs' finally; a run killed before its finally leaves that directory (and the verifier on its throwaway
+// cluster) behind, which is a stated limit (open_blockers[201] (8)).
+export function workerCredentialBase(env = process.env) {
+  return env.RUNNER_TEMP || tmpdir();
+}
+
+async function workerLoginCredential(feedSql, env) {
+  const password = randomBytes(32).toString('base64url');
+  const verifier = scramVerifier(password);
+  const dir = await mkdtemp(join(workerCredentialBase(env), 'tbt-worker-login-'));
+  const file = (name, pw) => writeFile(join(dir, name), `*:*:*:${WORKER_LOGIN_ROLE}:${pw}\n`, { mode: 0o600, flag: 'wx' });
+  await file('pgpass', password);
+  await file('wrong.pgpass', randomBytes(32).toString('base64url'));
+  await writeFile(join(dir, 'empty.pgpass'), '', { mode: 0o600, flag: 'wx' });
+  const scrub = (text) => String(text).split(password).join('[test credential]').split(verifier).join('[test verifier]');
+  const set = await feedSql(`alter role ${WORKER_LOGIN_ROLE} password '${verifier}';\n`);
+  if (set.error) {
+    await rm(dir, { recursive: true, force: true });
+    return { error: { code: set.error.code, message: scrub(set.error.message) } };
+  }
+  return { dir, scrub };
+}
+
+export async function proveTheWorkerLogin(run, runOne, ids, { feedSql = feed, testUrl = connectionString(), env = process.env } = {}) {
+  const pTopology = proof('worker-login-can-only-become-app-worker', 'RFC-2026-028 §3.1, §5/7-9');
+  const pReads = proof('worker-login-reads-nothing-by-default', 'RFC-2026-028 §3.2, §5/10; RFC-2026-016 §5');
+  const pGuc = proof('worker-login-no-workspace-lingers', 'RFC-2026-028 §5/13 (A1 F4, A1R-2, A1-173-1)');
+  const pAuth = proof('worker-login-authentication', 'RFC-2026-028 §3.3/3, §5/12');
+  const results = [pTopology, pReads, pGuc, pAuth];
+  const cred = await workerLoginCredential(feedSql, env);
+  if (cred.error) {
+    for (const p of results) { p.transcript = `error ${cred.error.code}: ${cred.error.message}`; p.detail = 'the test credential could not be set, so nothing was logged in as.'; }
+    return results;
+  }
+  const url = workerLoginUrl(testUrl);
+  const loginEnv = (pass) => {
+    const e = { ...env, PGPASSFILE: join(cred.dir, pass) };
+    delete e.PGPASSWORD;
+    return e;
+  };
+  const asLogin = (prelude, statement, pass = 'pgpass') => run({ prelude, statement, epilogue: ['rollback;'] }, { url, env: loginEnv(pass) });
+  const asControl = (drift, prelude, statement) => run({
+    prelude: ['begin;', ...drift, `set local session authorization ${WORKER_LOGIN_ROLE};`, ...prelude],
+    statement, epilogue: ['rollback;'] });
+  const show = (o) => (o.error ? `${o.error.code ?? 'no code'}: ${cred.scrub(o.error.message)}` : JSON.stringify(o.rows));
+  try {
+    // AUTHENTICATION FIRST (§5/12).
+    {
+      const lines = [];
+      // §5/12's drift: a pg_hba line that trusts the login role BY NAME, placed before the line that asks it for a
+      // credential, makes the no-credential case connect. The cluster's rules are read as the connection role (a
+      // superuser), and such a line is a failure wherever it stands; so is a trust line reaching it through a group,
+      // a file or any user list but `all` (hbaRulesTrustingTheLogin); a cluster that trusts every role (`all` only)
+      // is the not-run case below.
+      const hba = await runOne("select line_number, type, array_to_string(user_name, ',') as users, auth_method from pg_catalog.pg_hba_file_rules where error is null order by line_number;");
+      const memberOf = await runOne(`select r.rolname as g from pg_catalog.pg_roles r where pg_catalog.pg_has_role('${WORKER_LOGIN_ROLE}', r.oid, 'MEMBER') order by 1;`);
+      const groups = memberOf.error ? null : memberOf.rows.map((r) => r.g);
+      const trusting = hbaRulesTrustingTheLogin(hba.rows ?? [], groups);
+      lines.push(`pg_hba: ${hba.error ? `not read (${hba.error.message})` : (hba.rows.map((r) => `${r.line_number} ${r.type} ${r.users} ${r.auth_method}`).join('; ') || 'no rule')}`);
+      lines.push(`${WORKER_LOGIN_ROLE} is a member of: ${groups === null ? `not read (${memberOf.error.message}), so every +group entry counts` : groups.join(', ')}`);
+      const wrong = await asLogin([], 'select current_user as u;', 'wrong.pgpass');
+      if (hba.error || trusting.length) {
+        pAuth.detail = hba.error ? 'the cluster\'s pg_hba rules could not be read, so a line trusting the login role by name cannot be ruled out'
+          : `pg_hba line(s) ${trusting.map((r) => r.line_number).join(', ')} trust ${WORKER_LOGIN_ROLE} by name or by a user list other than all (${trusting.map((r) => r.users).join('; ')}), so it logs in with no credential at all (RFC-2026-028 §5/12)`;
+      } else if (!wrong.error) {
+        lines.push(`a wrong credential CONNECTED (${show(wrong)}): this cluster does not ask ${WORKER_LOGIN_ROLE} for one`);
+        pAuth.ok = true;
+        pAuth.notRun = true;
+        pAuth.detail = 'NOT RUN, and not passed: the cluster admits this role without a password (trust), so the three '
+          + 'authentication cases of §5/12 cannot fail here. They run where a wrong credential is refused.';
+      } else {
+        const none = await asLogin([], 'select current_user as u;', 'empty.pgpass');
+        const right = await asLogin([], 'select current_user as u;');
+        lines.push(`wrong credential: ${show(wrong)}`, `no credential: ${show(none)}`, `generated credential: ${show(right)}`);
+        const problems = [];
+        if (!/password authentication failed/.test(wrong.error.message)) problems.push('the wrong credential was refused for another reason than its password');
+        if (!none.error || !/no password supplied/.test(none.error.message)) problems.push('no credential was not refused with "no password supplied"');
+        if (right.error || right.rows[0]?.u !== WORKER_LOGIN_ROLE) problems.push('the generated credential did not connect as the login role');
+        pAuth.ok = problems.length === 0;
+        pAuth.detail = pAuth.ok ? 'RUN: no credential and a wrong one are refused, the generated one connects; it is in no printed line.' : problems.join('; ');
+      }
+      pAuth.transcript = lines.join('\n');
+    }
+
+    // §5/7-9: what the login role is, and what it may become.
+    {
+      const lines = [];
+      const problems = [];
+      const who = await asLogin([], 'select current_user as cu, session_user as su;');
+      lines.push(`logged in: ${show(who)}`);
+      if (who.error || who.rows[0]?.cu !== WORKER_LOGIN_ROLE || who.rows[0]?.su !== WORKER_LOGIN_ROLE) problems.push(`the login is not ${WORKER_LOGIN_ROLE} on both current_user and session_user`);
+      const before = await asLogin([], WORKER_STATEMENT_BEFORE_SET_ROLE);
+      lines.push(`before set local role: ${show(before)}`);
+      const b = WORKER_CASES.refusedBeforeSetRole(before);
+      if (b) problems.push(`§5/7: ${b}`);
+      const became = await asLogin(['begin;', 'set local role app_worker;'], 'select current_user as cu, session_user as su;');
+      lines.push(`set local role app_worker: ${show(became)}`);
+      if (became.error || became.rows[0]?.cu !== 'app_worker') problems.push('§5/8: set local role app_worker did not take');
+      for (const role of WORKER_NOT_ASSUMABLE) {
+        const o = await asLogin(['begin;'], `set local role ${role};`);
+        lines.push(`set local role ${role}: ${show(o)}`);
+        const r = WORKER_CASES.setRoleRefused(o);
+        if (r) problems.push(`§5/8 ${role}: ${r}`);
+      }
+      // Client paths: under app_worker, a function EXECUTE-granted to authenticated alone is refused.
+      const command = await asLogin(['begin;', 'set local role app_worker;'], `select * from app.close_workspace('${ids.workspace}'::uuid, 'proof-173', 'proof-173-correlation');`);
+      lines.push(`app.close_workspace as app_worker: ${show(command)}`);
+      if (!command.error || command.error.code !== '42501') problems.push('a client command is callable by the worker identity');
+      // §5/9: SET LOCAL ends with the transaction; and its control, SET ROLE without LOCAL, does not.
+      const after = await asLogin(['begin;', 'set local role app_worker;', 'commit;'], 'select current_user as cu;');
+      const leaked = await asLogin(['begin;', 'set role app_worker;', 'commit;'], 'select current_user as cu;');
+      lines.push(`after commit of set local role: ${show(after)}`, `control, after commit of set role: ${show(leaked)}`);
+      if (after.error || after.rows[0]?.cu !== WORKER_LOGIN_ROLE) problems.push('§5/9: SET LOCAL ROLE outlived its transaction');
+      if (leaked.error || leaked.rows[0]?.cu !== 'app_worker') problems.push('§5/9 control: SET ROLE without LOCAL did not persist, so the case above cannot tell the two apart');
+      // The controls, each decided by the same function as its case and required to go red.
+      const controls = [
+        ['§5/7 (a), membership re-granted with inherit true', ['grant app_worker to app_worker_login with inherit true;'], [], WORKER_STATEMENT_BEFORE_SET_ROLE, WORKER_CASES.refusedBeforeSetRole],
+        ['§5/7 (b), usage on app granted to the login role', ['grant usage on schema app to app_worker_login;'], [], WORKER_STATEMENT_BEFORE_SET_ROLE, WORKER_CASES.refusedBeforeSetRole],
+        ['§5/8, app_command granted to the login role', ['grant app_command to app_worker_login with inherit false, set true;'], [], 'set local role app_command;', WORKER_CASES.setRoleRefused],
+        ['self-test, the shipped topology under session authorization', [], [], 'set local role app_command;', WORKER_CASES.setRoleRefused],
+      ];
+      for (const [label, drift, prelude, statement, decide] of controls) {
+        const o = await asControl(drift, prelude, statement);
+        const verdict = decide(o);
+        lines.push(`control ${label}: ${show(o)} -> ${verdict ? 'red' : 'green'}`);
+        const shouldBeRed = !label.startsWith('self-test');
+        if (shouldBeRed && !verdict) problems.push(`control ${label} stayed green, so the case cannot fail`);
+        if (!shouldBeRed && verdict) problems.push(`self-test ${label} went red: ${verdict}`);
+      }
+      pTopology.transcript = lines.join('\n');
+      pTopology.ok = problems.length === 0;
+      pTopology.detail = pTopology.ok
+        ? `logged in as ${WORKER_LOGIN_ROLE}, it reads nothing in app before SET LOCAL ROLE (42501, the schema message), becomes app_worker and none of ${WORKER_NOT_ASSUMABLE.join(', ')}, cannot call a client command, and is itself again after commit; each control goes red.`
+        : problems.join('; ');
+    }
+
+    // §5/10: the pair that shows the identity is not moot.
+    {
+      const lines = [];
+      const problems = [];
+      // Every table app_worker may read AT ALL: by a table grant or by a column grant (has_any_column_privilege; batch
+      // 050's kernel tables, app.jobs among them, are read through column grants only, Q0 F1). count(*) works under a
+      // column grant. app.jobs is the table §5/10 names, so it must be in the list, and the control's policy is on it.
+      const tables = await runOne(`select format('%s.%s', n.nspname, c.relname) as t
+  from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'app' and c.relkind in ('r', 'p') and pg_catalog.has_any_column_privilege('app_worker', c.oid, 'SELECT')
+ order by 1;`);
+      if (tables.error || tables.rows.length === 0) problems.push(`the tables app_worker may read could not be listed (${tables.error?.message ?? 'none'})`);
+      else if (!tables.rows.some((r) => r.t === WORKER_NAMED_TABLE)) problems.push(`${WORKER_NAMED_TABLE}, the table RFC-2026-028 §5/10 names, is not among the tables app_worker may read, so the case does not read it`);
+      const union = (tables.rows ?? []).map((r) => `select '${r.t}' as t, count(*) as n from ${r.t}`).join('\nunion all\n');
+      if (union) {
+        const asOwner = await runOne(`${union};`);
+        const populated = (asOwner.rows ?? []).filter((r) => Number(r.n) > 0);
+        lines.push(`as the connection role: ${populated.length} of ${tables.rows.length} table(s) app_worker may SELECT hold rows (${populated.map((r) => `${r.t} ${r.n}`).join(', ')})`);
+        if (asOwner.error || populated.length === 0) problems.push('no table app_worker may read holds a fixture row, so zero rows proves nothing');
+        const asWorker = await asLogin(['begin;', 'set local role app_worker;'], `${union};`);
+        const w = WORKER_CASES.readsNothing(asWorker);
+        lines.push(`as ${WORKER_LOGIN_ROLE} under set local role app_worker: ${w ?? `every one of the ${tables.rows.length} reads zero rows`}`);
+        if (w) problems.push(`§5/10: ${w}`);
+        const ws = WORKER_NAMED_TABLE;
+        if (!populated.some((r) => r.t === ws)) problems.push(`${ws} holds no fixture row as the connection role, so its zero rows and the control on it prove nothing`);
+        else {
+          const control = await asControl([`create policy __proof_173_worker_reads on ${ws} for select to app_worker using (true);`],
+            ['set local role app_worker;'], `select '${ws}' as t, count(*) as n from ${ws};`);
+          const verdict = WORKER_CASES.readsNothing(control);
+          lines.push(`control, a permissive policy for app_worker on ${ws}: ${show(control)} -> ${verdict ? 'red' : 'green'}`);
+          if (!verdict) problems.push('§5/10 control stayed green, so the zero-row case cannot fail');
+        }
+      }
+      pReads.transcript = lines.join('\n');
+      pReads.ok = problems.length === 0;
+      pReads.detail = pReads.ok
+        ? `through the login role, every table app_worker may SELECT by table or column grant (${tables.rows.length}, ${WORKER_NAMED_TABLE} among them) reads zero rows while the connection role reads the fixture's; a policy for app_worker on ${WORKER_NAMED_TABLE} turns that red.`
+        : problems.join('; ');
+    }
+
+    // §5/13 (A1 F4, A1R-2): no session-level app.workspace_id survives into the next job on one connection.
+    {
+      const lines = [];
+      const problems = [];
+      const read = "select coalesce(pg_catalog.current_setting('app.workspace_id', true), '') as ws;";
+      const clean = await asLogin(['begin;', 'set local role app_worker;', `select pg_catalog.set_config('app.workspace_id', '${ids.workspace}', true) as s;`, 'commit;',
+        'begin;', 'set local role app_worker;'], read);
+      const leakedJob = await asLogin(['begin;', 'set local role app_worker;', `select pg_catalog.set_config('app.workspace_id', '${ids.workspace}', false) as s;`, 'commit;',
+        'begin;', 'set local role app_worker;'], read);
+      const c1 = clean.error ? `error ${show(clean)}` : workerTransactionStartProblem(clean.rows[0]?.ws);
+      const c2 = leakedJob.error ? `error ${show(leakedJob)}` : workerTransactionStartProblem(leakedJob.rows[0]?.ws);
+      lines.push(`two jobs, the first setting it with is_local true: second starts with ${show(clean)} -> ${c1 ?? 'starts'}`);
+      lines.push(`control, the first setting it with is_local false: second starts with ${show(leakedJob)} -> ${c2 ?? 'starts'}`);
+      if (c1) problems.push(`§5/13: ${c1}`);
+      if (!c2) problems.push('§5/13 control: a session-level setting did not reach the next transaction, or the check did not refuse it');
+      // A1-173-1: the session starts as the bare login role, with no default of its own; two controls, each decided
+      // by the same function: a default the role could set for itself (set role = 'app_worker'), and the check read
+      // after set local role (current_user is no longer the login role).
+      const sessionOf = (o) => (o.error ? `error ${show(o)}` : workerSessionStartProblem(o.rows[0]));
+      const bare = await asLogin([], WORKER_SESSION_READ);
+      const s1 = sessionOf(bare);
+      const selfDefault = await asControl([`alter role ${WORKER_LOGIN_ROLE} set role = 'app_worker';`], [], WORKER_SESSION_READ);
+      const s2 = sessionOf(selfDefault);
+      const afterSet = await asLogin(['begin;', 'set local role app_worker;'], WORKER_SESSION_READ);
+      const s3 = sessionOf(afterSet);
+      lines.push(`session start, logged in: ${show(bare)} -> ${s1 ?? 'starts'}`);
+      lines.push(`control, a login default set role = 'app_worker' for the role: ${show(selfDefault)} -> ${s2 ? 'red' : 'green'}`);
+      lines.push(`control, read after set local role app_worker: ${show(afterSet)} -> ${s3 ? 'red' : 'green'}`);
+      if (s1) problems.push(`A1-173-1: ${s1}`);
+      if (!s2) problems.push('A1-173-1 control: a login default for the role was not refused, so the check cannot fail');
+      if (!s3) problems.push('A1-173-1 control: a session that is not the bare login role was not refused, so the check cannot fail');
+      pGuc.transcript = lines.join('\n');
+      pGuc.ok = problems.length === 0;
+      pGuc.detail = pGuc.ok
+        ? 'a job that sets its workspace with is_local true leaves the next one clean; one that sets it for the session leaks it, and the start-of-transaction check refuses that job; the session starts as the bare login role with no default of its own, and a self-set default or a session already switched is refused. The production runner owes the same checks (RFC-2026-028 §3.1, A1R-2, A1-173-1).'
+        : problems.join('; ');
+    }
+  } finally {
+    const reset = await feedSql(`alter role ${WORKER_LOGIN_ROLE} password null;\n`);
+    await rm(cred.dir, { recursive: true, force: true });
+    if (reset.error) {
+      pAuth.ok = false;
+      pAuth.detail = `${pAuth.detail} AND THE TEST CREDENTIAL COULD NOT BE REMOVED: ${reset.error.code}: ${reset.error.message}`;
+    }
+  }
+  return results;
+}
+
 export async function runProofs(run, runOne, ids, expectedRoster) {
   const results = [
     await proveCycleExists(run, ids),
@@ -941,6 +1293,7 @@ export async function runProofs(run, runOne, ids, expectedRoster) {
     await proveTheActingUserNarrowing(run, ids),
     await proveTheClosingCommand(run, ids),
     await provePoliciesContainTheClose(run, ids),
+    ...await proveTheWorkerLogin(run, runOne, ids),
   ];
 
   const measured = await measureAuthzCatalog(runOne);
@@ -965,12 +1318,15 @@ export function formatProofs(results) {
   const failed = results.filter((r) => !r.ok);
   const lines = [];
   for (const r of results) {
-    lines.push(`  ${r.ok ? 'ok  ' : 'FAIL'} ${r.id} [${r.requires}]`);
+    // Batch 173: a claim the cluster cannot decide (RFC-2026-028 §5/12 on a trust cluster) is printed NOT RUN, and is
+    // neither counted as discharged nor failed.
+    lines.push(`  ${r.notRun ? 'NOT RUN' : r.ok ? 'ok  ' : 'FAIL'} ${r.id} [${r.requires}]`);
     for (const line of String(r.transcript).split('\n')) lines.push(`       | ${line}`);
     lines.push(`       ${r.ok ? '' : '=> '}${r.detail}`);
   }
+  const notRun = results.filter((r) => r.notRun && r.ok);
   lines.push(failed.length === 0
-    ? `db-authz-proofs: ok — ${results.length} claim(s) discharged by execution.`
+    ? `db-authz-proofs: ok — ${results.length - notRun.length} claim(s) discharged by execution${notRun.length ? `; ${notRun.length} not run on this cluster (${notRun.map((r) => r.id).join(', ')})` : ''}.`
     : `db-authz-proofs: FAILED — ${failed.length} of ${results.length}: ${failed.map((f) => f.id).join(', ')}`);
   return `${lines.join('\n')}\n`;
 }

@@ -4,105 +4,86 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "e92b896645d5811ebec0174657dbbb3dca8bdb41",
-  "head_revision_or_patch_checksum": "c0177d62ebc5beb5dcc9b680ab5c5bc0fe0b8d3a",
+  "base_revision": "aa0e89fc5aae502d7eb0c728c11057d64e3c5110",
+  "head_revision_or_patch_checksum": "838ca3143599affda739b8db92a226f11cd4ef4e",
   "task_ids": [],
   "files_added": [
-    "db/foundation/invariants/140_audit.1.sql",
-    "db/foundation/invariants/171_workspace_lifecycle_visibility.1.sql",
-    "db/foundation/migrations/172_acting_user_and_closing_command.sql",
-    "evidence/WP-0A-DB-00/a0-batch-141-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-141-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-141-security-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-141-contract-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-141-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-141.md",
-    "evidence/WP-0A-DB-00/q0-batch-141-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/q0-batch-141-test-review-2026-10-03.md",
-    "scripts/db/audit-producer-rule.mjs",
-    "test-kits/db/fixtures/ctr-aud-001/valid-workspace-closing-command.json"
+    "db/foundation/migrations/173_worker_login_identity.sql",
+    "evidence/WP-0A-DB-00/a0-batch-173-worker-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-173-worker-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-173-worker-security-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-173-worker-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-173-worker-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-173-worker.md",
+    "evidence/WP-0A-DB-00/q0-batch-173-worker-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/q0-batch-173-worker-test-review-2026-10-03.md"
   ],
   "files_modified": [
-    "architecture/decisions/RFC-2026-023-acting-user-narrowing.md",
-    "architecture/decisions/RFC-2026-026-audit-row-producer.md",
-    "db/foundation/TRY-IT.md",
-    "db/foundation/invariants/011_authorization_helpers.2.sql",
-    "db/foundation/invariants/021_member_scope.1.sql",
-    "db/foundation/invariants/superseded.json",
-    "db/foundation/lint/audit-coverage-map.json",
+    "architecture/decisions/RFC-2026-028-worker-identity.md",
     "db/foundation/lint/catalog-snapshot.json",
     "db/foundation/lint/pinned-grants.json",
-    "db/foundation/lint/policy-set.json",
     "db/foundation/lint/read-allowlist-known-exceptions.json",
-    "db/foundation/lint/retention-map.json",
-    "db/foundation/lint/service-policy-map.json",
-    "db/foundation/test-helpers/auth-context.sql",
     "evidence/VERIFICATION.md",
     "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/db/authz-proofs.mjs",
+    "scripts/db/rls-smoke.mjs",
     "scripts/db/run.mjs",
-    "scripts/db/try-it.mjs",
     "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
-    "tests/db/identity/identity-isolation.test.mjs",
-    "tests/db/identity/isolation-cases.mjs",
-    "tests/db/identity/run-isolation.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "RFC-2026-023 (approved 2026-10-05 through the Owner's delegation; Q-023-1..8 answered as recommended): implemented as written -- §3.2's helpers, grant and policy, §5's pins, §6's cases and negative controls, §8's closing command.",
-    "RFC-2026-026 (approved 2026-10-05): its COMMAND half, Q-026-6 answered yes (it lands with RFC-2026-023's first command function); §3.3, §3.4, §3.6, §8.1/1 as a catalog probe, §8.1/4 and Q-026-7, §8.2's command cases. The worker half is not implemented (DATA-DEC-03).",
-    "RFC-2026-027 (in effect with 171): the admitted-state gate, inherited through app.is_active_member and held by cases in all six blocked states.",
-    "The Owner's words, transcribed in evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-141.md §1: `เอาตามที่แนะนำเลย ลุยต่อ` and `คุณทำต่อยาวจนนกว่าจะจบ phase เลย แล้วรีวิวทีเดียว` (2026-10-03), `เอาตามที่คุณแนะนำทุกอย่าง` and `ทำต่อตามแนะนำเลย` (2026-10-05). No new words of the Owner's.",
-    "The standing merge delegation (product-owner-disposition-2026-10-03-batch-127.md §6), executed by A0 in merging #182 (e92b896, head d756052, run 37260775313 green, 2026-10-05T04:00:41Z); disposition §2.",
-    "Answered as A0 recommends under the delegation (disposition §4): D1 the migration file numbered 172 (a 141_* file fails migrate-clean inside 171, measured); D2 the cancel asks no step-up; D3 updated_by bound by body and policy; D4 a refusal row's before reference names the workspace; D5 retention.audit until DATA-DEC-06; D6 no security_events command policy while no command writes one; D7 Q-023-6 has nothing to learn until the snapshot is retaken."
+    "RFC-2026-028 (approved 2026-10-05 through the Owner's delegation; the identity and its pins, §3.1-§3.3, §3.6, §4/1; Q-028-1..13 answered as recommended): §3.1 and §4/1 implemented as one forward migration, 173_worker_login_identity.sql; §3.6's pins; §5/1-4, /6-10 and /12-14 executed or held (§5/1's inherit, createrole and superuser drifts measured by the C0 and A1 role runs, not the Author; §5/10 over every table app_worker may read by table or column grant since the review round, Q0 F1); §5/5's secret-scan half NOT implemented (Q0 F3, owed, open_blockers[201] (11)); Q-028-5's columns deferred to the next batch (disposition §4 D4).",
+    "RFC-2026-022 (approved, NOT in effect until §5/§8 hold): unchanged; this batch makes app_worker reachable by a non-bypassing identity and writes no policy TO app_worker.",
+    "RFC-2026-016 §4-§5: the exemption register stays empty; §5's pair (zero rows through the login role, the fixture's rows through the connection role) executed.",
+    "RFC-2026-019 §4/3, §5: the dedicated login role issuing SET LOCAL ROLE app_worker per transaction; the authenticator negative extended by one name."
   ],
   "contracts_consumed": [
-    "CTR-AUD-001",
     "CTR-TEN-001",
-    "CTR-ERR-001"
+    "CTR-JOB-001"
   ],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH 141 (code commit 76a26e0): one forward migration, db/foundation/migrations/172_acting_user_and_closing_command.sql, implementing RFC-2026-023 and RFC-2026-026's command half; plan evidence/WP-0A-DB-00/a0-batch-141-plan-2026-10-03.md, disposition product-owner-disposition-2026-10-03-batch-141.md.",
-    "The migration FILE is numbered 172, not 141: the runner applies files in name order and 171's integrated apply-time block refuses a third app_authz policy at 171's own apply time (measured, migrate-clean exit 2 with the file named 141_*). A0's recommendation under the delegation; acceptance owed (open_blockers[200] (1)).",
-    "The step-up claim (aal = 'aal2') is the shape RFC-2026-023 Q-023-5 specifies, asserted locally by private.as_stepped_up_user; the platform's actual claim is not measured (open_blockers[200] (2)).",
-    "Nothing in this batch is reviewed, tested or approved by the Author. The C0, A1 and Q0 role runs reviewed ad97cde (records cherry-picked with -x: 2319bbc, 20ae784, 68ee431); the review round (code commit 3c50ba8, plan §7) acts on every finding or records it as owed by name; the role runs' re-checks of the review round are owed.",
-    "THE REVIEW ROUND (code commit 3c50ba8) answers, as A0 recommends under the same delegation and recorded in the disposition §4: D6 is a deviation from RFC-2026-026 §9/1 and §8.1/3, not an answer (C0 L2); D8 the command's stable vocabulary (C0 L3, A6 owed); D9 request_id and correlation_id bounded to 1-128 characters of [A-Za-z0-9._:-] in the command bodies, no CHECK on app.audit_logs because it would narrow CTR-AUD-001 (A1 F1); D10 the SELECT policy beyond RFC-2026-023 §8/2 (C0 L1); D11 part (i) made exact by widening it, C0 M1's remedy (a), not a dedicated owner role."
+    "THIS INCREMENT IS BATCH 173 (code commit eb413e9): one forward migration, db/foundation/migrations/173_worker_login_identity.sql, implementing RFC-2026-028's identity and pins; plan evidence/WP-0A-DB-00/a0-batch-173-worker-plan-2026-10-03.md, disposition product-owner-disposition-2026-10-03-batch-173-worker.md (D1-D12 answered as A0 recommends under the delegation).",
+    "REVIEW ROUND (code commit 631512b; plan §7): the C0, A1 and Q0 role runs' records are cherry-picked -x (796bd67, 869217c, b2ed62f); Q0 F1, A1-173-1 (harness half), A1-173-2 / Q0 F2 and C0-3 are folded in code; C0-1, C0-2, A1-173-4 and the INFO wording are corrected or recorded; A1-173-3, Q0 F3, 050's cases through the login role and A1-173-1's runner and runbook halves are owed on open_blockers[201] (5), (7), (10)-(12). D13 (the credential directory) and D14 (A1-173-1 (a) recorded in the RFC's Implemented line rather than in the text of its sections) answered as A0 recommends under the delegation.",
+    "The file is numbered 173 as Q-028-9 was answered (the next free number above 172, which it sorts after); a one-time exception to the registry's ranges, its acceptance owed (open_blockers[201] (1)).",
+    "173 is declared not applied to the provisioned instance (catalog-snapshot.json) until Q-028-13's platform half and Q170-c are measured; on migrate-clean clusters it is in effect when integrated.",
+    "Q-028-5 (app.jobs' tenant-context columns) is NOT in this batch: RFC-2026-028 recommends them not null with CTR-TEN-001's bounds and CTR-JOB-001's reading restated by its owner (contract-catalog/ is read-only here); the next batch, before RFC-2026-026's worker half.",
+    "Every local measurement cluster authenticates by trust, so the authentication proof (§5/12) is printed NOT RUN there; it was run on 5507 with a scram-sha-256 line for the role (RUN, ok) and failed as designed with a trust line for the role by name and, since the review round, through +app_worker. CI run 37285050018 on b001495 read RUN and ok (A1 and Q0 read the log); recording it on open_blockers[201] (6) is the Integration Owner's."
   ],
   "acceptance_results": [
     {
-      "criterion": "(1) RFC-2026-023 as approved: the two acting-user helpers, the app_authz grant and policy, the admitted-state gate, pinned (AUTHZ pins, pinned-grants.json, body digests, superseded.json replacements, 171's literal check extended)",
+      "criterion": "(1) RFC-2026-028 §3.1/§4/1: app_worker_login LOGIN with every other attribute false and no credential, one membership in app_worker (inherit false, set true, admin false), createrole_self_grant emptied first, an apply-time block reading pg_auth_members per row both ways",
       "result": "met",
-      "evidence": "172 §1-§4; scripts/db/run.mjs; db/foundation/invariants/ (011.2, 021.1, 140.1, 171.1); plan §2 rows 1-5, 14"
+      "evidence": "173; plan §2 rows 1-4; post-migrate pass 54/38/16; Q-028-13 measured locally with a non-superuser applier (plan §3)"
     },
     {
-      "criterion": "(2) the §11.4 closing command: SECURITY DEFINER owned by app_command, search_path '', owner, step-up, active<->closing only, a SELECT path (Q0-RC1), EXECUTE to authenticated only",
+      "criterion": "(2) the pins: the fourth rule's pin and per-row options (Q-028-10), the eighth rule's one admitted attribute, the settings rule, a ninth rule (no stored credential), the authenticator negative, the snapshot lint for the instance, pinned-grants.json regenerated, the membership self-tests with the login role's drifts and Q0 R-1's app_worker-member case",
       "result": "met",
-      "evidence": "172 §5 and §7; cases owner-a-closes-..., owner-a-cancels-..., the denials, the six blocked states, EXECUTE refusals; authz-proofs closing-command proof (arm, Q0-RC1)"
+      "evidence": "scripts/db/run.mjs; pinned grant probe 10 self-tests, client membership probe 3; drifts D1-D11 appended to 173, each refused by name (plan §3); foundation-contract"
     },
     {
-      "criterion": "(3) RFC-2026-026's command half: §3.3 policy, §3.4 fail-closed, §3.6 copy, producer field, CTR-AUD-001 exercised by a real row, §8.1/1 as a catalog probe with its drifts",
-      "result": "met, with the stated limits",
-      "evidence": "172 §6-§7; scripts/db/audit-producer-rule.mjs (19 drifts and controls at 76a26e0, 23 since the review round: i2, i3, i4, B; drift 16 and 12 not built, plan §2 row 11); service-policy-map.json producer; audit-coverage-map.json producer; CTR-AUD-001 fixture and its tie test"
-    },
-    {
-      "criterion": "(4) rls-smoke cases for RFC-2026-023 §6 and RFC-2026-026 §8.2 (command half): cross-tenant, blocked-workspace, non-owner, recovery-window cancel, audit row present and attributed, forged actor, negative controls",
+      "criterion": "(3) a static rule that no fed source sets a password or verifier",
       "result": "met",
-      "evidence": "tests/db/identity/isolation-cases.mjs (58 cases, 1129 -> 1187; the review round adds 13, 1187 -> 1200); scripts/db/authz-proofs.mjs (two proofs; the review round adds the cancel's arms and a third, the containment proof); no new table, so no CI negative-control family"
+      "evidence": "workerCredentialLint over 96 fed sources, in schema-lint, migrate-clean (before the first script) and rls-smoke; drift D6 refused before anything applied; foundation-contract drifts"
     },
     {
-      "criterion": "(5) try-it: one step showing the owner closes and reopens a workspace through the command, and the audit row it leaves",
-      "result": "met in code; the full `try-it demo` not run",
-      "evidence": "scripts/db/try-it.mjs part 8, db/foundation/TRY-IT.md; the two steps run through sessionDriver on 5507 as the demo runs them (both as expected). try-it refuses port 5507 (RESERVED_PORTS) and this run may use no other port"
+      "criterion": "(4) Q-028-5 implemented here only if the RFC recommends it before the worker half and it is bounded as the brief bounds it (nullable, CHECK matching 172, pinned)",
+      "result": "not met, by design: recorded as the next batch",
+      "evidence": "disposition §4 D4; open_blockers[201] (3)"
     },
     {
-      "criterion": "(6) the review round: every C0, A1 and Q0 finding on ad97cde acted on or recorded as owed by name",
-      "result": "met, with the owed items on open_blockers[200] (9)-(15)",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-141-plan-2026-10-03.md §7 (cherry-pick map; finding -> change -> measured); code commit 3c50ba8; mutations M2f, M3c and M2c of Q0 re-run red against the new cases and proofs"
+      "criterion": "(5) a test-only path that logs in as the role with a per-run test credential set by the harness and never committed, SET LOCAL ROLE app_worker per transaction, reads nothing by default, no session-level app.workspace_id lingers (A1R-2, documented as an obligation on the production worker in RFC-2026-028), no client path",
+      "result": "met",
+      "evidence": "scripts/db/authz-proofs.mjs, four worker-login proofs (13 claims discharged and 1 NOT RUN on a trust cluster, twice before and twice after the review round); §5/10 over 51 tables by table or column grant, app.jobs asserted (review round); the session-start check of A1-173-1 in the harness; RFC-2026-028's Implemented line; foundation-contract's fake-driven test"
+    },
+    {
+      "criterion": "(6) CI protected; a CI entry owed if needed",
+      "result": "met: none needed",
+      "evidence": "the proofs run inside make db-rls-smoke, which CI already runs; CI pg_hba reading owed (open_blockers[201] (6))"
     }
   ],
   "tests": [
@@ -112,153 +93,135 @@
       "result": "v24.20.0"
     },
     {
-      "command": "make db-migrate-clean with the file named 141_acting_user_and_closing_command.sql (127.0.0.1:5507)",
-      "exit_code": 2,
-      "result": "171_workspace_lifecycle_visibility.sql: after batch 171, app_authz holds 3 policies in schema app; RFC-2026-027 gives it exactly two (P0001) -- the reason for 172"
-    },
-    {
-      "command": "DB_TEST_URL=postgresql://postgres@127.0.0.1:5507/postgres make db-migrate-clean (round 1, re-initdb, shim first)",
+      "command": "DB_TEST_URL=postgresql://postgres@127.0.0.1:5507/postgres make db-migrate-clean (final round 1, re-initdb, shim first)",
       "exit_code": 0,
-      "result": "every probe and its self-tests green; post-migrate pass 53 blocks, 37 as written, 16 superseded and replaced; audit producer rule decided its 19 drifts and controls, clean before and after"
+      "result": "every probe and its self-tests green (pinned grant 10, client membership 3); post-migrate pass 54 blocks, 38 as written, 16 superseded and replaced"
     },
     {
-      "command": "DB_TEST_URL=... make db-rls-smoke (round 1)",
+      "command": "make db-rls-smoke (final round 1)",
       "exit_code": 0,
-      "result": "1187 isolation cases passed; db-authz-proofs 9 claims discharged"
+      "result": "1200 isolation cases; db-authz-proofs: ok — 13 claim(s) discharged by execution; 1 not run on this cluster (worker-login-authentication)"
     },
     {
-      "command": "make db-migrate-clean (round 2, re-initdb)",
+      "command": "make db-migrate-clean (final round 2, re-initdb, shim first)",
       "exit_code": 0,
       "result": "as round 1"
     },
     {
-      "command": "make db-rls-smoke (round 2)",
+      "command": "make db-rls-smoke (final round 2)",
       "exit_code": 0,
-      "result": "1187 cases; 9 proofs"
+      "result": "as round 1"
     },
     {
-      "command": "node scripts/db/try-it.mjs up --port 5507",
-      "exit_code": 1,
-      "result": "refused: port 5507 is one this tool never touches (RESERVED_PORTS); the part-8 steps were run through sessionDriver on the measurement cluster instead, both as expected"
+      "command": "drifts D1-D11 each appended to 173_worker_login_identity.sql, fresh cluster each, make db-migrate-clean; the file restored byte for byte (cmp)",
+      "exit_code": 2,
+      "result": "each refused by name: D1 table-level rule, D2 rule 7, D3 and D11 rule 4b, D4 rule 8, D5 rule 4, D6 workerCredentialLint before any script, D7 rule 2, D8 settings rule, D9 173 block in the post-migrate pass, D10 client membership probe and rule 4"
     },
     {
-      "command": "npm run check (before the code commit)",
-      "exit_code": 1,
-      "result": "tests 688, 686 pass, 2 fail: both the not-yet-refreshed handoff guard (the handoff test and its ratchet), so the code commit is a plain commit"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs e92b896 WP-0A-DB-00",
+      "command": "Q-028-13 locally: 173's statements and block as a non-superuser CREATEROLE role, in rolled-back transactions",
       "exit_code": 0,
-      "result": "all 33 changed path(s) are declared, and every amendment explains one"
+      "result": "createrole_self_grant empty: one member row, the applier (admin t, inherit f, set f, grantor the bootstrap superuser), the block holds; 'set, inherit': a second row (admin f, inherit t, set t), the block refuses naming both (psql exit 3 for that variant)"
     },
     {
-      "command": "review round: node -v before every measured run",
+      "command": "make db-rls-smoke with a pg_hba line `host all app_worker_login 127.0.0.1/32 scram-sha-256` first (reloaded)",
+      "exit_code": 0,
+      "result": "worker-login-authentication RUN: wrong credential and none refused, the generated verifier connects"
+    },
+    {
+      "command": "make db-rls-smoke with a trust line for app_worker_login before the scram one",
+      "exit_code": 2,
+      "result": "worker-login-authentication FAIL: pg_hba line(s) 1 trust app_worker_login by name; pg_hba.conf restored byte for byte"
+    },
+    {
+      "command": "DB_TEST_URL=... node scripts/db/generate-pinned-grants.mjs (fresh migrate-clean)",
+      "exit_code": 0,
+      "result": "both files rewritten; only _how_measured moves (through 173)"
+    },
+    {
+      "command": "npm run check (before code commit eb413e9; through scripts/commit-when-clean.mjs, which refused)",
+      "exit_code": 1,
+      "result": "tests 691, pass 689, fail 2: the two handoff-guard tests alone (the handoff cited c0177d6), so a plain commit"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs aa0e89f WP-0A-DB-00 (at eb413e9)",
+      "exit_code": 0,
+      "result": "all 16 changed path(s) are declared, and every amendment explains one"
+    },
+    {
+      "command": "REVIEW ROUND: node -v before every measured run",
       "exit_code": 0,
       "result": "v24.20.0"
     },
     {
-      "command": "review round: DB_TEST_URL=postgresql://postgres@127.0.0.1:5507/postgres make db-migrate-clean (round final1, re-initdb, shim first)",
+      "command": "REVIEW ROUND r1 and r5: make db-migrate-clean, then make db-rls-smoke (127.0.0.1:5507, re-initdb, shim first, private dir a0-173-workerr2/)",
       "exit_code": 0,
-      "result": "post-migrate pass 53 / 37 / 16; audit producer rule decided each of its 23 drifts and controls; clean again after every drift"
+      "result": "migrate-clean 0 (post-migrate pass 54/38/16), rls-smoke 0: 1200 isolation cases; db-authz-proofs: ok — 13 claim(s) discharged by execution; 1 not run (worker-login-authentication); §5/10: every one of the 51 reads zero rows, control on app.jobs red; session start settings 0, self-set default and switched session red; credential null after, temporary directory empty, no SCRAM-SHA-256$ in any log"
     },
     {
-      "command": "review round: make db-rls-smoke (round final1)",
+      "command": "REVIEW ROUND r2: pg_hba `host all +app_worker 127.0.0.1/32 trust` first, then make db-rls-smoke",
+      "exit_code": 2,
+      "result": "FAIL worker-login-authentication: pg_hba line(s) 1 trust app_worker_login by name or by a user list other than all (+app_worker)"
+    },
+    {
+      "command": "REVIEW ROUND r3: pg_hba `host all app_worker_login 127.0.0.1/32 scram-sha-256` first, then make db-rls-smoke",
       "exit_code": 0,
-      "result": "1200 isolation cases passed; db-authz-proofs 10 claims discharged"
+      "result": "worker-login-authentication RUN and ok; db-authz-proofs: ok — 14 claim(s) discharged"
     },
     {
-      "command": "review round: make db-migrate-clean (round final2, re-initdb)",
+      "command": "REVIEW ROUND: RFC §5/10's drift `create policy ... on app.jobs for select to app_worker using (true)` appended to 140_audit.sql, migrate-clean then rls-smoke; 140 restored byte for byte (cmp)",
+      "exit_code": 2,
+      "result": "migrate-clean: policy set probe names app.jobs.a0_jobs_worker_reads; rls-smoke: FAIL worker-login-reads-nothing-by-default, app_worker sees rows with no policy naming it: app.jobs (2)"
+    },
+    {
+      "command": "REVIEW ROUND: npm run check (before code commit 631512b)",
       "exit_code": 0,
-      "result": "as final1"
+      "result": "tests 691, pass 691, fail 0"
     },
     {
-      "command": "review round: make db-rls-smoke (round final2)",
+      "command": "REVIEW ROUND: node scripts/verify-branch-scope.mjs aa0e89f WP-0A-DB-00 (before 631512b, on the branch name)",
       "exit_code": 0,
-      "result": "1200 cases; 10 proofs"
+      "result": "all 20 changed path(s) are declared, and every amendment explains one"
     },
     {
-      "command": "review round: drift C2 (a public view over app.workspaces, UPDATE granted to app_command) appended to 140_audit.sql, migrate-clean",
-      "exit_code": 2,
-      "result": "172's check 3: app_command holds a privilege the closing command and the audit producer do not need: public.probe_ws SELECT, public.probe_ws UPDATE, ... (140 restored, cmp identical)"
-    },
-    {
-      "command": "review round: drift B (create subscription, connect = false) appended to 140_audit.sql, migrate-clean",
-      "exit_code": 2,
-      "result": "audit producer rule: (h) subscription probe_sub (140 restored, cmp identical)"
-    },
-    {
-      "command": "review round: drift i2's helper (a SECURITY INVOKER function updating app.workspaces) appended to 140_audit.sql, migrate-clean",
-      "exit_code": 2,
-      "result": "audit producer rule: (i) public.probe_lifecycle_helper(uuid) names app.workspaces and is neither a lifecycle writer ... (140 restored, cmp identical)"
-    },
-    {
-      "command": "review round: grant update (lifecycle_state) on app.workspaces to public, appended to 140_audit.sql",
-      "exit_code": 2,
-      "result": "170's block: a client role can write app.workspaces.lifecycle_state (the same grant to authenticated alone is revoked by 170: exit 0; 172's check 7 is reached by no drift appended to 140, stated)"
-    },
-    {
-      "command": "review round: grant pg_create_subscription to app_worker, appended to 140_audit.sql",
-      "exit_code": 2,
-      "result": "pinned grant probe: role membership(s) of a non-superuser role not pinned: app_worker -> pg_create_subscription"
-    },
-    {
-      "command": "review round: Q0's M2f applied after migrate-clean (the cancel's every owner layer dropped), make db-rls-smoke",
-      "exit_code": 2,
-      "result": "9 of 1200 cases red (the 8 new cancel refusals and the free-text bound case) and the containment proof red"
-    },
-    {
-      "command": "review round: Q0's M3c applied after migrate-clean (the cancel's succeeded INSERT inside its exception block), make db-rls-smoke",
-      "exit_code": 2,
-      "result": "1200 cases green; the closing-command proof red at 'cancel /7' and 'cancel /16'"
-    },
-    {
-      "command": "review round: Q0's M2c applied after migrate-clean (UPDATE policy USING true), make db-rls-smoke",
-      "exit_code": 2,
-      "result": "the containment proof red at 'SELECT path widened' (42501 where P0002 is required)"
-    },
-    {
-      "command": "review round: npm run check (through scripts/commit-when-clean.mjs, before code commit 3c50ba8)",
+      "command": "REVIEW ROUND: node scripts/commit-when-clean.mjs (code commit 631512b)",
       "exit_code": 0,
-      "result": "clean: exit 0 -- tests 688, pass 688, fail 0"
-    },
-    {
-      "command": "review round: node scripts/verify-branch-scope.mjs e92b896 WP-0A-DB-00",
-      "exit_code": 0,
-      "result": "all 37 changed path(s) are declared, and every amendment explains one"
+      "result": "clean: exit 0 — tests 691, pass 691, fail 0, skipped 0, todo 0"
     }
   ],
-  "security_privacy_cost_impact": "A new write path: an owner, after step-up, can move their own active workspace to closing and back, through a SECURITY DEFINER command owned by app_command, audited in the same transaction; a refused audit write aborts the action. app_command gains its first grants (USAGE on app; SELECT (id, lifecycle_state) and UPDATE (lifecycle_state, updated_by) on app.workspaces; INSERT on app.audit_logs; EXECUTE on six functions owned by app_authz: jwt_subject, is_active_member, workspace_member_role, acting_user_admits_business, acting_user_admits_page and jwt_aal (corrected in the review round, A1 F4, Q0 F6)), each pinned. app_authz gains five column reads of workspace_member_scopes and an own-rows policy. The actor is bound to request.jwt.claims (RFC-2026-023 §4 and RFC-2026-026 §3.3/1's residual: a session that sets the claims and can execute a command writes as anyone it names; EXECUTE on the commands is authenticated's alone). Refusals about a workspace the actor is not an active member of are unrecorded (Q-026-10 (iii)). Any active member can cause a refusal row at will (A1 F1): since the review round the command refuses request_id and correlation_id outside 1-128 characters of [A-Za-z0-9._:-] with 22023, so free text, an e-mail address or 100,000 characters no longer reach the append-only log; a digit string of an ID number's shape still fits, and a table CHECK and a rate limit are owed (open_blockers[200] (11)). A logical-replication subscription, which writes audit rows past every policy and trigger, is now refused by the producer rule (A1 F2). The batch's own fixtures carry no secret and no PII; no network, no cost.",
-  "migration_and_data_impact": "One forward migration, 172_acting_user_and_closing_command.sql; no table, column or data change. Four earlier apply-time blocks superseded with additive final-state replacements. The snapshot declares 172 not applied. No open_blockers line moves (the manifest's amendment list keeps four paths; [200] is added at the end).",
-  "compatibility_impact": "Tests 685 -> 688 (one in foundation-contract, two in identity-isolation): floors and name digests moved in scripts/test-suite-contract.mjs, evidence/VERIFICATION.md regenerated. rls-smoke cases 1129 -> 1187, and 1187 -> 1200 in the review round; authz proofs 7 -> 9, and 9 -> 10 in the review round; the producer rule's drifts and controls 19 -> 23 in the review round (tests stay 688). The isolation runner gains `after` reads and four identities; existing cases are unchanged.",
+  "security_privacy_cost_impact": "A new LOGIN role exists on migrate-clean clusters: app_worker_login, with no stored credential (inert wherever every pg_hba line reaching it asks for one; under trust it logs in, as every role does), able to become app_worker and nothing else, and only by SET LOCAL ROLE. Measured: before SET LOCAL ROLE it reads nothing in app (42501); under app_worker it reads zero rows of every table app_worker may SELECT by table or column grant (51, app.jobs among them; review round, Q0 F1), because no policy names app_worker; it cannot become app_command, app_maintenance, authenticated, anon, app_authz or postgres, nor call a client command. No credential is in the repository: the migration sets none, workerCredentialLint refuses one in every fed source, rule 9 refuses one live on migrate-clean, and the test harness sets a generated per-run credential as a client-computed SCRAM verifier (plaintext only in a 0600 PGPASSFILE in a fresh temporary directory) and removes both in a finally. On the provisioned instance nothing changes (173 declared not applied); there, whoever holds postgres's credential could set the role's (RFC-2026-028 §3.3/2, A1R-3: measured locally that a CREATEROLE applier with ADMIN can). The role can set its own session defaults and its own credential (A1-173-1, measured by A1): it reaches nothing beyond app_worker, the harness now refuses a session that is not the bare login role, and the runner's copy and the custody runbook's detection are owed before any instance holds a credential (open_blockers[201] (5), (7)). app_worker's database-level CREATE and per-role function EXECUTE are unpinned and now reachable by a non-superuser login (A1-173-3, LOW, owed [201] (10)). The repository secret scan does not name a migration password or verifier literal (Q0 F3, owed [201] (11)). No cost impact.",
+  "migration_and_data_impact": "One forward migration, 173_worker_login_identity.sql: one role, one membership, a comment, one apply-time block; no table, column, policy, grant on any relation or data change. No earlier apply-time block superseded. The snapshot declares 173 not applied. No open_blockers line moves ([201] is added at the end).",
+  "compatibility_impact": "Tests 688 -> 691 (three in foundation-contract): floor 82 -> 85 and name digest moved in scripts/test-suite-contract.mjs, evidence/VERIFICATION.md written by the record script. rls-smoke cases unchanged (1200); authz proofs 10 -> 14 (one NOT RUN on a trust cluster, printed so, a new status of formatProofs); the pinned grant probe 8 -> 10 rules and self-tests; two probe digests moved, each with its reason. No existing case changed. Review round: no test added (691 unchanged, name digest unchanged); the proofs' count unchanged (14), §5/10 reads 51 tables instead of 22, §5/12 also refuses group, file and pattern trust lines.",
   "known_limitations": [
-    "The step-up claim and function ownership under a non-superuser applier are not measured on the platform (open_blockers[200] (2), [199] (e)).",
-    "§8.1/1 drift 16 (an operator or aggregate over a producer) cannot be built against three-argument producers, and drift 12 (the reader rules) is vacuous while the reader list is empty; the cast drift (20) and BEGIN ATOMIC at every level in the driver are owed (open_blockers[195]).",
-    "audit-producer-rule part (i), widened in the review round, refuses any function or view, whatever its owner or security, that names app.workspaces unless it is one of the two lifecycle functions or the pinned reader app.workspace_member_role(uuid): stricter than RFC-2026-023 §8/3's 'writes' about reads, and blind to a route through dynamic SQL only as far as part (c), which refuses it. Its first form was blind to calls (C0 M1).",
-    "The full `try-it demo` was not run: the tool refuses this run's only port.",
-    "roleScopedCompleteness (Q-023-6) sees no app_command policy until the snapshot is retaken with 172 applied.",
-    "RFC-2026-026 §8.1/5 for the closing command is asserted by 172's check 7, but 170's block holds the same property first, so no drift appended to 140 reaches check 7 itself.",
-    "The pinned grant probe reads app and private only; app_command's privileges anywhere are held by 172's widened check 3, but a view outside app and private granted to app_worker or app_maintenance is held by nothing named here (open_blockers[200] (15)).",
-    "No CHECK bounds request_id or correlation_id on app.audit_logs itself (it would narrow CTR-AUD-001); the bound is in the two command bodies (open_blockers[200] (11))."
+    "Q-028-13's platform half (the platform's createrole_self_grant, the applier's admin row and grantor) is not measured; 173 is declared not applied there (open_blockers[201] (2)).",
+    "§5/12 runs only where a wrong credential is refused; every local cluster is trust, so it is NOT RUN there (CI run 37285050018 read RUN, ok). Trust lines the login cannot reach by address or database are not told apart: a trust line aimed at the role other than through `all` fails wherever it stands.",
+    "The login proofs' negative controls run under SET LOCAL SESSION AUTHORIZATION in rolled-back superuser transactions, not through a second login.",
+    "Rule 8 carries one self-test (the login role made NOLOGIN, a default privilege for it); its other attributes made true are held by rule 8 and 173's block: bypassrls measured by the Author (D4), inherit, createrole and superuser by the C0 role run (and A1), not the Author.",
+    "workerCredentialLint cannot see a credential clause computed at run time (rule 9 holds that live on migrate-clean only), and refuses the word PASSWORD followed by anything but NULL in any literal, comments in literals and a column named password included (fail closed; none exists). The repository secret scan does not name a migration password or verifier (Q0 F3, owed).",
+    "A1R-2's start-of-transaction check and A1-173-1's session-start check exist in the test harness only; the production runner's copies are owed (open_blockers[201] (5)).",
+    "The test credential's directory is RUNNER_TEMP when set, else the OS temporary directory (D13); a run killed before its finally leaves the 0700 directory and the verifier on its throwaway cluster.",
+    "Batch 050's service-sees-zero-* cases run through as_service() only, not through the login role (owed, open_blockers[201] (12)); the proof reads every one of their tables zero through it.",
+    "173 applied in autocommit (no enclosing transaction) commits the role and a second membership row before its block refuses them (C0-1); migrate-clean wraps every file; the instance's runner is read with Q-028-13 (open_blockers[201] (2))."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[200] (new): the migration number's acceptance, at or before the merge; the aal claim; part (i)'s stated reach; the cancel's step-up (A1, DATA-DEC-04's owners); unrecorded refusals outside membership; the retention reference; Q-023-6; the role runs' re-checks; and from the review round D6's deviation (A1), D8's vocabulary (A6), D9's contract-level CHECK and rate limit, RFC-2026-026's two text owings, and the pinned grant probe's reach.",
-    "open_blockers[195]: §8.1/1's remaining drifts and driver work (A0); RFC-2026-020's edit for both widenings (A1 Identity); named-role acceptances.",
-    "open_blockers[199]: platform measurements (e); named-role acceptances.",
-    "open_blockers[21], [113]: the worker half and DATA-DEC-03.",
-    "open_blockers[188]: Integration Owner evidence for any merge is still owed."
+    "open_blockers[201]: the number's acceptance (Integration Owner); the platform half of Q-028-13, 173 in one transaction there (C0-1) and the snapshot retaken with 173 applied; Q-028-5 (next batch); Q-028-11; A1R-2 and A1-173-1 in the production runner; CI's pg_hba reading; Q-028-3 custody runbook with self-alter detection, Q-028-12 pooler; stated limits; the role runs' re-checks of the review round; A1-173-3's probes (10); the secret scan's verifier pattern (11); 050's cases through the login role (12).",
+    "open_blockers[113]: DATA-DEC-03's remaining reach -- no policy TO app_worker, RFC-2026-022 §7, the broker.",
+    "open_blockers[199]: A1's acceptance as DATA-DEC-03's co-owner; named-role acceptances.",
+    "open_blockers[193] (Q0 R-1 done), [196], [198], [200]: appended cross-references."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a forward migration that drops the two command functions, the three app_command policies and audit_logs_insert_command, revokes every grant 172 makes, drops the three app_authz helpers, workspace_member_scopes_select_authz_own and the five columns, with the pins, pinned-grants.json, policy-set.json, superseded.json and the replacements reverted in the same diff (RFC-2026-023 §10). Audit rows already written stay. Never an edit of 172 once integrated.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a forward migration that ends the role's sessions, revokes app_worker from app_worker_login and drops the role, with the pins (PINNED_ROLE_MEMBERSHIPS, PINNED_ROLE_MEMBERSHIP_OPTIONS, PINNED_ROLE_ATTRIBUTES, the settings rule's third name) reverted and 173's block superseded in the same diff (RFC-2026-028 §7). No credential exists to revoke outside a test run. Never an edit of 173 once integrated.",
   "recommended_next_work_packages": [
-    "The C0, A1 and Q0 re-checks of batch 141's review round (code commit 3c50ba8, plan §7), A1 first on D9 (the identifier bound) and the widened part (i), Q0 on the new cancel cases, the cancel's proof arms and the containment proof.",
-    "The platform measurements: the aal claim after step-up (Q-023-5) and function ownership under the provisioned applier (Q170-c).",
-    "RFC-2026-028's role migration (Q-028-9) and RFC-2026-026's worker half once DATA-DEC-03 holds; batches 150/160/170's remaining no-decision work per the phase plan."
+    "The C0, A1 and Q0 re-checks of batch 173's review round (code commit 631512b; plan §7): Q0 on F1's fix (51 tables, app.jobs, the control) and F2's; A1 on A1-173-1's harness check and A1-173-2's rule; C0 on D13, D14 and the corrected records.",
+    "A1-173-3 (open_blockers[201] (10)): pin app_worker's database-level privileges and per-role function EXECUTE, before any credential exists outside a test run.",
+    "Q-028-5: app.jobs' tenant-context columns (not null, CTR-TEN-001's bounds) with CTR-JOB-001 restated by its owner, before RFC-2026-026's worker half.",
+    "The platform measurements with Q170-c: Q-028-13's platform half, Q-028-12 (the pooler), then the snapshot retaken with 173 applied."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-DB-00/a0-batch-141-plan-2026-10-03.md first, then evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-141.md.",
-    "Diff e92b896..76a26e0: db/foundation/migrations/172_acting_user_and_closing_command.sql (against RFC-2026-023 §3.2 and §8, RFC-2026-026 §3.3-§3.6), db/foundation/invariants/ (each replacement keeps every original line, in order), scripts/db/audit-producer-rule.mjs (against RFC-2026-026 §8.1/1 (a)-(h)), scripts/db/run.mjs (the pins), tests/db/identity/isolation-cases.mjs (the batch 141 section), scripts/db/authz-proofs.mjs (the two new proofs).",
-    "Re-run on a fresh cluster: the shim, make db-migrate-clean, make db-rls-smoke; then rename 172 to 141_* and watch migrate-clean fail inside 171 (the reason for D1).",
-    "Try the closing command by hand: begin; select private.as_stepped_up_user('<user_owner_a>'); select * from app.close_workspace('<workspace_a>', 'r', 'c'); reset role; select * from app.audit_logs where request_id = 'r'; rollback;",
-    "The review round: diff 68ee431..3c50ba8 against plan §7's table, one row per finding; re-run Q0's M2f, M3c and M2c and C0's drift i2 and A1's drifts B and C2 to see them refused."
+    "Read evidence/WP-0A-DB-00/a0-batch-173-worker-plan-2026-10-03.md first (§7 is the review round), then evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-173-worker.md.",
+    "Diff aa0e89f..eb413e9: db/foundation/migrations/173_worker_login_identity.sql (against RFC-2026-028 §3.1 and §4/1), scripts/db/run.mjs (the pins: rule 4 and 4b, rule 8, rule 9, the settings rule, workerCredentialLint, workerLoginSnapshotLint), scripts/db/authz-proofs.mjs (proveTheWorkerLogin), test-kits/db/foundation-contract.test.mjs (the three batch 173 tests). Review round: b2ed62f..631512b (authz-proofs.mjs: hbaRulesTrustingTheLogin, §5/10's table list and control, workerSessionStartProblem, workerCredentialBase; the fake-driven test; records).",
+    "Re-run on a fresh cluster: the shim, make db-migrate-clean, make db-rls-smoke; then append each of plan §3's drifts to 173 (not 140: the role does not exist there) and see each refused by name.",
+    "To re-run the review round's drifts: `host all +app_worker 127.0.0.1/32 trust` first in pg_hba.conf must FAIL §5/12; RFC §5/10's permissive policy on app.jobs appended to 140 must FAIL worker-login-reads-nothing-by-default.",
+    "To run §5/12: put `host all app_worker_login 127.0.0.1/32 scram-sha-256` first in pg_hba.conf, reload, make db-rls-smoke (RUN); a trust line for the role before it must FAIL.",
+    "Nothing here is reviewed, tested or approved by the Author."
   ],
   "superseded_by": null
 }
