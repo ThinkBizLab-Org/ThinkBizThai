@@ -5,10 +5,19 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "600b48b68092eb82d80c91ce0bc00d747cf1a7a4",
-  "head_revision_or_patch_checksum": "600b48b68092eb82d80c91ce0bc00d747cf1a7a4",
+  "head_revision_or_patch_checksum": "efbaf70ce7061117ffb9a9fa2128383d0b69f84a",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-CON-005/author-conditions-closure-2026-10-05.md"
+  ],
+  "files_modified": [
+    "architecture/decisions/RFC-2026-006-job-reference-hardening.md",
+    "evidence/WP-0A-CON-005/author-self-check.md",
+    "handoffs/WP-0A-CON-005-author-handoff.json",
+    "test-kits/contracts/ctr-job-001-reference-hardening.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-CON-005.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021"
