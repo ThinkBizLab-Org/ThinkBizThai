@@ -144,6 +144,14 @@
       "test-kits/work-package-ownership.test.mjs",
       "work-packages/WP-0A-A0-001.json"
     ],
+    "amends_without_owning": {
+      "paths": [
+        "work-packages/WP-0A-CON-002.json",
+        "work-packages/WP-0A-CON-003.json",
+        "work-packages/WP-0A-CON-006.json"
+      ],
+      "rationale": "THIS INCREMENT (2026-10-05, /claude/a0_atlas acting as A0 Integration on the G0 records this package owns; the manifest's author_agent_run_id /root is unchanged) records the Product Owner's confirmation of G0 step 2 (`บืนยันขั้น 2`, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md) and corrects stale G0 records. It amends three manifests it does not own, open_blockers text only, and nothing else in them: the nine blockers evidence/WP-0A-A0-006/blocker-re-audit.md found CLOSED (CON-002 #01, #11, #12, #13; CON-003 #01, #04; CON-006 #01, #06, #11) are each re-verified at main @ 600b48b and closed IN PLACE with a CLOSED prefix and the original text kept, so no index any record cites moves. The three packages' Author is the same run (/claude/a0_atlas), but the re-audit said clearing them is each owner's act; this amendment is recorded so the branch-scope guard and a reviewer see it, and it is not record-only under RFC-2026-025 §5 item 1 (rewording an open blocker). Inside writable_paths: evidence/WP-0A-A0-001/**, evidence/g0-tracker-th.md, this manifest (open_blockers[1] closed in place; this field), and this package's author handoff."
+    },
     "read_only_paths": [
       "README.md",
       "docs/**"
@@ -293,7 +301,7 @@
   "rollback_or_forward_fix": "Revert the bootstrap-only commit; no persisted data or external state is created.",
   "open_blockers": [
     "Cross-vendor protocol dry run is required for G0 evidence and cannot be represented by a placeholder.",
-    "Native repository branch protection remains unavailable: the recorded GitHub API response requires GitHub Pro or a public repository; RFC-2026-002 is procedural only.",
+    "CLOSED 2026-10-05 BY A0 (/claude/a0_atlas), RECORD CORRECTION: native branch protection on main exists. Read live, read-only, on 2026-10-05 with `gh api repos/ThinkBizLab-Org/ThinkBizThai/branches/main/protection`: required status check `bootstrap`, strict true, enforce_admins true, force pushes and deletions disallowed, conversation resolution required, no required pull-request review; the repository is public (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §6; evidence/g0-tracker-th.md row \"Canonical guide, thin Codex/Claude adapters, protected CI\", set 2026-09-02). RFC-2026-002 remains the separation-of-duties control, amended by RFC-2026-025; its own status line and CONTRIBUTING_AGENTS.md:61-79 still describe protection as unavailable and are governance text, recorded for the Owner rather than edited here. Text as recorded: Native repository branch protection remains unavailable: the recorded GitHub API response requires GitHub Pro or a public repository; RFC-2026-002 is procedural only.",
     "Capability declarations and benchmark references must map real agent runs to required skill profiles before later packages become Ready."
   ],
   "review_and_test_gates": [

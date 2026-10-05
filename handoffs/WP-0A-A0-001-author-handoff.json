@@ -4,19 +4,14 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "63ef48e3ab6a12ce2bee9a9c407266c65c6ccd05",
-  "head_revision_or_patch_checksum": "fd1ba9e21c58d698061f7c1b26271304ba5809ef",
+  "base_revision": "600b48b68092eb82d80c91ce0bc00d747cf1a7a4",
+  "head_revision_or_patch_checksum": "600b48b68092eb82d80c91ce0bc00d747cf1a7a4",
   "task_ids": [
     "REP-00",
     "WP-0A-A0-001"
   ],
-  "files_added": [
-    "evidence/WP-0A-A0-001/shared-pin-file-ownership.md"
-  ],
-  "files_modified": [
-    "handoffs/WP-0A-A0-001-author-handoff.json",
-    "work-packages/WP-0A-A0-001.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
