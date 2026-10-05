@@ -4,11 +4,17 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "e1fa28ec0232ccbb4dadb5faa079df5b1579b469",
-  "head_revision_or_patch_checksum": "e1fa28ec0232ccbb4dadb5faa079df5b1579b469",
+  "base_revision": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
+  "head_revision_or_patch_checksum": "b0c5f4a7ac648b20ed565991a2aae5503282c5bc",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-A0-004/author-step2-and-retest-2026-10-06.md"
+  ],
+  "files_modified": [
+    "evidence/WP-0A-A0-004/author-self-check.md",
+    "handoffs/WP-0A-A0-004-author-handoff.json",
+    "work-packages/WP-0A-A0-004.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",

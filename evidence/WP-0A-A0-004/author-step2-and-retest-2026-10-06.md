@@ -1,7 +1,12 @@
 # WP-0A-A0-004: the Owner's step-2 decisions applied, the authority line corrected, and every declared test re-run at main
 
 Author run: `/claude/a0_atlas` (Anthropic, Claude Opus family), working as a subagent of the A0 Author run.
-Branch: `agent/claude/WP-0A-A0-004-ci-independent-guard-step`, cut from `origin/main` at `e1fa28e` (PR #186 merged).
+Branch: `agent/claude/WP-0A-A0-004-ci-independent-guard-step`, cut from `origin/main` at `e1fa28e` (PR #186 merged). It was then
+rebased onto `8c089cc`, because PR #185 (DB-00 batch 174) merged while this ran. Before the push, the
+scope guard diffed the branch against the moved `origin/main` and named 25 batch-174 paths, so the branch
+was rebased. None of `.github/workflows/ci.yml`, `package.json` or
+`scripts/verify-test-coverage-floor.mjs` changed between the two heads (a quiet diff of those three
+paths, `e1fa28e` to `8c089cc`, exit 0).
 Date: 2026-10-06
 
 This is Author evidence only. It is not a review, security review, test verification, integration
@@ -68,13 +73,15 @@ the Owner's words `บืนยันขั้น 2`.
   have failed this PR. The paths are now `[]`. The rationale names the five paths and where the record
   stays.
 
-## 5. Every declared test, re-run at main `e1fa28e`
+## 5. Every declared test, re-run at main (`e1fa28e`, then `8c089cc`)
 
 Toolchain: `node v24.20.0`, `npm 11.19.0`.
 
 | Command | Where | Exit | Result |
 |---|---|---|---|
 | `npm run check` | a scratch branch `measure/a0-004-main-e1fa28e` at `e1fa28e`, which no package claims, so the handoff guard has no handoff to judge | 0 | `tests 691 / pass 691 / fail 0 / cancelled 0 / skipped 0 / todo 0` |
+| `npm run check` | the same kind of scratch branch, `measure/a0-004-main-8c089cc`, at current main `8c089cc` | 0 | `tests 692 / pass 692 / fail 0 / cancelled 0 / skipped 0 / todo 0` |
+| `node scripts/verify-test-coverage-floor.mjs` and `node scripts/validate-work-package-ownership.mjs work-packages` | at `8c089cc` | 0, 0 | |
 | `npm run check` | this branch, at `e1fa28e` before any edit | 1 | 689/691. Two failures, both the handoff guard: "WP-0A-A0-004's handoff cites head a5c33fd, after which 186 substantive path(s) changed". This is expected. The refreshed handoff is this PR's last commit. |
 | `node scripts/verify-test-coverage-floor.mjs` | standing alone | 0 | |
 | `node scripts/validate-work-package-ownership.mjs work-packages` | before and after the manifest edit | 0 | no cross-package overlap |
@@ -86,10 +93,11 @@ Toolchain: `node v24.20.0`, `npm 11.19.0`.
 The secret scan, protocol, capability and role-separation checks run inside `npm run check`, which
 covers `required_tests[2]`. The final-head run of `npm run check` is recorded in the handoff's `tests`.
 
-### 5.1 The load-bearing measurement, repeated at `e1fa28e`
+### 5.1 The load-bearing measurement, repeated at `e1fa28e` and `8c089cc`
 
 The self-check's sandbox result is the only evidence that separates this package from a cosmetic edit.
-It was repeated on a `git archive` of `origin/main` at `e1fa28e`, outside the repository. The integrity
+It was repeated on a `git archive` of `origin/main`, outside the repository, at `e1fa28e` and again at
+`8c089cc`. Both heads gave identical results. The integrity
 manifest was regenerated after each edit, so the digest tripwire is not what fired.
 
 | Injected `scripts.check` | `npm run check` | The workflow's guard step, `node scripts/verify-test-coverage-floor.mjs` |
