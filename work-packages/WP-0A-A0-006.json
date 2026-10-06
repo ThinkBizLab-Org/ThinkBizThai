@@ -5,7 +5,7 @@
   "title": "Data foundation decisions gating DB-00",
   "gate": "G0",
   "priority": "P0",
-  "status": "in_progress",
+  "status": "in_review",
   "required_skill_profiles": {
     "author": [
       "architecture-contracts"
@@ -30,21 +30,22 @@
     "integration_owner_agent_run_id": "/claude/r0_steward",
     "security_reviewer_agent_run_id": "/claude/a1_bastion",
     "product_reviewer_agent_run_id": null,
-    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner and must record its own capability declaration before this package leaves backlog. /root/r0_steward (OpenAI Codex) is a DIFFERENT run: it is the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001 and is named in open_blockers solely because it must countersign the amendments made to those two packages and record the WP-0A-CON-001 npm run check addendum. Neither run substitutes for the other. Independent testing flagged the near-identical names as ambiguous; both are intended."
+    "product_reviewer_note": "product_reviewer_agent_run_id is null by decision, not a gap: the Product Owner decided on 2026-10-05 that tooling and contract work packages need no Product reviewer (step 2 item 3, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 row 3). That this package falls under item 3 is A0's mapping: it is a decision-record package whose role profiles are architecture-contracts, independent-qa, integration-release and security-privacy, it has no UX surface, and review_and_test_gates carries no product step. The Product Owner's own act on this package was the disposition of RFC-2026-015 (required_human_authorities[0]), which is a decision authority, not a Product reviewer slot.",
+    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner. /root/r0_steward (OpenAI Codex) was a DIFFERENT run: the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001. Earlier text of this field said the Codex run was named in this package's open_blockers to countersign amendments to those two packages; measured 2026-10-06, no reachable version of this manifest's open_blockers names it (a pickaxe search of this file's history for '/root/r0_steward' finds only commit 1a9f589, which wrote this field, and that commit's open_blockers do not name it), and neither WP-0A-A0-001's ownership.amended_by nor any contract-catalog schema records an amendment by WP-0A-A0-006. That Codex run is no longer available; on 2026-10-05 the Product Owner named /claude/r0_steward its successor for the acknowledgements recorded pending against it (step 2 item 2, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 row 2). No such acknowledgement is owed by or to this package, so the succession moves nothing here. The earlier clause that /claude/r0_steward must record its capability declaration before this package leaves backlog is discharged: .agents/capability-profiles/cc-r0-steward.json is on main (evidence/WP-0A-A0-006/author-reverify-2026-10-06.md §3)."
   },
   "independence": {
     "no_self_approval": true,
     "require_distinct_author_reviewer": true,
     "require_distinct_author_tester": true,
-    "prefer_cross_vendor_review": true,
-    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (§ cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+    "prefer_cross_vendor_review": false,
+    "cross_vendor_exception": "WITHDRAWN 2026-10-05 BY THE PRODUCT OWNER for this package. RFC-2026-024 (approved 2026-09-15) withdrew the cross-vendor condition and applied it to WP-0A-DB-00 only (§3/1). On 2026-10-05 the Owner answered \"บืนยันขั้น 2\" to step 2 item 1, which that disposition records in its §1.2 translation of A0's Thai message as \"Apply RFC-024's cross-vendor exception to all 15 work packages\". The quoted item is the record's translation of A0's message, not the Owner's own words, and that message named no package ids. Which 15 packages is A0's mapping (WP-0A-A0-002..009 and WP-0A-CON-002..008), and by that mapping WP-0A-A0-006 is one of them (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §1.2 and §3 row 1). Until then this field read that every assigned run is Anthropic claude-opus-5, which was permitted only as the Decision Register's recorded single-vendor exception and was not equivalent to cross-vendor review; that history is why every role file on this package states it. What remains is all of CONTRIBUTING_AGENTS.md § Separation of duties: four distinct agent_run_ids in the four roles, plus the conditional Security reviewer; no run approves, test-verifies, integrates or gate-approves its own work; and every role file opens with the §0 spawning disclosure (RFC-2026-024 §3/3-4). A same-vendor signature does not pass Gate G0's external verification (RFC-2026-024 §3/5)."
   },
   "accountable_owners": [
     "A0"
   ],
   "required_human_authorities": [
-    "Product Owner disposition of RFC-2026-015: DATA-DEC-01 and DATA-DEC-02 are A0-owned but the data package states that an open decision does not authorise an agent to choose it.",
-    "A1 (security) to own and answer DATA-DEC-03 (force RLS service path), due before G1. A0 must not answer it alone."
+    "GIVEN 2026-09-04: Product Owner disposition of RFC-2026-015. architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md:3 reads \"Approved 2026-09-04 by the Product Owner\", DATA-DEC-01 as `app` and DATA-DEC-02 as the wrapper command contract. Text as recorded: Product Owner disposition of RFC-2026-015: DATA-DEC-01 and DATA-DEC-02 are A0-owned but the data package states that an open decision does not authorise an agent to choose it.",
+    "A1 (security) to own and answer DATA-DEC-03 (force RLS service path), due before G1. A0 must not answer it alone. STATE 2026-10-06: RFC-2026-016 §4 and RFC-2026-017 closed it in part, and RFC-2026-028 (Approved 2026-10-05, the worker identity) records in its status line that A1's acceptance as DATA-DEC-03's co-owner is still owed. That acceptance is A1's act, not this package's."
   ],
   "purpose": "The Sprint 0A data package names ten open DATA-DEC decisions and states the order plainly: close DATA-DEC-01..03, dispatch DB-00 with exact allowed paths, run the declared verify command, then DB-01 and DB-02. Nothing in that sequence waits on further scaffolding work. An audit of all 36 blockers recorded across WP-0A-CON-002, -003 and -006, each re-checked by opening the code or running the claim rather than by reading the recorded text, found nine no longer true and not one of the twenty-seven still true that can be closed by writing code: eighteen await a named human or agent authority, seven await a system that only exists once there is an application, two need re-measuring with their owner's own instrument. This package proposes the two DATA decisions A0 owns and refers the third to A1, because the data package states that an open decision does not authorise an agent to choose it.",
   "scope": {
@@ -116,7 +117,8 @@
     "files": [
       "architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md",
       "work-packages/WP-0A-A0-006.json",
-      "evidence/WP-0A-A0-006/blocker-re-audit.md"
+      "evidence/WP-0A-A0-006/blocker-re-audit.md",
+      "evidence/WP-0A-A0-006/author-reverify-2026-10-06.md"
     ],
     "contracts": []
   },
@@ -140,7 +142,7 @@
     "package_evidence": [
       "node scripts/validate-work-packages.mjs",
       "node scripts/validate-work-package-ownership.mjs",
-      "node scripts/validate-work-package-role-separation.mjs"
+      "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A0-006.json"
     ]
   },
   "security_privacy": {
@@ -150,9 +152,10 @@
   },
   "rollback_or_forward_fix": "Revert through a reviewed revert PR. The package adds one decision record in Proposed state and one evidence file. No schema, migration, contract, persisted data, provider state or credential is touched, and a Proposed RFC binds nothing until the Product Owner disposes it.",
   "open_blockers": [
-    "DATA-DEC-03 IS CLOSED ONLY AS FAR AS RFC-2026-016 §4 STATES, AND THE PART IT TURNS ON IS STILL OPEN. This blocker used to read that the decision was referred to A1 and unanswered, which was true when written and stopped being true on 2026-09-05: RFC-2026-016 closed it to the extent §4 states and RFC-2026-017 records that closure. What remains open is the service path, which RFC-2026-016 §4 says in terms is undecided and RFC-2026-022 §5/8 measures as not in effect -- the only member of app_worker is postgres, which bypasses row level security. So the referral is discharged and the QUESTION is not, and it is still A1's to answer rather than this package's to infer.",
-    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived. Unchanged by the 2026-09-04 disposition: an approved decision record is not a cross-vendor review of the package that proposed it.",
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work, which a decision record is whether it is Proposed or Approved. The tail of this sentence used to read \"which a Proposed decision record is\", and the disposition on 2026-09-04 made that clause false while leaving the restriction it justifies true -- so the clause is corrected rather than the blocker dropped."
+    "DATA-DEC-03'S SERVICE PATH IS DECIDED IN PART AND NOT YET IN EFFECT; WHAT REMAINS IS A1'S AND THE INTEGRATION OWNER'S, NOT THIS PACKAGE'S. CORRECTED 2026-10-06 BY A0 (/claude/a0_atlas): the previous text said the service path was undecided and that \"the only member of app_worker is postgres\". Both stopped being true on main: RFC-2026-028 (the worker identity, Approved 2026-10-05) decides the identity, and db/foundation/migrations/173_worker_login_identity.sql creates app_worker_login and grants it app_worker WITH INHERIT FALSE, SET TRUE, ADMIN FALSE, so on a migrate-clean cluster app_worker has two members, postgres and app_worker_login. Still open, each by RFC-2026-028's status line and migration 173's header: A1's acceptance as DATA-DEC-03's co-owner; credential custody (Q-028-3) before the provisioned instance gets a credential; the platform pooler measurement (Q-028-12, with Q170-c); 173 is declared pending on the provisioned instance; and no service cell's policy exists until its own batch lands, so app_worker reads and writes no row of any forced table. The referral this package made is discharged; the remainder of the question belongs to A1 and WP-0A-DB-00, and this package must not infer an answer to it (evidence/WP-0A-A0-006/author-reverify-2026-10-06.md §4). Text as recorded: DATA-DEC-03 IS CLOSED ONLY AS FAR AS RFC-2026-016 §4 STATES, AND THE PART IT TURNS ON IS STILL OPEN. This blocker used to read that the decision was referred to A1 and unanswered, which was true when written and stopped being true on 2026-09-05: RFC-2026-016 closed it to the extent §4 states and RFC-2026-017 records that closure. What remains open is the service path, which RFC-2026-016 §4 says in terms is undecided and RFC-2026-022 §5/8 measures as not in effect -- the only member of app_worker is postgres, which bypasses row level security. So the referral is discharged and the QUESTION is not, and it is still A1's to answer rather than this package's to infer.",
+    "CLOSED 2026-10-06 BY A0 (/claude/a0_atlas), RECORD CORRECTION, NOT A NEW FINDING: the Product Owner extended RFC-2026-024's withdrawal to this package on 2026-10-05 (step 2 item 1, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 row 1, by A0's mapping of the 15); independence.prefer_cross_vendor_review is false and cross_vendor_exception records the withdrawal. Closed in place so no later index moves. Text as recorded: prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived. Unchanged by the 2026-09-04 disposition: an approved decision record is not a cross-vendor review of the package that proposed it.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work, which a decision record is whether it is Proposed or Approved. The tail of this sentence used to read \"which a Proposed decision record is\", and the disposition on 2026-09-04 made that clause false while leaving the restriction it justifies true -- so the clause is corrected rather than the blocker dropped.",
+    "No role verdict exists for this package at any head. Before 2026-10-06 the only file under evidence/WP-0A-A0-006/ was the Author's blocker-re-audit.md; there is no C0, A1, Q0 or R0 file. All four first role verdicts are owed at the current main, each reviewing the whole package: Reviewer /claude/c0_contract_reviewer, Security /claude/a1_bastion (the conditional reviewer the manifest requires), Tester /claude/q0_sentinel, Integration Owner /claude/r0_steward. The package's work (RFC-2026-015 and the re-audit) reached main as squash commit 1a9f589 of PR #45 on 2026-09-04, before RFC-2026-025, while this manifest read in_progress; the Integration Owner disposes of that, not the Author (evidence/WP-0A-A0-006/author-reverify-2026-10-06.md §2)."
   ],
   "review_and_test_gates": [
     "author_complete",
