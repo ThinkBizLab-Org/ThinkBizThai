@@ -159,7 +159,7 @@ const SITE_FLOOR = {
   'ctr-api-001': 42, 'ctr-aud-001': 63, 'ctr-err-001': 23, 'ctr-evt-001': 51,
   'ctr-flg-001': 74, 'ctr-idm-001': 38, 'ctr-job-001': 42, 'ctr-mod-001': 87,
   'ctr-ntf-001': 44, 'ctr-obs-001': 83, 'ctr-pag-001': 38, 'ctr-sec-001': 76,
-  'ctr-ten-001': 23, 'ctr-usg-001': 48 };
+  'ctr-ten-001': 23, 'ctr-usg-001': 45 };
 
 // Held at the measured actual, not at a round number above it. Slack in this ceiling is
 // room for coverage to regress without anything failing, so every fixture that closes a
@@ -171,7 +171,7 @@ const SITE_FLOOR = {
 const UNKILLED_CEILING = {
   'ctr-api-001': 1, 'ctr-aud-001': 5, 'ctr-err-001': 0, 'ctr-evt-001': 0, 'ctr-flg-001': 14,
   'ctr-idm-001': 1, 'ctr-job-001': 0, 'ctr-mod-001': 10, 'ctr-ntf-001': 10, 'ctr-obs-001': 6,
-  'ctr-pag-001': 8, 'ctr-sec-001': 12, 'ctr-ten-001': 0, 'ctr-usg-001': 4 };
+  'ctr-pag-001': 8, 'ctr-sec-001': 12, 'ctr-ten-001': 0, 'ctr-usg-001': 1 };
 
 // `$schema`, `$id`, `title` and `description` are metadata: deleting one cannot change any
 // verdict, so counting them as constraints would drag every ratio down and make the floor
@@ -1723,17 +1723,9 @@ const CONSTRAINT_SURFACE = {
     ],
   },
   'ctr-usg-001': {
-    digest: '8516f55cf46c99f4',
+    digest: '8f81070a5da43640',
     sites: [
       ".additionalProperties = false",
-      ".allOf.0.if.properties = [cost]",
-      ".allOf.0.if.properties.cost.properties = [basis]",
-      ".allOf.0.if.properties.cost.properties.basis.const = \"estimated\"",
-      ".allOf.0.if.properties.cost.required = [\"basis\"]",
-      ".allOf.0.if.properties.cost.type = \"object\"",
-      ".allOf.0.if.required = [\"cost\"]",
-      ".allOf.0.then.properties = [cost]",
-      ".allOf.0.then.properties.cost.not.required = [\"supersedes_usage_id\"]",
       ".properties = [attribution, cost, dedupe_key, dimension, occurred_at, quantity, tenant_context, usage_id]",
       ".properties.attribution.additionalProperties = false",
       ".properties.attribution.properties = [business_profile_id, job_id, provider_key, workspace_id]",

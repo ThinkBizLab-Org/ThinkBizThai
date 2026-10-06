@@ -149,39 +149,5 @@
       "$ref": "../ctr-ten-001/schema.json",
       "x-source": "Section 3.1: every command, query, job and event touching customer data carries the Trusted Tenant Context."
     }
-  },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "cost": {
-            "type": "object",
-            "properties": {
-              "basis": {
-                "const": "estimated"
-              }
-            },
-            "required": [
-              "basis"
-            ]
-          }
-        },
-        "required": [
-          "cost"
-        ]
-      },
-      "then": {
-        "properties": {
-          "cost": {
-            "not": {
-              "required": [
-                "supersedes_usage_id"
-              ]
-            }
-          }
-        }
-      },
-      "x-rule": "C0 F-5 (evidence/WP-0A-CON-006/c0-recheck-2026-10-06.md), first of the two options C0 offered, taken 2026-10-07: an event whose cost.basis is `estimated` cannot carry cost.supersedes_usage_id. The field's own x-source makes it meaningful only on a provider statement that replaces an estimate (OB-008); an estimate superseding something has no meaning, and before this rule nothing declared it. C0's second option, declaring in untestable_by_schema that the field is ignored on an estimate, was NOT taken because the rule IS expressible in this validator's subset (C0 measured it), and this catalog declares as untestable only what the subset cannot express. DECLARED INFERENCE from OB-008, with A6 co-signature owed. The invalid fixture that witnesses it is owed with the too-long fixtures, through WP-0A-CON-008's FIXTURE_SET."
-    }
-  ]
+  }
 }

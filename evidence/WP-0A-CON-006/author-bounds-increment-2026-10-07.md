@@ -44,7 +44,7 @@ reason is in its own `x-bound-note`.
 |---|---|---|---|
 | CTR-NTF-001 | `notification_id` | 128 | id; the bound of `CTR-EVT-001.event_id`, `CTR-JOB-001.job_id` and `CTR-API-001.request_id` |
 | CTR-NTF-001 | `message_key` | 128 | catalog key; a dotted identifier naming one catalog entry, so it takes the id bound. Longest fixture value: 29 |
-| CTR-NTF-001 | `deep_link.target_ref` | 256 | `scheme:path` reference; the grammar and bound of `CTR-IDM-001.result_ref`, also the database CHECK length |
+| CTR-NTF-001 | `deep_link.target_ref` | 256 | `scheme:path` reference; the grammar and bound of `CTR-IDM-001.result_ref`, also the database CHECK length on the IDM/JOB/audit references RFC-2026-009 R-2 lists (CORRECTED 2026-10-07 for R0 R2 and A1-B3: NOT on `app.notifications.deep_link_target_ref`, which carries no length CHECK; see `author-review-conditions-closure-2026-10-07.md`) |
 | CTR-NTF-001 | `dedupe_key` | 128 | dedupe key; `CTR-JOB-001.dedupe_key`'s bound (RFC-2026-009 R-2, "128 on the ids and dedupe_key") |
 | CTR-USG-001 | `usage_id` | 128 | event id; `CTR-EVT-001.event_id`'s bound; also ID-002's redelivery key |
 | CTR-USG-001 | `attribution.workspace_id` | 128 | id; `CTR-IDM-001.scope.workspace_id`'s bound; must equal `tenant_context.workspace_id` |
@@ -159,3 +159,12 @@ Each too-long value satisfies the field's pattern where it has one. So only the 
 
 `npm run check` and the scope and handoff checks were run on the branch name. The counts are in
 `evidence/VERIFICATION.md` and the handoff, not restated here.
+
+## 10. Superseded in part, 2026-10-07
+
+After the first C0, A1, Q0 and R0 runs on this increment, `author-review-conditions-closure-2026-10-07.md`
+changed three things this file describes. The C0 F-5 rule (USG `allOf[0]`) and its fixture
+`invalid-estimated-carries-supersedes-usage-id.json` were WITHDRAWN in favour of C0's second option (C0 F-3),
+so §2's no-RFC reasoning now covers the ten bounds and the class only. The NTF `dedupe_key` sizing limit is
+declared (C0 F-1). Three USG too-long fixtures were made consistent with rules (5) and (3) (Q0 Q-1). The
+rest of this file stands as the record of the commit it describes.
