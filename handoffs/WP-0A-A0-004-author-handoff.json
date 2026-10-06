@@ -4,27 +4,11 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "fa102298aa71ef5031c644501a42e50a7eb953b6",
-  "head_revision_or_patch_checksum": "2ec75ba419add16e4db19f1980c02de6944b589c",
+  "base_revision": "9b34be7d7895df3f6a1cc739051299f4cddcbe20",
+  "head_revision_or_patch_checksum": "9b34be7d7895df3f6a1cc739051299f4cddcbe20",
   "task_ids": [],
-  "files_added": [
-    "evidence/WP-0A-A0-004/a1-recheck-2026-10-06.md",
-    "evidence/WP-0A-A0-004/a1-security-reverify-2026-10-05.md",
-    "evidence/WP-0A-A0-004/author-closure-2026-10-06.md",
-    "evidence/WP-0A-A0-004/author-step2-and-retest-2026-10-06.md",
-    "evidence/WP-0A-A0-004/c0-contract-reverify-2026-10-05.md",
-    "evidence/WP-0A-A0-004/c0-recheck-2026-10-06.md",
-    "evidence/WP-0A-A0-004/q0-recheck-2026-10-06.md",
-    "evidence/WP-0A-A0-004/q0-test-reverify-2026-10-05.md",
-    "evidence/WP-0A-A0-004/r0-integration-verdict-2026-10-05.md",
-    "evidence/WP-0A-A0-004/r0-recheck-2026-10-06.md",
-    "evidence/WP-0A-A0-004/r0-sync-reading-2026-10-06.md"
-  ],
-  "files_modified": [
-    "evidence/WP-0A-A0-004/author-self-check.md",
-    "handoffs/WP-0A-A0-004-author-handoff.json",
-    "work-packages/WP-0A-A0-004.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",

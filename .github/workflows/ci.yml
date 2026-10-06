@@ -56,6 +56,24 @@ jobs:
           # The branch-scope guard diffs against the pull request's base, so the base commit
           # must be in the clone. A shallow checkout has only the head.
           fetch-depth: 0
+      # CHECKING OUT BY BRANCH NAME CHECKS OUT THE BRANCH AS IT IS NOW, not the commit the event
+      # named. If the branch moves between the event and the checkout -- a push landing while this
+      # run was queued, or a re-run of an older run -- the job tests the newer tip and reports its
+      # result on the older commit (A1 F1 on PR #189, evidence/WP-0A-A0-004/a1-security-reverify-
+      # 2026-10-05.md §4). So the commit the run reports on is asserted to be the commit it holds,
+      # and anything else FAILS the job rather than lending one commit's green to another. On a push,
+      # head_ref is empty, the checkout takes github.sha, and the same assertion holds. An empty
+      # expected value fails too: an assertion against nothing is not one. RFC-2026-007 §Amendment.
+      - name: Verify the checkout is the commit this run reports on
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          actual="$(git rev-parse HEAD)"
+          if [ -z "${EXPECTED_SHA}" ] || [ "${actual}" != "${EXPECTED_SHA}" ]; then
+            echo "checkout: HEAD is ${actual} but this run reports on '${EXPECTED_SHA}'. The branch moved after the event, or the expected commit is unknown; this run cannot report on a commit it did not test."
+            exit 1
+          fi
+          echo "checkout: HEAD ${actual} is the commit this run reports on"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24.20.0
@@ -140,6 +158,61 @@ jobs:
           # the platform.
           LC_ALL=C TZ=UTC make db-rls-smoke
 
+      # WHETHER THE NEGATIVE CONTROL MUST RUN ON THIS PULL REQUEST (RFC-2026-007 §Amendment, the
+      # Product Owner's words of 2026-10-06). The control re-runs the isolation suite once per table
+      # family and took 12.4 of CI's ~22 minutes. Its outcome is a function of the database surface
+      # and nothing else: what `make db-rls-smoke` reads (the Makefile, scripts/db/**, tests/db/**,
+      # db/**) and what the step above loaded into the container (db/**), plus this workflow file.
+      # If NONE of those differs between the pull request's base tree and its head tree, the control's
+      # inputs are byte-identical to the base's, whose push to main ran it, and running it again
+      # measures nothing new.
+      #
+      # It FAILS CLOSED. The control is skipped ONLY when this step writes `skip=true`, and it writes
+      # that only after the diff was computed and no changed path matched DB_SURFACE. Every other
+      # outcome -- a push to main (this step does not run at all), an empty or missing base commit,
+      # a diff git could not compute, a grep that errored, a path on the surface -- leaves `skip`
+      # unset, and the control RUNS. The step never exits non-zero on those cases, because a failure
+      # here would skip the control by failing the job instead of running it.
+      #
+      # DB_SURFACE is a MEASURED set, not a guess: test-kits/branch-scope.test.mjs walks the import
+      # graph of scripts/db/run.mjs and every repository path the two database steps and their
+      # modules name, and fails if any of them falls outside this pattern. test-kits/db/ is not
+      # read by the control; it is included as margin. The diff is tree to tree with --no-renames,
+      # so a file moved off the surface still names its old path.
+      #
+      # The step is a SKIPPED STEP, never a skipped job: the job and its required check `bootstrap`
+      # run and report on every pull request regardless.
+      - name: Decide whether the negative control must run
+        id: db_surface
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          DB_SURFACE: '^(db/|scripts/db/|tests/db/|test-kits/db/|\.github/|Makefile$|package\.json$|package-lock\.json$|\.node-version$)'
+        run: |
+          if [ -z "${BASE_SHA:-}" ] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            echo "negative control: the base commit '${BASE_SHA:-}' is not in this clone; the control RUNS"
+            exit 0
+          fi
+          if ! changed="$(git diff --no-renames --name-only "${BASE_SHA}" HEAD)"; then
+            echo "negative control: the diff against ${BASE_SHA} could not be computed; the control RUNS"
+            exit 0
+          fi
+          set +e
+          surface="$(printf '%s\n' "${changed}" | grep -E "${DB_SURFACE}")"
+          matched=$?
+          set -e
+          if [ "${matched}" -eq 0 ]; then
+            echo "negative control: the database surface changed; the control RUNS. Paths:"
+            printf '%s\n' "${surface}" | sed 's/^/  /'
+            exit 0
+          fi
+          if [ "${matched}" -ne 1 ]; then
+            echo "negative control: matching the changed paths failed (grep exit ${matched}); the control RUNS"
+            exit 0
+          fi
+          echo "negative control: no path on the database surface changed against ${BASE_SHA}; the control is SKIPPED"
+          echo "skip=true" >> "${GITHUB_OUTPUT}"
+
       # The negative control. A green isolation suite is not evidence until the suite can be made
       # to go red, and everything this branch found was a case passing for a reason nobody had
       # checked: a driver that could not name a column, and a parser counting the `set_config` row
@@ -167,6 +240,8 @@ jobs:
       # RLS is re-enabled after each entry, so the entries are independent. Without that, the second
       # control would pass on the first table still being off.
       - name: Negative control - each table family must be detectable on its own
+        # Runs unless the step above wrote skip=true; unset, empty or anything else runs it.
+        if: steps.db_surface.outputs.skip != 'true'
         env:
           PGPASSWORD: postgres
           DB_TEST_URL: postgresql://postgres@localhost:5432/thinkbizthai_test
