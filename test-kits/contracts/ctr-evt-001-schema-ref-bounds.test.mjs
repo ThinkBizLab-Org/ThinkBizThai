@@ -44,6 +44,27 @@ const HOSTILE = [
   '${env.SECRET}',
 ];
 
+// Added 2026-10-06, from the independent role verdicts on main 03c584b.
+// Every form above is hostile INSTEAD of a well-formed name, or a well-formed name with hostile
+// text APPENDED, so the `$` anchor was guarded and the `^` anchor was guarded by nothing: with `^`
+// removed the schema accepted file:///CTR-EVT-001@1.0.0 and javascript:CTR-EVT-001@1.0.0 and this
+// suite stayed green (C0 F1). And form 11 is lowercase THROUGHOUT, so the literal `CTR-` prefix
+// rejects it before the letter class is ever consulted; widening that class to [A-Za-z] went
+// unseen (C0 F3). Each form here is a well-formed name with one thing wrong, and each is shorter
+// than the bound, so only the shape can reject it.
+const HOSTILE_AROUND_A_GOOD_NAME = [
+  'file:///CTR-EVT-001@1.0.0',
+  'javascript:CTR-EVT-001@1.0.0',
+  '../../CTR-EVT-001@1.0.0',
+  'CTR-evt-001@1.0.0',
+];
+
+// Forms 05, 06 and 08 (the two public https URLs and the cloud metadata address) are 36, 36 and
+// 40 characters, longer than the 32-character bound. Against the shipped schema they are rejected
+// by the BOUND as well as the shape, so a pattern widened to admit an https URL left this suite
+// green (A1 S-3). The first test below therefore also runs every hostile form against the schema
+// with the bound set aside, so each one must be rejected by the shape alone.
+
 async function loadContract() {
   const schema = await readJson(join(BASE, 'schema.json'));
   const resolved = new Map();
@@ -63,16 +84,38 @@ async function loadContract() {
 
 const withRef = (valid, value) => ({ ...valid, metadata: { ...valid.metadata, schema_ref: value } });
 
+// The same schema with schema_ref's maxLength removed, so a rejection can only come from the shape.
+const withoutBound = (schema) => {
+  const copy = structuredClone(schema);
+  delete copy.properties.metadata.properties.schema_ref.maxLength;
+  return copy;
+};
+
+// The accepted range, written out so that moving the bound is an edit a reviewer reads. The
+// longest well-formed name the bound admits is 32 characters, and one more is rejected. Both
+// values satisfy the shape, so only the bound decides them. Without these two the bound could be
+// raised to 79 or lowered to 18 with every test green, because the only values that pinned it were
+// the 80-character overlong probe and three accepted names of 17 and 18 characters (C0 F2, Q0 M04
+// and M05).
+const AT_THE_BOUND = 'CTR-EVT-001@111111.111111.111111';
+const ONE_PAST_THE_BOUND = 'CTR-EVT-001@1111111.111111.111111';
+
 test('CTR-EVT-001 rejects every demonstrated hostile schema_ref', async () => {
   const { schema, valid, resolve } = await loadContract();
+  const shapeOnly = withoutBound(schema);
   const accepted = [];
-  for (const value of HOSTILE) {
+  const acceptedByShape = [];
+  for (const value of [...HOSTILE, ...HOSTILE_AROUND_A_GOOD_NAME]) {
     const errors = validate(schema, withRef(valid, value), { resolve });
     if (errors.length === 0) accepted.push(value);
     else assert.ok(errors.some((message) => message.includes('schema_ref')),
       `${value} was rejected, but not because of schema_ref: ${errors.join('; ')}`);
+    const shapeErrors = validate(shapeOnly, withRef(valid, value), { resolve });
+    if (!shapeErrors.some((message) => message.includes('schema_ref'))) acceptedByShape.push(value);
   }
   assert.deepEqual(accepted, [], `CTR-EVT-001 accepts hostile schema_ref(s): ${accepted.join(', ')}`);
+  assert.deepEqual(acceptedByShape, [],
+    `with the bound set aside, the schema_ref shape accepts: ${acceptedByShape.join(', ')} -- only the length rejects them`);
 });
 
 test('CTR-EVT-001 bounds schema_ref length, so a well-formed name cannot be unbounded', async () => {
@@ -84,6 +127,13 @@ test('CTR-EVT-001 bounds schema_ref length, so a well-formed name cannot be unbo
   assert.ok(errors.length > 0, 'a schema_ref of the right shape and unbounded length must be rejected');
   assert.ok(errors.some((message) => message.includes('schema_ref')),
     `rejected, but not because of schema_ref: ${errors.join('; ')}`);
+  // One character past the bound is rejected, and the shape is not what rejects it.
+  assert.equal(ONE_PAST_THE_BOUND.length, 33);
+  assert.deepEqual(validate(withoutBound(schema), withRef(valid, ONE_PAST_THE_BOUND), { resolve }), [],
+    `${ONE_PAST_THE_BOUND} must satisfy the shape, or it proves nothing about the bound`);
+  const pastErrors = validate(schema, withRef(valid, ONE_PAST_THE_BOUND), { resolve });
+  assert.ok(pastErrors.some((message) => message.includes('schema_ref')),
+    `a 33-character well-formed schema_ref must be rejected; the bound has been raised past 32`);
 });
 
 // A guard that only ever rejects is indistinguishable from one that rejects everything.
@@ -92,6 +142,9 @@ test('CTR-EVT-001 still accepts a well-formed contract name', async () => {
   for (const value of ['CTR-EVT-001@1.0.0', 'CTR-JOB-001@2.11.0', 'CTR-TEN-001@10.0.3']) {
     assert.deepEqual(validate(schema, withRef(valid, value), { resolve }), [], `${value} must be accepted`);
   }
+  assert.equal(AT_THE_BOUND.length, 32);
+  assert.deepEqual(validate(schema, withRef(valid, AT_THE_BOUND), { resolve }), [],
+    `${AT_THE_BOUND} is 32 characters, at the declared bound, and must be accepted; the bound has been lowered`);
 });
 
 // Discovered, not enumerated. Independent security review pointed out that this test was
@@ -144,23 +197,110 @@ function referenceFields(node, path = []) {
   return found;
 }
 
-// The contracts this package touches. Every other contract is listed in RFC-2026-009 as
-// reported and not fixed, because bounding a field is a change to its owner's contract.
-const BOUNDED_CONTRACTS = ['ctr-api-001', 'ctr-evt-001', 'ctr-idm-001', 'ctr-job-001'];
-
-test('every reference-shaped field in the contracts this package touches carries an upper bound', async () => {
-  const unbounded = [];
-  for (const dir of BOUNDED_CONTRACTS) {
-    const schema = await readJson(join('contract-catalog/shared-kernel', dir, 'schema.json'));
-    for (const [path, field, declared] of referenceFields(schema)) {
-      if (typeof field.maxLength !== 'number') unbounded.push(`${dir}.${path.join('.')}`);
-      // An array of references bounded only per item is still unbounded in aggregate.
-      if (field !== declared && typeof declared.maxItems !== 'number') {
-        unbounded.push(`${dir}.${path.join('.')} (array with no maxItems)`);
-      }
+// Every reference-shaped field in the named contract that has no upper bound. An array of
+// references bounded only per item is still unbounded in aggregate.
+function boundGaps(dir, schema) {
+  const gaps = [];
+  for (const [path, field, declared] of referenceFields(schema)) {
+    if (typeof field.maxLength !== 'number') gaps.push(`${dir}.${path.join('.')}`);
+    if (field !== declared && typeof declared.maxItems !== 'number') {
+      gaps.push(`${dir}.${path.join('.')} (array with no maxItems)`);
     }
   }
+  return gaps;
+}
+
+const CATALOG = 'contract-catalog/shared-kernel';
+
+// Every contract directory in the catalog that carries a schema, discovered rather than listed.
+async function catalogSchemas() {
+  const entries = await readdir(CATALOG, { withFileTypes: true });
+  const found = [];
+  for (const entry of entries.filter((e) => e.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
+    let schema;
+    try { schema = await readJson(join(CATALOG, entry.name, 'schema.json')); } catch { continue; }
+    found.push([entry.name, schema]);
+  }
+  return found;
+}
+
+// The fourteen contract directories the catalog held, and the reference-shaped fields the discovery
+// found in them, on main 03c584b and again on e1fa28e. A floor, so a test that walks nothing fails
+// rather than passing over an empty set (Q0 M15 and M16).
+const CATALOG_CONTRACT_FLOOR = 14;
+const CATALOG_REFERENCE_FIELD_FLOOR = 76;
+
+// The four contracts this package bounded. Every reference-shaped field in them carries a bound.
+const BOUNDED_CONTRACTS = ['ctr-api-001', 'ctr-evt-001', 'ctr-idm-001', 'ctr-job-001'];
+
+// The reference-shaped fields KNOWN to be unbounded, each in a contract this package does not own,
+// named with the work package whose writable paths hold that contract. Bounding a field is a change
+// to its owner's contract, so this package reports them and does not fix them.
+//
+// This list was an enumeration of four contracts until 2026-10-06, and that hid 49 unbounded fields
+// from the guard and let a fifteenth contract, or a new field in any of the ten, arrive unbounded
+// with every test green (C0 F4, Q0 M12). The default is now inverted: the whole catalog is walked,
+// and a new unbounded reference fails unless it is written down here. An entry that its owner has
+// since bounded also fails, so the list cannot go stale and later hide a field that loses its bound.
+//
+// The walk reads each contract's own schema, so CTR-TEN-001's seven fields are found in
+// ctr-ten-001 itself. That is how the guard sees what rides inside CTR-EVT-001.tenant_context:
+// referenceFields does not follow `$ref` (A1 S-4, Q0 §4), and it does not need to when every
+// contract is walked.
+const KNOWN_UNBOUNDED = new Map([
+  ...['audit_id', 'actor.id', 'correlation_id', 'causation_id']
+    .map((p) => [`ctr-aud-001.${p}`, 'WP-0A-CON-004']),
+  ...['message_key', 'correlation_id']
+    .map((p) => [`ctr-err-001.${p}`, 'WP-0A-CON-001']),
+  ...['policy_key', 'reason_key', 'audit.actor.id', 'audit.reason_key']
+    .map((p) => [`ctr-flg-001.${p}`, 'WP-0A-CON-003']),
+  ...['module_key', 'module_id', 'capabilities.capability_key', 'dependencies.module_key']
+    .map((p) => [`ctr-mod-001.${p}`, 'WP-0A-CON-003']),
+  ...['notification_id', 'message_key', 'deep_link.target_ref', 'dedupe_key']
+    .map((p) => [`ctr-ntf-001.${p}`, 'WP-0A-CON-006 (contract owner A5)']),
+  ...['correlation.correlation_id', 'correlation.request_id', 'correlation.causation_id',
+    'correlation.trace_id', 'correlation.job_id', 'module.module_key',
+    'readiness.capabilities.capability_key', 'dependencies.dependency_key', 'sli_tags.module_key',
+    'sli_tags.capability_key']
+    .map((p) => [`ctr-obs-001.${p}`, 'WP-0A-CON-004']),
+  ...['scope.workspace_id', 'scope.business_profile_id', 'scope.page_context_profile_id',
+    'scope.capability_key', 'rotation.owner.id', 'revocation.actor.id', 'revocation.reason_key',
+    'correlation_id']
+    .map((p) => [`ctr-sec-001.${p}`, 'WP-0A-CON-004']),
+  ...['workspace_id', 'business_profile_id', 'page_context_profile_id', 'actor.id', 'request_id',
+    'correlation_id', 'causation_id']
+    .map((p) => [`ctr-ten-001.${p}`, 'WP-0A-CON-001']),
+  ...['usage_id', 'attribution.workspace_id', 'attribution.business_profile_id', 'attribution.job_id',
+    'attribution.provider_key', 'cost.supersedes_usage_id']
+    .map((p) => [`ctr-usg-001.${p}`, 'WP-0A-CON-006']),
+]);
+
+test('every reference-shaped field in the contracts this package touches carries an upper bound', async () => {
+  const contracts = await catalogSchemas();
+  const unbounded = [];
+  const unrecorded = [];
+  const stale = new Set(KNOWN_UNBOUNDED.keys());
+  let discovered = 0;
+  for (const [dir, schema] of contracts) {
+    discovered += referenceFields(schema).length;
+    for (const gap of boundGaps(dir, schema)) {
+      if (BOUNDED_CONTRACTS.includes(dir)) unbounded.push(gap);
+      else if (KNOWN_UNBOUNDED.has(gap)) stale.delete(gap);
+      else unrecorded.push(gap);
+    }
+  }
+  for (const dir of BOUNDED_CONTRACTS) {
+    assert.ok(contracts.some(([name]) => name === dir), `${dir} is not in the catalog; BOUNDED_CONTRACTS is stale`);
+  }
+  assert.ok(contracts.length >= CATALOG_CONTRACT_FLOOR,
+    `walked ${contracts.length} contract(s), fewer than the ${CATALOG_CONTRACT_FLOOR} the catalog holds`);
+  assert.ok(discovered >= CATALOG_REFERENCE_FIELD_FLOOR,
+    `discovered ${discovered} reference-shaped field(s), fewer than the ${CATALOG_REFERENCE_FIELD_FLOOR} the catalog holds`);
   assert.deepEqual(unbounded, [], `reference-shaped field(s) with no upper bound: ${unbounded.join(', ')}`);
+  assert.deepEqual(unrecorded, [],
+    `reference-shaped field(s) with no upper bound, in a contract this package does not own and not recorded in KNOWN_UNBOUNDED: ${unrecorded.join(', ')}`);
+  assert.deepEqual([...stale], [],
+    `KNOWN_UNBOUNDED names field(s) that are now bounded or gone; remove them from the list: ${[...stale].join(', ')}`);
 });
 
 // A bound only means something if the shipped schema is the one being read, so this asserts
@@ -172,6 +312,31 @@ test('the discovery finds the reference fields it is meant to bound', async () =
     'metadata.schema_ref', 'producer.module_key', 'subject.id']) {
     assert.ok(names.includes(expected), `discovery missed ${expected}; it found ${names.join(', ')}`);
   }
+
+  // The two escapes this repository records as hard-won -- a nullable reference and an array of
+  // references -- exist in no shipped schema, so the branches of stringBearer that catch them were
+  // exercised by nothing, and removing the array branch left every test green (C0 F9, Q0 M17).
+  // A synthetic fragment exercises both, unbounded and then bounded.
+  const fragment = {
+    type: 'object',
+    properties: {
+      parent_event_id: { type: ['string', 'null'] },
+      related_event_ids: { type: 'array', items: { type: 'string' } },
+    },
+  };
+  const found = referenceFields(fragment).map(([path]) => path.join('.')).sort();
+  assert.deepEqual(found, ['parent_event_id', 'related_event_ids'],
+    'discovery must find a nullable reference and an array of references');
+  assert.deepEqual(boundGaps('fragment', fragment).sort(), [
+    'fragment.parent_event_id',
+    'fragment.related_event_ids',
+    'fragment.related_event_ids (array with no maxItems)',
+  ], 'an unbounded nullable reference, an unbounded array item and an array with no maxItems must each be reported');
+  const bounded = structuredClone(fragment);
+  bounded.properties.parent_event_id.maxLength = 128;
+  bounded.properties.related_event_ids.items.maxLength = 128;
+  bounded.properties.related_event_ids.maxItems = 16;
+  assert.deepEqual(boundGaps('fragment', bounded), [], 'a bounded nullable reference and a bounded array must not be reported');
 });
 
 // Independent security review found CTR-AUD-001 still carrying the two negative lookaheads
@@ -185,23 +350,28 @@ const RE2_UNSUPPORTED = /\(\?[=!<]/;
 
 test('no pattern in the catalog uses a construct RE2 cannot compile', async () => {
   const offenders = [];
-  const entries = await readdir('contract-catalog/shared-kernel', { withFileTypes: true });
-  for (const entry of entries.filter((e) => e.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
-    let schema;
-    try { schema = await readJson(join('contract-catalog/shared-kernel', entry.name, 'schema.json')); } catch { continue; }
+  let patterns = 0;
+  const contracts = await catalogSchemas();
+  // Without this the test passed over an empty directory in 0.47 ms (Q0 M16).
+  assert.ok(contracts.length >= CATALOG_CONTRACT_FLOOR,
+    `walked ${contracts.length} contract(s), fewer than the ${CATALOG_CONTRACT_FLOOR} the catalog holds`);
+  for (const [name, schema] of contracts) {
+    const entry = { name };
     const walk = (node, path) => {
       if (Array.isArray(node)) { node.forEach((item, i) => walk(item, `${path}.${i}`)); return; }
       if (!node || typeof node !== 'object') return;
       for (const [key, value] of Object.entries(node)) {
         if (key.startsWith('x-')) continue;
-        if (key === 'pattern' && typeof value === 'string' && RE2_UNSUPPORTED.test(value)) {
-          offenders.push(`${entry.name}${path}.pattern`);
+        if (key === 'pattern' && typeof value === 'string') {
+          patterns += 1;
+          if (RE2_UNSUPPORTED.test(value)) offenders.push(`${entry.name}${path}.pattern`);
         }
         walk(value, `${path}.${key}`);
       }
     };
     walk(schema, '');
   }
+  assert.ok(patterns > 0, 'the sweep examined no pattern at all');
   assert.deepEqual(offenders, [], `pattern(s) an RE2-backed validator cannot compile:\n  ${offenders.join('\n  ')}`);
 });
 

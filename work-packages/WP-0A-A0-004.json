@@ -30,20 +30,22 @@
     "integration_owner_agent_run_id": "/claude/r0_steward",
     "security_reviewer_agent_run_id": "/claude/a1_bastion",
     "product_reviewer_agent_run_id": null,
-    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner and must record its own capability declaration before this package leaves backlog. /root/r0_steward (OpenAI Codex) is a DIFFERENT run: it is the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001 and is named in open_blockers solely because it must countersign the amendments made to those two packages and record the WP-0A-CON-001 npm run check addendum. Neither run substitutes for the other. Independent testing flagged the near-identical names as ambiguous; both are intended."
+    "product_reviewer_note": "product_reviewer_agent_run_id is null by decision, not a gap: the Product Owner decided on 2026-10-05 that tooling and contract work packages need no Product reviewer (step 2 item 3, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 row 3). This is a CI tooling package with no UX surface, and review_and_test_gates carries no product step.",
+    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner. /root/r0_steward (OpenAI Codex) was a DIFFERENT run: the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001, named in open_blockers because it had to countersign the ci.yml amendment recorded on WP-0A-A0-001. Since 2026-10-05 the Product Owner has named /claude/r0_steward its successor for those pending acknowledgements (step 2 item 2, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 row 2), so both duties now fall to the one run /claude/r0_steward, in two separate capacities: this package's Integration Owner, and acknowledger of the WP-0A-A0-001 amendment. Naming a successor is not the acknowledgement; it stays pending until /claude/r0_steward records it."
   },
   "independence": {
     "no_self_approval": true,
     "require_distinct_author_reviewer": true,
     "require_distinct_author_tester": true,
-    "prefer_cross_vendor_review": true,
-    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (§ cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+    "prefer_cross_vendor_review": false,
+    "cross_vendor_exception": "WITHDRAWN 2026-10-05 BY THE PRODUCT OWNER for this package. RFC-2026-024 (approved 2026-09-15) withdrew the cross-vendor condition and applied it to WP-0A-DB-00 only (§3/1). On 2026-10-05 the Owner answered \"บืนยันขั้น 2\" to step 2 item 1, which that disposition records in its §1.2 translation of A0's Thai message as \"Apply RFC-024's cross-vendor exception to all 15 work packages\". The quoted item is the record's translation of A0's message, not the Owner's own words, and that message named no package ids. Which 15 packages is A0's mapping (WP-0A-A0-002..009 and WP-0A-CON-002..008), and, by A0's mapping in that disposition's §3 row 1, WP-0A-A0-004 is one of those 15 (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §1.2 and §3 row 1). Wording corrected 2026-10-06 for C0 F1 (evidence/WP-0A-A0-004/c0-contract-reverify-2026-10-05.md); the field's value and meaning are unchanged. Until then this field read that every assigned run is Anthropic claude-opus-5, which was permitted only as the Decision Register's recorded single-vendor exception and was not equivalent to cross-vendor review. That history is why every role file on this package states it. What remains is all of CONTRIBUTING_AGENTS.md § Separation of duties: four distinct agent_run_ids in the four roles, plus the conditional Security reviewer; no run approves, test-verifies, integrates or gate-approves its own work; and every role file opens with the §0 spawning disclosure (RFC-2026-024 §3/3-4). A same-vendor signature does not pass Gate G0's external verification (RFC-2026-024 §3/5)."
   },
   "accountable_owners": [
     "A0"
   ],
   "required_human_authorities": [
-    "Product Owner disposition of RFC-2026-003 before the manual merge described in RFC-2026-002"
+    "Product Owner disposition of RFC-2026-007: GIVEN. Approved 2026-09-02 (commit 82aae60, \"Product Owner approves RFC-2026-003 through -009\"). Corrected 2026-10-06: this line read RFC-2026-003 from the package's first commit (3737893), a copy of WP-0A-A0-002's line. RFC-2026-003 is WP-0A-A0-002's decision (the package.json transfer); RFC-2026-007 is this package's, as scope.include[0], writable_paths[0] and WP-0A-A0-001 ownership.amended_by[2].decision_record all say.",
+    "WP-0A-A0-001 Integration Owner acknowledgement of the ci.yml transfer recorded at WP-0A-A0-001.json ownership.amended_by[2], now owed by /claude/r0_steward, whom the Product Owner named successor to /root/r0_steward on 2026-10-05 (step 2 item 2, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 row 2). Still acknowledgement_status: pending."
   ],
   "purpose": "Move one guard outside the blast radius of the script it guards. .github/workflows/ci.yml runs a single validation step, npm run check, and every guard in this repository is invoked by that one command from a string inside package.json. A one-character edit to that string turns CI green while executing no test at all, and no control inside the scripts can notice, because the code that would reject it does not run.",
   "scope": {
@@ -109,19 +111,9 @@
       "test-kits/integrity-manifest.json — recompute digests; ci.yml is already digested there."
     ],
     "amends_without_owning": {
-      "paths": [
-        "evidence/VERIFICATION.md",
-        "scripts/test-suite-contract.mjs",
-        "scripts/validate-work-package-ownership.mjs",
-        "scripts/verify-disposition-branch.mjs",
-        "test-kits/integrity-manifest.json"
-      ],
-      "rationale": "Two High defects the independent reviewer of this package found, both in guards, both mine. validate-work-package-ownership.mjs (WP-0A-A0-001) had to change in the same commit as the scope-guard fix that reopened the defect: the scope guard began honouring a field that validator did not validate, so a blanket prose entry silenced it. Splitting those two edits across packages would leave the exploit open in main while paperwork moved. verify-disposition-branch.mjs (WP-0A-CON-008) skipped every markdown bullet, so a branch belonging to no package could inject content into an Approved decision record and be accepted as a disposition -- proven end to end by the reviewer. The remaining three paths are the per-file floors, the generated verification record and the digest, which move with any protected-file edit.",
-      "recorded_on": [
-        "work-packages/WP-0A-A0-001.json",
-        "work-packages/WP-0A-CON-008.json",
-        "work-packages/WP-0A-A0-002.json"
-      ]
+      "paths": [],
+      "rationale": "THIS INCREMENT (2026-10-06) touches nothing outside this package's writable_paths, so it declares no amendment: scripts/verify-branch-scope.mjs exits 74 on an amendment that explains nothing the branch changed. The previous increment (a5c33fd, 2026-09-04, merged) declared five paths -- evidence/VERIFICATION.md, scripts/test-suite-contract.mjs, scripts/validate-work-package-ownership.mjs, scripts/verify-disposition-branch.mjs, test-kits/integrity-manifest.json -- to close two High guard defects found by independent review. That amendment is recorded in git history only: a5c33fd changed WP-0A-A0-004.json alone, and no owner manifest records it. WP-0A-A0-001.json carries one WP-0A-A0-004 entry, ownership.amended_by[2], which is the ci.yml transfer under RFC-2026-007, not this amendment; WP-0A-CON-008.json and WP-0A-A0-002.json contain no WP-0A-A0-004 entry. The WP-0A-A0-004 amended_by entries git log -S shows on those manifests were added in 086921a and removed in ae5864d (both 2026-09-02, before a5c33fd) and never recorded it. Until 2026-10-06 this field claimed the record stayed on those three manifests and listed them in recorded_on; that claim was false (A1 F2, evidence/WP-0A-A0-004/a1-security-reverify-2026-10-05.md) and recorded_on is now empty. Two of the five paths are guards owned by other packages (validate-work-package-ownership.mjs, WP-0A-A0-001; verify-disposition-branch.mjs, WP-0A-CON-008); a record in their own manifests would be theirs to write on their own branches.",
+      "recorded_on": []
     }
   },
   "inputs": {
@@ -152,7 +144,7 @@
     "WP-0A-A0-001 retains every other declared output; only ci.yml moves, and the amendment is recorded in its ownership.amended_by.",
     "npm run check still passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo zero.",
     "The ownership validator accepts the transfer with no cross-package overlap.",
-    "The workflow runs the branch-scope guard on every pull request, deriving the work-package id from the branch name and skipping cleanly when a branch names none."
+    "The workflow runs the branch-scope guard on every pull request, deriving the work-package id from the branch name and skipping cleanly when a branch names none. (2026-10-06: STALE in mechanism, not in effect. Since 8df0f4c (2026-09-02) the workflow no longer derives the package from the branch name: node scripts/verify-branch-identity.mjs resolves the branch to the one manifest whose ownership.branch names it, an unclaimed branch exits 75 and is then accepted only as a decision-record disposition branch (scripts/verify-disposition-branch.mjs), and every other unclaimed branch fails. That is stricter than \"skipping cleanly\". The criterion is judged against that behaviour.)"
   ],
   "required_tests": [
     "Ownership validator across all manifests after the transfer",
@@ -176,14 +168,14 @@
   },
   "rollback_or_forward_fix": "Revert through a reviewed revert PR. One workflow step and one path moved between two manifests; no persisted data, provider state, credential, migration or customer-data effect.",
   "open_blockers": [
-    "RFC-2026-007 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
     "This does NOT make the guard unbypassable. Someone who can edit ci.yml can delete the step. It moves the bypass from a place no control can see into a place a reviewer reads, and no further.",
     "It does not close the digest class: a commit editing a guarded file AND its digest still passes. Independent review established that as a fixed-point property.",
-    "It does not satisfy the Gate G0 protected-CI requirement, which needs native branch protection and remains blocked on an external constraint recorded in evidence/g0-tracker-th.md.",
-    "The ci.yml transfer requires an acknowledgement countersigned by WP-0A-A0-001's Integration Owner /root/r0_steward, an OpenAI Codex run unavailable in this session.",
-    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception.",
+    "Gate G0 protected CI: no longer blocked on an external constraint. Native protection on main is live, measured read-only on 2026-10-05 (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §6) and again on 2026-10-06 (evidence/WP-0A-A0-004/author-step2-and-retest-2026-10-06.md): required check \"bootstrap\", strict, enforce_admins true, force-push and deletion off, no required_pull_request_reviews. Also read 2026-10-06 by the Security reviewer (A1 F3, evidence/WP-0A-A0-004/a1-security-reverify-2026-10-05.md §3.1): checks[0] = {context \"bootstrap\", app_id 15368}, so only a GitHub Actions check run satisfies the required check, not a commit status posted through the API; and required_conversation_resolution true. That evidence belongs to G0-tracker owner WP-0A-A0-001; G0's external verification is still not something this package or any agent run can give.",
+    "The ci.yml transfer's acknowledgement at WP-0A-A0-001.json ownership.amended_by[2] is PENDING and still names /root/r0_steward in acknowledgement_required_from. Since 2026-10-05 it is owed by /claude/r0_steward (step 2 item 2, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 row 2). That file is outside this package's writable paths, so the successor records it there; it is not countersigned here.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending.",
-    "The branch-scope guard runs only on pull_request events. A push to main carries no base to diff against, so the check is a pull-request control and not a branch-protection one; that distinction matters because protected CI is still an open Gate G0 item."
+    "The branch-scope guard runs only on pull_request events. A push to main carries no base to diff against, so the check is a pull-request control and not a branch-protection one; that distinction matters because protected CI is still an open Gate G0 item. (2026-10-06: native protection on main is now live and requires the check \"bootstrap\", which this workflow reports only for pull_request events and pushes to main. A commit therefore in practice reaches main through a pull request, where this step runs. The refusal of a direct push is measured, not inferred: evidence/g0-tracker-th.md:28 records a direct push to main, made as an admin, refused with \"GH006: Protected branch update failed\" / \"Required status check \"bootstrap\" is expected\" (cited 2026-10-06 for C0 F2 and Q0 Q4). That a run reports the check on the commit it tested is A1 F1's caveat, recorded below.)",
+    "First role verdicts now exist, at head acbcee1, carried onto this branch on 2026-10-06: Reviewer /claude/c0_contract_reviewer approved_with_conditions (C0 F1), Security /claude/a1_bastion no objection (F1 and F2 LOW), Tester /claude/q0_sentinel test_verified, Integration Owner /claude/r0_steward integration_verified CONDITIONAL on R1-R6 (evidence/WP-0A-A0-004/c0-contract-reverify-2026-10-05.md, a1-security-reverify-2026-10-05.md, q0-test-reverify-2026-10-05.md, r0-integration-verdict-2026-10-05.md). R1 (C0 F1) and R2 (A1 F2) are answered in this manifest by the Author; C0 and A1 re-check them (R3). The handoff refresh, green bootstrap on the final head and leaving Draft (R4-R6) are still owed. Until R1-R6 hold this package stays in_review.",
+    "CI tests the branch tip at checkout time, not necessarily the commit its result is reported on (A1 F1, LOW, evidence/WP-0A-A0-004/a1-security-reverify-2026-10-05.md §4): .github/workflows/ci.yml:54 checks out ref: ${{ github.head_ref }}, the branch name, and no step asserts that git rev-parse HEAD equals github.event.pull_request.head.sha. If the branch moves between the event and the checkout, the run tests the newer tip and reports on the older commit. Not reproduced. Pre-existing on main and not introduced by PR #189. ci.yml is in this package's writable_paths, but a change to it is a CI change, so the fix is a governance PR for the Product Owner (RFC-2026-025 §5 item 6), not an Author edit on this branch."
   ],
   "review_and_test_gates": [
     "author_complete",
