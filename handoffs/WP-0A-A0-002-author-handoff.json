@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-002",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "d863f4053bfd0db5b1e94aeb88fc9b7071320598",
-  "head_revision_or_patch_checksum": "ae3d289b5adf737e86faf5b9393addf3e0eb4f0a",
+  "base_revision": "dd11c6017c6667b3f782786e7744373180ad9e96",
+  "head_revision_or_patch_checksum": "8a339c749b515bfce7aea1be3a16974fbf6e8619",
   "task_ids": [
     "WP-0A-A0-002",
     "G0-step-2"
@@ -15,6 +15,7 @@
   ],
   "files_modified": [
     "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-A0-002-author-handoff.json",
     "scripts/run-test-suite.mjs",
     "scripts/test-suite-contract.mjs",
     "scripts/verify-test-coverage-floor.mjs",
