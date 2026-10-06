@@ -34,17 +34,19 @@ to `/claude/r0_steward`. Whether the order R0 set (conditions 1-4) held at `2d01
 ## 3. I4 (`open_blockers[3]`, the stale half)
 
 R0's sync reading §3 I4 says the first half of `open_blockers[3]` is stale and that A0 "may close that
-half in place ... or leave it for the merge record". Measured on `main` `411dfa7e`:
+half in place ... or leave it for the merge record". Measured on `main` `0955b32e` (it moved twice during
+this run, from `411dfa7e`; the WP-0A-A0-003 entry changed in between, through PR #203):
 
 | Entry | `acknowledgement_required_from` | `acknowledgement_status` |
 |---|---|---|
-| `WP-0A-A0-003.json` `ownership.amended_by[0]` (WP-0A-A0-005) | `/claude/r0_steward` | `pending` |
+| `WP-0A-A0-003.json` `ownership.amended_by[0]` (WP-0A-A0-005) | `/claude/r0_steward` | `acknowledged` (`evidence/WP-0A-A0-003/r0-review-2026-10-07.md` §5) |
 | `WP-0A-A0-002.json` `ownership.amended_by[0]` (WP-0A-A0-005) | `/claude/r0_steward` | `pending` |
 | `WP-0A-A0-002.json` `ownership.amended_by[1]` (WP-0A-CON-007) | `/claude/r0_steward` | `pending` |
 | `WP-0A-A0-002.json` `ownership.amended_by[2]` (WP-0A-CON-008) | `/claude/r0_steward` | `pending` |
 
 `open_blockers[3]` is closed in half, in place, with its original text kept after "Text as recorded:".
-The acknowledgements stay open: they are `/claude/r0_steward`'s, in those manifests. This record gives none.
+What stays open is the WP-0A-A0-002 acknowledgement for WP-0A-A0-005: `/claude/r0_steward`'s, in that
+manifest. This record gives none.
 
 ## 4. The Owner's words, verbatim (as relayed to this run by A0's script)
 
@@ -74,5 +76,5 @@ prose fields are as they were at `2d015cc9` and were not hand-edited here.
 `evidence/VERIFICATION.md`), which reached `main` in PR #190 and which this branch does not touch. The
 paths are emptied and the rationale extended, as WP-0A-CON-003 and WP-0A-CON-004 did on their records
 branches; `recorded_on` is kept because the `amended_by` acknowledgements are still owed. `origin/main`
-moved to `4dd767df` during this run and was merged in cleanly (no path of this package touched). It changes no RFC, CI, gate, contract, script, test or lockfile, moves no status, and gives
+moved to `4dd767df` and then to `0955b32e` during this run; each was merged in cleanly (no path of this package touched), and §3 was re-measured at `0955b32e`. It changes no RFC, CI, gate, contract, script, test or lockfile, moves no status, and gives
 no acknowledgement of any `amended_by` entry.
