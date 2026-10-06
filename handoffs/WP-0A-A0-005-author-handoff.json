@@ -4,33 +4,17 @@
   "work_package_id": "WP-0A-A0-005",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "8689e3c792ecd4178b07376a8fab167f59a9ac9b",
-  "head_revision_or_patch_checksum": "c5008e1a5214a5dda3c0cb51c15a9c54e1a935c7",
+  "base_revision": "0955b32e6de055a6677d9e1b0e73373d209cb613",
+  "head_revision_or_patch_checksum": "173b982fa47ecf46e8ddf1509898bcd03ec362d7",
   "task_ids": [
     "WP-0A-A0-005",
     "G0-step-2"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-005/a1-recheck-2026-10-06.md",
-    "evidence/WP-0A-A0-005/a1-security-reverify-2026-10-05.md",
-    "evidence/WP-0A-A0-005/author-closure-2026-10-06.md",
-    "evidence/WP-0A-A0-005/author-reverify-2026-10-06.md",
-    "evidence/WP-0A-A0-005/c0-contract-reverify-2026-10-05.md",
-    "evidence/WP-0A-A0-005/c0-recheck-2026-10-06.md",
-    "evidence/WP-0A-A0-005/q0-recheck-2026-10-06.md",
-    "evidence/WP-0A-A0-005/q0-test-reverify-2026-10-05.md",
-    "evidence/WP-0A-A0-005/r0-integration-verdict-2026-10-05.md",
-    "evidence/WP-0A-A0-005/r0-recheck-2026-10-06.md",
-    "evidence/WP-0A-A0-005/r0-sync-reading-2026-10-06.md"
+    "evidence/WP-0A-A0-005/records-transcription-2026-10-06.md"
   ],
   "files_modified": [
-    "architecture/decisions/RFC-2026-008-cardholder-data-scan.md",
-    "evidence/VERIFICATION.md",
     "handoffs/WP-0A-A0-005-author-handoff.json",
-    "scripts/scan-repository-secrets.mjs",
-    "scripts/test-suite-contract.mjs",
-    "test-kits/integrity-manifest.json",
-    "test-kits/secret-scan.test.mjs",
     "work-packages/WP-0A-A0-005.json"
   ],
   "files_deleted": [],
