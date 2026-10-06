@@ -624,6 +624,23 @@ test('E4 route (b): an existing digested suite cannot import out through a symli
     const result = await closureCode(['kit/a.test.mjs'], plain);
     assert.equal(result.code, 92, `${specifier} must be refused`);
   }
+  // Q0-E3 and Q0 T-1. Here the decoy EXISTS inside the repository and is digested, so only the
+  // character allowlist can refuse it: the walk would read the decoy, while the loader drops the
+  // tab, decodes %2e or cuts at ? and #, and loads something else.
+  for (const [specifier, decoy] of [
+    ['./.\t./.\t./e4-outside.mjs', 'kit/.\t./.\t./e4-outside.mjs'],
+    ['./%2e%2e/%2e%2e/e4-outside.mjs', 'kit/%2e%2e/%2e%2e/e4-outside.mjs'],
+    ['./fixture?.mjs', 'kit/fixture?.mjs'],
+    ['./fixture#.mjs', 'kit/fixture#.mjs'],
+  ]) {
+    const decoyed = await closureFixture({
+      'kit/a.test.mjs': `import test from 'node:test';\nimport '${specifier}';\ntest('a', () => {});\n`,
+      [decoy]: 'export const decoy = 1;\n',
+    });
+    const result = await closureCode(['kit/a.test.mjs'], decoyed);
+    assert.equal(result.code, 92, `${JSON.stringify(specifier)} must be refused`);
+    assert.match(result.message, /only letters, digits/, `${JSON.stringify(specifier)} must be refused by the allowlist, not by a missing file`);
+  }
 });
 
 test('E4 route (c): a new test file, digested and declared, still cannot import outside code', async () => {
@@ -648,6 +665,16 @@ test('E4: specifiers the walk cannot name are refused, not skipped', async () =>
     'a template-literal dynamic import': 'await import(`../../e4-${"outside"}.mjs`);\n',
     'createRequire': "import { createRequire } from 'node:module';\nconst load = createRequire(import.meta.url);\n",
     'a re-export from outside': "export { ran } from '../../e4-outside.mjs';\n",
+    // Q0-E1: a quote inside a comment, or a string used as a binding name, is not the specifier.
+    'a decoy specifier in a comment': "import /*'node:fs'*/ '../../e4-outside.mjs';\n",
+    'decoys in a re-export\'s comments': "export { ran } /*'node:fs'*/ from /*'./fixture.mjs'*/ '../../e4-outside.mjs';\n",
+    'a string binding name as a decoy': "import { './fixture.mjs' as decoy } from '../../e4-outside.mjs';\n",
+    'a decoy in a dynamic import\'s comment': "await import(/*'./fixture.mjs')*/ '../../e4-outside.mjs');\n",
+    // R0 R2: an import inside a template interpolation is blanked with the literal.
+    'an import inside a template interpolation': "const loaded = `${await import('../../e4-outside.mjs')}`;\n",
+    // Q0-E4 / R0 R3: createRequire reached as a member, not as a name.
+    'a member createRequire': "const load = (await import('node:module')).createRequire(import.meta.url);\n",
+    'createRequire through getBuiltinModule': "const load = process.getBuiltinModule('node:module').createRequire(import.meta.url);\n",
   };
   for (const [why, body] of Object.entries(cases)) {
     const fixture = await closureFixture({
@@ -664,6 +691,26 @@ test('E4: specifiers the walk cannot name are refused, not skipped', async () =>
   });
   const control = await closureCode(['kit/a.test.mjs'], quiet);
   assert.equal(control.code, 0, control.message);
+  // C0 F1 / A1 F1 / Q0-E2 / R0 R1. A digested, contained leaf the walk does not read is refused by
+  // its extension: `.cjs` runs require and `.mts`/`.ts` run through type stripping, unread.
+  for (const leaf of ['leaf.cjs', 'leaf.mts', 'leaf.ts', 'leaf.js', 'leaf.node', 'leaf']) {
+    const fixture = await closureFixture({
+      'kit/a.test.mjs': SUITE,
+      'kit/fixture.mjs': `import './${leaf}';\nexport const fixture = 1;\n`,
+      [`kit/${leaf}`]: "require('../../e4-outside.mjs');\n",
+    });
+    const result = await closureCode(['kit/a.test.mjs'], fixture);
+    assert.equal(result.code, 92, `${leaf} must be refused`);
+    assert.match(result.message, /loads code this walk never reads/, leaf);
+  }
+  // JSON is data and stays a leaf.
+  const data = await closureFixture({
+    'kit/a.test.mjs': SUITE,
+    'kit/fixture.mjs': "import data from './data.json' with { type: 'json' };\nexport const fixture = data;\n",
+    'kit/data.json': '{}\n',
+  });
+  const json = await closureCode(['kit/a.test.mjs'], data);
+  assert.equal(json.code, 0, json.message);
 });
 
 test('E4 on this repository: every module the suites reach is digested and inside the root', async () => {
@@ -687,6 +734,9 @@ test('Q0-C1: a shadowed or aliased test binding is refused', async () => {
     'a later reassignment': "import test from 'node:test';\nlet t = test;\ntest('a', () => {});\n",
     'a shadowing parameter': "import test from 'node:test';\n[1].forEach((test) => {\n  test('a', () => {});\n});\n",
     'a function declaration': "import test from 'node:test';\nfunction test() {}\ntest('a', () => {});\n",
+    // C0 F3: the `*` of a generator was read as an operator before a call.
+    'a generator declaration': "import test from 'node:test';\nfunction* test() {}\ntest('a', () => {});\n",
+    'an async generator declaration': "import test from 'node:test';\nasync function *test() {}\ntest('a', () => {});\n",
   };
   for (const [why, raw] of Object.entries(shadowed)) {
     const { imports } = extractImports(raw);
@@ -695,6 +745,13 @@ test('Q0-C1: a shadowed or aliased test binding is refused', async () => {
   const intact = "import test from 'node:test';\nconst matcher = { test: (x) => x };\ntest('a', async (t) => { await t.test('b', () => {}); matcher.test(1); });\n";
   const { imports } = extractImports(intact);
   assert.doesNotThrow(() => assertTestBindingIntact('kit/a.test.mjs', intact, imports));
+  // C0 F4 / A1 F3 / Q0 T-1. Calling the check directly does not prove the walk calls it: a mutant
+  // that unwired it from assertImportClosureContained survived every test. The walk is run here.
+  const walked = await closureCode(['kit/a.test.mjs'], await closureFixture({
+    'kit/a.test.mjs': "import realTest from 'node:test';\nconst test = () => {};\ntest('a', () => {});\n",
+  }));
+  assert.equal(walked.code, 92, walked.message);
+  assert.match(walked.message, /the `test` binding is not the runner's/);
 });
 
 test('A1 T1: the post-run reconciliation counts the same bytes it digests', async () => {

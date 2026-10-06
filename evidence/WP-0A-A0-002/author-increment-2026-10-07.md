@@ -46,7 +46,11 @@ and comments is never read as an import; the specifier is then read from the raw
 
 Why both containment and digests. Containment alone leaves an undigested fixture free to be hollowed with the manifest
 byte-identical, which is route (a)'s shape. Digests alone leave route (b), which edits a digest anyway. Together,
-running outside code needs an import the walk can see, and the walk refuses every one that escapes. Why static and not
+running outside code needs an import the walk can see, and the walk refuses every one that escapes. **[CORRECTED 2026-10-07 by A0
+on C0 F2, A1 F2, Q0-E4 and R0 R3: this sentence overclaims and is withdrawn. Measured by all four roles, `new Function`, direct
+or indirect `eval`, `new Worker`, and `createRequire` reached as a member ran outside code at guard 0 with only digests
+regenerated. The static routes are closed; runtime loaders are not, and sit in the digest class (open_blockers[1], [9]).
+See a0-closure-2026-10-07.md.]** Why static and not
 a loader hook: a `--import` resolve hook would also catch computed imports, but it changes the runner command
 (`RUNNER_SCRIPT`, pinned), must reach every child process the tests spawn, and breaks the tests that build temporary
 repositories outside the root. The task names the static closure, and the static walk adds about 200 ms.
