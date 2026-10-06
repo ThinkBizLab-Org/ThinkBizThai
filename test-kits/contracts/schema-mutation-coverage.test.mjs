@@ -155,10 +155,12 @@ const COVERAGE_FLOOR = 0.70;
 // that count too. What deletion cannot do is preserve the TOTAL. So each contract declares a
 // floor on its constraint-site count, and a rule can only leave the catalog by lowering a
 // number someone has to edit deliberately, in a diff a reviewer reads.
+// 2026-10-07, WP-0A-CON-004 bounds increment: ctr-aud-001, ctr-obs-001 and ctr-sec-001 raised to
+// their measured counts after the 22 maxLength bounds (68, 93, 86).
 const SITE_FLOOR = {
-  'ctr-api-001': 42, 'ctr-aud-001': 63, 'ctr-err-001': 23, 'ctr-evt-001': 51,
+  'ctr-api-001': 42, 'ctr-aud-001': 68, 'ctr-err-001': 23, 'ctr-evt-001': 51,
   'ctr-flg-001': 74, 'ctr-idm-001': 38, 'ctr-job-001': 42, 'ctr-mod-001': 87,
-  'ctr-ntf-001': 39, 'ctr-obs-001': 83, 'ctr-pag-001': 38, 'ctr-sec-001': 76,
+  'ctr-ntf-001': 39, 'ctr-obs-001': 93, 'ctr-pag-001': 38, 'ctr-sec-001': 86,
   'ctr-ten-001': 23, 'ctr-usg-001': 37 };
 
 // Held at the measured actual, not at a round number above it. Slack in this ceiling is
@@ -830,6 +832,11 @@ test('the untested count and the untested list agree about what they measure', a
 // The digest is what stays small; the failure message is what stays readable. On a mismatch it
 // prints the sites that were added, removed or changed, so "a narrowing" and "a deliberate
 // tightening someone wrote down" look different in a diff a reviewer reads.
+//
+// 2026-10-07, WP-0A-CON-004 bounds increment: ctr-aud-001 +4, ctr-obs-001 +10 and ctr-sec-001 +8
+// maxLength sites (the 22 fields KNOWN_UNBOUNDED owed to that package), and the two ctr-obs-001
+// sli_tags key patterns rewritten from `{1,64}` to `+` with the limit moved to maxLength 64
+// (same accept set). Each new bound is killed by an `invalid-*-too-long.json` fixture.
 const CONSTRAINT_SURFACE = {
   'ctr-api-001': {
     digest: '6cd40cd39fbd1019',
@@ -884,7 +891,7 @@ const CONSTRAINT_SURFACE = {
     ],
   },
   'ctr-aud-001': {
-    digest: '3ecbe179e9eabfa5',
+    digest: 'dd3e064233bc7537',
     sites: [
       ".additionalProperties = false",
       ".allOf.0.if.properties = [action]",
@@ -914,13 +921,16 @@ const CONSTRAINT_SURFACE = {
       ".properties.action.type = \"object\"",
       ".properties.actor.additionalProperties = false",
       ".properties.actor.properties = [id, kind]",
+      ".properties.actor.properties.id.maxLength = 128",
       ".properties.actor.properties.id.minLength = 1",
       ".properties.actor.properties.id.type = \"string\"",
       ".properties.actor.properties.kind.enum = [\"user\",\"system_actor\"]",
       ".properties.actor.required = [\"kind\",\"id\"]",
       ".properties.actor.type = \"object\"",
+      ".properties.audit_id.maxLength = 128",
       ".properties.audit_id.minLength = 1",
       ".properties.audit_id.type = \"string\"",
+      ".properties.causation_id.maxLength = 128",
       ".properties.causation_id.minLength = 1",
       ".properties.causation_id.type = \"string\"",
       ".properties.change.additionalProperties = false",
@@ -933,6 +943,7 @@ const CONSTRAINT_SURFACE = {
       ".properties.change.properties.before_ref.pattern = \"^(snapshot|record):[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*)*$\"",
       ".properties.change.properties.before_ref.type = \"string\"",
       ".properties.change.type = \"object\"",
+      ".properties.correlation_id.maxLength = 128",
       ".properties.correlation_id.minLength = 1",
       ".properties.correlation_id.type = \"string\"",
       ".properties.details.maxProperties = 0",
@@ -1421,7 +1432,7 @@ const CONSTRAINT_SURFACE = {
     ],
   },
   'ctr-obs-001': {
-    digest: 'd28b7b1494050e2b',
+    digest: '0c4022038b11458e',
     sites: [
       ".additionalProperties = false",
       ".allOf.0.if.properties = [readiness]",
@@ -1444,20 +1455,26 @@ const CONSTRAINT_SURFACE = {
       ".properties = [correlation, dependencies, environment, liveness, module, readiness, redaction, sli_tags]",
       ".properties.correlation.additionalProperties = false",
       ".properties.correlation.properties = [causation_id, correlation_id, job_id, request_id, trace_id]",
+      ".properties.correlation.properties.causation_id.maxLength = 128",
       ".properties.correlation.properties.causation_id.minLength = 1",
       ".properties.correlation.properties.causation_id.type = \"string\"",
+      ".properties.correlation.properties.correlation_id.maxLength = 128",
       ".properties.correlation.properties.correlation_id.minLength = 1",
       ".properties.correlation.properties.correlation_id.type = \"string\"",
+      ".properties.correlation.properties.job_id.maxLength = 128",
       ".properties.correlation.properties.job_id.minLength = 1",
       ".properties.correlation.properties.job_id.type = \"string\"",
+      ".properties.correlation.properties.request_id.maxLength = 128",
       ".properties.correlation.properties.request_id.minLength = 1",
       ".properties.correlation.properties.request_id.type = \"string\"",
+      ".properties.correlation.properties.trace_id.maxLength = 128",
       ".properties.correlation.properties.trace_id.minLength = 1",
       ".properties.correlation.properties.trace_id.type = \"string\"",
       ".properties.correlation.required = [\"correlation_id\"]",
       ".properties.correlation.type = \"object\"",
       ".properties.dependencies.items.additionalProperties = false",
       ".properties.dependencies.items.properties = [dependency_key, kind, status]",
+      ".properties.dependencies.items.properties.dependency_key.maxLength = 64",
       ".properties.dependencies.items.properties.dependency_key.pattern = \"^[a-z][a-z0-9.-]*$\"",
       ".properties.dependencies.items.properties.dependency_key.type = \"string\"",
       ".properties.dependencies.items.properties.kind.enum = [\"module\",\"external_provider\"]",
@@ -1477,6 +1494,7 @@ const CONSTRAINT_SURFACE = {
       ".properties.module.properties = [implementation_version, module_key]",
       ".properties.module.properties.implementation_version.minLength = 1",
       ".properties.module.properties.implementation_version.type = \"string\"",
+      ".properties.module.properties.module_key.maxLength = 64",
       ".properties.module.properties.module_key.pattern = \"^[a-z][a-z0-9-]*$\"",
       ".properties.module.properties.module_key.type = \"string\"",
       ".properties.module.required = [\"module_key\",\"implementation_version\"]",
@@ -1489,6 +1507,7 @@ const CONSTRAINT_SURFACE = {
       ".properties.readiness.properties.capabilities.items.allOf.0.if.required = [\"ready\"]",
       ".properties.readiness.properties.capabilities.items.allOf.0.then.required = [\"reason_key\"]",
       ".properties.readiness.properties.capabilities.items.properties = [capability_key, ready, reason_key]",
+      ".properties.readiness.properties.capabilities.items.properties.capability_key.maxLength = 64",
       ".properties.readiness.properties.capabilities.items.properties.capability_key.pattern = \"^[a-z][a-z0-9.]*$\"",
       ".properties.readiness.properties.capabilities.items.properties.capability_key.type = \"string\"",
       ".properties.readiness.properties.capabilities.items.properties.ready.type = \"boolean\"",
@@ -1511,13 +1530,15 @@ const CONSTRAINT_SURFACE = {
       ".properties.redaction.type = \"object\"",
       ".properties.sli_tags.additionalProperties = false",
       ".properties.sli_tags.properties = [capability_key, environment, error_code, module_key, outcome]",
-      ".properties.sli_tags.properties.capability_key.pattern = \"^[a-z0-9_.:-]{1,64}$\"",
+      ".properties.sli_tags.properties.capability_key.maxLength = 64",
+      ".properties.sli_tags.properties.capability_key.pattern = \"^[a-z0-9_.:-]+$\"",
       ".properties.sli_tags.properties.capability_key.type = \"string\"",
       ".properties.sli_tags.properties.environment.enum = [\"local\",\"preview\",\"staging\",\"production\"]",
       ".properties.sli_tags.properties.environment.type = \"string\"",
       ".properties.sli_tags.properties.error_code.pattern = \"^[a-z0-9_.:-]{1,64}$\"",
       ".properties.sli_tags.properties.error_code.type = \"string\"",
-      ".properties.sli_tags.properties.module_key.pattern = \"^[a-z0-9_.:-]{1,64}$\"",
+      ".properties.sli_tags.properties.module_key.maxLength = 64",
+      ".properties.sli_tags.properties.module_key.pattern = \"^[a-z0-9_.:-]+$\"",
       ".properties.sli_tags.properties.module_key.type = \"string\"",
       ".properties.sli_tags.properties.outcome.pattern = \"^[a-z0-9_.:-]{1,64}$\"",
       ".properties.sli_tags.properties.outcome.type = \"string\"",
@@ -1579,7 +1600,7 @@ const CONSTRAINT_SURFACE = {
     ],
   },
   'ctr-sec-001': {
-    digest: '8a2dae660837accc',
+    digest: 'd9ca586842cb2a85',
     sites: [
       ".additionalProperties = false",
       ".allOf.0.if.properties = [state]",
@@ -1617,6 +1638,7 @@ const CONSTRAINT_SURFACE = {
       ".allOf.4.then.properties.resolvable.const = false",
       ".properties = [classification, correlation_id, handle, ownership, redaction, resolvable, revocation, rotation, scope, state]",
       ".properties.classification.enum = [\"public\",\"internal\",\"confidential\",\"restricted\"]",
+      ".properties.correlation_id.maxLength = 128",
       ".properties.correlation_id.minLength = 1",
       ".properties.correlation_id.type = \"string\"",
       ".properties.handle.maxLength = 128",
@@ -1638,11 +1660,13 @@ const CONSTRAINT_SURFACE = {
       ".properties.revocation.properties = [actor, reason_key, revoked_at]",
       ".properties.revocation.properties.actor.additionalProperties = false",
       ".properties.revocation.properties.actor.properties = [id, kind]",
+      ".properties.revocation.properties.actor.properties.id.maxLength = 128",
       ".properties.revocation.properties.actor.properties.id.minLength = 1",
       ".properties.revocation.properties.actor.properties.id.type = \"string\"",
       ".properties.revocation.properties.actor.properties.kind.enum = [\"user\",\"system_actor\"]",
       ".properties.revocation.properties.actor.required = [\"kind\",\"id\"]",
       ".properties.revocation.properties.actor.type = \"object\"",
+      ".properties.revocation.properties.reason_key.maxLength = 96",
       ".properties.revocation.properties.reason_key.pattern = \"^secret\\\\.[a-z_.]+$\"",
       ".properties.revocation.properties.reason_key.type = \"string\"",
       ".properties.revocation.properties.revoked_at.format = \"date-time\"",
@@ -1655,6 +1679,7 @@ const CONSTRAINT_SURFACE = {
       ".properties.rotation.properties.next_rotation_due_at.type = \"string\"",
       ".properties.rotation.properties.owner.additionalProperties = false",
       ".properties.rotation.properties.owner.properties = [id, kind]",
+      ".properties.rotation.properties.owner.properties.id.maxLength = 128",
       ".properties.rotation.properties.owner.properties.id.minLength = 1",
       ".properties.rotation.properties.owner.properties.id.type = \"string\"",
       ".properties.rotation.properties.owner.properties.kind.enum = [\"platform_role\",\"workspace_owner\"]",
@@ -1666,12 +1691,16 @@ const CONSTRAINT_SURFACE = {
       ".properties.rotation.type = \"object\"",
       ".properties.scope.additionalProperties = false",
       ".properties.scope.properties = [business_profile_id, capability_key, page_context_profile_id, workspace_id]",
+      ".properties.scope.properties.business_profile_id.maxLength = 128",
       ".properties.scope.properties.business_profile_id.minLength = 1",
       ".properties.scope.properties.business_profile_id.type = \"string\"",
+      ".properties.scope.properties.capability_key.maxLength = 64",
       ".properties.scope.properties.capability_key.pattern = \"^[a-z][a-z0-9.]*$\"",
       ".properties.scope.properties.capability_key.type = \"string\"",
+      ".properties.scope.properties.page_context_profile_id.maxLength = 128",
       ".properties.scope.properties.page_context_profile_id.minLength = 1",
       ".properties.scope.properties.page_context_profile_id.type = \"string\"",
+      ".properties.scope.properties.workspace_id.maxLength = 128",
       ".properties.scope.properties.workspace_id.minLength = 1",
       ".properties.scope.properties.workspace_id.type = \"string\"",
       ".properties.scope.required = [\"workspace_id\",\"capability_key\"]",

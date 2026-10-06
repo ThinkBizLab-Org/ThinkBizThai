@@ -22,7 +22,9 @@
     "audit_id": {
       "type": "string",
       "minLength": 1,
-      "x-source": "DECLARED INFERENCE from Workstream 3.2: OB-005 lists EV-001 (Event Envelope) as a dependency, so an audit event is an event and carries a unique event identity. `event_id` in 3.2 is the field it is inferred from; the name is specialised to this contract."
+      "maxLength": 128,
+      "x-source": "DECLARED INFERENCE from Workstream 3.2: OB-005 lists EV-001 (Event Envelope) as a dependency, so an audit event is an event and carries a unique event identity. `event_id` in 3.2 is the field it is inferred from; the name is specialised to this contract.",
+      "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. An audit record id is an opaque identifier, so it takes 128, the identifier bound RFC-2026-009 R-2 set for event_id, correlation_id, causation_id, subject.id and job_id in CTR-EVT-001, CTR-API-001, CTR-IDM-001 and CTR-JOB-001, so one identifier has one accepted length across the catalog. It keeps an id an identifier rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material pasted into it. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
     },
     "occurred_at": {
       "type": "string",
@@ -45,7 +47,9 @@
         },
         "id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. An actor id is an opaque identifier, so it takes 128, the identifier bound RFC-2026-009 R-2 set for event_id, correlation_id, causation_id, subject.id and job_id in CTR-EVT-001, CTR-API-001, CTR-IDM-001 and CTR-JOB-001, so one identifier has one accepted length across the catalog. It keeps an id an identifier rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material pasted into it. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
         }
       },
       "x-source": "OB-005 requires `actor`; SEC-009 requires that a role, credential, publish, delete, billing or support action states its actor. The typed kind/id shape (never a free string) is Workstream 3.1 and matches CTR-TEN-001."
@@ -83,12 +87,16 @@
     "correlation_id": {
       "type": "string",
       "minLength": 1,
-      "x-source": "SEC-009 requires actor AND correlation on every audited action; OB-001 requires one trace across the whole workflow. Stated at the root as well as inside tenant_context, following the CTR-EVT-001 precedent."
+      "maxLength": 128,
+      "x-source": "SEC-009 requires actor AND correlation on every audited action; OB-001 requires one trace across the whole workflow. Stated at the root as well as inside tenant_context, following the CTR-EVT-001 precedent.",
+      "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A correlation id is an opaque identifier, so it takes 128, the identifier bound RFC-2026-009 R-2 set for event_id, correlation_id, causation_id, subject.id and job_id in CTR-EVT-001, CTR-API-001, CTR-IDM-001 and CTR-JOB-001, so one identifier has one accepted length across the catalog. It keeps an id an identifier rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material pasted into it. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
     },
     "causation_id": {
       "type": "string",
       "minLength": 1,
-      "x-source": "Workstream 3.1 `causation_id`: the id of the command, event or job that caused this one."
+      "maxLength": 128,
+      "x-source": "Workstream 3.1 `causation_id`: the id of the command, event or job that caused this one.",
+      "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A causation id is an opaque identifier, so it takes 128, the identifier bound RFC-2026-009 R-2 set for event_id, correlation_id, causation_id, subject.id and job_id in CTR-EVT-001, CTR-API-001, CTR-IDM-001 and CTR-JOB-001, so one identifier has one accepted length across the catalog. It keeps an id an identifier rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material pasted into it. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
     },
     "outcome": {
       "enum": [
