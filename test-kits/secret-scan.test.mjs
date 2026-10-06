@@ -420,6 +420,28 @@ test('detects a card number written with the separators a human would type', () 
   assert.deepEqual(scanText(`card ${hyphenated}`, { relativePath: 'fixtures/order.json' }), ['payment-card-number']);
 });
 
+// Q0 Q2 (2026-10-05): the required test asks for EACH issuer family in hyphen- and
+// space-separated forms, and the suite pinned that for Visa and Diners only. A narrowing of the
+// layouts or of one issuer's table entry would have passed unnoticed for the other six.
+test('detects each issuer family written with spaces and with hyphens', () => {
+  const families = {
+    'Mastercard 51-55': synthCard('555555555555444'),
+    'Mastercard 2-series': synthCard('222100000000000'),
+    Discover: synthCard('601111111111111'),
+    JCB: synthCard('353011133330000'),
+    UnionPay: synthCard('623074185296307'),
+    Maestro: synthCard('675930741852963'),
+    RuPay: synthCard('603074185296307'),
+  };
+  for (const [family, number] of Object.entries(families)) {
+    const groups = number.match(/.{4}/g);
+    for (const separator of [' ', '-']) {
+      assert.deepEqual(scanText(`card ${groups.join(separator)}`, { relativePath: 'fixtures/order.json' }),
+        ['payment-card-number'], `${family} grouped with ${JSON.stringify(separator)} must be reported`);
+    }
+  }
+});
+
 test('reports a card number in prose, on the same footing as a national identity number', () => {
   const number = synthCard('401288888888188');
   assert.deepEqual(scanText(`The customer paid with ${number} last Tuesday.`, { relativePath: 'docs/runbook.md' }),
@@ -584,6 +606,30 @@ test('does not treat a list of numbers, one per line, as a wrapped card', () => 
   };
   for (const [shape, text] of Object.entries(lists)) {
     assert.deepEqual(scanText(text, { relativePath: 'docs/build-numbers.md' }), [], shape);
+  }
+});
+
+// A1-005-1 (2026-10-05). The list guard above returned false for the WHOLE run, so a line that
+// is itself a complete card was never read. A column of card numbers one per line -- a CSV
+// export, a log dump, a pasted list -- is the plainest bulk-leak shape there is, and every shape
+// below went unreported. Each line of a list is now still read on its own; no list of short
+// numbers can satisfy that, which the three list tests above keep pinned.
+test('reports a whole card standing on its own line inside a list of numbers', () => {
+  const pan = synthCard('401288888888188');
+  const mastercard = synthCard('555555555555444');
+  const unionPay = synthCard('623074185296307');
+  const shapes = {
+    'bullet list': `- 1001\n- ${pan}\n- 1002`,
+    'plain column of ids': `1001\n${pan}\n1002\n1003`,
+    'the card last in a column': `1001\n1002\n${pan}`,
+    'JSDoc block': ` * 1001\n * ${pan}\n * 1002`,
+    'YAML list': `  - 1001\n  - ${pan}\n  - 1002`,
+    'single-column CSV export': `id\n1001\n${pan}\n1002\n`,
+    'a card followed by two short numbers': `${pan}\n12\n34`,
+    'three cards, one per line': `${pan}\n${mastercard}\n${unionPay}`,
+  };
+  for (const [shape, text] of Object.entries(shapes)) {
+    assert.deepEqual(scanText(text, { relativePath: 'evidence/WP-X/export.csv' }), ['payment-card-number'], shape);
   }
 });
 

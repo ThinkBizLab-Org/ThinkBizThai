@@ -180,6 +180,48 @@ Two further classes are excluded on purpose:
 - **Thai bank account numbers.** The format carries no checksum this scanner can
   verify, so the same objection applies.
 
+## Correction, 2026-10-06: what the shipped rule actually detects
+
+The first independent role verdicts on `WP-0A-A0-005` (`evidence/WP-0A-A0-005/`:
+C0 F2 and F3, Q0 Q3, A1 A1-005-1, all dated 2026-10-05) found that this record and
+the rule on `main` disagree. The decision above stands; the statements below
+replace the ones they name. Each was measured on 2026-10-06 with `scanText` on card
+numbers built at run time from a prefix and a computed check digit; none is written
+anywhere.
+
+- **Non-ASCII digits and two invisible separators ARE detected.** "What this does
+  NOT do" says full-width, Arabic-Indic and Thai digits and soft-hyphen interleaving
+  are not detected. That was wrong in the safe direction: the rule folds full-width
+  (U+FF10), Thai (U+0E50), Arabic-Indic (U+0660) and Eastern Arabic-Indic (U+06F0)
+  digits to ASCII, and accepts U+00AD soft hyphen and U+200B zero-width space as the
+  separator between groups. Still not detected: a zero-width character between
+  every digit, base64, hex and percent encoding, and digits split across JSON array
+  elements.
+- **A line break is not transparent everywhere.** "It can fall anywhere, any
+  number of times" overstates the rule. Three or more lines that each carry exactly
+  one digit group are read as a list, never as one wrapped number, so a card broken
+  one group per line down three or more lines is not detected. That includes a
+  16-digit number wrapped ungrouped over three lines and a 4-4-4-4 card written one
+  group per line. A wrap is detected when the run fits in two lines or when at
+  least one of its lines carries more than one group. The cost is deliberate: the
+  list reading stops ordinary bullet lists and JSDoc number blocks from failing the
+  build on a rule with no prose exemption.
+- **A whole card on its own line inside such a list is now detected** (A1-005-1).
+  Until this correction the list reading discarded the whole run, so a column of
+  card numbers one per line was not reported: a single-column CSV export, a bullet
+  or YAML list, a JSDoc block, three cards on three lines. Each line of a list is
+  now also read on its own. A list of short numbers still cannot match, because no
+  line reaches 13 digits by itself. The regression tests are in
+  `test-kits/secret-scan.test.mjs`.
+- **Not every length an issuer uses is detected.** "At the lengths each actually
+  uses" overstates the coverage. The detected lengths are Visa 13, 16 and 19;
+  Mastercard 16; American Express 15; Discover 16 and 19; JCB 16; UnionPay 16 and
+  19; Diners Club 14; Maestro 16 and 19; RuPay 16. A JCB number of 17 to 19 digits,
+  a Discover number of 17 digits and a Maestro number of 13 digits are not detected.
+  This is stated as a limitation, not widened: each added length has a
+  false-positive price that must be measured first, as for every other widening of
+  this rule.
+
 ## Consequences if not adopted
 
 The scanner keeps a hole in the one regulated-data class this project has already
