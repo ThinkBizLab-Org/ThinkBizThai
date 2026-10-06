@@ -4,24 +4,13 @@
   "work_package_id": "WP-0A-CON-003",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "9b34be7d7895df3f6a1cc739051299f4cddcbe20",
-  "head_revision_or_patch_checksum": "2313a7c94bb5147582f9532c7dbd3ca2ef3a61cb",
+  "base_revision": "d863f4053bfd0db5b1e94aeb88fc9b7071320598",
+  "head_revision_or_patch_checksum": "4df2b39f1b674ff0f5fcfb02c350b67707466146",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-CON-003/a1-recheck-2026-10-06.md",
-    "evidence/WP-0A-CON-003/a1-security-reverify-2026-10-05.md",
-    "evidence/WP-0A-CON-003/author-conditions-closure-2026-10-06.md",
-    "evidence/WP-0A-CON-003/c0-contract-reverify-2026-10-05.md",
-    "evidence/WP-0A-CON-003/c0-recheck-2026-10-06.md",
-    "evidence/WP-0A-CON-003/q0-recheck-2026-10-06.md",
-    "evidence/WP-0A-CON-003/q0-test-reverify-2026-10-05.md",
-    "evidence/WP-0A-CON-003/r0-integration-verdict-2026-10-05.md",
-    "evidence/WP-0A-CON-003/r0-recheck-2026-10-06.md",
-    "evidence/WP-0A-CON-003/r0-sync-reading-2026-10-06.md"
+    "evidence/WP-0A-CON-003/records-transcription-2026-10-06.md"
   ],
   "files_modified": [
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-temporary-without-expiry.json",
-    "handoffs/WP-0A-CON-003-author-handoff.json",
     "work-packages/WP-0A-CON-003.json"
   ],
   "files_deleted": [],
@@ -35,10 +24,9 @@
     "CTR-TEN-001",
     "CTR-ERR-001"
   ],
-  "contracts_produced_or_changed": [
-    "CTR-FLG-001 (Candidate): one fixture changed in content only. contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-temporary-without-expiry.json gains \"owner_role\":\"A0\" in its audit block, so it violates only the expiry obligation instead of expiry and owner together (Q0 T-7, acceptance_criteria[9]). Its name, its place in the pinned fixture set and its invalid verdict are unchanged. No schema, contract manifest, index entry, version or freeze level changes, and CTR-MOD-001 is untouched."
-  ],
+  "contracts_produced_or_changed": [],
   "assumptions": [
+    "RECORDS-ONLY INCREMENT 2026-10-06, cut from origin/main d863f40 after PR #195 merged as 25663e310e654cc0d04fa3a0e19b03a80ef3896e (final head cf7f39a866ba88ee539079bfa6a31f1998834b96, bootstrap run 37401928407 green on every step). It transcribes, on R0's behalf, the wording of evidence/WP-0A-CON-003/r0-recheck-2026-10-06.md §5 as amended by r0-sync-reading-2026-10-06.md §4: status in_review -> integration_verified and open_blockers[10] closed in place. The Author decides nothing; evidence/WP-0A-CON-003/records-transcription-2026-10-06.md lists every fact filled in and how it was verified. Text below this entry describes the earlier increment that PR #195 merged.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
     "This increment was cut from origin/main 8c089cc and has since taken main three times by ordinary two-parent merges: fa10229 (91d11f89), c75418b (79cfa525, PR #189, whose paths are all WP-0A-A0-004's) and 9b34be7 (b3fa4235, PR #191, whose 31 paths are WP-0A-A0-003's and other packages' and overlap none of this branch's). The package's original work (2649401, the 4874b52 correction round and the later record corrections) is already in main; this branch carries the re-measurement of the three role verdicts at main, the Owner's step-2 decisions, the role re-verifications at e5fa682 and their record fix (c0059a80), the role re-checks at c0059a8, and R0's reading after main moved (r0-sync-reading-2026-10-06.md, R0 commit bf14651, cherry-picked with -x).",
     "The three first role verdicts answered by the closure record are at 2649401 (2026-09-01). Every finding was re-measured at main 8c089cc (in-memory probes on the shipped schemas, and mutations in a scratch extraction), not carried forward from the verdict text; evidence/WP-0A-CON-003/author-conditions-closure-2026-10-06.md §1 holds the tables. The roles then re-verified at e5fa682 (C0 c0-contract-reverify-2026-10-05.md, A1 a1-security-reverify-2026-10-05.md, Q0 q0-test-reverify-2026-10-05.md, R0 r0-integration-verdict-2026-10-05.md), their findings were recorded by name in open_blockers[11](h)-(n) and [14] at c0059a80, and all four re-checked at c0059a8 (c0-recheck-2026-10-06.md review_approved; a1-recheck-2026-10-06.md security_approved_with_conditions; q0-recheck-2026-10-06.md test_verified_with_conditions; r0-recheck-2026-10-06.md integration_conditional on V1-V4). After the b3fa423 merge R0 read the sync in evidence/WP-0A-CON-003/r0-sync-reading-2026-10-06.md: the PR's own diff against main outside handoffs/ is byte-identical to before the sync (12 paths, +1810/-62, before R0's own file), the merge tree equals the clean merge-tree, the re-run probes are unchanged, and integration_conditional stands, becoming integration_verified once the handoff is refreshed last and alone (check:handoff exit 0 on the branch name) and CI bootstrap is green on that same head. None is stop-the-line.",
@@ -101,6 +89,30 @@
   ],
   "tests": [
     {
+      "command": "npm run check (on the branch name, records changes applied, handoff not yet refreshed)",
+      "exit_code": 1,
+      "result": "tests 705, pass 703, fail 2, skipped 0, todo 0. Both failures are the stale-handoff guard for this branch (the handoff on main cited head 2313a7c) and the handoff ratchet that re-runs it; so the records commit 4df2b39 is a plain git commit (records-transcription-2026-10-06.md §5).",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "npm run refresh:handoff (on the branch name, origin/HEAD = origin/main d863f40)",
+      "exit_code": 0,
+      "result": "now cites d863f40..4df2b39 — 1 added, 1 modified, 0 deleted",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "npm run check:handoff",
+      "exit_code": 0,
+      "result": "describes the branch: nothing substantive after its cited head",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (this handoff commit)",
+      "exit_code": 0,
+      "result": "the full verifier gates this commit; it commits only on a clean run",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
       "command": "npm run check",
       "exit_code": 0,
       "result": "tests 692 / pass 692 / fail 0 / skipped 0 / todo 0 on this branch name after the b3fa423 merge and the R0 cherry-pick; see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
@@ -151,7 +163,7 @@
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. The probe handle bodies were repeated synthetic strings held in memory, never written to the repository. Cost impact none.",
   "migration_and_data_impact": "None. No migration, production schema, provider call, credential or customer-data effect.",
-  "compatibility_impact": "Contract-catalog changes are corrective: one invalid fixture of CTR-FLG-001, invalid-temporary-without-expiry.json, gains owner_role so that it violates the one obligation its name states (a temporary flag without an expiry) instead of two. Its verdict stays invalid, and no schema, rule, enum, requiredness, contract manifest, index entry, version or freeze level changes, so no consumer surface moves. The manifest records the Owner's step 2 (prefer_cross_vendor_review false, the withdrawal sentence, the Product-reviewer note) and drops two amendment declarations this increment does not exercise. The rest of the branch is records: ten evidence files under evidence/WP-0A-CON-003/ (the closure record and nine role files) and this handoff.",
+  "compatibility_impact": "This increment changes records only: no contract-catalog file, script or test changes, so no consumer is affected. The CTR-FLG-001 fixture correction described in earlier handoffs reached main with PR #195 (merge 25663e3).",
   "known_limitations": [
     "Summarised from work-packages/WP-0A-CON-003.json open_blockers[0], whose verbatim text quotes an RFC status line: CLOSED 2026-10-05 as a record correction. The Product Owner disposition RFC-2026-004 waited for was given on 2026-09-02 (line 3 of that RFC). What remains is inherited, not new: RFC-2026-004 keeps its own Limitations and Rollback, and RFC-2026-002 still reserves every merge into main for the Product Owner, so nothing here lets this package merge itself.",
     "STILL OPEN, RE-MEASURED 2026-10-06 BY A0 (/claude/a0_atlas) at main 8c089cc (evidence/WP-0A-CON-003/author-conditions-closure-2026-10-06.md §2, CS-1 and CS-2): ctr-mod-001/schema.json secret_handles still carries its own pattern ^secret:[a-z0-9._-]+$, and it has NO maxLength, so a 407-character handle validates; CTR-SEC-001 handle (Draft, A0+A1) adopts the same pattern \"as PRECEDENT, not as authority\" but caps it at maxLength 128, so the two contracts no longer compose on length. A1's CS-1 said CTR-MOD-001 must not reach Candidate carrying this syntax; it reached Candidate on 2026-09-02 under RFC-2026-010, whose text does not mention CS-1. That promotion is the Product Owner's decision and is not reopened here; the condition is recorded as not having been raised when it was decided. Owed: A0 and A1, by RFC (it changes a Candidate contract's meaning and a secret-handle rule). Text as recorded: CTR-MOD-001 (owner A0) declares secret-handle syntax chartered to CTR-SEC-001 (owner A0+A1) with no RFC. Independent security review graded this High. A1 is a required authority and is not in this session; the conflict must be resolved by the two owners, not by this package.",
@@ -186,11 +198,12 @@
     "ADDED 2026-10-06 BY A0 (/claude/a0_atlas), RECORD NOTE: acceptance_criteria[6] (\"The index still reports 4 Candidate and 10 Draft\") and the \"Draft\" wording in scope, contracts_produced and outputs.contracts record what this package shipped, not the contracts' status today. The index has reported 9 Candidate and 5 Draft since the Product Owner promoted five A0 contracts, these two included, on 2026-09-02 (RFC-2026-010). Not rewritten, so the criterion the role runs judged stays legible.",
     "ADDED 2026-10-06 BY A0 (/claude/a0_atlas), role re-verification findings at e5fa682 recorded by name that are not Candidate-rule items for open_blockers[11]; all pre-existing at main 8c089cc, none introduced by this PR, none a condition on this PR's merge (evidence/WP-0A-CON-003/r0-integration-verdict-2026-10-05.md §2 and §6 items 7-8): (1) A1 N1 (Medium), evidence/WP-0A-CON-003/a1-security-reverify-2026-10-05.md §4: CTR-MOD-001 secret_handles and CTR-SEC-001 handle do not compose on length, a 129-character handle is accepted by the manifest contract and rejected by the handle contract (maxLength 128), so a manifest can declare a handle the registry can never issue; it folds into CS-1/CS-2 and is the length half already described in open_blockers[1]; owner A0 and A1, by RFC, blocking on freeze. (2) A1's re-verified condition states, as A1 worded them (§3): CS-1 \"OPEN, and its precondition was breached upstream\" (open_blockers[1]); CS-2 \"Half closed\", the x-source closed and the maxLength open (open_blockers[1]); CS-3 \"OPEN\", narrower than in September (open_blockers[11](b)); CS-4 \"OPEN\", F6/F7 now reject (open_blockers[11](c)); CS-5 \"Mostly closed\", tenant-data retention open (open_blockers[11](d)); S-8 \"OPEN\" (open_blockers[11](e)); C1 \"Not this package's; partly moved\" (WP-0A-A0-003 / CTR-SEC-001 x-opacity-limitation). (3) C0 N-2 (Low), evidence/WP-0A-CON-003/c0-contract-reverify-2026-10-05.md §3: both contract manifests read status Candidate while freeze_boundary opens \"Draft only.\"; the same stale sentence is on all five contracts RFC-2026-010 promoted (API, FLG, IDM, MOD, PAG); open_blockers[13] records the Draft wording in this work-package manifest but not in the contract manifests; a text fix on Candidate manifests, catalog-wide, owner A0, folded into the Candidate RFC; not this PR's to make. (4) Q0 Q-3 (Low), evidence/WP-0A-CON-003/q0-test-reverify-2026-10-05.md §7: the T-7 fixture fix has no ratchet; reverting the one-key edit to invalid-temporary-without-expiry.json leaves all 79 contract tests green (mutation R, exit 0), because the fixture-set test pins names, not content; a check that every invalid- fixture yields exactly one validation error, except a named list (today invalid-permissioned-without-declarations.json), is owed by A0; it moves the integrity digest and test counts, so it is not made on this PR."
   ],
-  "rollback_or_forward_fix": "Revert this increment through a reviewed revert PR. That restores the two-obligation fixture (re-opening Q0 T-7), the previous manifest fields including prefer_cross_vendor_review: true, the two amendment declarations and open_blockers[11] without (h)-(n) and without [14], removes the ten evidence files under evidence/WP-0A-CON-003/, and restores the previous handoff. No persisted data, provider state, credential, migration or customer-data effect exists.",
+  "rollback_or_forward_fix": "This increment is records only: revert it through a reviewed revert PR, which restores status in_review, the previous open_blockers[10] text and the previous handoff, and removes records-transcription-2026-10-06.md. No persisted data, provider state, credential, migration or customer-data effect. Revert this increment through a reviewed revert PR. That restores the two-obligation fixture (re-opening Q0 T-7), the previous manifest fields including prefer_cross_vendor_review: true, the two amendment declarations and open_blockers[11] without (h)-(n) and without [14], removes the ten evidence files under evidence/WP-0A-CON-003/, and restores the previous handoff. No persisted data, provider state, credential, migration or customer-data effect exists.",
   "recommended_next_work_packages": [
     "WP-0A-CON-003"
   ],
   "reviewer_instructions": [
+    "For this records-only increment read evidence/WP-0A-CON-003/records-transcription-2026-10-06.md first, then compare open_blockers[10] against r0-recheck-2026-10-06.md §5 with the placeholders filled and r0-sync-reading-2026-10-06.md added to the file list; the Reviewer clause uses C0's own re-check word, review_approved, as §5 directs.",
     "Read evidence/WP-0A-CON-003/author-conditions-closure-2026-10-06.md first, then the role files on this branch: the re-verifications at e5fa682 (c0-contract-reverify-2026-10-05.md, a1-security-reverify-2026-10-05.md, q0-test-reverify-2026-10-05.md, r0-integration-verdict-2026-10-05.md) and the re-checks at c0059a8 (c0-recheck-2026-10-06.md, a1-recheck-2026-10-06.md, q0-recheck-2026-10-06.md, r0-recheck-2026-10-06.md), and R0's reading after main moved (r0-sync-reading-2026-10-06.md). R0's re-check §5 holds the words for integration_verified, which are recorded after the merge, not in this PR, with FINAL_HEAD the refreshed head and r0-sync-reading-2026-10-06.md added to its evidence list.",
     "Re-run the §1 probes yourself rather than reading the table: each is one change to a shipped valid- fixture validated against the shipped schema, or one mutation in a fresh extraction of main followed by node --test test-kits/contracts/*.test.mjs and node scripts/verify-test-coverage-floor.mjs.",
     "Attack the one content change: invalid-temporary-without-expiry.json now carries owner_role. Check that it still fails for expires_at alone, and that deleting expires_at alone from the temporary branch now flips it.",
