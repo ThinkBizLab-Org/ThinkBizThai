@@ -4,26 +4,14 @@
   "work_package_id": "WP-0A-CON-005",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
-  "head_revision_or_patch_checksum": "039300722f0635a3ddc8ef4537159ccaeb424898",
+  "base_revision": "3072e85c9eb46de23aa68bb74c7b45f226f2cfb1",
+  "head_revision_or_patch_checksum": "9eda2a2a7991d4d0b6bfa60c9573e8d943be1c1b",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-CON-005/a1-security-reverify-2026-10-05.md",
-    "evidence/WP-0A-CON-005/author-conditions-closure-2026-10-05.md",
-    "evidence/WP-0A-CON-005/c0-contract-reverify-2026-10-05.md",
-    "evidence/WP-0A-CON-005/c0-recheck-2026-10-06.md",
-    "evidence/WP-0A-CON-005/q0-attestation-2026-10-06.md",
-    "evidence/WP-0A-CON-005/q0-test-reverify-2026-10-05.md",
-    "evidence/WP-0A-CON-005/r0-integration-confirmation-2026-10-06.md",
-    "evidence/WP-0A-CON-005/r0-integration-final-2026-10-06.md",
-    "evidence/WP-0A-CON-005/r0-integration-verdict-2026-10-05.md"
+    "evidence/WP-0A-CON-005/records-transcription-2026-10-06.md"
   ],
   "files_modified": [
-    "architecture/decisions/RFC-2026-006-job-reference-hardening.md",
-    "evidence/WP-0A-CON-005/author-self-check.md",
     "handoffs/WP-0A-CON-005-author-handoff.json",
-    "test-kits/contracts/ctr-job-001-reference-hardening.test.mjs",
-    "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-CON-005.json"
   ],
   "files_deleted": [],
