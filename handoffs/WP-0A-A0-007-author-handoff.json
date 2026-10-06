@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-007",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "dd11c6017c6667b3f782786e7744373180ad9e96",
-  "head_revision_or_patch_checksum": "9adf6113851904ec8e6ebda67d912e303e45a60d",
+  "base_revision": "411dfa7eeb2809d259e5559a54f54fd4d826f351",
+  "head_revision_or_patch_checksum": "524187710bb587b21a9ce7a4a06be974c69925ea",
   "task_ids": [
     "WP-0A-A0-007",
     "G0-step-4"
@@ -119,6 +119,11 @@
       "command": "git rev-parse <source commit>:<path> vs HEAD:<path> for the four cherry-picked role files (f3a96e64, a0113e13, ca4feb9c, f427dfad)",
       "exit_code": 0,
       "result": "equal blobs: 80d10405, 33cefc08, cead076e, 6e0a2699"
+    },
+    {
+      "command": "git merge origin/main (411dfa7, PR #205, WP-0A-CON-004 records only; clean, no conflict) then node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-007",
+      "exit_code": 0,
+      "result": "all 12 changed path(s) are declared, and every amendment explains one"
     }
   ],
   "security_privacy_cost_impact": "None. No code, schema, grant, policy, role, contract or credential is touched; the files are a manifest, a handoff and ten evidence notes under evidence/WP-0A-A0-007/ with no secrets or personal data.",
