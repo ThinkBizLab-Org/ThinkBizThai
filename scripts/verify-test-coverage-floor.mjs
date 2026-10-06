@@ -198,6 +198,12 @@ function regexCanFollow(previous) {
   return previous === '' || '(,=:[!&|?{};+-*%~^<>'.includes(previous);
 }
 
+// open_blockers[11] (C0 F2, C0 R1). After a word, `/` is division -- unless the word is a keyword
+// that ends no expression, where it starts a regex literal. `return /^(?:import\.meta)/` was read as
+// division, the regex body became code, and `import` inside it was an import with no specifier:
+// the merge of main's scripts/scan-repository-secrets.mjs (PR #203) refused the clean tree.
+const KEYWORDS_BEFORE_REGEX = new Set(['return', 'typeof', 'case', 'in', 'of', 'instanceof', 'new', 'delete', 'void', 'throw', 'yield', 'await', 'do', 'else']);
+
 // `templates`, when given, collects the [start, end) of every span read as a template literal.
 // Only the import walk asks for it (R0 R2): an `import()` inside `${...}` is blanked here like the
 // rest of the literal, so the walk must look inside those spans itself. Counting never passes it,
@@ -220,6 +226,11 @@ export function stripNonCode(source, templates = null) {
   // ONLY one that can change the answer, which is what makes an incremental variable exact rather
   // than an approximation of the scan it replaces.
   let lastSignificant = '';
+  // The last word appended as code, and whether the last character appended continued it. Kept the
+  // same way as lastSignificant: updated on append, never recovered by scanning `out`.
+  let lastWord = '';
+  let inWord = false;
+  let wordIsMember = false; // `x.return / 2` divides: a member name is not a keyword
   const keepNewlines = (text) => text.replace(/[^\n]/g, ' ');
   while (i < source.length) {
     const two = source.slice(i, i + 2);
@@ -227,6 +238,7 @@ export function stripNonCode(source, templates = null) {
       const end = source.indexOf('*/', i + 2);
       const stop = end === -1 ? source.length : end + 2;
       out += keepNewlines(source.slice(i, stop));
+      inWord = false;
       i = stop;
       continue;
     }
@@ -234,13 +246,14 @@ export function stripNonCode(source, templates = null) {
       const end = source.indexOf('\n', i);
       const stop = end === -1 ? source.length : end;
       out += keepNewlines(source.slice(i, stop));
+      inWord = false;
       i = stop;
       continue;
     }
     // A regex literal may contain quotes, slashes and `/*`. Without tracking it, `/[/*]/`
     // opened a phantom block comment running to end of file. Distinguish it from division
     // by the last significant character before it.
-    if (source[i] === '/' && regexCanFollow(lastSignificant)) {
+    if (source[i] === '/' && (regexCanFollow(lastSignificant) || (!wordIsMember && KEYWORDS_BEFORE_REGEX.has(lastWord)))) {
       let j = i + 1;
       let inClass = false;
       while (j < source.length) {
@@ -253,6 +266,8 @@ export function stripNonCode(source, templates = null) {
       }
       const stop = Math.min(j + 1, source.length);
       out += keepNewlines(source.slice(i, stop));
+      inWord = false;
+      lastWord = '';
       i = stop;
       continue;
     }
@@ -270,10 +285,20 @@ export function stripNonCode(source, templates = null) {
       const stop = Math.min(j + 1, source.length);
       if (quote === '`' && templates) templates.push([i, stop]);
       out += keepNewlines(source.slice(i, stop));
+      inWord = false;
+      lastWord = '';
       i = stop;
       continue;
     }
     out += source[i];
+    if (/[\w$]/.test(source[i])) {
+      if (!inWord) wordIsMember = lastSignificant === '.';
+      lastWord = inWord ? lastWord + source[i] : source[i];
+      inWord = true;
+    } else {
+      inWord = false;
+      if (source[i].trim() !== '') lastWord = '';
+    }
     if (source[i].trim() !== '') lastSignificant = source[i];
     i += 1;
   }
@@ -714,7 +739,7 @@ export async function assertNoPackageManagerConfig(directory = '.') {
 // closure is undigested. What the walk reads is bounded by stripNonCode, which is a scanner, not a
 // parser: a NESTED template ends its span at the first inner backtick, so an import after that
 // backtick, inside a later span with no `${`, is not seen (A1 N2, Q0-E7, R0 R9, C0 R1), and a
-// regex literal after `)` or after a keyword (`return`, `typeof`, `case`) is read as division.
+// regex literal after `)` is read as division (after a keyword it no longer is: KEYWORDS_BEFORE_REGEX).
 // Both are stripNonCode misreads, open_blockers[11], listed below with the other residuals.
 //
 // What this does NOT cover, stated so nobody cites it for more (C0 F2, A1 F2, Q0-E4, R0 R3).

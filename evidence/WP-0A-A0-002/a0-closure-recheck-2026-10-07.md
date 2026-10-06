@@ -74,7 +74,43 @@ name, `npm run verify` gave exit 0, 713/713. The handoff was then restored with 
 made with plain `git commit`, so it does not carry the handoff. `check:handoff` and the branch-scope count are owed
 to the step that refreshes the handoff last and alone.
 
-## 4. What this run did not do
+## 4. Second merge of main, and the code change it forced
+
+After the fix commit `a217f2a2`, `origin/main` moved again to `0955b32e` (PR #203, WP-0A-A0-003 secret scan). The
+merge conflicted only in generated or pinned tables. They were resolved mechanically:
+
+- `scripts/test-suite-contract.mjs`: main's three `secret-scan.test.mjs` rows, and this branch's three
+  `test-coverage-floor.test.mjs` rows.
+- `test-kits/branch-identity.test.mjs`: both dated slots, this branch's for WP-0A-A0-002 and main's for WP-0A-A0-003.
+- `evidence/VERIFICATION.md`: rewritten by `npm run record:verification`.
+- `test-kits/integrity-manifest.json`: rebuilt by `npm run regenerate:manifest`.
+
+The guard then refused the merged clean tree with exit 92. Main's `scripts/scan-repository-secrets.mjs` contains
+`return /^(?:process\.env\.|import\.meta\.env\.|...)/`. stripNonCode read the slash after `return` as division
+(the `[11]` keyword misread C0 measured earlier), the regex body became code, and the `import` inside it was
+treated as an import with no specifier. That file belongs to WP-0A-A0-003 and is not edited here. The misread
+was fixed in this package's guard instead:
+
+- After a word, a slash now starts a regex when the word is a keyword that ends no expression (`return`, `typeof`,
+  `case`, `in`, `of`, `instanceof`, `new`, `delete`, `void`, `throw`, `yield`, `await`, `do`, `else`).
+- That rule does not apply to a member name (`x.return / 2`).
+- The last word is tracked incrementally, like `lastSignificant`, so the scan stays linear.
+
+Cases were added to `a comment, a string and a whitespace run do not change where a regex may begin`.
+
+| Mutant | Targeted test that fails |
+|---|---|
+| Mf: keyword rule removed | `a comment, a string and a whitespace run ...`, and `E4 on this repository: ...` |
+| Mg: member exception removed | `a comment, a string and a whitespace run ...` |
+
+This narrows `[11]` without closing it. A regex after `)` is still read as division, and nested templates are still
+misread. The guard comment and `[11]` say so.
+
+On the merged tree, with a throwaway `npm run refresh:handoff` on the branch name, `npm run record:verification`
+recorded 724 passing, and `npm run verify` gave exit 0, 724/724. The suite is 713 from this branch plus 11 from
+main's PR #203. The handoff was then restored. The merge commit does not carry it.
+
+## 5. What this run did not do
 
 It moved no status and refreshed no handoff. It edited no file outside `writable_paths`. It changed nothing in
 `db/**`, `migrations/**` or `.github/**`. It merged nothing.

@@ -493,6 +493,11 @@ test('a comment, a string and a whitespace run do not change where a regex may b
     ['const a = b\n  / c;', 'division', 'an identifier, across a newline'],
     ["const a = 'y' /* c */\n  .length / 2;", 'division', 'a comment and a newline before a division'],
     ['const a = (1) / 2;', 'division', 'a closing paren is not an operator'],
+    // open_blockers[11]: after a keyword that ends no expression, a slash starts a regex.
+    ['function f() { return /x/; }', 'regex', 'a keyword before the slash'],
+    ['const a = typeof /* c */ /x/;', 'regex', 'a keyword and a comment before the slash'],
+    ['const a = x.return / 2;', 'division', 'a member named like a keyword'],
+    ['const a = returned / 2;', 'division', 'a word that only starts like a keyword'],
   ];
   for (const [code, reading, why] of cases) {
     const stripped = stripNonCode(code);

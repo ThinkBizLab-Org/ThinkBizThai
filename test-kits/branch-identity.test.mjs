@@ -117,7 +117,7 @@ test('a package that declares a branch is not still in backlog', async () => {
 const BRANCH_OWNERSHIP = {
   'agent/root/WP-0A-A0-001-repository-bootstrap': 'WP-0A-A0-001',
   'agent/claude/WP-0A-A0-002-contract-test-coverage-2026-10-07': 'WP-0A-A0-002',
-  'agent/claude/WP-0A-A0-003-secret-scan': 'WP-0A-A0-003',
+  'agent/claude/WP-0A-A0-003-secret-scan-2026-10-07': 'WP-0A-A0-003',
   'agent/claude/WP-0A-A0-004-ci-independent-guard-step': 'WP-0A-A0-004',
   'agent/claude/WP-0A-A0-005-cardholder-data-scan': 'WP-0A-A0-005',
   'agent/root/WP-0A-CON-001-contract-catalog': 'WP-0A-CON-001',
