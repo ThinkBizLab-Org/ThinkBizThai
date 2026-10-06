@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { lstatSync, readdirSync } from 'node:fs';
+import { lstatSync, readdirSync, rmSync } from 'node:fs';
 import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -116,12 +116,19 @@ const FALSE_POSITIVES = [
   ['a plain ten digit number that is not a thai mobile prefix', '0212345678'],
   ['a documented dsn whose short password keeps it below the dsn floor', A('mysql', '://', 'appuser', ':', 'pass', '@', 'db.example.com', '/app')],
   // Q0 L3's short words, where they are not a secret: PASS inside BYPASS, AUTH at the head of a
-  // name or inside AUTHOR, a bare PWD (the shell's working directory).
+  // name or inside AUTHOR, a bare PWD (the shell's working directory). The BYPASS_MODE row pins
+  // the last-word anchor, not the lookbehind; the lookbehind's own row is the last in this table.
   ['PASS as the tail of another word', A('BYPASS', '_MODE', '=', 'enabled_always')],
   ['AUTH at the head of a constant naming a path', A('AUTH', '_CONTEXT_HELPERS', ' = ', "'db/foundation/test-helpers/auth-context.sql'")],
   ['AUTH inside AUTHOR', A('GIT_', 'AUTHOR', '_NAME', '=', 'Somebody_Synthetic')],
   ['a bare PWD, which is a directory', A('PWD', '=', '/home/runner/work/app')],
   ['a spaced thirteen digit run with a wrong check digit', '1 1037 01503 45 0'],
+  // Q0 F3(b) / R0-F2 (2026-10-07): the BYPASS_MODE row above does NOT pin the `(?<![A-Z])`
+  // lookbehind -- `_MODE` follows PASS, so the last-word anchor rejects it with or without the
+  // lookbehind, and the only line that held it was an incidental one in another package's test.
+  // This row ends the name IN `BYPASS`, directly before `=`, with a long non-placeholder value:
+  // only the lookbehind keeps it quiet.
+  ['PASS as the tail of a name that ends in BYPASS', A('PROXY_', 'BY', 'PASS', '=', 'enabled_always_on')],
 ];
 
 async function withTempDir(body) {
@@ -328,7 +335,7 @@ test('does not fire on the false-positive table', () => {
     if (hits.length > 0) fired.push(`${name} -> ${hits.join(',')}`);
   }
   assert.deepEqual(fired, [], `false positives: ${fired.join('; ')}`);
-  assert.equal(FALSE_POSITIVES.length, 24);
+  assert.equal(FALSE_POSITIVES.length, 25);
 });
 
 test('exits clean on this repository as it stands', async () => {
@@ -407,6 +414,49 @@ test('every credential rule is exercised by at least one decoy', () => {
   const covered = new Set(CREDENTIAL_DECOYS.map(([, id]) => id));
   const uncovered = CREDENTIAL_RULES.map((rule) => rule.id).filter((id) => !covered.has(id));
   assert.deepEqual(uncovered, [], `credential rule(s) with no decoy — a rule nothing tests can be deleted silently:\n  ${uncovered.join('\n  ')}`);
+});
+
+// C0 N2 (2026-10-07): for every rule with an `accept` filter, a REJECTED match that comes first
+// must not hide a real one after it. Turning the `continue` after a rejection into a `break` left
+// the suite green: an `.env.example`-style placeholder on the first line would then mask every
+// real value of that rule below it. Each row is [rule, rejected line, real line], built at run time.
+const REJECTED_THEN_REAL = () => [
+  ['openai-legacy-key', A('sk-', 'a'.repeat(36)), A('sk-', 'a7Kd92LmQ4xRnZ0pYv8CwE6tHgJb5Ss1UfQ3')],
+  ['database-url-inline-password',
+    A('postgres', '://', 'app_rw', ':', 'changeme', '@', 'db.synthetic-host.example', ':5432/appdb'),
+    A('postgres', '://', 'app_rw', ':', 'Hn7Qz2Lm9Rt4Vb', '@', 'db.synthetic-host.example', ':5432/appdb')],
+  ['npmrc-auth-token', A('//registry.npmjs.org/:', '_authToken', '=', 'your_npm_token_here'),
+    A('//registry.npmjs.org/:', '_authToken', '=', 'k9Qm4Rt7Zx2Lp8Vb3Nd6Wc1Yj5Hs0TaGe2Uu')],
+  ['secret-named-assignment', A('API_', 'KEY', '=', 'changeme'), A('API_', 'KEY', '=', 'k9Qm4Rt7Zx2Lp8Vb3Nd6Wc1Y')],
+  ['payment-card-number', `pan ${synthCard('401288888888188').slice(0, 15)}${(Number(synthCard('401288888888188').slice(15)) + 1) % 10}`,
+    `pan ${synthCard('401288888888188')}`],
+  ['thai-national-id', `id ${synthThaiId('310120054321').slice(0, 12)}${(Number(synthThaiId('310120054321').slice(12)) + 1) % 10}`,
+    `id ${synthThaiId('310120054321')}`],
+  ['thai-phone-number', `tel ${A('08', '123456789')}`, `tel ${A('08', '12345678')}`],
+];
+
+test('a rejected match does not hide a real one after it, for every rule that filters its matches', () => {
+  const filtered = ALL_RULES.filter((rule) => rule.accept).map((rule) => rule.id).sort();
+  assert.deepEqual(REJECTED_THEN_REAL().map(([rule]) => rule).sort(), filtered,
+    'every rule with an accept filter needs a rejected-then-real row');
+  const wrong = [];
+  for (const [rule, rejected, real] of REJECTED_THEN_REAL()) {
+    if (scanText(`${rejected}\n`, { relativePath: 'config/app.env' }).includes(rule)) wrong.push(`${rule}: the rejected line alone fires`);
+    if (!scanText(`${rejected}\n${real}\n`, { relativePath: 'config/app.env' }).includes(rule)) wrong.push(`${rule}: the real line is hidden`);
+  }
+  assertNone(wrong, 'rejected-then-real row(s) wrong');
+});
+
+// Q0 F3(a) (2026-10-07): the scanner says spaces are accepted in a Thai national ID "only in that
+// grouping" (1-4-5-2-1). The only spaced row before had a wrong check digit, so free spacing was
+// unpinned. A checksum-VALID ID in another grouping must not be reported as one.
+test('a checksum-valid Thai ID is reported spaced only in the printed grouping', () => {
+  const id = synthThaiId('310120054321');
+  const printed = `${id[0]} ${id.slice(1, 5)} ${id.slice(5, 10)} ${id.slice(10, 12)} ${id[12]}`;
+  assert.ok(scanText(`id ${printed}\n`).includes('thai-national-id'), 'the printed grouping must fire');
+  for (const other of [`${id.slice(0, 4)} ${id.slice(4, 8)} ${id.slice(8)}`, `${id.slice(0, 3)} ${id.slice(3, 6)} ${id.slice(6, 9)} ${id.slice(9)}`]) {
+    assert.ok(!scanText(`row ${other}\n`).includes('thai-national-id'), 'a free-spaced 13-digit run is not the printed grouping');
+  }
 });
 
 // Built at runtime, never written down. A test that states a valid card number puts one in
@@ -979,23 +1029,86 @@ test('every rule fires at every path this repository has, wherever a carve-out c
 // blind as one that skips a name it has.
 const FUTURE_PATHS = ['src/index.mjs', 'src-internal/config.txt', 'packages/app/src/env.ts', 'apps/web/.env.local',
   'services/api/settings.yml', 'infra/terraform/main.tf', 'config/production.json', '.hidden/notes.txt',
-  'build/output.js', 'dist/bundle.js', 'vendor/lib/readme.md', 'tmp/scratch.txt', 'deeply/nested/a/b/c/d/e/leak'];
+  'build/output.js', 'dist/bundle.js', 'vendor/lib/readme.md', 'tmp/scratch.txt', 'deeply/nested/a/b/c/d/e/leak',
+  // C0 N1 / Q0 F2 (2026-10-07): the file types that most often carry a credential, none of which
+  // this tree has yet. A carve-out keyed to one of them (`.pem`, `.py`, `.toml`, `.sh`, ...) left
+  // the suite green, because every path the property tests derive comes from today's tree.
+  'keys/server.pem', 'keys/server.key', 'certs/client.p12', 'certs/client.pfx', 'home/.ssh/id_ed25519',
+  '.npmrc', '.netrc', '.pypirc', '.dockercfg', 'config/app.toml', 'config/app.ini', 'config/app.properties',
+  'config/app.yaml', 'config/app.xml', 'etc/app.conf', 'etc/app.cfg', 'infra/prod.tfvars', 'terraform.tfstate',
+  'app/settings.py', 'scripts/deploy.sh', 'scripts/deploy.bash', 'scripts/deploy.zsh', 'scripts/deploy.ps1',
+  'Dockerfile', 'docker-compose.yml', 'apps/web/.env',
+  // ... and a path deeper than any this tree has (five components today); a walk capped at depth
+  // nine or ten is blind past it.
+  'a/b/c/d/e/f/g/h/i/j/k/l/deep.txt'];
+// Q0 F2: no file in this tree has CRLF line endings, so a skip keyed to `\r\n` survived.
+const CRLF_PATH = 'windows/notes-crlf.txt';
+const CRLF_CONTENT = 'synthetic notes written on windows\r\nsecond line of them\r\n';
 
-test('a credential appended to a copy of every file in this repository is reported, at that path', async () => {
+/** Q0 F1 (2026-10-07): put `value` into the middle of the LONGEST line of `content`, at an ASCII
+ *  space (never inside a multi-byte sequence) or else at the end of that line. Every credential
+ *  the copy test planted before sat on a line of its own, so a scanner dropping long lines -- 577
+ *  lines over 1000 characters in 126 files of this tree -- kept the suite green. */
+function spliceIntoLongestLine(content, value) {
+  let best = [0, content.indexOf(10) === -1 ? content.length : content.indexOf(10)];
+  for (let start = 0; start <= content.length;) {
+    let end = content.indexOf(10, start);
+    if (end === -1) end = content.length;
+    if (end - start > best[1] - best[0]) best = [start, end];
+    start = end + 1;
+  }
+  const [start, end] = best;
+  let at = content.indexOf(32, start + ((end - start) >> 1));
+  if (at === -1 || at >= end) at = end;
+  return Buffer.concat([content.subarray(0, at), Buffer.from(` ${value} `), content.subarray(at)]);
+}
+
+/** A1 N6 / C0 N3 (2026-10-07): the appended-copy test copies every byte under the working
+ *  directory, untracked files included, into the OS temporary directory. `withTempDir` removes it
+ *  in a `finally`; a run interrupted by SIGINT, SIGTERM or SIGHUP never reaches the `finally`, so
+ *  the copy is also removed from a signal handler, which then re-raises the signal. A SIGKILL
+ *  still leaves it (0700, this user only); that residue is recorded in the package's
+ *  open_blockers, with the advice to run `npm run check` from a clone or worktree. */
+async function withSignalSafeTempDir(body) {
+  return withTempDir(async (directory) => {
+    const signals = ['SIGINT', 'SIGTERM', 'SIGHUP'];
+    const handler = (signal) => {
+      try { rmSync(directory, { recursive: true, force: true }); } catch { /* best effort */ }
+      for (const name of signals) process.removeListener(name, handler);
+      process.kill(process.pid, signal);
+    };
+    for (const name of signals) process.once(name, handler);
+    try {
+      return await body(directory);
+    } finally {
+      for (const name of signals) process.removeListener(name, handler);
+    }
+  });
+}
+
+test('a credential spliced into a copy of every file in this repository is reported, at that path', async () => {
   const real = independentWalk('.');
-  await withTempDir(async (directory) => {
+  await withSignalSafeTempDir(async (directory) => {
     const expected = [];
+    // Each copy carries one credential, spliced into its longest line (Q0 F1) -- except the netrc
+    // block, which is anchored to the start of a line and so goes on lines of its own -- and every
+    // privacy decoy on lines of its own at the end (A1 N5: the PII half of the property was unpinned).
     const plant = async (index, relativePath, content) => {
       const [, rule, value] = CREDENTIAL_DECOYS[index % CREDENTIAL_DECOYS.length];
       const target = join(directory, relativePath);
       await mkdir(dirname(target), { recursive: true });
-      await writeFile(target, Buffer.concat([content, Buffer.from(`\n${value}\n`)]));
-      expected.push([relativePath, rule]);
+      const withCredential = rule === 'netrc-password'
+        ? Buffer.concat([content, Buffer.from(`\n${value}\n`)])
+        : spliceIntoLongestLine(content, value);
+      const privacy = PII_DECOYS().map(([, decoy]) => `${decoy}\n`).join('');
+      await writeFile(target, Buffer.concat([withCredential, Buffer.from(`\n${privacy}`)]));
+      expected.push([relativePath, rule], ...PII_DECOYS().map(([piiRule]) => [relativePath, piiRule]));
     };
     for (const [index, { relativePath }] of real.entries()) await plant(index, relativePath, await readFile(relativePath));
     for (const [index, relativePath] of FUTURE_PATHS.entries()) await plant(index, relativePath, Buffer.from('synthetic\n'));
+    await plant(FUTURE_PATHS.length, CRLF_PATH, Buffer.from(CRLF_CONTENT));
     const { files, findings } = await scanTree(directory);
-    assertSamePaths(files, [...real.map((file) => file.relativePath), ...FUTURE_PATHS].sort(), 'the scanner did not read every copied file');
+    assertSamePaths(files, [...real.map((file) => file.relativePath), ...FUTURE_PATHS, CRLF_PATH].sort(), 'the scanner did not read every copied file');
     const reported = new Set(findings.map((finding) => `${finding.relativePath}\u0000${finding.rule}`));
     const missed = expected.filter(([path, rule]) => !reported.has(`${path}\u0000${rule}`)).map(([path, rule]) => `${rule} in ${path}`);
     assertNone(missed, 'planted credential(s) not reported');
@@ -1006,11 +1119,23 @@ const PADDING_LINE = 'synthetic padding prose for the offset test, carrying no c
 const padding = (length) => PADDING_LINE.repeat(Math.ceil(length / PADDING_LINE.length) + 1).slice(0, length);
 
 test('a credential is reported whatever its offset in the file and whatever the file size', async () => {
-  // Every rule, past 8 KiB: a per-rule truncation is as blinding as a global one.
-  const deep = padding(9 * 1024);
-  const missed = CREDENTIAL_DECOYS.filter(([, rule, value]) => !scanText(`${deep}\n${value}\n`, { relativePath: 'notes.txt' }).includes(rule))
-    .map(([name]) => name);
-  assert.deepEqual(missed, [], `not reported past 9 KiB: ${missed.join(', ')}`);
+  // Every rule, credential AND privacy (A1 N5), past 9 KiB and past 80 KiB: a per-rule truncation
+  // is as blinding as a global one. And every rule inside one 64 KiB line with no line break in it
+  // (Q0 F1): a scanner dropping long lines reads the same bytes and sees none of them.
+  const everyRule = [...CREDENTIAL_DECOYS.map(([, rule, value]) => [rule, value]), ...PII_DECOYS()];
+  const missed = [];
+  for (const kib of [9, 80]) {
+    const deep = padding(kib * 1024);
+    for (const [rule, value] of everyRule) {
+      if (!scanText(`${deep}\n${value}\n`, { relativePath: 'notes.txt' }).includes(rule)) missed.push(`${rule} past ${kib} KiB`);
+    }
+  }
+  const oneLine = padding(32 * 1024).replace(/\n/g, ' ');
+  for (const [rule, value] of everyRule) {
+    if (rule === 'netrc-password') continue; // anchored to the start of a line by design
+    if (!scanText(`${oneLine} ${value} ${oneLine}\n`, { relativePath: 'notes.txt' }).includes(rule)) missed.push(`${rule} inside a 64 KiB line`);
+  }
+  assertNone(missed, 'rule(s) not reported at depth');
 
   await withTempDir(async (directory) => {
     const credential = A('AKIA', 'IOSFODNN7EXAMPLE');
@@ -1052,11 +1177,19 @@ test('a file of exactly the size limit is read to its last byte, and one byte mo
 
 // C0 R2: the size is checked before the file is read. Observable: a file this process cannot
 // read but can stat is reported as oversize (stat first) rather than unreadable (read first).
-test('the size limit is enforced before the file is read', async () => {
+// Q0 F6 (2026-10-07): under root `chmod 000` does not stop the read, the post-read size check
+// fires instead, and the test cannot tell the two orders apart -- so it says so and skips rather
+// than passing on a distinction it did not make.
+test('the size limit is enforced before the file is read', async (t) => {
   await withTempDir(async (directory) => {
     const file = join(directory, 'big-and-locked.txt');
     await writeFile(file, padding(4096));
     await chmod(file, 0o000);
+    if (!(await trulyUnreadable(file))) {
+      await chmod(file, 0o600);
+      t.skip('this process can read a chmod 000 file (root?): stat-first and read-first are indistinguishable here');
+      return;
+    }
     const findings = await scanDirectory(directory, { maxFileBytes: 1024 });
     await chmod(file, 0o600);
     assert.deepEqual(findings.map((finding) => finding.rule), ['oversize-file']);

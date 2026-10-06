@@ -388,6 +388,11 @@ export const CREDENTIAL_RULES = [
     //     .github/workflows/ci.yml, three in two WP-0A-DB-00 evidence files, one in
     //     test-kits/db/foundation-contract.test.mjs. Taking it means editing files this package
     //     does not own, or allowlisting default passwords, which is a list a real leak hides in.
+    //     That count is a LOWER BOUND (Q0 F5, R0-F4, 2026-10-07): it was taken with this pattern's
+    //     `=` replaced by `[=:]` and placeholder values excused, at b61735f. At 6cc6c93 the same
+    //     approximation finds ten lines in six files -- the seven above, two quoting lines in Q0's
+    //     test-verdict-q0.md and one in WP-0A-CON-004's A1 disposition -- and the exact figure
+    //     moves with the variant of the widened pattern. Either count supports the refusal.
     pattern: /\b[A-Z0-9_]*?(?:(?:PASSWORD|PASSWD|PASSPHRASE|SECRET|TOKEN|APIKEY|API_KEY|ACCESSKEY|ACCESS_KEY|PRIVATEKEY|PRIVATE_KEY|SIGNING_KEY|CREDENTIALS?)[A-Z0-9_]*|(?<![A-Z])(?:PASS|AUTH|SALT)|_PWD)\s*=\s*["']?([^\s"'`#]{8,})/g,
     accept: (match, groups) => !isPlaceholderValue(groups[0]),
   },
