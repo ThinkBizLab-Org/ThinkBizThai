@@ -14,10 +14,10 @@
   "cost": {
     "amount": "0.0010",
     "currency": "THB",
-    "basis": "estimated",
+    "basis": "provider_reported",
     "supersedes_usage_id": ""
   },
-  "dedupe_key": "usg:00000000-0000-4000-8000-000000000001:job_synthetic_0001:storage_bytes:estimated:20260831T100000Z",
+  "dedupe_key": "usg:00000000-0000-4000-8000-000000000001:job_synthetic_0001:storage_bytes:provider_reported:20260831T100000Z",
   "tenant_context": {
     "workspace_id": "00000000-0000-4000-8000-000000000001",
     "business_profile_id": "00000000-0000-4000-8000-000000000002",
