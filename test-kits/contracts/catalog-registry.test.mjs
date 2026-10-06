@@ -427,7 +427,9 @@ test('an accepted gap cannot be rewritten into a reassurance', async () => {
 // pinned beside the digest so that a deletion and an addition cannot cancel out.
 //
 // 2026-10-07, WP-0A-CON-004 bounds increment: one x-bound-note per bounded field moves ctr-aud-001
-// 23 -> 27, ctr-obs-001 21 -> 31 and ctr-sec-001 21 -> 29.
+// 23 -> 27, ctr-obs-001 21 -> 31 and ctr-sec-001 21 -> 29. Same day, C0 R-1 / Q0 O-1: the ctr-sec-001
+// scope.capability_key and ctr-obs-001 readiness capability_key notes stop citing the `{1,64}`
+// pattern that moved to maxLength; text only, counts unchanged.
 const ANNOTATION_DIGESTS = {
   'ctr-api-001': { count: 10, digest: 'bbe5e0cc5f6c5bbb' },
   'ctr-aud-001': { count: 27, digest: '0e67ea4b161b031f' },
@@ -438,9 +440,9 @@ const ANNOTATION_DIGESTS = {
   'ctr-job-001': { count: 8, digest: 'b374d6bd002c3ad4' },
   'ctr-mod-001': { count: 20, digest: '29985bb8dcd4186c' },
   'ctr-ntf-001': { count: 15, digest: 'b2ad9b8499a8fce6' },
-  'ctr-obs-001': { count: 31, digest: '12f5fbaadbf48a55' },
+  'ctr-obs-001': { count: 31, digest: 'ef75f1eda69f54c1' },
   'ctr-pag-001': { count: 8, digest: 'b69a983bac7678fb' },
-  'ctr-sec-001': { count: 29, digest: 'c7c082e5d4a376f7' },
+  'ctr-sec-001': { count: 29, digest: '72897b3ec02f0bbe' },
   'ctr-ten-001': { count: 1, digest: '72dd93913f524475' },
   'ctr-usg-001': { count: 15, digest: '6819e111b2204ea4' },
 };

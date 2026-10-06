@@ -12,6 +12,11 @@ ancestor of `0955b32e`), but its local ref is checked out in another worktree of
 this increment uses the dated name, and `ownership.branch` names it so that
 `scripts/verify-branch-identity.mjs` finds exactly one claimant.
 
+> Note 2026-10-07, after the role round (C0 `c0-review-2026-10-07.md` N-1): the base above is where the
+> bounds commit `36b6b478` was cut. The branch then merged `origin/main` `9b4a0ce6` (PR #206) in `27c5cdb5`
+> before the handoff commit `27288393`; C0, Q0 and R0 each measured that merge as clean (byte-identical to
+> `git merge-tree`, no path overlap). Measurements in this file that name `0955b32e` were taken there.
+
 This is **not a governance PR**: no RFC, `CONTRIBUTING_AGENTS.md`, CI workflow or gate file is touched.
 
 ## 1. What this increment closes
