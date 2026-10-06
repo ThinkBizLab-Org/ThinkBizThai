@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-CON-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "c75418b1265c163c91d181fc8482be7de363bcef",
-  "head_revision_or_patch_checksum": "84074effe7b07a5c35929c677ef5e3625cf79c57",
+  "base_revision": "574c8a8c35e56f4cb472110ce227ff773b92ced0",
+  "head_revision_or_patch_checksum": "ff5c94b31b523b3fa17191a9174122d398e564fe",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-CON-004/a1-recheck-2026-10-06.md",
@@ -49,7 +49,7 @@
   ],
   "assumptions": [
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
-    "This increment was cut from origin/main 8c089cc. The package's earlier work is already in main; this branch carries the closure of the role verdicts' conditions and the Owner's step-2 decisions. main fa10229 was merged in on 2026-10-06 (e47b2c68, test-kits/integrity-manifest.json resolved by union and regenerated, measured by C0, A1, Q0 and R0), and main c75418b (PR #189, WP-0A-A0-004 files only) was merged in cleanly after the role re-checks; it adds nothing to this PR's own diff, and npm run regenerate:manifest leaves the tree unchanged.",
+    "This increment was cut from origin/main 8c089cc. The package's earlier work is already in main; this branch carries the closure of the role verdicts' conditions and the Owner's step-2 decisions. main fa10229 was merged in on 2026-10-06 (e47b2c68, test-kits/integrity-manifest.json resolved by union and regenerated, measured by C0, A1, Q0 and R0), main c75418b (PR #189, WP-0A-A0-004 files only) was merged in cleanly after the role re-checks, and main 574c8a8 (PR #192, WP-0A-A0-002 evidence, handoff and manifest only) was merged in cleanly after the bootstrap run at 5314843 went green (run 37390798302); neither adds anything to this PR's own diff, and npm run regenerate:manifest leaves the tree unchanged.",
     "The verdicts answered are C0's review-contract.md (changes_requested, at a690f11, 2026-09-01), A1's security-disposition-handle-ownership-a1.md (2026-09-04) and the A1/A6 co-owner-review-sec-aud-obs-usg.md (2026-09-02). Every condition was re-measured at main 8c089cc rather than carried forward; evidence/WP-0A-CON-004/author-conditions-closure-2026-10-06.md §1-§2 holds the tables.",
     "The Owner's step-2 decisions are read from evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md, merged in PR #186. The Owner's reply was \"บืนยันขั้น 2\".",
     "This PR changes no RFC, CONTRIBUTING_AGENTS.md, CI file or gate rule, so it is not a governance PR. The Author does not merge it."
@@ -120,7 +120,7 @@
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "692 tests, 692 pass, 0 fail, 0 skipped, 0 todo (run on the branch name at parent 84074ef with this refreshed handoff in the working tree; scripts/commit-when-clean.mjs runs npm run verify again before committing it)",
+      "result": "692 tests, 692 pass, 0 fail, 0 skipped, 0 todo (scripts/commit-when-clean.mjs ran npm run verify before committing this handoff; the same count was measured with npm run check on the branch name before the main 574c8a8 sync, which brought only other packages' evidence, handoff and manifest files)",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
@@ -189,7 +189,7 @@
   ],
   "reviewer_instructions": [
     "Read evidence/WP-0A-CON-004/author-conditions-closure-2026-10-06.md first: it maps every C0 required change and every A1 condition to its state at main 8c089cc and to what this branch did.",
-    "Every role has run at 3082874 on the branch name and its file is on this branch: C0 review_approved (c0-recheck-2026-10-06.md), A1 security_approved_with_conditions with its N-1 closed (a1-recheck-2026-10-06.md), Q0 test_verified_with_conditions (q0-recheck-2026-10-06.md), R0 not yet integration_verified, conditions 1-4 of its §4 remaining (r0-recheck-2026-10-06.md). None is stop-the-line. Since 3082874 this branch adds only those four role files, the main merge c75418b, the open_blockers[15] record and this handoff; no contract-catalog/** or test file moved, so C0's verdict carries. Owed: the bootstrap run green at this handoff's head, then R0's integration_verified record (its wording names that head and run), which a commit before this handoff cannot contain.",
+    "Every role has run at 3082874 on the branch name and its file is on this branch: C0 review_approved (c0-recheck-2026-10-06.md), A1 security_approved_with_conditions with its N-1 closed (a1-recheck-2026-10-06.md), Q0 test_verified_with_conditions (q0-recheck-2026-10-06.md), R0 not yet integration_verified, conditions 1-4 of its §4 remaining (r0-recheck-2026-10-06.md). None is stop-the-line. Since 3082874 this branch adds only those four role files, the main merges c75418b and 574c8a8 (other packages' files only), the open_blockers[15] record and this handoff; no contract-catalog/** or test file moved, so C0's verdict carries. Owed: the bootstrap run green at this handoff's head, then R0's integration_verified record (its wording names that head and run), which a commit before this handoff cannot contain.",
     "Check every rewritten annotation against the Thai source text it cites, not against this author's summary of it. The defects this package has had were miscitations, and C0 found them by reading the source.",
     "The author is /claude/a0_atlas. The Author approves, test-verifies and integrates nothing, and does not merge."
   ],
