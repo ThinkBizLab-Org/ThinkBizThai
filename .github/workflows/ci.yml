@@ -193,13 +193,23 @@ jobs:
       #
       # The step is a SKIPPED STEP, never a skipped job: the job and its required check `bootstrap`
       # run and report on every pull request regardless.
+      #
+      # The `if:` compares the base branch as an Actions expression, and Actions compares strings
+      # IGNORING CASE, so it is also true for a base named `MAIN` or `Main`, which no push to main
+      # ever checked. The case-sensitive check is the first test in the script, in bash: a base
+      # that is not exactly `main` RUNS the control (A1 N1 on PR #197).
       - name: Decide whether the negative control must run
         id: db_surface
         if: github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main'
         env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           DB_SURFACE: '^(db/|scripts/db/|tests/db/|test-kits/db/|\.github/|(GNUmakefile|makefile|Makefile)$|package\.json$|package-lock\.json$|\.node-version$|(.*/)?\.gitattributes$)'
         run: |
+          if [ "${BASE_REF:-}" != main ]; then
+            echo "negative control: the base branch '${BASE_REF:-}' is not exactly main; the control RUNS"
+            exit 0
+          fi
           if [ -z "${BASE_SHA:-}" ] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
             echo "negative control: the base commit '${BASE_SHA:-}' is not in this clone; the control RUNS"
             exit 0

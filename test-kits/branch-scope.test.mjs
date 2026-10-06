@@ -343,7 +343,7 @@ async function decide(change) {
   await change({ put, git, remove });
   git('add', '-A');
   git('commit', '-q', '--allow-empty', '-m', 'head');
-  return runStep(runBody(block), { BASE_SHA: base, DB_SURFACE: envValue(block, 'DB_SURFACE') }, repo);
+  return runStep(runBody(block), { BASE_REF: 'main', BASE_SHA: base, DB_SURFACE: envValue(block, 'DB_SURFACE') }, repo);
 }
 
 test('the negative control is skipped only on an explicit skip=true from a pull-request-only step', async () => {
@@ -435,12 +435,12 @@ test('when the diff cannot be computed the negative control runs', async () => {
   const DB_SURFACE = envValue(block, 'DB_SURFACE');
   const { repo, base } = await scratchRepo();
   const cases = [
-    ['an empty base', { BASE_SHA: '', DB_SURFACE }, repo],
-    ['a base that is not in the clone', { BASE_SHA: 'f'.repeat(40), DB_SURFACE }, repo],
-    ['a base that is not a commit', { BASE_SHA: 'not-a-ref', DB_SURFACE }, repo],
-    ['no repository at all', { BASE_SHA: 'f'.repeat(40), DB_SURFACE }, await mkdtemp(join(tmpdir(), 'ci-norepo-'))],
+    ['an empty base', { BASE_REF: 'main', BASE_SHA: '', DB_SURFACE }, repo],
+    ['a base that is not in the clone', { BASE_REF: 'main', BASE_SHA: 'f'.repeat(40), DB_SURFACE }, repo],
+    ['a base that is not a commit', { BASE_REF: 'main', BASE_SHA: 'not-a-ref', DB_SURFACE }, repo],
+    ['no repository at all', { BASE_REF: 'main', BASE_SHA: 'f'.repeat(40), DB_SURFACE }, await mkdtemp(join(tmpdir(), 'ci-norepo-'))],
     // grep exits 2 on a malformed pattern. That is neither "matched" nor "matched nothing".
-    ['a pattern grep cannot compile', { BASE_SHA: base, DB_SURFACE: '(' }, repo],
+    ['a pattern grep cannot compile', { BASE_REF: 'main', BASE_SHA: base, DB_SURFACE: '(' }, repo],
   ];
   for (const [what, env, cwd] of cases) {
     const result = await runStep(body, env, cwd);
@@ -555,7 +555,7 @@ test('a symlink in either tree makes the negative control run (A1 F3 on PR #197)
   const { symlink } = await import('node:fs/promises');
   const { join } = await import('node:path');
   const block = stepBlock(await readFile(CI_WORKFLOW_PATH, 'utf8'), DECISION_STEP);
-  const env = (BASE_SHA) => ({ BASE_SHA, DB_SURFACE: envValue(block, 'DB_SURFACE') });
+  const env = (BASE_SHA) => ({ BASE_REF: 'main', BASE_SHA, DB_SURFACE: envValue(block, 'DB_SURFACE') });
 
   // A link on the surface pointing off it: only the target changes, and no surface path is in the diff.
   {
@@ -617,7 +617,7 @@ test('the diff is tree to tree: a branch behind main is compared with what main 
   git('add', '-A');
   git('commit', '-q', '-m', 'feature changes docs only');
   assert.equal(git('diff', '--name-only', `${mainNow}...HEAD`), 'docs/readme.md', 'the case must be one a three-dot diff would skip');
-  const result = await runStep(runBody(block), { BASE_SHA: mainNow, DB_SURFACE: envValue(block, 'DB_SURFACE') }, repo);
+  const result = await runStep(runBody(block), { BASE_REF: 'main', BASE_SHA: mainNow, DB_SURFACE: envValue(block, 'DB_SURFACE') }, repo);
   assert.equal(result.code, 0, result.out);
   assert.equal(result.output, '', `a branch behind a main that changed db/ was told to skip: ${result.out}`);
   assert.match(result.out, /the database surface changed; the control RUNS/);
@@ -636,8 +636,45 @@ test('a base commit whose tree git cannot read runs the negative control from th
   const tree = git('rev-parse', `${base}^{tree}`);
   await rm(join(repo, '.git', 'objects', tree.slice(0, 2), tree.slice(2)));
   assert.equal(git('cat-file', '-t', base), 'commit', 'the base commit itself must still be readable');
-  const result = await runStep(runBody(block), { BASE_SHA: base, DB_SURFACE: envValue(block, 'DB_SURFACE') }, repo);
+  const result = await runStep(runBody(block), { BASE_REF: 'main', BASE_SHA: base, DB_SURFACE: envValue(block, 'DB_SURFACE') }, repo);
   assert.equal(result.code, 0, `the step must not fail the job: ${result.out}`);
   assert.equal(result.output, '', result.out);
   assert.match(result.out, /could not be computed; the control RUNS/);
+});
+
+test('a base that is not exactly main runs the negative control, whatever its case (A1 N1 on PR #197)', async () => {
+  // Actions compares `if:` strings ignoring case, so `base.ref == 'main'` is also true for a pull request
+  // into `MAIN` or `Main`, a branch no push to main ever checked. The case-sensitive check is bash's, the
+  // first test the step makes, and it must come before any path can write skip=true.
+  const { readFile } = await import('node:fs/promises');
+  const block = stepBlock(await readFile(CI_WORKFLOW_PATH, 'utf8'), DECISION_STEP);
+  assert.equal(envValue(block, 'BASE_REF'), '${{ github.event.pull_request.base.ref }}');
+  const body = runBody(block).split('\n');
+  assert.deepEqual(body.slice(0, 4), [
+    'if [ "${BASE_REF:-}" != main ]; then',
+    '  echo "negative control: the base branch \'${BASE_REF:-}\' is not exactly main; the control RUNS"',
+    '  exit 0',
+    'fi',
+  ]);
+
+  // The same pull request each time, changing nothing on the surface: only the base branch differs.
+  const { repo, base, git, put } = await scratchRepo();
+  await put('docs/readme.md', 'changed\n');
+  git('add', '-A');
+  git('commit', '-q', '-m', 'head');
+  const DB_SURFACE = envValue(block, 'DB_SURFACE');
+  for (const ref of ['MAIN', 'Main', 'mAiN', 'main2', 'main ', 'refs/heads/main', '']) {
+    const result = await runStep(runBody(block), { BASE_REF: ref, BASE_SHA: base, DB_SURFACE }, repo);
+    assert.equal(result.code, 0, `${JSON.stringify(ref)}: the step must not fail the job -- ${result.out}`);
+    assert.equal(result.output, '', `${JSON.stringify(ref)}: a base that is not main was told to skip -- ${result.out}`);
+    assert.match(result.out, /is not exactly main; the control RUNS/, JSON.stringify(ref));
+  }
+  const unset = await runStep(runBody(block), { BASE_SHA: base, DB_SURFACE }, repo);
+  assert.equal(unset.output, '', `an unset base branch was told to skip: ${unset.out}`);
+  assert.match(unset.out, /is not exactly main; the control RUNS/);
+  // And `main` itself may still skip: the guard must not turn every pull request into a run.
+  const main = await runStep(runBody(block), { BASE_REF: 'main', BASE_SHA: base, DB_SURFACE }, repo);
+  assert.equal(main.code, 0, main.out);
+  assert.equal(main.output.trim(), 'skip=true', main.out);
+  assert.match(main.out, /the control is SKIPPED/);
 });

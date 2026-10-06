@@ -130,7 +130,8 @@ pull request that should be checked slip through. Measured independently on main
    `pull_request` events whose base branch is `main` only (`github.event.pull_request.base.ref
    == 'main'`), inside the existing `bootstrap` job. The skip inherits the base's result, and only
    a base on `main` is known to have run the control; a stacked pull request runs it (A1 F2, C0 F3,
-   R0-F4 on PR #197).
+   R0-F4 on PR #197). That `if:` is an Actions expression, and Actions compares strings ignoring
+   case, so the step's first test, in bash, is the case-sensitive one (§B, A1 N1 on PR #197).
 2. It computes `git -c core.quotePath=false diff -z --no-renames --name-only
    <pull_request.base.sha> HEAD`, a tree-to-tree (two-dot) diff, so a file moved off the surface
    still names its old path and a branch behind `main` is compared with what `main` holds now.
@@ -188,6 +189,20 @@ static database suite; the control does not read it. `package.json`, `package-lo
 
 - A push to `main`: the decision step does not run, its output is unset, and the control runs.
 - A pull request into any branch other than `main`: likewise.
+- A pull request into a branch whose name equals `main` only when case is ignored (`MAIN`,
+  `Main`). The step's `if:` is true for it, because GitHub's expressions compare strings ignoring
+  case, so the `if:` alone does not keep it out (A1 N1 on PR #197). The case-sensitive check is
+  bash's, the step's first test, fed the base branch through the step's environment
+  (`BASE_REF: ${{ github.event.pull_request.base.ref }}`). As written in the workflow:
+
+  ```
+  if [ "${BASE_REF:-}" != main ]; then
+    echo "negative control: the base branch '${BASE_REF:-}' is not exactly main; the control RUNS"
+    exit 0
+  fi
+  ```
+
+  An empty or unset `BASE_REF` fails the same test and runs the control.
 - An empty `pull_request.base.sha`, or a base commit that is not in the clone (for example a
   shallower checkout).
 - A `git diff` or `git ls-tree` that exits non-zero, including a base commit whose tree is
@@ -217,6 +232,9 @@ and run them with `bash -e`, as GitHub runs a `run:` that names no shell (the jo
 throwaway repositories. They cover:
 
 - the skip on a change off the surface;
+- a run on a base branch that is not exactly `main` (`MAIN`, `Main`, `mAiN`, `main2`, `main `,
+  `refs/heads/main`, empty, unset), the skip on `main` itself, and the guard's four lines quoted
+  from the workflow as the step's first;
 - a run on each surface entry (including `GNUmakefile`, `makefile` and `.gitattributes` at the
   root and below), on a move off it and on a deletion;
 - a run on a surface path git would quote: Thai, `"`, `\`, TAB and newline;
