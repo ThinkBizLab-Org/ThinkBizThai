@@ -55,6 +55,11 @@ test('every catalog schema uses only keywords this validator actually enforces',
   for (const { dir, schema } of await contracts()) {
     assert.doesNotThrow(() => assertSchemaSupported(schema), `${dir} declares a keyword nothing enforces`);
   }
+  // A keyword the validator enforces in a different unit than the specification is a keyword it
+  // does not enforce. Lengths are code points, not UTF-16 units (test-verdict-rework.md V4).
+  const astral = '\u{1F600}';
+  assert.notDeepEqual(validate({ type: 'string', minLength: 2 }, astral), [], 'one astral character must not satisfy minLength 2');
+  assert.deepEqual(validate({ type: 'string', maxLength: 1 }, astral), [], 'one astral character must satisfy maxLength 1');
 });
 
 test('every fixture agrees with its own shipped schema, not with a hand-written predicate', async () => {
@@ -115,9 +120,13 @@ test('an extra property carrying a secret is rejected at every declared object l
 
 test('a reference field rejects every scheme outside its allow-list', async () => {
   const hostile = ['https://public.example.invalid/x', 'HTTPS://public.example.invalid/x', '//public.example.invalid/x',
-    'file:///etc/passwd', 'data:text/plain;base64,AA==', 'javascript:alert(1)', '../../../etc/passwd', 'ftp://h/x'];
+    'file:///etc/passwd', 'data:text/plain;base64,AA==', 'javascript:alert(1)', '../../../etc/passwd', 'ftp://h/x',
+    // An allowed scheme with a traversal or an authority in the body (security review S3).
+    'result:../../../etc/passwd', 'content://attacker.example.invalid/exfil'];
   const targets = [
     { dir: 'ctr-api-001', fixture: 'examples/valid-accepted.json', set: (b, v) => { b.accepted.status_ref = v; } },
+    // deep_link_ref was held by no hostile-scheme assertion; deleting its pattern exited 0 (Q0 M3).
+    { dir: 'ctr-api-001', fixture: 'examples/valid-accepted.json', set: (b, v) => { b.accepted.deep_link_ref = v; } },
     { dir: 'ctr-idm-001', fixture: 'examples/valid-completed-replay.json', set: (b, v) => { b.result_ref = v; } },
   ];
   for (const { dir, fixture, set } of targets) {
