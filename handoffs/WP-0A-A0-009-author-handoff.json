@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-009",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "9b4a0ce60a3fcb6d1b65fa9f4cde8c0307e72b42",
-  "head_revision_or_patch_checksum": "28b0b77c4dbf1bfd0d067cfc120d0c21951ace0f",
+  "base_revision": "5cb5cb83871179be83b0fe98e34112e0d992eddc",
+  "head_revision_or_patch_checksum": "c2f57682b5eef82c114cd0a5e182827bedac97bb",
   "task_ids": [
     "WP-0A-A0-009",
     "G0-step-4"
@@ -152,6 +152,26 @@
       "command": "npm run check (at 28b0b77 on this branch name, after the main 9b4a0ce merge and the four role files, before this handoff refresh)",
       "exit_code": 0,
       "result": "tests 716, pass 716, fail 0, cancelled 0, skipped 0, todo 0 (C0 F4: the previous recorded run was 705 tests, before the 0955b32 sync)"
+    },
+    {
+      "command": "npm run verify (run by node scripts/commit-when-clean.mjs for the handoff commit 7f66cd6)",
+      "exit_code": 0,
+      "result": "clean: tests 716, pass 716, fail 0, skipped 0, todo 0"
+    },
+    {
+      "command": "CI Bootstrap validation run 37516338403 at 7f66cd6",
+      "exit_code": 0,
+      "result": "bootstrap success, every step success; db-rls-smoke: 1200 isolation case(s) passed. main moved to 5cb5cb8 (PR #208, WP-0A-A0-008) during the run, so the branch was synced again."
+    },
+    {
+      "command": "git merge origin/main (5cb5cb8, PR #208, WP-0A-A0-008; clean, no conflict, no file of this package touched)",
+      "exit_code": 0,
+      "result": "merge c2f5768; the PR diff against main is still the package's three paths plus the four role files"
+    },
+    {
+      "command": "npm run verify (run by node scripts/commit-when-clean.mjs for this handoff commit, on the synced head)",
+      "exit_code": 0,
+      "result": "commit-when-clean refuses to commit unless the full suite is clean; this commit exists only because it was"
     }
   ],
   "security_privacy_cost_impact": "None. No code, schema, grant, policy, role, contract or credential is touched; the files are a manifest, a handoff and five evidence notes under evidence/WP-0A-A0-009/ (the author self-check and the four role files) with no secrets or personal data. One security-relevant statement changes: the manifest no longer says RFC-2026-019 §5's fourth rule cannot be written; migration 172's command functions are owned by app_command and the isolation cases assert their refusals as authenticated.",
@@ -171,7 +191,7 @@
   "rollback_or_forward_fix": "ROLLBACK: a reviewed revert PR of this PR's merge commit. WP-0A-A0-009's manifest returns to in_progress with the cross-vendor exception, the run.mjs citations at acf0571 and the blocker saying RFC-2026-019 §5's fourth rule cannot be written; evidence/WP-0A-A0-009/ (the self-check and the four role files) disappears. Neither RFC, no migration and no lint depends on these records.",
   "recommended_next_work_packages": [
     "Post-merge, on a records PR: bring WP-0A-A0-009's open_blockers[0] and [3] up to the verdicts now on main (R0 §4.1).",
-    "WP-0A-A0-008: the same step 4 move; its RFC-2026-017 §3 is the text RFC-2026-019 §4/5 says its owner corrects once the components exist, and they do.",
+    "WP-0A-A0-008 reached main in PR #208 (5cb5cb8); its RFC-2026-017 §3 correction is still owed as a governance PR, the text RFC-2026-019 §4/5 says its owner corrects once the components exist.",
     "A governance PR adding a dated line to RFC-2026-019's status recording migration 172 and RFC-2026-028."
   ],
   "reviewer_instructions": [
