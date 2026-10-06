@@ -252,8 +252,9 @@ test('the ownership validator sees the same field the scope guard now honours', 
 // THE NEGATIVE CONTROL'S SKIP RULE AND THE CHECKOUT ASSERTION (RFC-2026-007 §Amendment 2026-10-06).
 //
 // Both live in .github/workflows/ci.yml as shell, and a workflow cannot be run here. So the step
-// bodies are CUT OUT OF THE WORKFLOW TEXT and run with bash the way GitHub runs them
-// (`bash --noprofile --norc -eo pipefail`), against throwaway git repositories. A test that held a
+// bodies are CUT OUT OF THE WORKFLOW TEXT and run with bash the way GitHub runs a `run:` that names
+// no shell (`bash -e {0}`, as the job log prints it; Q0 Q13 on PR #197 corrected an earlier
+// `-eo pipefail` here), against throwaway git repositories. A test that held a
 // copy of the script would be testing the copy; these read the file CI executes.
 const CI_WORKFLOW_PATH = '.github/workflows/ci.yml';
 const DECISION_STEP = 'Decide whether the negative control must run';
@@ -300,7 +301,7 @@ async function runStep(body, env, cwd) {
   const output = join(dir, 'github-output');
   await writeFile(script, body);
   await writeFile(output, '');
-  const result = spawnSync('bash', ['--noprofile', '--norc', '-eo', 'pipefail', script], {
+  const result = spawnSync('bash', ['--noprofile', '--norc', '-e', script], {
     cwd, encoding: 'utf8', env: { PATH: process.env.PATH, HOME: process.env.HOME, GITHUB_OUTPUT: output, ...env },
   });
   return { code: result.status, out: `${result.stdout}${result.stderr}`, output: await readFile(output, 'utf8') };
@@ -353,8 +354,11 @@ test('the negative control is skipped only on an explicit skip=true from a pull-
   const text = (block) => block.lines.join('\n');
 
   assert.match(text(decision), /^\s*id: db_surface$/m);
-  // On a push to main the step does not run, its output is unset, and the control RUNS.
-  assert.match(text(decision), /^\s*if: github\.event_name == 'pull_request'$/m);
+  // On a push to main the step does not run, its output is unset, and the control RUNS. The same on
+  // a pull request into any branch but main: the skip inherits the base's result, and only a base on
+  // main is known to have run the control (A1 F2, C0 F3, R0-F4 on PR #197).
+  assert.match(text(decision),
+    /^\s*if: github\.event_name == 'pull_request' && github\.event\.pull_request\.base\.ref == 'main'$/m);
   assert.doesNotMatch(text(decision), /continue-on-error/,
     'a decision step allowed to fail would turn a failure into whatever its partial output says');
   assert.ok(decision.start < control.start, 'the decision must be taken before the control it governs');
@@ -393,7 +397,11 @@ test('a pull request that changes nothing on the database surface skips the nega
 
 test('every path on the database surface makes the negative control run, including a move off it', async () => {
   const onSurface = ['db/foundation/migrations/000_x.sql', 'db/foundation/new.sql', 'scripts/db/run.mjs', 'tests/db/identity/c.mjs',
-    'test-kits/db/t.test.mjs', '.github/workflows/ci.yml', 'Makefile', 'package.json', 'package-lock.json', '.node-version'];
+    'test-kits/db/t.test.mjs', '.github/workflows/ci.yml', 'Makefile', 'package.json', 'package-lock.json', '.node-version',
+    // GNU make reads GNUmakefile, then makefile, before Makefile (A1 F1 on PR #197).
+    'GNUmakefile', 'makefile',
+    // A .gitattributes anywhere can rewrite the bytes checked out on the surface (A1 F3).
+    '.gitattributes', 'scripts/.gitattributes'];
   for (const path of onSurface) {
     const result = await decide(async ({ put }) => {
       await put('docs/readme.md', 'changed\n');
@@ -521,4 +529,115 @@ test('the checkout is asserted to be the commit the run reports on, and anything
   assert.equal(moved.code, 1, `a branch that moved after the event must fail the job: ${moved.out}`);
   assert.match(moved.out, /cannot report on a commit it did not test/);
   assert.equal((await runStep(body, { EXPECTED_SHA: '' }, repo)).code, 1, 'an empty expectation asserts nothing and must fail');
+});
+
+test('a path git would quote still makes the negative control run (C0 F1, A1 F4, Q0 Q10, R0-F1 on PR #197)', async () => {
+  // Without -z, git prints these as "db/..." with a leading quote, and the anchored pattern misses them.
+  const quoted = ['db/foundation/migrations/0002_ข้อมูล.sql', 'db/foundation/migrations/0003_a"b.sql',
+    'db/foundation/migrations/0004_a\\b.sql', 'db/foundation/migrations/0005_a\tb.sql', 'db/foundation/migrations/0006_a\nb.sql',
+    'tests/db/identity/fixtures/ชื่อ.sql'];
+  for (const path of quoted) {
+    const result = await decide(async ({ put }) => {
+      await put('docs/readme.md', 'changed\n');
+      await put(path, 'new\n');
+    });
+    assert.equal(result.code, 0, `${JSON.stringify(path)}: ${result.out}`);
+    assert.equal(result.output, '', `${JSON.stringify(path)} changed and the control was told to skip: ${result.out}`);
+    assert.match(result.out, /the database surface changed; the control RUNS/, JSON.stringify(path));
+  }
+  // And a quoted path OFF the surface still skips: -z must not turn every unusual name into a run.
+  const off = await decide(async ({ put }) => { await put('docs/บันทึก "x".md', 'new\n'); });
+  assert.equal(off.output.trim(), 'skip=true', off.out);
+});
+
+test('a symlink in either tree makes the negative control run (A1 F3 on PR #197)', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { symlink } = await import('node:fs/promises');
+  const { join } = await import('node:path');
+  const block = stepBlock(await readFile(CI_WORKFLOW_PATH, 'utf8'), DECISION_STEP);
+  const env = (BASE_SHA) => ({ BASE_SHA, DB_SURFACE: envValue(block, 'DB_SURFACE') });
+
+  // A link on the surface pointing off it: only the target changes, and no surface path is in the diff.
+  {
+    const { repo, git, put } = await scratchRepo();
+    await put('docs/target.sql', 'one\n');
+    await symlink('../../docs/target.sql', join(repo, 'db/foundation/linked.sql'));
+    git('add', '-A');
+    git('commit', '-q', '-m', 'base with a link');
+    const base = git('rev-parse', 'HEAD');
+    await put('docs/target.sql', 'two\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'head changes only the target');
+    assert.equal(git('diff', '--name-only', base, 'HEAD'), 'docs/target.sql', 'the case must change no surface path');
+    const result = await runStep(runBody(block), env(base), repo);
+    assert.equal(result.code, 0, result.out);
+    assert.equal(result.output, '', `a link on the surface read a changed file and the control was told to skip: ${result.out}`);
+    assert.match(result.out, /symlink.*the control RUNS/);
+  }
+  // A link added off the surface: it is not on DB_SURFACE, and the step still runs the control.
+  {
+    const { repo, base, git } = await scratchRepo();
+    await symlink('readme.md', join(repo, 'docs/link.md'));
+    git('add', '-A');
+    git('commit', '-q', '-m', 'head adds a link');
+    const result = await runStep(runBody(block), env(base), repo);
+    assert.equal(result.output, '', result.out);
+    assert.match(result.out, /symlink.*the control RUNS/);
+  }
+  // A link only in the BASE tree, removed by the head: the head tree holds none, so only listing the
+  // base catches it. A link that existed at the base could have pointed the base's control elsewhere.
+  {
+    const { repo, git, remove } = await scratchRepo();
+    await symlink('readme.md', join(repo, 'docs/link.md'));
+    git('add', '-A');
+    git('commit', '-q', '-m', 'base with a link');
+    const base = git('rev-parse', 'HEAD');
+    await remove('docs/link.md');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'head removes the link');
+    assert.equal(git('ls-tree', '-r', 'HEAD').includes('120000 '), false, 'the head must hold no link');
+    const result = await runStep(runBody(block), env(base), repo);
+    assert.equal(result.output, '', result.out);
+    assert.match(result.out, /symlink.*the control RUNS/);
+  }
+});
+
+test('the diff is tree to tree: a branch behind main is compared with what main holds now (Q0 Q11, R0-F3 on PR #197)', async () => {
+  // main moves on with a migration; the branch, cut before it, changes only docs. A three-dot diff
+  // (merge base) sees only docs and would skip; the base's tree and the head's tree differ on db/.
+  const { readFile } = await import('node:fs/promises');
+  const block = stepBlock(await readFile(CI_WORKFLOW_PATH, 'utf8'), DECISION_STEP);
+  const { repo, base: forkPoint, git, put } = await scratchRepo();
+  await put('db/foundation/migrations/000_x.sql', 'main moved\n');
+  git('add', '-A');
+  git('commit', '-q', '-m', 'main changes a migration');
+  const mainNow = git('rev-parse', 'HEAD');
+  git('checkout', '-q', '-b', 'feature', forkPoint);
+  await put('docs/readme.md', 'feature\n');
+  git('add', '-A');
+  git('commit', '-q', '-m', 'feature changes docs only');
+  assert.equal(git('diff', '--name-only', `${mainNow}...HEAD`), 'docs/readme.md', 'the case must be one a three-dot diff would skip');
+  const result = await runStep(runBody(block), { BASE_SHA: mainNow, DB_SURFACE: envValue(block, 'DB_SURFACE') }, repo);
+  assert.equal(result.code, 0, result.out);
+  assert.equal(result.output, '', `a branch behind a main that changed db/ was told to skip: ${result.out}`);
+  assert.match(result.out, /the database surface changed; the control RUNS/);
+});
+
+test('a base commit whose tree git cannot read runs the negative control from the diff branch (R0-F2 on PR #197)', async () => {
+  // The commit object exists, so the first check passes; its tree is gone, so git diff exits 128.
+  // This is the only case that reaches the `if ! git ... diff` clause; without it `|| true` there survives.
+  const { readFile, rm } = await import('node:fs/promises');
+  const { join } = await import('node:path');
+  const block = stepBlock(await readFile(CI_WORKFLOW_PATH, 'utf8'), DECISION_STEP);
+  const { repo, base, git, put } = await scratchRepo();
+  await put('docs/readme.md', 'changed\n');
+  git('add', '-A');
+  git('commit', '-q', '-m', 'head');
+  const tree = git('rev-parse', `${base}^{tree}`);
+  await rm(join(repo, '.git', 'objects', tree.slice(0, 2), tree.slice(2)));
+  assert.equal(git('cat-file', '-t', base), 'commit', 'the base commit itself must still be readable');
+  const result = await runStep(runBody(block), { BASE_SHA: base, DB_SURFACE: envValue(block, 'DB_SURFACE') }, repo);
+  assert.equal(result.code, 0, `the step must not fail the job: ${result.out}`);
+  assert.equal(result.output, '', result.out);
+  assert.match(result.out, /could not be computed; the control RUNS/);
 });
