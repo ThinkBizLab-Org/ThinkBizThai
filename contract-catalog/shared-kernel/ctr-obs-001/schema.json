@@ -86,7 +86,8 @@
           "enum": [
             "up",
             "down"
-          ]
+          ],
+          "x-source": "DECLARED INFERENCE. OB-003 names liveness and says it must not be tied to an external provider; it does not enumerate liveness values. `up` and `down` are this contract's own two-value reading of a liveness probe, the smallest set that lets allOf[1] say a module that is not alive cannot be ready. Recorded 2026-10-06 because independent contract review (evidence/WP-0A-CON-004/review-contract.md, required change 5) found these values carried no provenance note."
         },
         "depends_on_external_provider": {
           "const": false
@@ -126,7 +127,8 @@
               "reason_key": {
                 "type": "string",
                 "pattern": "^readiness\\.[a-z0-9_.]+$",
-                "maxLength": 96
+                "maxLength": 96,
+                "x-maxlength-note": "DECLARED INFERENCE. The baseline states no length for a readiness reason key. 96 matches CTR-AUD-001 `reason_key` and `action.name`, so one stable-key length runs through the security and operations contracts; it keeps a key an identifier rather than a sentence and is NOT a control against free text, which the pattern carries. Recorded 2026-10-06 per independent contract review required change 5."
               }
             },
             "allOf": [
@@ -152,7 +154,7 @@
           }
         }
       },
-      "x-source": "Decision Register 5.2 CTR-OBS-001 requires 'readiness'; OB-003 requires readiness to reflect the REAL capability and MR-004 produces a 'readiness result per capability/scope', which is why readiness is reported per capability rather than as one flag. `reason_key` is a stable key rather than free text because CM-004 and CTR-ERR-001 establish stable keys for anything a person reads and OBS-001 forbids full content on this path; key-not-prose is a DECLARED INFERENCE from CM-004 and CTR-ERR-001. `capability_key` matches CTR-MOD-001's."
+      "x-source": "Decision Register 5.2 NAMES this contract \"Correlation/health/readiness\" (the Contract column; its freeze artifacts are \"propagation, SLI tags, bounded cardinality\", see x-catalog-note); OB-003 requires readiness to reflect the REAL capability and MR-004 produces a 'readiness result per capability/scope', which is why readiness is reported per capability rather than as one flag. `reason_key` is a stable key rather than free text because CM-004 and CTR-ERR-001 establish stable keys for anything a person reads and OBS-001 forbids full content on this path; key-not-prose is a DECLARED INFERENCE from CM-004 and CTR-ERR-001. `capability_key` matches CTR-MOD-001's."
     },
     "dependencies": {
       "type": "array",
@@ -186,7 +188,7 @@
           }
         }
       },
-      "x-source": "OB-003 aggregates 'module/provider status'. The `kind` split exists because the same task forbids an external provider from affecting liveness while allowing it to affect readiness, so the two must be distinguishable in the signal itself. The three status values are a DECLARED INFERENCE from the SEV-2 example in the Meta/Security/Ops alert table, which distinguishes a degraded provider from an unavailable one; no source enumerates them."
+      "x-source": "OB-003 aggregates 'module/provider status'. The `kind` split exists because the same task forbids an external provider from affecting liveness while allowing it to affect readiness, so the two must be distinguishable in the signal itself. The three status values are a DECLARED INFERENCE: the SEV-2 row of the Meta/Security/Ops alert table reads \"degraded provider, queue delay, one format unavailable\" and does NOT distinguish a degraded provider from an unavailable one, and `healthy` appears in no source; see the x-source on `status`. No source enumerates them. An earlier version of this sentence claimed the row draws that distinction; independent contract review (M1) showed it does not."
     },
     "sli_tags": {
       "type": "object",
