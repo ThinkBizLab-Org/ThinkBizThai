@@ -507,6 +507,21 @@ export const DIGESTED_FLOOR = [
   'test-kits/work-package-discovery.test.mjs',
   'test-kits/work-package-ownership.test.mjs',
   'work-packages/WP-0A-CON-008.json',
+  // E4 (open_blockers[9]): the modules digested tests import. Before this increment none was
+  // digested, and one line in test-kits/db/ws905-fixture.mjs ran outside code under a green check.
+  'db/foundation/test-helpers/rls-assertions.mjs',
+  'scripts/db/audit-producer-rule.mjs',
+  'scripts/db/authz-proofs.mjs',
+  'scripts/db/explain-harness.mjs',
+  'scripts/db/generate-pinned-grants.mjs',
+  'scripts/db/psql-driver.mjs',
+  'scripts/db/rls-smoke.mjs',
+  'scripts/db/run.mjs',
+  'scripts/db/sql-lexer.mjs',
+  'scripts/db/try-it.mjs',
+  'test-kits/db/ws905-fixture.mjs',
+  'tests/db/identity/isolation-cases.mjs',
+  'tests/db/identity/run-isolation.mjs',
 ];
 
 // A file that has ever been digested stays digested. See DIGESTED_FLOOR above for why.
@@ -661,6 +676,242 @@ export async function assertNoPackageManagerConfig(directory = '.') {
   }
 }
 
+// E4 (open_blockers[9]). The guard pinned every discovered test file and never looked at what
+// those files import. Three measured routes ran code from outside the repository during a green
+// `npm run check`: (a) one import line added to test-kits/db/ws905-fixture.mjs, a module a
+// digested suite imports but the manifest did not name -- guard exit 0, manifest unchanged, 23
+// marker files written outside the clone; (b) an escaping import (through a symlink, or a plain
+// `../../..` path) added to an EXISTING digested suite with its digest regenerated -- guard 0;
+// (c) a NEW test file doing the same, which only needed the contract and manifest edited.
+//
+// The closure is therefore walked, statically, from every test file. Every module it reaches
+// must be:
+//   - a `node:` builtin (the repository declares no dependency, so there is no other bare
+//     specifier it may name), or a `./` / `../` specifier with no `%`, `?`, `#` or `\` -- an ESM
+//     specifier is a URL, and `%2e%2e/` IS `../` to the loader while it is not to a string check;
+//   - lexically inside the repository, reached through no symbolic link at any path component,
+//     and a regular file whose real path is inside the repository root;
+//   - digested in the integrity manifest, so editing it is an edit to a protected file.
+// A dynamic `import()` whose argument is not one string literal, and any `require` or
+// `createRequire`, is refused outright: a computed specifier is a module the walk cannot name.
+//
+// Both halves are needed. Containment alone leaves an undigested fixture free to be gutted;
+// digesting alone leaves route (b), which edits a digest anyway. Together, reaching outside
+// code needs an import the walk can see, and the walk refuses every one that escapes.
+//
+// What this does NOT cover, stated so nobody cites it for more: code a test runs by spawning a
+// process (`spawnSync(process.execPath, [...])`), files a test reads as data (SQL, JSON via
+// readFile), and an import the scanner fails to see because `stripNonCode` misreads the text
+// around it (open_blockers[11]). The last needs a digested file edited -- every module in the
+// closure is now digested -- so it sits inside the disclosed digest class, not outside it.
+export const ALLOWED_DEPENDENCIES = [];
+
+const IMPORT_SPECIFIER = /^\.\.?\//;
+
+function findStringLiteral(raw, stripped, from) {
+  // The specifier is the first string literal after the keyword: a position where the raw text
+  // holds a quote and the stripped text holds blank, i.e. the scanner classified it as a string.
+  for (let i = from; i < raw.length; i += 1) {
+    if (stripped[i] !== ' ' && stripped[i] !== '\n') {
+      // Code between the keyword and the literal is fine (`{ a, b } from`), but a statement end
+      // before any literal means there was none.
+      if (stripped[i] === ';') return null;
+      continue;
+    }
+    const quote = raw[i];
+    if (quote === "'" || quote === '"') {
+      let j = i + 1;
+      while (j < raw.length && raw[j] !== quote && raw[j] !== '\n') {
+        if (raw[j] === '\\') return { start: i, value: null };
+        j += 1;
+      }
+      return { start: i, end: j + 1, value: raw.slice(i + 1, j) };
+    }
+    if (quote === '`') return { start: i, value: null };
+  }
+  return null;
+}
+
+// Every import, re-export and dynamic import in one module, with the statement text of each so
+// the caller can see HOW `node:test` was bound. Found on the STRIPPED text, so a keyword inside a
+// string or comment is never mistaken for one; the specifier is then read from the RAW text at
+// the same offset, which works because stripNonCode preserves every offset.
+export function extractImports(raw) {
+  const stripped = stripNonCode(raw);
+  const found = [];
+  const refusals = [];
+  for (const match of stripped.matchAll(/(?<![\w$.])(import|export|require|createRequire)(?![\w$])/g)) {
+    const keyword = match[1];
+    const at = match.index;
+    if (keyword === 'require' || keyword === 'createRequire') {
+      refusals.push(`\`${keyword}\` at offset ${at}: CommonJS loading is outside the static import walk`);
+      continue;
+    }
+    let k = at + keyword.length;
+    while (k < stripped.length && /\s/.test(stripped[k])) k += 1;
+    const next = stripped[k] ?? '';
+    if (keyword === 'import' && next === '.') continue; // import.meta
+    if (keyword === 'import' && next === '(') {
+      const literal = findStringLiteral(raw, stripped, k + 1);
+      let after = literal?.end ?? -1;
+      while (after > 0 && after < raw.length && /\s/.test(raw[after])) after += 1;
+      const onlyArgument = literal && literal.value !== null
+        && stripped.slice(k + 1, literal.start).trim() === '' && (raw[after] === ')' || raw[after] === ',');
+      if (!onlyArgument) {
+        refusals.push(`dynamic import() at offset ${at} whose argument is not one string literal`);
+        continue;
+      }
+      found.push({ specifier: literal.value, statement: raw.slice(at, after + 1), dynamic: true });
+      continue;
+    }
+    if (keyword === 'export') {
+      // Only a re-export loads a module: `export * from`, `export { a } from`.
+      if (next !== '*' && next !== '{') continue;
+      let end = k;
+      if (next === '{') {
+        end = stripped.indexOf('}', k);
+        if (end === -1) continue;
+      }
+      const rest = stripped.slice(end + 1, end + 200).match(/^\s*(?:as\s+[\w$]+\s*)?from(?![\w$])/);
+      if (next === '{' && !rest) continue;
+    }
+    // From the keyword, not from `k`: `k` skipped stripped whitespace, and a string literal IS
+    // stripped whitespace, so `import './x.mjs';` would have skipped straight past its specifier.
+    const literal = findStringLiteral(raw, stripped, at + keyword.length);
+    if (!literal || literal.value === null) {
+      refusals.push(`\`${keyword}\` at offset ${at} has no plain string-literal specifier`);
+      continue;
+    }
+    found.push({ specifier: literal.value, statement: raw.slice(at, literal.end).replace(/\s+/g, ' '), dynamic: false });
+  }
+  return { imports: found, refusals, stripped };
+}
+
+// Q0-C1 / Q0-N2. `import realTest from 'node:test'; const test = () => {};` keeps every lexical
+// `test(` line, name and assertion -- so the per-file floor, the name digest and the assertion
+// floor all hold -- while no original test runs. In a test file `test` is bound exactly once, by
+// `import test from 'node:test';`, and in code every other occurrence of the identifier is a
+// call (`test(`) or a member (`t.test`, `test.only`). Anything else rebinds or passes it on.
+export function assertTestBindingIntact(file, raw, imports, strippedSource = undefined) {
+  const problems = [];
+  const fromNodeTest = imports.filter(({ specifier }) => specifier === 'node:test');
+  if (fromNodeTest.length !== 1 || fromNodeTest[0].statement !== "import test from 'node:test'") {
+    problems.push(`binds node:test as ${fromNodeTest.map(({ statement }) => JSON.stringify(statement)).join(', ') || 'nothing'}; exactly \`import test from 'node:test';\` is allowed`);
+  }
+  const stripped = strippedSource ?? stripNonCode(raw);
+  const importAt = stripped.search(/(?<![\w$.])import\s+test\s+from(?![\w$])/);
+  const importedAt = importAt === -1 ? -1 : stripped.indexOf('test', importAt + 6);
+  for (const match of stripped.matchAll(/(?<![\w$.])test(?![\w$])/g)) {
+    if (match.index === importedAt) continue;
+    // Bounded scans, not slices: a whole-file `slice().replace(/\s+$/)` per occurrence made this
+    // quadratic on the 600KB isolation suites.
+    let b = match.index - 1;
+    while (b >= 0 && /\s/.test(stripped[b])) b -= 1;
+    let wordStart = b;
+    while (wordStart >= 0 && /[\w$]/.test(stripped[wordStart])) wordStart -= 1;
+    const previousWord = stripped.slice(wordStart + 1, b + 1);
+    const previousChar = stripped[b] ?? '';
+    let a = match.index + 4;
+    while (a < stripped.length && /\s/.test(stripped[a])) a += 1;
+    const next = stripped[a] ?? '';
+    const isCall = next === '(' || (next === '.' && stripped[a + 1] !== '.');
+    // An object key (`{ test: fn }`) names a property; it binds nothing.
+    const isKey = next === ':' && (previousChar === '{' || previousChar === ',');
+    if ((!isCall && !isKey) || ['function', 'class', 'const', 'let', 'var', 'new'].includes(previousWord)) {
+      const line = raw.slice(0, match.index).split('\n').length;
+      problems.push(`line ${line} uses \`test\` as something other than a call to the node:test import`);
+    }
+  }
+  if (problems.length > 0) {
+    throw new CoverageFloorError(93, `${file}: the \`test\` binding is not the runner's:\n  ${problems.join('\n  ')}\n`
+      + 'A shadowed or aliased `test` keeps every counted declaration, name and assertion while running none of them.');
+  }
+}
+
+export async function assertImportClosureContained(files, manifestPath = INTEGRITY_MANIFEST, root = process.cwd()) {
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  const digested = new Set(Object.keys(manifest.files ?? {}));
+  const realRoot = await realpath(root);
+  const problems = [];
+  const visited = new Set();
+  const queue = files.map((file) => posix.normalize(file.split('\\').join('/')));
+  const roots = new Set(queue);
+  const { isBuiltin } = await import('node:module');
+  while (queue.length > 0) {
+    const file = queue.shift();
+    if (visited.has(file)) continue;
+    visited.add(file);
+    if (!file.endsWith('.mjs') && !file.endsWith('.js')) continue; // a JSON import is a leaf
+    let raw;
+    try {
+      raw = await readFile(join(root, file), 'utf8');
+    } catch (error) {
+      problems.push(`${file} cannot be read: ${error.code ?? error.message}`);
+      continue;
+    }
+    const { imports, refusals, stripped } = extractImports(raw);
+    for (const refusal of refusals) problems.push(`${file}: ${refusal}`);
+    if (roots.has(file)) {
+      try {
+        assertTestBindingIntact(file, raw, imports, stripped);
+      } catch (error) {
+        if (!(error instanceof CoverageFloorError)) throw error;
+        problems.push(error.message);
+      }
+    }
+    for (const { specifier } of imports) {
+      if (specifier.startsWith('node:')) {
+        if (!isBuiltin(specifier)) problems.push(`${file} imports '${specifier}', which is not a node builtin`);
+        continue;
+      }
+      if (!IMPORT_SPECIFIER.test(specifier)) {
+        if (!ALLOWED_DEPENDENCIES.includes(specifier)) {
+          problems.push(`${file} imports '${specifier}': only node: builtins and ./ or ../ paths are allowed, and the repository declares no dependency`);
+        }
+        continue;
+      }
+      if (/[%?#\\]/.test(specifier)) {
+        problems.push(`${file} imports '${specifier}': a specifier is a URL, and %, ?, # or \\ makes what loads differ from what this walk reads`);
+        continue;
+      }
+      const target = posix.normalize(posix.join(posix.dirname(file), specifier));
+      if (!isRepositoryRelativePath(target)) {
+        problems.push(`${file} imports '${specifier}', which resolves outside the repository`);
+        continue;
+      }
+      const parts = target.split('/');
+      let contained = true;
+      for (let depth = 1; depth <= parts.length && contained; depth += 1) {
+        const path = parts.slice(0, depth).join('/');
+        try {
+          const stats = await lstat(join(root, path));
+          if (stats.isSymbolicLink()) { problems.push(`${file} imports '${specifier}' through the symbolic link ${path}`); contained = false; }
+          else if (depth === parts.length && !stats.isFile()) { problems.push(`${file} imports '${specifier}', and ${path} is not a regular file`); contained = false; }
+        } catch (error) {
+          problems.push(`${file} imports '${specifier}', and ${path} cannot be inspected: ${error.code ?? error.message}`);
+          contained = false;
+        }
+      }
+      if (!contained) continue;
+      const actual = await realpath(join(root, target));
+      if (!actual.startsWith(`${realRoot}/`)) {
+        problems.push(`${file} imports '${specifier}', whose real path ${actual} is outside the repository`);
+        continue;
+      }
+      if (!digested.has(target)) {
+        problems.push(`${file} imports ${target}, which is not digested in ${manifestPath}`);
+      }
+      queue.push(target);
+    }
+  }
+  if (problems.length > 0) {
+    throw new CoverageFloorError(92, `the import closure of the test files is not contained:\n  ${[...new Set(problems)].join('\n  ')}\n`
+      + 'Every module a test reaches must be a node: builtin or a digested regular file inside this repository, '
+      + 'or code nobody inspected runs during a green check (E4, open_blockers[9]).');
+  }
+  return visited.size;
+}
+
 export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', testDirectory = TEST_ROOT, floor = DEFAULT_FLOOR) {
   await assertNoPackageManagerConfig();
   await assertDigestedFilesAreRegular();
@@ -681,6 +932,7 @@ export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', 
   await assertDigestedSetNeverShrinks();
   await assertPerFileFloors(files);
   await assertNoEscapingPath(files);
+  await assertImportClosureContained(files);
   const declared = await assertDeclaredTests(files);
   return { pattern, files, declared };
 }

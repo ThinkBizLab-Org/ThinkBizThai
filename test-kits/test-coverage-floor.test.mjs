@@ -9,7 +9,10 @@ import {
   assertDeclaredTests,
   assertIntegrityManifest,
   assertEveryTestFileProtected,
+  assertImportClosureContained,
   assertNoEscapingPath,
+  assertTestBindingIntact,
+  extractImports,
   stripNonCode,
   assertPackageScripts,
   countDeclaredTests,
@@ -522,4 +525,185 @@ test('stripNonCode does not rescan its own output as the buffer grows', async ()
   assert.ok(elapsed < 2000,
     `stripNonCode took ${elapsed.toFixed(0)}ms on ${largest.length} bytes. The whole-buffer scan is `
     + 'back: find the last significant character incrementally rather than by re-reading `out`.');
+});
+
+// E4 (open_blockers[9]). Each fixture is a miniature repository under a temporary directory: a
+// manifest, test files and the modules they import, plus a file OUTSIDE that repository standing
+// for the code the measured routes ran. `assertImportClosureContained` takes the root, so the
+// fixture is judged exactly as the real tree is.
+async function closureFixture(layout, { digest = Object.keys(layout) } = {}) {
+  const { mkdtemp, mkdir, writeFile, realpath } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join, dirname } = await import('node:path');
+  const outer = await realpath(await mkdtemp(join(tmpdir(), 'e4-closure-')));
+  const root = join(outer, 'repo');
+  await mkdir(root);
+  await writeFile(join(outer, 'e4-outside.mjs'), "export const ran = 'outside';\n");
+  for (const [path, body] of Object.entries(layout)) {
+    await mkdir(dirname(join(root, path)), { recursive: true });
+    await writeFile(join(root, path), body);
+  }
+  const manifest = join(outer, 'manifest.json');
+  const files = Object.fromEntries(digest.map((path) => [path, '0'.repeat(64)]));
+  await writeFile(manifest, JSON.stringify({ files }));
+  return { outer, root, manifest };
+}
+
+const SUITE = "import test from 'node:test';\nimport { fixture } from './fixture.mjs';\ntest('a', () => {});\n";
+
+async function closureCode(files, fixture) {
+  try {
+    await assertImportClosureContained(files, fixture.manifest, fixture.root);
+    return { code: 0, message: '' };
+  } catch (error) {
+    return { code: error.code, message: error.message };
+  } finally {
+    // Each fixture is judged once; leaving it behind leaks a directory per case per run.
+    const { rm } = await import('node:fs/promises');
+    await rm(fixture.outer, { recursive: true, force: true });
+  }
+}
+
+test('E4 control: a contained, digested import closure passes', async () => {
+  const fixture = await closureFixture({
+    'kit/a.test.mjs': SUITE,
+    'kit/fixture.mjs': "import { join } from 'node:path';\nexport const fixture = join('a', 'b');\n",
+  });
+  const result = await closureCode(['kit/a.test.mjs'], fixture);
+  assert.equal(result.code, 0, result.message);
+});
+
+test('E4 route (a): an undigested module a digested suite imports cannot reach outside code', async () => {
+  // C0's measured route, verbatim in shape: one line prepended to a fixture the manifest never
+  // named. Before this increment the guard exited 0 and the manifest stayed byte-identical.
+  const fixture = await closureFixture({
+    'kit/a.test.mjs': SUITE,
+    'kit/fixture.mjs': "import '../../e4-outside.mjs';\nexport const fixture = 1;\n",
+  }, { digest: ['kit/a.test.mjs'] });
+  const result = await closureCode(['kit/a.test.mjs'], fixture);
+  assert.equal(result.code, 92);
+  assert.match(result.message, /kit\/fixture\.mjs, which is not digested/);
+  assert.match(result.message, /resolves outside the repository/);
+  // And digesting the fixture does not launder the escape: containment is checked on its own.
+  const digested = await closureFixture({
+    'kit/a.test.mjs': SUITE,
+    'kit/fixture.mjs': "import '../../e4-outside.mjs';\nexport const fixture = 1;\n",
+  });
+  const second = await closureCode(['kit/a.test.mjs'], digested);
+  assert.equal(second.code, 92);
+  assert.doesNotMatch(second.message, /not digested/);
+  assert.match(second.message, /'\.\.\/\.\.\/e4-outside\.mjs', which resolves outside the repository/);
+});
+
+test('E4 route (b): an existing digested suite cannot import out through a symlink or a ../ path', async () => {
+  const { symlink } = await import('node:fs/promises');
+  const { join } = await import('node:path');
+  // Q0-N1: a symlink inside the repository pointing out of it, digests "regenerated" (every key
+  // present in the manifest). The lexical path is inside; the bytes are not.
+  const viaLink = await closureFixture({
+    'kit/a.test.mjs': "import test from 'node:test';\nimport './e4-link.mjs';\ntest('a', () => {});\n",
+  });
+  await symlink(join(viaLink.outer, 'e4-outside.mjs'), join(viaLink.root, 'kit/e4-link.mjs'));
+  const linked = await closureCode(['kit/a.test.mjs'], viaLink);
+  assert.equal(linked.code, 92);
+  assert.match(linked.message, /through the symbolic link kit\/e4-link\.mjs/);
+  // A symlinked DIRECTORY on the way is the same escape one level up.
+  const viaDirectory = await closureFixture({
+    'kit/a.test.mjs': "import test from 'node:test';\nimport './out/e4-outside.mjs';\ntest('a', () => {});\n",
+  });
+  await symlink(viaDirectory.outer, join(viaDirectory.root, 'kit/out'));
+  const directory = await closureCode(['kit/a.test.mjs'], viaDirectory);
+  assert.equal(directory.code, 92);
+  assert.match(directory.message, /through the symbolic link kit\/out/);
+  // A1 I1: the same with a plain escaping relative path, and with a URL-encoded one, which the
+  // loader decodes to `../` while a string comparison would not.
+  for (const specifier of ['../../e4-outside.mjs', './%2e%2e/%2e%2e/e4-outside.mjs', '/etc/hosts', 'file:///etc/hosts']) {
+    const plain = await closureFixture({
+      'kit/a.test.mjs': `import test from 'node:test';\nimport '${specifier}';\ntest('a', () => {});\n`,
+    });
+    const result = await closureCode(['kit/a.test.mjs'], plain);
+    assert.equal(result.code, 92, `${specifier} must be refused`);
+  }
+});
+
+test('E4 route (c): a new test file, digested and declared, still cannot import outside code', async () => {
+  // Route (c) edited the contract and the manifest to admit a NEW suite. Admission is not the
+  // check any more: the new file's closure is walked like every other.
+  const fixture = await closureFixture({
+    'kit/a.test.mjs': SUITE,
+    'kit/fixture.mjs': 'export const fixture = 1;\n',
+    'kit/new.test.mjs': "import test from 'node:test';\nconst { ran } = await import('../../e4-outside.mjs');\ntest('new', () => {});\n",
+  });
+  const result = await closureCode(['kit/a.test.mjs', 'kit/new.test.mjs'], fixture);
+  assert.equal(result.code, 92);
+  assert.match(result.message, /kit\/new\.test\.mjs imports '\.\.\/\.\.\/e4-outside\.mjs', which resolves outside/);
+});
+
+test('E4: specifiers the walk cannot name are refused, not skipped', async () => {
+  const cases = {
+    'a bare specifier with no declared dependency': "import 'left-pad';\n",
+    'a builtin without the node: prefix': "import 'fs';\n",
+    'a node: name that is not a builtin': "import 'node:not-a-module';\n",
+    'a computed dynamic import': "const where = '../../e4-outside.mjs';\nawait import(where);\n",
+    'a template-literal dynamic import': 'await import(`../../e4-${"outside"}.mjs`);\n',
+    'createRequire': "import { createRequire } from 'node:module';\nconst load = createRequire(import.meta.url);\n",
+    'a re-export from outside': "export { ran } from '../../e4-outside.mjs';\n",
+  };
+  for (const [why, body] of Object.entries(cases)) {
+    const fixture = await closureFixture({
+      'kit/a.test.mjs': SUITE,
+      'kit/fixture.mjs': `${body}export const fixture = 1;\n`,
+    });
+    const result = await closureCode(['kit/a.test.mjs'], fixture);
+    assert.equal(result.code, 92, `${why} must be refused: ${result.message}`);
+  }
+  // A keyword inside a string or a comment is not an import, and `import.meta` is not one either.
+  const quiet = await closureFixture({
+    'kit/a.test.mjs': SUITE,
+    'kit/fixture.mjs': "// import '../../e4-outside.mjs';\nconst text = \"import '../../e4-outside.mjs'\";\nexport const fixture = import.meta.url + text;\n",
+  });
+  const control = await closureCode(['kit/a.test.mjs'], quiet);
+  assert.equal(control.code, 0, control.message);
+});
+
+test('E4 on this repository: every module the suites reach is digested and inside the root', async () => {
+  const files = (await Promise.all(['test-kits', 'tests'].map((root) => discoverTestFiles(root)))).flat().sort();
+  const reached = await assertImportClosureContained(files);
+  assert.ok(reached > files.length, `the walk reached ${reached} modules from ${files.length} suites; it must follow imports, not stop at the roots`);
+  const { imports } = extractImports(await readFile('test-kits/db/foundation-contract.test.mjs', 'utf8'));
+  assert.ok(imports.some(({ specifier }) => specifier === './ws905-fixture.mjs'),
+    'the walk must see the import C0 used for route (a)');
+  const manifest = JSON.parse(await readFile(INTEGRITY_MANIFEST, 'utf8'));
+  assert.ok(manifest.files['test-kits/db/ws905-fixture.mjs'], 'route (a)\'s fixture is digested');
+  // A check that is not called protects nothing: both the guard and the post-run pass walk it.
+  assert.match(verifyTestCoverageFloor.toString(), /await assertImportClosureContained\(files\);/);
+  assert.match(assertDeclarationsMatchExecution.toString(), /await assertImportClosureContained\(files\);/);
+});
+
+test('Q0-C1: a shadowed or aliased test binding is refused', async () => {
+  const shadowed = {
+    'Q0-F2 verbatim': "import realTest from 'node:test';\nconst test = () => {};\ntest('a', () => {});\nrealTest('generated-0', () => {});\n",
+    'a named alias': "import { test as realTest } from 'node:test';\nfunction test() {}\ntest('a', () => {});\n",
+    'a later reassignment': "import test from 'node:test';\nlet t = test;\ntest('a', () => {});\n",
+    'a shadowing parameter': "import test from 'node:test';\n[1].forEach((test) => {\n  test('a', () => {});\n});\n",
+    'a function declaration': "import test from 'node:test';\nfunction test() {}\ntest('a', () => {});\n",
+  };
+  for (const [why, raw] of Object.entries(shadowed)) {
+    const { imports } = extractImports(raw);
+    assert.throws(() => assertTestBindingIntact('kit/a.test.mjs', raw, imports), (error) => error.code === 93, why);
+  }
+  const intact = "import test from 'node:test';\nconst matcher = { test: (x) => x };\ntest('a', async (t) => { await t.test('b', () => {}); matcher.test(1); });\n";
+  const { imports } = extractImports(intact);
+  assert.doesNotThrow(() => assertTestBindingIntact('kit/a.test.mjs', intact, imports));
+});
+
+test('A1 T1: the post-run reconciliation counts the same bytes it digests', async () => {
+  // A race cannot be reproduced deterministically in a unit test, so the property is pinned on
+  // the code: each file is read once, digested, and counted from that one buffer.
+  const source = assertDeclarationsMatchExecution.toString();
+  assert.match(source, /const bytes = await readFile\(file\);/);
+  assert.match(source, /createHash\('sha256'\)\.update\(bytes\)/);
+  assert.match(source, /countDeclaredTests\(bytes\.toString\('utf8'\)\)/);
+  assert.doesNotMatch(source, /countDeclaredTests\(await readFile/,
+    'a second read of the file to count it reopens A1 T1: the bytes hashed are not the bytes counted');
 });
