@@ -15,7 +15,12 @@ const isText = (value) => typeof value === 'string' && value.length > 0;
 // review bypassed with HTTPS://, //host, ftp:, data:, file:, javascript: and traversal.
 // The Author claimed to have closed this class and closed it in one of two files;
 // independent testing of WP-0A-CON-005 found this survivor. Defer to the contract.
-const isPrivateRef = (value) => isText(value) && /^(job|status|result|app|asset|content):(?!\/)(?!.*\.\.)[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*(?:\/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)*$/.test(value);
+// The two lookaheads were dropped to match the schemas' text, which lost them at 64d9c65: the
+// grammar already excludes a leading '/' and any '..' segment, so they were redundant, and a
+// predicate printing a different pattern from the contract is a divergence a reader has to
+// re-prove equivalent (WP-0A-CON-005 C0 F6).
+const PRIVATE_REF = /^(job|status|result|app|asset|content):[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*(?:\/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)*$/;
+const isPrivateRef = (value) => isText(value) && PRIVATE_REF.test(value);
 const hasTenantContext = (value) => Boolean(value && isText(value.workspace_id)
   && value.actor && ['user', 'system_actor'].includes(value.actor.kind) && isText(value.actor.id)
   && isText(value.request_id) && isText(value.correlation_id)
@@ -302,6 +307,13 @@ test('the manifest declares which of its claims fixtures cannot demonstrate', as
 // rejected because they silently disagreed. Prove agreement on every shipped fixture instead
 // of trusting it.
 test('the predicate and the shipped schema agree on every fixture', async () => {
+  // The predicate's reference rule is the contract's, character for character: the same text,
+  // not a pattern a reader has to re-prove equivalent (WP-0A-CON-005 C0 F6).
+  const api = await readJson(`${CATALOG}/ctr-api-001/schema.json`);
+  const idm = await readJson(`${CATALOG}/ctr-idm-001/schema.json`);
+  for (const pattern of [api.properties.accepted.properties.status_ref.pattern, api.properties.accepted.properties.deep_link_ref.pattern, idm.properties.result_ref.pattern]) {
+    assert.equal(new RegExp(pattern, 'u').source, PRIVATE_REF.source, 'the predicate must print the pattern the contract carries');
+  }
   for (const { id, dir, validate: predicate } of CONTRACTS) {
     const manifest = await readJson(`${CATALOG}/${dir}/manifest.json`);
     for (const fixture of manifest.fixtures) {
