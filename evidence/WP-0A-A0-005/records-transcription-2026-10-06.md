@@ -66,5 +66,13 @@ requires. The branch was recreated from `origin/main` `411dfa7e`, where the hand
 `c5008e1`; `scripts/commit-when-clean.mjs` refused the records commit (the handoff-conformance test named
 eight paths `main` changed since), so one refresh-only handoff commit precedes the records commit, and
 the final refresh is committed last and alone. Only `npm run refresh:handoff` touched the handoff; its
-prose fields are as they were at `2d015cc9` and were not hand-edited here. It changes no RFC, CI, gate, contract, script, test or lockfile, moves no status, and gives
+prose fields are as they were at `2d015cc9` and were not hand-edited here.
+
+`node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-005` then exited 74: the manifest's
+`ownership.amends_without_owning.paths` still named the five files the A1-005-1 increment re-declared
+(the scanner, its test, `test-kits/integrity-manifest.json`, `scripts/test-suite-contract.mjs`,
+`evidence/VERIFICATION.md`), which reached `main` in PR #190 and which this branch does not touch. The
+paths are emptied and the rationale extended, as WP-0A-CON-003 and WP-0A-CON-004 did on their records
+branches; `recorded_on` is kept because the `amended_by` acknowledgements are still owed. `origin/main`
+moved to `4dd767df` during this run and was merged in cleanly (no path of this package touched). It changes no RFC, CI, gate, contract, script, test or lockfile, moves no status, and gives
 no acknowledgement of any `amended_by` entry.
