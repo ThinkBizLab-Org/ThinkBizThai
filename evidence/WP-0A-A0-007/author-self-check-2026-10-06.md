@@ -52,6 +52,14 @@ WP-0A-A0-005 as C0 F4. It also said `/claude/r0_steward` "must record its own ca
 before this package leaves backlog"; that declaration exists at `.agents/capability-profiles/cc-r0-steward.json`
 (added `f55b8ff`, 2026-08-31). Both are corrected.
 
+**Correction, 2026-10-06 (C0 F3, A1-007-3, Q0-N1).** The list above is one commit too long: `93bbdb6`
+did not touch this manifest (`git show --name-only 93bbdb6` lists only `RFC-2026-016` and
+`test-kits/integrity-manifest.json`). The commits that touched `work-packages/WP-0A-A0-007.json` before
+this branch are `53d7d2e`, `dd6c7ec`, `cff15d1` and `f3e0bce` (`git log b61735f --
+work-packages/WP-0A-A0-007.json`). The conclusion is unchanged: each of those four versions names
+`/root/r0_steward` once, in `_run_id_disambiguation`, as C0, A1 and Q0 each measured. The manifest's own
+range ("53d7d2e..f3e0bce") was right. The original sentence is left as written above.
+
 ## 4. Open blockers, re-read clause by clause at b61735f
 
 | # | Before | Reading at main | Action |
