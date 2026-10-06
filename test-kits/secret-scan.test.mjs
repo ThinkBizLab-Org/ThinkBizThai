@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { lstatSync, readdirSync } from 'node:fs';
 import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 import {
   ALL_RULES,
@@ -9,11 +12,16 @@ import {
   EXIT_PATTERN_FINDING,
   EXIT_UNSCANNABLE,
   exitCodeFor,
+  IGNORED_DIRECTORIES,
+  isEnvironmentReference,
   isPlaceholderValue,
   isThaiNationalId,
+  MAX_FILE_BYTES,
+  PII_PROSE_PREFIXES,
   PII_RULES,
   scanDirectory,
   scanText,
+  scanTree,
   shannonEntropy,
 } from '../scripts/scan-repository-secrets.mjs';
 
@@ -75,6 +83,14 @@ const CREDENTIAL_DECOYS = [
   ['github fine-grained pat', 'github-fine-grained-pat', A('github_pat', '_', '11ABCDEFG0', '_', 'x'.repeat(59))],
   ['openai legacy key', 'openai-legacy-key', A('sk', '-', 'Qm4Rt7Zx2Lp8Vb3Nd6Wc1Yk9Jf5Hs0TaGe2Uu7Ii4O')],
   ['slack app token', 'slack-app-token', A('xapp', '-', '1', '-', 'A0123456789', '-', '2468013579246', '-', 'q'.repeat(64))],
+  // Q0 L3 (2026-10-05): the secret words the assignment rule did not know. Each as the shape a
+  // real .env line takes; the short words only as the last word of the name.
+  ['passphrase assignment', 'secret-named-assignment', A('KEY_', 'PASSPHRASE', '=', 'Hn7Qz2Lm9Rt4Vb8Kd')],
+  ['signing key assignment', 'secret-named-assignment', A('JWT_', 'SIGNING_KEY', '=', 'k9Qm4Rt7Zx2Lp8Vb3Nd6Wc1Y')],
+  ['short pass assignment', 'secret-named-assignment', A('SMTP_', 'PASS', '=', 'Hn7Qz2Lm9Rt4Vb8Kd')],
+  ['basic auth assignment', 'secret-named-assignment', A('HTTP_', 'AUTH', '=', 'bot:Hn7Qz2Lm9Rt4Vb8Kd')],
+  ['hash salt assignment', 'secret-named-assignment', A('HASH_', 'SALT', '=', 'k9Qm4Rt7Zx2Lp8Vb3Nd6Wc1Y')],
+  ['short pwd assignment', 'secret-named-assignment', A('DB_', 'PWD', '=', 'Hn7Qz2Lm9Rt4Vb8Kd')],
 ];
 
 // Values that MUST NOT fire. Several are verbatim shapes that already exist in this
@@ -99,6 +115,13 @@ const FALSE_POSITIVES = [
   ['an iso timestamp', '2026-08-31T18:13:45Z'],
   ['a plain ten digit number that is not a thai mobile prefix', '0212345678'],
   ['a documented dsn whose short password keeps it below the dsn floor', A('mysql', '://', 'appuser', ':', 'pass', '@', 'db.example.com', '/app')],
+  // Q0 L3's short words, where they are not a secret: PASS inside BYPASS, AUTH at the head of a
+  // name or inside AUTHOR, a bare PWD (the shell's working directory).
+  ['PASS as the tail of another word', A('BYPASS', '_MODE', '=', 'enabled_always')],
+  ['AUTH at the head of a constant naming a path', A('AUTH', '_CONTEXT_HELPERS', ' = ', "'db/foundation/test-helpers/auth-context.sql'")],
+  ['AUTH inside AUTHOR', A('GIT_', 'AUTHOR', '_NAME', '=', 'Somebody_Synthetic')],
+  ['a bare PWD, which is a directory', A('PWD', '=', '/home/runner/work/app')],
+  ['a spaced thirteen digit run with a wrong check digit', '1 1037 01503 45 0'],
 ];
 
 async function withTempDir(body) {
@@ -173,11 +196,13 @@ test('the credential decoy table is detected on disk, not only in memory', async
   });
 });
 
-test('detects a checksum-valid synthetic Thai national ID in plain and hyphenated form', () => {
+test('detects a checksum-valid synthetic Thai national ID in plain, hyphenated and printed form', () => {
   const plain = synthThaiId('110370150345');
   const hyphenated = `${plain.slice(0, 1)}-${plain.slice(1, 5)}-${plain.slice(5, 10)}-${plain.slice(10, 12)}-${plain.slice(12)}`;
   assert.deepEqual(scanText(`id: ${plain}`, { relativePath: 'fixtures/customer.json' }), ['thai-national-id']);
   assert.deepEqual(scanText(`id: ${hyphenated}`, { relativePath: 'fixtures/customer.json' }), ['thai-national-id']);
+  // Q0 L3: the 1-4-5-2-1 grouping with spaces, as the identity card prints it.
+  assert.deepEqual(scanText(`id: ${hyphenated.replaceAll('-', ' ')}`, { relativePath: 'fixtures/customer.json' }), ['thai-national-id']);
 });
 
 test('detects synthetic Thai phone numbers in several written formats', () => {
@@ -303,7 +328,7 @@ test('does not fire on the false-positive table', () => {
     if (hits.length > 0) fired.push(`${name} -> ${hits.join(',')}`);
   }
   assert.deepEqual(fired, [], `false positives: ${fired.join('; ')}`);
-  assert.equal(FALSE_POSITIVES.length, 19);
+  assert.equal(FALSE_POSITIVES.length, 24);
 });
 
 test('exits clean on this repository as it stands', async () => {
@@ -330,6 +355,10 @@ test('the entropy and placeholder helpers behave as the rules assume', () => {
   assert.ok(isPlaceholderValue('xxxxxxxx'));
   // Anchored: a real credential that merely contains a placeholder word is NOT excused.
   assert.ok(!isPlaceholderValue('synthetic-Hn7Qz2Lm9Rt4Vb'));
+  // The same anchoring for an environment read: only a value that STARTS as one is excused.
+  assert.ok(isEnvironmentReference(A('process.env.', 'NPM_TOKEN')));
+  assert.ok(isEnvironmentReference(A('import.meta.env.', 'VITE_TOKEN')));
+  assert.ok(!isEnvironmentReference(A('npm_', 'k9Qm4Rt7Zx2Lp8Vb3Nd6Wc1Yj5Hs0TaGe2Uu', 'process.env.')));
 });
 
 test('every rule has a unique id and a global pattern', () => {
@@ -358,11 +387,18 @@ const NEW_RULE_FALSE_POSITIVES = [
   ['a member chain resembling a legacy vault token', 'const v = x.s.someVeryLongIdentifierName;'],
   ['a publish script referencing an env var', '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'],
   ['a forty-character git object id', 'a3f5c9e1b7d2048f6a3c5e9b1d7f2048a6c3e5b9'],
+  // A1 N1 (2026-10-05): the prose shape that FIRED before netrc-password was anchored to a
+  // `machine` block -- a line opening with the word and ending in one long token. Without this
+  // row, reverting the anchor left the suite green.
+  ['a prose line opening with the word password and ending in one long token', A('password', ' ', 'rotation-is-documented-in-the-runbook')],
+  // A1 C3 (2026-10-05), FP-3: the npmrc rule had no placeholder or reference filter.
+  ['a publish script reading the token from the environment', A('const npm', '_authToken', ' = ', 'process.env.', 'NPM_TOKEN', ';')],
+  ['an npmrc line carrying a documented placeholder', A('//registry.npmjs.org/:', '_authToken', '=', 'your_npm_token_here')],
 ];
 
 test('the rules added after the uncorrelated probe do not fire on legitimate content', () => {
   for (const [label, content] of NEW_RULE_FALSE_POSITIVES) {
-    const hits = scanText(content, 'sample.txt');
+    const hits = scanText(content, { relativePath: 'sample.txt' });
     assert.deepEqual(hits, [], `${label} must not be reported: ${JSON.stringify(hits)}`);
   }
 });
@@ -797,8 +833,14 @@ test('every credential rule fires in every path shape, whatever the scanner has 
   // matter; it says nothing about a third carve-out somewhere else in the same function. **Pinning
   // which lines are load-bearing is not the same as pinning the outcome.**
   //
-  // So: one planted credential per rule, in each path shape a carve-out would target, and a hit
-  // required for every combination. A carve-out cannot satisfy this; only scanning can.
+  // So: four planted credentials, in each of five named path shapes, and a hit required for
+  // every combination. CORRECTED 2026-10-06 (C0 R1, Q0 L2): this comment used to end "A carve-out
+  // cannot satisfy this; only scanning can." That was false. Five named shapes catch a carve-out
+  // aimed at one of THOSE five and nothing else: one inserted line skipping `architecture/` left
+  // this test, and the whole suite, green. This test is kept as a cheap first tripwire; the
+  // property is asserted by the tests below that derive their paths and directories from the
+  // real tree, plant at every offset and size, and compare what the scanner read with an
+  // independent walk.
   const { mkdtemp, mkdir, writeFile } = await import('node:fs/promises');
   const { tmpdir } = await import('node:os');
   const { join, dirname } = await import('node:path');
@@ -832,4 +874,278 @@ test('every credential rule fires in every path shape, whatever the scanner has 
   assert.deepEqual(missed, [], `credential(s) the scanner did not report:\n  ${missed.join('\n  ')}\n`
     + 'A path the scanner has been told to skip is a path an author can choose.');
   assert.ok(CREDENTIAL_RULES.length >= 25, `expected the full credential rule set, found ${CREDENTIAL_RULES.length}`);
+});
+
+// ---------------------------------------------------------------------------------------------
+// C0 R1 (High) and Q0 L2 (2026-10-05): the suite could not notice the scanner reading LESS of the
+// tree. One line skipping `architecture/`, a silent 4 KB size cap, skipping every `.md` and
+// `.json` file, slicing each file to its first 512 bytes, or honouring a magic "exempt" string
+// each left all 46 tests green, and each blinds the scanner to most of this repository. The
+// tests below assert the property instead of naming shapes: every path, directory, offset and
+// size the real tree has, and a count of what was read compared with an independent walk.
+// ---------------------------------------------------------------------------------------------
+
+// Written here, not imported, so that widening the scanner's own list cannot widen this one.
+const INDEPENDENT_IGNORED_DIRECTORIES = ['.git', 'node_modules'];
+const INDEPENDENT_PROSE_PREFIXES = ['evidence/', 'handoffs/'];
+
+/** Every regular file under `root`, found WITHOUT the scanner: the yardstick the scanner's own
+ *  account of what it read is compared with. */
+function independentWalk(root) {
+  const files = [];
+  const visit = (relativeDirectory) => {
+    for (const name of readdirSync(join(root, relativeDirectory))) {
+      const relativePath = relativeDirectory ? `${relativeDirectory}/${name}` : name;
+      const info = lstatSync(join(root, relativePath));
+      if (info.isDirectory()) {
+        if (!INDEPENDENT_IGNORED_DIRECTORIES.includes(name)) visit(relativePath);
+      } else if (info.isFile()) {
+        files.push({ relativePath, size: info.size });
+      }
+    }
+  };
+  visit('');
+  return files.sort((a, b) => (a.relativePath < b.relativePath ? -1 : a.relativePath > b.relativePath ? 1 : 0));
+}
+
+/** Compare two sorted path lists and fail with a SHORT message. A thousand-entry deepEqual diff
+ *  is megabytes of output, and the ratchet that runs this suite in a child process with a bounded
+ *  buffer reads that as a child that never ran, not as a suite that failed. */
+function assertSamePaths(actual, expected, what) {
+  const missing = expected.filter((path) => !actual.includes(path));
+  const extra = actual.filter((path) => !expected.includes(path));
+  assert.ok(missing.length === 0 && extra.length === 0 && actual.length === expected.length,
+    `${what}: ${missing.length} missing, ${extra.length} unexpected, ${actual.length} vs ${expected.length}\n`
+    + `  missing: ${missing.slice(0, 10).join(', ')}\n  unexpected: ${extra.slice(0, 10).join(', ')}`);
+}
+
+/** Fail with a count and the first few entries, never the whole list (see assertSamePaths). */
+function assertNone(list, what) {
+  assert.ok(list.length === 0, `${list.length} ${what}:\n  ${list.slice(0, 20).join('\n  ')}`);
+}
+
+const PII_DECOYS = () => [
+  ['thai-national-id', `id ${synthThaiId('310120054321')}`],
+  ['thai-phone-number', `tel ${A('08', '12345678')}`],
+  ['payment-card-number', `pan ${synthCard('401288888888188')}`],
+];
+
+test('the scanner reads every file an independent walk of this repository finds', async () => {
+  assert.deepEqual([...IGNORED_DIRECTORIES].sort(), [...INDEPENDENT_IGNORED_DIRECTORIES].sort(),
+    'the scanner skips a directory this test does not: every file under it is unscanned');
+  // Other suites run in parallel; if the tree moved while it was being read, read it again.
+  let attempt = 0;
+  for (;;) {
+    const before = independentWalk('.');
+    const { findings, files, bytes } = await scanTree('.');
+    const after = independentWalk('.');
+    if (JSON.stringify(before) !== JSON.stringify(after) && attempt < 3) { attempt += 1; continue; }
+    assertNone(findings.map((finding) => `${finding.relativePath}:${finding.rule}`), 'finding(s) on this repository');
+    const expected = before.map((file) => file.relativePath).sort();
+    assertSamePaths(files, expected, 'the files the scanner read are not the files an independent walk finds');
+    assert.equal(bytes, before.reduce((sum, file) => sum + file.size, 0), 'the scanner read fewer bytes than the tree holds');
+    assert.ok(expected.length > 500, `only ${expected.length} files: the walk is not looking at this repository`);
+    return;
+  }
+});
+
+test('every rule fires at every path this repository has, wherever a carve-out could aim', () => {
+  assert.deepEqual([...PII_PROSE_PREFIXES].sort(), [...INDEPENDENT_PROSE_PREFIXES].sort(),
+    'the email exemption covers a path this test does not');
+  const paths = independentWalk('.').map((file) => file.relativePath);
+  // A carve-out may aim at a directory that has no file yet, or at a new file in an existing one.
+  const directories = [...new Set(paths.map((path) => dirname(path)).filter((path) => path !== '.'))];
+  const targets = [...paths, ...directories.map((directory) => `${directory}/new-file.txt`), 'new-top-level/new-file.txt'];
+  const missed = [];
+  const email = A('somchai.customer', '@', 'synthetic-example', '.co.th');
+  for (const relativePath of targets) {
+    for (const [, rule, value] of CREDENTIAL_DECOYS) {
+      if (!scanText(`${value}\n`, { relativePath }).includes(rule)) missed.push(`${rule} at ${relativePath}`);
+    }
+    for (const [rule, value] of PII_DECOYS()) {
+      if (!scanText(`${value}\n`, { relativePath }).includes(rule)) missed.push(`${rule} at ${relativePath}`);
+    }
+    const exempt = INDEPENDENT_PROSE_PREFIXES.some((prefix) => relativePath.startsWith(prefix));
+    if (scanText(`contact ${email}\n`, { relativePath }).includes('email-address') === exempt) {
+      missed.push(`email-address at ${relativePath} (exempt: ${exempt})`);
+    }
+  }
+  assertNone(missed, 'rule/path pair(s) not reported');
+  assert.ok(targets.length > 500);
+});
+
+// Directory names this repository does not have yet but a project like it grows. A walk that
+// skips a name it has never seen -- `src*`, a build or vendor tree, a dot-directory -- is as
+// blind as one that skips a name it has.
+const FUTURE_PATHS = ['src/index.mjs', 'src-internal/config.txt', 'packages/app/src/env.ts', 'apps/web/.env.local',
+  'services/api/settings.yml', 'infra/terraform/main.tf', 'config/production.json', '.hidden/notes.txt',
+  'build/output.js', 'dist/bundle.js', 'vendor/lib/readme.md', 'tmp/scratch.txt', 'deeply/nested/a/b/c/d/e/leak'];
+
+test('a credential appended to a copy of every file in this repository is reported, at that path', async () => {
+  const real = independentWalk('.');
+  await withTempDir(async (directory) => {
+    const expected = [];
+    const plant = async (index, relativePath, content) => {
+      const [, rule, value] = CREDENTIAL_DECOYS[index % CREDENTIAL_DECOYS.length];
+      const target = join(directory, relativePath);
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, Buffer.concat([content, Buffer.from(`\n${value}\n`)]));
+      expected.push([relativePath, rule]);
+    };
+    for (const [index, { relativePath }] of real.entries()) await plant(index, relativePath, await readFile(relativePath));
+    for (const [index, relativePath] of FUTURE_PATHS.entries()) await plant(index, relativePath, Buffer.from('synthetic\n'));
+    const { files, findings } = await scanTree(directory);
+    assertSamePaths(files, [...real.map((file) => file.relativePath), ...FUTURE_PATHS].sort(), 'the scanner did not read every copied file');
+    const reported = new Set(findings.map((finding) => `${finding.relativePath}\u0000${finding.rule}`));
+    const missed = expected.filter(([path, rule]) => !reported.has(`${path}\u0000${rule}`)).map(([path, rule]) => `${rule} in ${path}`);
+    assertNone(missed, 'planted credential(s) not reported');
+  });
+});
+
+const PADDING_LINE = 'synthetic padding prose for the offset test, carrying no credential at all\n';
+const padding = (length) => PADDING_LINE.repeat(Math.ceil(length / PADDING_LINE.length) + 1).slice(0, length);
+
+test('a credential is reported whatever its offset in the file and whatever the file size', async () => {
+  // Every rule, past 8 KiB: a per-rule truncation is as blinding as a global one.
+  const deep = padding(9 * 1024);
+  const missed = CREDENTIAL_DECOYS.filter(([, rule, value]) => !scanText(`${deep}\n${value}\n`, { relativePath: 'notes.txt' }).includes(rule))
+    .map(([name]) => name);
+  assert.deepEqual(missed, [], `not reported past 9 KiB: ${missed.join(', ')}`);
+
+  await withTempDir(async (directory) => {
+    const credential = A('AKIA', 'IOSFODNN7EXAMPLE');
+    const planted = [];
+    for (const kib of [0, 1, 4, 8, 64, 512]) {
+      const pad = padding(kib * 1024);
+      for (const [where, content] of [
+        ['head', `${credential}\n${pad}`],
+        ['middle', `${pad.slice(0, pad.length >> 1)}\n${credential}\n${pad.slice(pad.length >> 1)}`],
+        ['tail', `${pad}\n${credential}\n`],
+      ]) {
+        const name = `${where}-${kib}k.txt`;
+        await writeFile(join(directory, name), content);
+        planted.push(name);
+      }
+    }
+    const { files, findings } = await scanTree(directory);
+    assert.deepEqual(files, [...planted].sort(), 'a file was skipped');
+    const reported = findings.filter((finding) => finding.rule === 'aws-access-key-id').map((finding) => finding.relativePath).sort();
+    assert.deepEqual(reported, [...planted].sort(), 'a credential at some offset or size was not reported');
+  });
+});
+
+test('a file of exactly the size limit is read to its last byte, and one byte more is reported', async () => {
+  await withTempDir(async (directory) => {
+    const tail = `\n${A('AKIA', 'IOSFODNN7EXAMPLE')}\n`;
+    await writeFile(join(directory, 'at-limit.txt'), padding(MAX_FILE_BYTES - tail.length) + tail);
+    let result = await scanTree(directory);
+    assert.deepEqual(result.findings.map((finding) => finding.rule), ['aws-access-key-id'],
+      'a credential in the last bytes of a file at the size limit was not reported');
+    assert.equal(result.bytes, MAX_FILE_BYTES);
+    await writeFile(join(directory, 'at-limit.txt'), padding(MAX_FILE_BYTES + 1 - tail.length) + tail);
+    result = await scanTree(directory);
+    assert.deepEqual(result.findings.map((finding) => finding.rule), ['oversize-file'],
+      'a file over the limit must be a finding, never a silent skip');
+    assert.deepEqual(result.files, []);
+  });
+});
+
+// C0 R2: the size is checked before the file is read. Observable: a file this process cannot
+// read but can stat is reported as oversize (stat first) rather than unreadable (read first).
+test('the size limit is enforced before the file is read', async () => {
+  await withTempDir(async (directory) => {
+    const file = join(directory, 'big-and-locked.txt');
+    await writeFile(file, padding(4096));
+    await chmod(file, 0o000);
+    const findings = await scanDirectory(directory, { maxFileBytes: 1024 });
+    await chmod(file, 0o600);
+    assert.deepEqual(findings.map((finding) => finding.rule), ['oversize-file']);
+  });
+});
+
+// Q0 L1 (2026-10-05): required_tests declared a fail-closed test for a non-regular entry and
+// none existed; deleting the `unscannable-entry` finding left the suite green.
+test('fails closed on a non-regular entry: a FIFO and a socket are findings, not passes', async () => {
+  await withTempDir(async (directory) => {
+    const nested = join(directory, 'tree');
+    await mkdir(nested);
+    execFileSync('mkfifo', [join(nested, 'pipe')]);
+    const server = createServer();
+    await new Promise((resolve, reject) => { server.once('error', reject); server.listen(join(nested, 'sock'), resolve); });
+    try {
+      const findings = await scanDirectory(directory);
+      assert.deepEqual(findings.map((finding) => `${finding.relativePath}:${finding.rule}`),
+        ['tree/pipe:unscannable-entry', 'tree/sock:unscannable-entry']);
+      assert.equal(exitCodeFor(findings), EXIT_UNSCANNABLE);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  });
+});
+
+// Q0 M27: a magic "exempt" string honoured by the scanner. Other scanners honour suppression
+// comments; this one must not, because a suppression comment is a carve-out an author chooses.
+test('no suppression comment excuses a credential', async () => {
+  const markers = ['scan-exempt', 'nosec', 'gitleaks:allow', 'pragma: allowlist secret', 'noqa',
+    'trufflehog:ignore', 'detect-secrets: ignore', 'secret-scan: ignore', 'eslint-disable', 'SCAN_SKIP'];
+  await withTempDir(async (directory) => {
+    for (const [index, marker] of markers.entries()) {
+      await writeFile(join(directory, `marker-${index}.txt`), `# ${marker}\n${A('AKIA', 'IOSFODNN7EXAMPLE')} # ${marker}\n`);
+    }
+    const findings = await scanDirectory(directory);
+    assert.deepEqual(findings.map((finding) => finding.rule), markers.map(() => 'aws-access-key-id'));
+  });
+});
+
+// C0 R3 (2026-10-05): rule length floors were unpinned. Each floored rule is built at its floor,
+// which must fire, and one character below it, which must not -- so a floor raised until the
+// rule matches nothing, or lowered until it is noise, fails here. Every value is assembled at run
+// time from a deterministic alphabet walk; none is written down.
+const ALNUM = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+const UPPER_DIGITS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const HEX = '0123456789abcdef';
+const B64 = `${ALNUM}+/`;
+const body = (length, alphabet = ALNUM) => Array.from({ length }, (_, i) => alphabet[(i * 7 + 3) % alphabet.length]).join('');
+const FLOORS = [
+  ['stripe-secret-key', 16, (n) => A('sk_', 'live_', body(n))],
+  ['stripe-webhook-secret', 16, (n) => A('whsec_', body(n))],
+  ['aws-access-key-id', 16, (n) => A('AKIA', body(n, UPPER_DIGITS))],
+  ['aws-secret-access-key', 40, (n) => A('aws_secret', '_access_key', ' = ', body(n, B64))],
+  ['github-token', 20, (n) => A('ghp', '_', body(n))],
+  ['github-fine-grained-pat', 50, (n) => A('github', '_pat_', body(n))],
+  ['openai-project-key', 20, (n) => A('sk-', 'proj-', body(n))],
+  ['openai-legacy-key', 32, (n) => A('sk-', body(n))],
+  ['anthropic-api-key', 24, (n) => A('sk-', 'ant-', body(n))],
+  ['google-api-key', 35, (n) => A('AI', 'za', body(n))],
+  ['slack-token', 12, (n) => A('xoxb-', '20481073152', '-', '30291847362', '-', body(n))],
+  ['slack-app-token', 16, (n) => A('xapp', '-1-', 'A0123456789', '-', '2468013579246', '-', body(n))],
+  ['npm-access-token', 36, (n) => A('npm', '_', body(n))],
+  ['json-web-token', 16, (n) => A('eyJ', 'hbGciOiJIUzI1NiJ9', '.', body(20), '.', body(n))],
+  ['authorization-header', 20, (n) => A('Authorization', ': ', 'Bearer ', body(n))],
+  ['database-url-inline-password', 8, (n) => A('postgres', '://', 'app_rw', ':', body(n), '@', 'db.synthetic-host.example', '/appdb')],
+  ['azure-storage-key', 40, (n) => A('Account', 'Key', '=', body(n, B64))],
+  ['azure-sas-signature', 40, (n) => A('https://acct.blob.core.windows.net/c/b?sv=1&', 'sig', '=', body(n))],
+  ['meta-access-token', 20, (n) => A('EA', 'A', body(n))],
+  ['stripe-restricted-key', 20, (n) => A('rk_', 'live_', body(n))],
+  ['twilio-auth-pair', 32, (n) => A('AC', body(32, HEX), ' ', body(n, HEX))],
+  ['sendgrid-key', 20, (n) => A('SG', '.', body(22), '.', body(n))],
+  ['npmrc-auth-token', 16, (n) => A('//registry.npmjs.org/:', '_authToken', '=', body(n))],
+  ['netrc-password', 8, (n) => A('machine registry.example\n  login bot\n  ', 'password', ' ', body(n))],
+  ['kubernetes-service-account-token', 10, (n) => A('eyJhbGciOiJSUzI1NiIsImtpZCI6', body(n), '.', body(20), '.', body(43))],
+  ['vault-token', 24, (n) => A('hvs', '.', body(n))],
+  ['secret-named-assignment', 8, (n) => A('DB_', 'PASSWORD', '=', body(n))],
+];
+// Rules with no length floor to pin: each is a fixed header or a structural shape.
+const UNFLOORED = ['pem-private-key', 'putty-private-key', 'gcp-service-account-key'];
+
+test('every credential rule length floor is pinned from both sides', () => {
+  const declared = [...FLOORS.map(([id]) => id), ...UNFLOORED].sort();
+  assert.deepEqual(declared, CREDENTIAL_RULES.map((rule) => rule.id).sort(),
+    'a credential rule is neither floor-pinned here nor declared unfloored');
+  const wrong = [];
+  for (const [rule, floor, build] of FLOORS) {
+    if (!scanText(`${build(floor)}\n`, { relativePath: 'config/.env' }).includes(rule)) wrong.push(`${rule} did not fire at its floor of ${floor}`);
+    if (scanText(`${build(floor - 1)}\n`, { relativePath: 'config/.env' }).includes(rule)) wrong.push(`${rule} fired one below its floor of ${floor}`);
+  }
+  assert.deepEqual(wrong, []);
 });

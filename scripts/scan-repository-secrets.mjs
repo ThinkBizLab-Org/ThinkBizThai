@@ -1,4 +1,4 @@
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import { extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { realpathSync } from 'node:fs';
@@ -60,7 +60,7 @@ export function shannonEntropy(value) {
  *  over the first 12 weighted 13..2. Without the checksum, any 13-digit run is a match and
  *  the rule is unusable; with it, roughly nine in ten accidental runs are rejected. */
 export function isThaiNationalId(value) {
-  const digits = value.replace(/-/g, '');
+  const digits = value.replace(/[- ]/g, '');
   if (!/^[0-9]{13}$/.test(digits)) return false;
   // A repeated single digit is a filler, not an identifier.
   if (/^([0-9])\1{12}$/.test(digits)) return false;
@@ -287,6 +287,13 @@ export function isPlaceholderValue(value) {
   return /^(?:change[-_]?me|placeholder|example|examples|redacted|synthetic|dummy|sample|fake|unset|none|null|undefined|true|false|todo|tbd|your[-_a-z0-9]*|[a-z0-9_-]*_here)$/i.test(value);
 }
 
+/** A value that NAMES where a secret lives rather than carrying one: a read of the process
+ *  environment in the languages this repository is written in. Anchored at the start, so a
+ *  real token that merely contains the text is still reported. */
+export function isEnvironmentReference(value) {
+  return /^(?:process\.env\.|import\.meta\.env\.|os\.environ\b|ENV\[)/.test(value);
+}
+
 /** Credential rules. Each is anchored on a vendor prefix, a structural shape, or an
  *  explicit secret-named assignment. `accept` is a second-stage filter for the rules whose
  *  first stage is too loose on its own. */
@@ -339,7 +346,14 @@ export const CREDENTIAL_RULES = [
   { id: 'gcp-service-account-key', pattern: /"type"\s*:\s*"service_account"[\s\S]{0,400}?"private_key"\s*:\s*"-----BEGIN/g },
   { id: 'twilio-auth-pair', pattern: /\bAC[0-9a-f]{32}\b[\s\S]{0,200}?\b[0-9a-f]{32}\b/g },
   { id: 'sendgrid-key', pattern: /\bSG\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/g },
-  { id: 'npmrc-auth-token', pattern: /_authToken\s*=\s*["']?[A-Za-z0-9_%+./-]{16,}/g },
+  {
+    id: 'npmrc-auth-token',
+    pattern: /_authToken\s*=\s*["']?([A-Za-z0-9_%+./-]{16,})/g,
+    // A1 C3 (2026-10-05): the one assignment-shaped rule with no placeholder filter. It fired on
+    // a publish script assigning `process.env.NPM_TOKEN` and on a documented placeholder; the
+    // `secret-named-assignment` rule already rejected both shapes.
+    accept: (match, groups) => !isPlaceholderValue(groups[0]) && !isEnvironmentReference(groups[0]),
+  },
   // Anchored to a netrc block. The unanchored form matched any prose line beginning with
   // `password` and ending in one long token -- this repository already carries two such lines
   // in review evidence, one reflow away from a red CI. Independent security review found it.
@@ -361,7 +375,20 @@ export const CREDENTIAL_RULES = [
     // API_KEY= stopped matching -- a regression this Author introduced while fixing the
     // opposite one. The prefix is optional and need not end in `_`, so both API_KEY= and
     // the glued PGPASSWORD= match.
-    pattern: /\b[A-Z0-9_]*?(?:PASSWORD|PASSWD|SECRET|TOKEN|APIKEY|API_KEY|ACCESSKEY|ACCESS_KEY|PRIVATEKEY|PRIVATE_KEY|CREDENTIALS?)[A-Z0-9_]*\s*=\s*["']?([^\s"'`#]{8,})/g,
+    //
+    // Q0 L3 (2026-10-05) asked for four widenings, measured free at 1478f34. Re-measured at main
+    // b61735f before taking them, because the tree has grown since:
+    //   * TAKEN: PASSPHRASE and SIGNING_KEY anywhere in the name, and the short words PASS, AUTH,
+    //     SALT and PWD only as the LAST word of the name (`DB_PASS=`, `HTTP_AUTH=`, `HASH_SALT=`,
+    //     `DB_PWD=`). Anywhere-in-the-name fired on a path constant whose name starts with AUTH in
+    //     scripts/db/run.mjs; PASS must not be the tail of BYPASS, and a bare PWD is the shell's
+    //     working directory, so PWD needs a prefix. Zero hits on this tree as taken.
+    //   * REFUSED, with its price: `:` as well as `=`. At b61735f it fires on seven lines in four
+    //     files, every one a throwaway CI database password or a test sentinel -- three in
+    //     .github/workflows/ci.yml, three in two WP-0A-DB-00 evidence files, one in
+    //     test-kits/db/foundation-contract.test.mjs. Taking it means editing files this package
+    //     does not own, or allowlisting default passwords, which is a list a real leak hides in.
+    pattern: /\b[A-Z0-9_]*?(?:(?:PASSWORD|PASSWD|PASSPHRASE|SECRET|TOKEN|APIKEY|API_KEY|ACCESSKEY|ACCESS_KEY|PRIVATEKEY|PRIVATE_KEY|SIGNING_KEY|CREDENTIALS?)[A-Z0-9_]*|(?<![A-Z])(?:PASS|AUTH|SALT)|_PWD)\s*=\s*["']?([^\s"'`#]{8,})/g,
     accept: (match, groups) => !isPlaceholderValue(groups[0]),
   },
 ];
@@ -427,13 +454,23 @@ export const PII_RULES = [
   },
   {
     id: 'thai-national-id',
-    pattern: /\b[0-9](?:-?[0-9]){12}\b/g,
+    // The second alternative is the printed grouping, 1-4-5-2-1 with spaces (Q0 L3). Spaces are
+    // accepted only in that grouping: a run of 13 digits with free spacing is a row of numbers
+    // as often as it is an identifier.
+    pattern: /\b(?:[0-9](?:-?[0-9]){12}|[0-9] [0-9]{4} [0-9]{5} [0-9]{2} [0-9])\b/g,
     accept: (match) => isThaiNationalId(match),
     // NOT prose-exempt. CONTRIBUTING_AGENTS.md forbids customer PII repository-wide with
     // no carve-out, and no legitimate artifact needs a checksum-valid Thai ID.
   },
   {
     id: 'thai-phone-number',
+    // Q0 L3 (2026-10-05) asked for a bare 66 country code, a `(0)` trunk prefix and a prefix in
+    // parentheses. REFUSED, with its price, re-measured at main b61735f: the only hits on this
+    // tree are the three example numbers in Q0's own signed verdict
+    // (evidence/WP-0A-A0-003/test-verdict-q0.md §4), which quotes them to name the gap. Taking
+    // it means editing another role's signed evidence or allowlisting example numbers, and an
+    // allowlist of "obviously fake" numbers is the shape a real one hides in. A later package
+    // that takes it re-words that evidence through its own role run first.
     pattern: /(?:\+66|\b0)[-. ]?[689][0-9]{1,2}[-. ]?[0-9]{3,4}[-. ]?[0-9]{4}\b/g,
     accept: (match) => {
       const digits = match.replace(/[^0-9]/g, '');
@@ -478,7 +515,21 @@ export function scanText(text, { relativePath = '' } = {}) {
   return [...hits];
 }
 
-async function scanOneFile(file, relativePath, findings, maxFileBytes) {
+async function scanOneFile(file, relativePath, findings, maxFileBytes, coverage) {
+  // C0 R2: the size is checked BEFORE the read. Checking it after meant an oversize file was
+  // read whole into memory first, which is the denial of service the limit exists to prevent.
+  // The check after the read stays, for a file that grew between the two calls.
+  let size;
+  try {
+    ({ size } = await stat(file));
+  } catch (error) {
+    findings.push({ file, relativePath, rule: 'unreadable-file', kind: 'unscannable', detail: error.code ?? error.message });
+    return;
+  }
+  if (size > maxFileBytes) {
+    findings.push({ file, relativePath, rule: 'oversize-file', kind: 'unscannable', detail: `${size} bytes` });
+    return;
+  }
   let bytes;
   try {
     bytes = await readFile(file);
@@ -504,13 +555,15 @@ async function scanOneFile(file, relativePath, findings, maxFileBytes) {
       text = bytes.toString('latin1');
     }
   }
+  coverage.files.push(relativePath);
+  coverage.bytes += bytes.length;
   for (const rule of scanText(text, { relativePath })) {
     const kind = ALL_RULES.find((candidate) => candidate.id === rule).kind;
     findings.push({ file, relativePath, rule, kind });
   }
 }
 
-async function walk(directory, root, findings, maxFileBytes) {
+async function walk(directory, root, findings, maxFileBytes, coverage) {
   let entries;
   try {
     entries = await readdir(directory, { withFileTypes: true });
@@ -535,26 +588,37 @@ async function walk(directory, root, findings, maxFileBytes) {
       continue;
     }
     if (entry.isDirectory()) {
-      if (!IGNORED_DIRECTORIES.has(entry.name)) await walk(entryPath, root, findings, maxFileBytes);
+      if (!IGNORED_DIRECTORIES.has(entry.name)) await walk(entryPath, root, findings, maxFileBytes, coverage);
       continue;
     }
     if (!entry.isFile()) {
       findings.push({ file: entryPath, relativePath, rule: 'unscannable-entry', kind: 'unscannable', detail: 'not a regular file' });
       continue;
     }
-    await scanOneFile(entryPath, relativePath, findings, maxFileBytes);
+    await scanOneFile(entryPath, relativePath, findings, maxFileBytes, coverage);
   }
+}
+
+/** Scan a directory tree and say how much of it was read. `files` lists every file whose
+ *  bytes were decoded and pattern-matched, sorted; `bytes` is their total size. A clean result
+ *  is only as good as what was read, and the suite compares `files` with an independent walk
+ *  of the same tree (C0 R1, Q0 L2): a scanner that quietly reads less is otherwise
+ *  indistinguishable from a tree that contains less. */
+export async function scanTree(directory, { maxFileBytes = MAX_FILE_BYTES } = {}) {
+  const findings = [];
+  const coverage = { files: [], bytes: 0 };
+  await walk(directory, directory, findings, maxFileBytes, coverage);
+  findings.sort((a, b) => (a.relativePath === b.relativePath
+    ? a.rule.localeCompare(b.rule)
+    : a.relativePath.localeCompare(b.relativePath)));
+  coverage.files.sort();
+  return { findings, files: coverage.files, bytes: coverage.bytes };
 }
 
 /** Scan a directory tree. Returns findings, deterministically ordered. An empty array is
  *  the ONLY clean result; any finding, including an unscannable input, fails the scan. */
-export async function scanDirectory(directory, { maxFileBytes = MAX_FILE_BYTES } = {}) {
-  const findings = [];
-  await walk(directory, directory, findings, maxFileBytes);
-  findings.sort((a, b) => (a.relativePath === b.relativePath
-    ? a.rule.localeCompare(b.rule)
-    : a.relativePath.localeCompare(b.relativePath)));
-  return findings;
+export async function scanDirectory(directory, options = {}) {
+  return (await scanTree(directory, options)).findings;
 }
 
 export function exitCodeFor(findings) {

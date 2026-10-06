@@ -4,21 +4,11 @@
   "work_package_id": "WP-0A-A0-003",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "a5f64668c0bf6b0a6432fc35047a871ef995fa4e",
-  "head_revision_or_patch_checksum": "8a6775f89aa19721b3a44041e39d3058f1cf8ec9",
+  "base_revision": "d863f4053bfd0db5b1e94aeb88fc9b7071320598",
+  "head_revision_or_patch_checksum": "d863f4053bfd0db5b1e94aeb88fc9b7071320598",
   "task_ids": [],
-  "files_added": [
-    "evidence/WP-0A-A0-003/a1-security-reverify-2026-10-05.md",
-    "evidence/WP-0A-A0-003/author-reverify-2026-10-06.md",
-    "evidence/WP-0A-A0-003/c0-contract-reverify-2026-10-05.md",
-    "evidence/WP-0A-A0-003/q0-test-reverify-2026-10-05.md",
-    "evidence/WP-0A-A0-003/r0-integration-verdict-2026-10-05.md",
-    "evidence/WP-0A-A0-003/r0-sync-reading-2026-10-06.md"
-  ],
-  "files_modified": [
-    "handoffs/WP-0A-A0-003-author-handoff.json",
-    "work-packages/WP-0A-A0-003.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -29,61 +19,61 @@
   "contracts_produced_or_changed": [],
   "assumptions": [
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
-    "This is a records refresh, first made at main 8c089cc and synced on 2026-10-06 by a plain merge of origin/main a5f6466 (PRs #187, #188, #189, #192, #193; no conflict, none of this package's paths touched) as d9acb6b. It changes only work-packages/WP-0A-A0-003.json, adds evidence/WP-0A-A0-003/author-reverify-2026-10-06.md plus the five role files cherry-picked onto it (C0, A1 and Q0 re-verifications, the R0 integration verdict and R0's post-sync reading r0-sync-reading-2026-10-06.md, all under evidence/WP-0A-A0-003/), and refreshes this handoff. It changes no RFC, no CONTRIBUTING_AGENTS.md, no CI and no gate, so it is not a governance PR; it is still not record-only under RFC-2026-025 §5 item 1 (it applies an Owner disposition and rewords blockers), so it needs the role runs its gates require before a merge.",
-    "scripts/scan-repository-secrets.mjs and test-kits/secret-scan.test.mjs are deliberately untouched: PR #190 (WP-0A-A0-005) is changing both to fix A1-005-1. The blocking fixes C0 R1 and Q0 L1/L2 depend on PR #190 merging first.",
-    "The Owner's 2026-10-05 step 2 (\"บืนยันขั้น 2\") is read from evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md on branch agent/root/WP-0A-A0-001-repository-bootstrap (PR #186), not yet on main when this was written. If PR #186 is not merged, the citations in this manifest point at a file main does not yet carry.",
-    "Cross-vendor review was withdrawn for this package by that disposition (RFC-2026-024 extended). Independence is four distinct runs plus the conditional Security reviewer, none approving its own work."
+    "This is the scanner increment the 2026-10-06 refresh deferred until PR #190 merged. Branch agent/claude/WP-0A-A0-003-secret-scan-2026-10-07, cut from origin/main b61735f and fast-forwarded to d863f40 (PR #199, records of WP-0A-A0-002 only) before the first commit; both contain PR #190's merge 5debf57. It changes scripts/scan-repository-secrets.mjs and test-kits/secret-scan.test.mjs (this package's own), the manifest and evidence, and four files it does not own, declared in ownership.amends_without_owning: scripts/test-suite-contract.mjs and test-kits/integrity-manifest.json (WP-0A-A0-002, floors, name digest and digests only), test-kits/branch-identity.test.mjs (WP-0A-CON-008, one row) and evidence/VERIFICATION.md (WP-0A-CON-008, regenerated).",
+    "The earlier branch name agent/claude/WP-0A-A0-003-secret-scan is merged into main and still checked out in a finished workflow worktree on this machine, so git refuses it here; ownership.branch now names the suffixed branch (ownership.branch_note), and the pinned branch table in test-kits/branch-identity.test.mjs follows it.",
+    "Not a governance PR: it changes no RFC, no CONTRIBUTING_AGENTS.md, no CI workflow and no gate rule. It changes a script and a test, so RFC-2026-025 §5 item 2 applies: C0, Q0 and A1 re-check this increment and R0 gives a fresh verdict at its head before a merge.",
+    "Q0 L3 was re-measured at b61735f rather than taken on Q0's 1478f34 numbers; two widenings were taken (one narrowed) and two refused with the measured price, recorded in the scanner beside the rule and in open_blockers[18]. Recording the refusals in RFC-2026-005 is left to the RFC correction already owed (open_blockers[21]), which is a governance PR."
   ],
   "acceptance_results": [
     {
       "criterion": "npm run check exits 0 on pinned Node 24.20.0 / npm 11.19.0 with skipped 0 and todo 0, and the declaration count reconciles with the executed count.",
-      "result": "pending",
-      "evidence": "evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4; the final npm run check of this branch is recorded under tests"
+      "result": "pass",
+      "evidence": "npm run check on agent/claude/WP-0A-A0-003-secret-scan-2026-10-07 after the handoff refresh, recorded under tests; evidence/VERIFICATION.md"
     },
     {
       "criterion": "node scripts/scan-repository-secrets.mjs . exits 0 on the repository as it stands, and the suite asserts the same thing so a future commit that makes the tree trip its own scanner fails CI.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
     },
     {
       "criterion": "Every row of the decoy table in test-kits/secret-scan.test.mjs is detected, and by the specific rule the row names, so a row cannot be kept green by an unrelated pattern widening.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
     },
     {
       "criterion": "No row of the false-positive table fires. The table includes shapes taken verbatim from this repository's committed prose and evidence.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
     },
     {
       "criterion": "An unreadable file, an unlistable directory, an undecodable file, an oversize file, and a symbolic link each produce a finding rather than a pass, and each is regression-tested.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §1. The five kinds this criterion names are regression-tested. The sixth kind in required_tests (non-regular entry) is NOT tested: Q0 L1, reproduced at main, owed after PR #190"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §1. The five kinds this criterion names are regression-tested. The sixth kind in required_tests (non-regular entry) is NOT tested: Q0 L1, reproduced at main, owed after PR #190"
     },
     {
       "criterion": "The email-address rule is exempt only under evidence/ and handoffs/; the Thai national ID and Thai phone rules have no exemption anywhere; a credential inside evidence prose is still reported. All four properties are regression-tested.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
     },
     {
       "criterion": "node scripts/validate-work-package-ownership.mjs work-packages exits 0, proving the transfer leaves no path co-owned and every declared output covered by its own package's writable paths.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
     },
     {
       "criterion": "The WP-0A-A0-001 amendment is limited to removing the two transferred paths and adding an ownership.amended_by block; no status, role, gate, acceptance criterion, or delivered output of that package changes.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
     },
     {
       "criterion": "No file in the repository contains a literal credential-shaped string. Every decoy in the suite is assembled from fragments at runtime, because the suite is itself inside the tree the scanner walks.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
     },
     {
       "criterion": "The Author does not review, security-review, test-verify, or integrate this package.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-reverify-2026-10-06.md; no role verdict is given or implied here"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md; no role verdict is given or implied here"
     }
   ],
   "tests": [
@@ -96,13 +86,19 @@
     {
       "command": "node --test test-kits/secret-scan.test.mjs",
       "exit_code": 0,
-      "result": "tests 46, pass 46, fail 0, skipped 0, todo 0",
+      "result": "tests 57, pass 57, fail 0, skipped 0, todo 0",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "mutation harness on a disposable rsync copy (19 rows incl. control; evidence §2)",
+      "exit_code": 0,
+      "result": "control passes 57/57; all 18 mutations killed, incl. M15, M23-M28 and C0's architecture/ carve-out and 4 KB skip",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
       "command": "node scripts/validate-work-package-ownership.mjs work-packages",
       "exit_code": 0,
-      "result": "clean, after the manifest edits",
+      "result": "clean",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
@@ -130,33 +126,15 @@
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
-      "command": "npm run check (at main 8c089cc on this branch name, before the first handoff refresh d9b9037)",
-      "exit_code": 1,
-      "result": "tests 692, pass 690, fail 2: both are the stale-handoff check for this branch, which this PR's handoff refresh clears",
-      "toolchain": "node v24.20.0 / npm 11.19.0"
-    },
-    {
-      "command": "npm run check (this branch, via node scripts/commit-when-clean.mjs)",
+      "command": "npm run check (on agent/claude/WP-0A-A0-003-secret-scan-2026-10-07)",
       "exit_code": 0,
-      "result": "clean: exit 0 required by commit-when-clean before it commits this handoff refresh over 8a6775f (main a5f6466 merged in as d9acb6b, then R0 sync reading); R0 measured npm run check exit 0, tests 692, pass 692, fail 0, skipped 0, todo 0 on the branch name at d9acb6b (evidence/WP-0A-A0-003/r0-sync-reading-2026-10-06.md §1)",
-      "toolchain": "node v24.20.0 / npm 11.19.0"
-    },
-    {
-      "command": "mutation on a disposable copy: drop the unscannable-entry finding (scanner line 550); node --test test-kits/secret-scan.test.mjs",
-      "exit_code": 0,
-      "result": "tests 46, pass 46: Q0 L1 reproduces at main",
-      "toolchain": "node v24.20.0 / npm 11.19.0"
-    },
-    {
-      "command": "mutation on a disposable copy: an architecture/ carve-out at the top of scanText; node --test test-kits/secret-scan.test.mjs",
-      "exit_code": 0,
-      "result": "tests 46, pass 46: C0 R1 reproduces at main",
+      "result": "tests 714, pass 714, fail 0, skipped 0, todo 0 (npm run record:verification, which refuses an unclean run)",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
-  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. Records only: no scanner or rule change, no provider call, credential, migration or customer-data effect. Cost impact none.",
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. Every credential, card and identifier in the new tests is assembled from fragments at run time; the full-tree scan stays at zero findings. Detection widened (Thai ID printed grouping; PASSPHRASE, SIGNING_KEY and trailing PASS/AUTH/SALT/PWD) and narrowed in one place (npmrc-auth-token no longer fires on documented placeholders and environment reads, A1 C3). The size limit is now enforced before a file is read (C0 R2). Cost: the secret-scan suite takes about 6 s instead of about 1.5 s.",
   "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect.",
-  "compatibility_impact": "No contract changes. This increment adds the two role verdicts WP-0A-A0-003 was missing -- Reviewer and Tester -- and touches no contract-catalog file, schema or fixture. Both are NEGATIVE: changes_required and test_failed. The fixes they require land in scripts/scan-repository-secrets.mjs and test-kits/secret-scan.test.mjs, which are the Author's, in a later increment.",
+  "compatibility_impact": "No contract changes. scanDirectory keeps its signature and return value; scanTree and isEnvironmentReference are new exports.",
   "known_limitations": [
     "RECONCILED 2026-10-06 BY A0 (C0 R5): this entry and open_blockers[2] (C1a) are two different rounds against two different corpora, not one number restated. Round 2 is THIS entry: A1's second review at 4bcb5f1 (evidence/WP-0A-A0-003/review-security-head.md §5) built a fresh corpus of 68 decoys, 12 in families it had named in round 1 (12/12 detected) and 56 it had not (8/56, 3 of those 8 not real coverage). Round 1 is open_blockers[2]: A1's first review at 73d0770 measured 19/56 against its own first uncorrelated corpus. A1 records the two as not directly comparable (round 2 is deliberately harder). Still open: coverage against unnamed families is narrow. Text as recorded: A fresh UNCORRELATED probe -- families the reviewer had not named in the previous round -- detected 8 of 56, and 3 of those 8 are not real coverage (one coincidental prefix hit, five re-detections of existing prefixes in a different file format). Against the 12 families it HAD named, 12 of 12. The improvement is real but NARROW: it fixed exactly what was named and did not generalize. Each round of this measurement fixes the round before it and misses the next.",
     "Round 1 of the two uncorrelated-corpus measurements (round 2 is open_blockers[0]; C0 R5 reconciliation 2026-10-06). C1a: independent security review with an UNCORRELATED 56-decoy corpus measured 19 detected / 37 missed, against 12/12 and 17/17 from correlated samples. The Meta and Stripe misses are fixed because they are this project's own G0 blockers, but most cloud-vendor families and most credential-carrying file formats are still undetected. C1 is closed only as scoped: its fail-open and no-privacy-dimension components are closed; its near-zero-detection component is downgraded, not closed.",
@@ -180,20 +158,19 @@
     "Role verdicts at 1ad4515 (this PR's records increment): C0 re-verified changes_required on the package (evidence/WP-0A-A0-003/c0-contract-reverify-2026-10-05.md), A1 re-verified security_approved_with_conditions (a1-security-reverify-2026-10-05.md), Q0 re-verified test_failed on the package (q0-test-reverify-2026-10-05.md), and R0 gave integration_not_verified on the package with PR #191 integrable as a records increment on conditions D1-D5 (r0-integration-verdict-2026-10-05.md). C0 R1 and Q0 L1/L2 reproduce at main 8c089cc. Owed after the R1/L1 increment lands from a main containing PR #190: C0 re-check (/claude/c0_contract_reviewer), Q0 re-test (/claude/q0_sentinel), A1 re-check (/claude/a1_bastion), then a fresh Integration verdict (/claude/r0_steward). The package stays in_review until then. The role runs' minor records findings C0 N1/Q0 F1/A1 N4 (assumptions[3]) and C0 N2/Q0 F2 (compatibility_impact) are deliberately NOT answered in this PR, per R0 D1 and §3; they are owed at the next increment's handoff refresh. UPDATED 2026-10-06 after the main sync: R0 re-read the PR at d9acb6b (evidence/WP-0A-A0-003/r0-sync-reading-2026-10-06.md): the sync changes nothing its verdict rests on (same 7 paths, same patch-id, scanner and suite digests unchanged, PR #190 not merged); the package stays integration_not_verified and in_review; PR #191 is integrable as a records increment on S1-S4 (this refresh last and alone after git fetch; check:handoff and check exit 0 on the branch name with current main contained; green bootstrap on this exact head; D2 recorded in the merge record). Stop-the-line none."
   ],
   "open_risks_or_blockers": [
-    "C0 R1 (High) and Q0 L1 block the Reviewer and Tester verdicts and are NOT fixed here; they depend on PR #190 merging (work-packages/WP-0A-A0-003.json open_blockers).",
-    "Acknowledgements pending: WP-0A-A0-003.json ownership.amended_by[0] (now owed by /claude/r0_steward) and the WP-0A-A0-003 entry in WP-0A-A0-001.json ownership.amended_by (owed by /claude/r0_steward as successor; WP-0A-A0-001's record).",
-    "R0 (/claude/r0_steward) gave its first Integration verdict at 1ad4515: integration_not_verified on the package (C0 changes_required and Q0 test_failed stand), and PR #191 integrable as a records increment on conditions D1-D5 (evidence/WP-0A-A0-003/r0-integration-verdict-2026-10-05.md §4). The package status stays in_review. After main a5f6466 was merged in (d9acb6b), R0 re-read the PR and its verdict stands unchanged (evidence/WP-0A-A0-003/r0-sync-reading-2026-10-06.md §4, conditions S1-S4).",
-    "Merge reading (R0 D2 / S4), recorded by A0 for the merge record: A0 merges PR #191 under the Product Owner's standing delegation \"เอาตามที่คุณแนะนำทุกอย่าง\" and the Owner's words of 2026-10-06 \"คุณทำเลย\"; the PR is read as NOT governance under RFC-2026-025 §5 item 6 (it changes no RFC, CONTRIBUTING_AGENTS.md, CI or gate rule; it applies the Owner's step 2 to this package's manifest and adds records); no security finding is open against this PR (A1 §5, evidence/WP-0A-A0-003/a1-security-reverify-2026-10-05.md; A1's open items are against the scanner and RFC at main, which this PR does not change). Merging moves no gate and approves nothing of the package (R0 D5). If either reading is in doubt, the Owner merges it himself."
+    "The fixes for C0 R1, Q0 L1/L2 and the non-blocking conditions are the Author's; none is closed until the raising role re-checks this head: C0 (/claude/c0_contract_reviewer), Q0 (/claude/q0_sentinel), A1 (/claude/a1_bastion), then a fresh R0 verdict (/claude/r0_steward).",
+    "Acknowledgements still pending: WP-0A-A0-003.json ownership.amended_by[0] (owed by /claude/r0_steward) and the WP-0A-A0-003 entry in WP-0A-A0-001.json ownership.amended_by (owed by /claude/r0_steward as successor).",
+    "Still open and not addressed here: Q0 L4 (UTF-16), Q0 L5 (Thai-market provider rules), the RFC-2026-005 correction (A1 C4(b), N3, C0 R5, and now the two L3 refusals) as a governance PR, git history unscanned.",
+    "Merge conflict risk: scripts/test-suite-contract.mjs and test-kits/branch-identity.test.mjs are also edited by the concurrent WP-0A-A0-002 branch (adjacent rows); whichever merges second resolves by keeping both rows."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR of this PR's merge commit. This PR changes only the manifest, six evidence files under evidence/WP-0A-A0-003/ (the Author re-verification, the C0, A1 and Q0 re-verifications, the R0 integration verdict and the R0 post-sync reading) and this handoff; reverting restores the previous records exactly. No persisted data, provider state, credential, migration or customer-data effect. The forward fix for a false positive is to narrow the offending rule and add the case to the false-positive table, never to disable the scan:secrets step.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR of this PR's merge commit: it restores the scanner and suite, the two floors and digest in scripts/test-suite-contract.mjs, the integrity digests, the branch-table row and the manifest exactly. No persisted data, provider state, credential, migration or customer-data effect. The forward fix for a false positive is to narrow the offending rule and add the case to the false-positive table, never to disable the scan:secrets step.",
   "recommended_next_work_packages": [
     "WP-0A-A0-003"
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-003/author-reverify-2026-10-06.md first, then the earlier role verdicts under evidence/WP-0A-A0-003/ and their 2026-10-05 re-verifications at 1ad4515 (c0-contract-reverify, a1-security-reverify, q0-test-reverify) and the R0 integration verdict r0-integration-verdict-2026-10-05.md, then R0's reading after the main sync, r0-sync-reading-2026-10-06.md.",
-    "This PR is records only. Check that each CLOSED blocker keeps its original text and that the facts it cites hold at the head (ci.yml:69-77, RFC-2026-005:3, the payment-card-number rule).",
-    "Check the Owner step-2 application against evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 rows 1-3, and that no acknowledgement is recorded as given.",
-    "The next increment of this package (C0 R1, Q0 L1/L2 and the non-blocking conditions) changes the scanner and suite and lands after PR #190; it needs C0, Q0 and A1 re-checks and a fresh R0 verdict.",
+    "Read evidence/WP-0A-A0-003/author-increment-2026-10-07.md first: §1 maps each finding to its change, §2 is the mutation table, §3 the L3 re-measurement, §4 what the new tests do not prove.",
+    "C0: R1 is the property tests in test-kits/secret-scan.test.mjs after the \"C0 R1 (High) and Q0 L2\" banner, and the corrected comment in the old path-shape test. Q0: L1 is the FIFO and socket test; L2 is scanTree plus the read-list and appended-copy tests. A1: C3 and N1 are the new rows in NEW_RULE_FALSE_POSITIVES and the npmrc accept.",
+    "Re-run the mutations on your own copy rather than reading the table; the harness is one string replacement in scripts/scan-repository-secrets.mjs per row.",
     "The author is /claude/a0_atlas. Reviewer, Tester, Security and Integration verification are open and must be distinct runs."
   ],
   "superseded_by": null
