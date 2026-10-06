@@ -5,12 +5,13 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "dd11c6017c6667b3f782786e7744373180ad9e96",
-  "head_revision_or_patch_checksum": "08384054b1b0a1f9b9dd98ba86ce8bf09f746314",
+  "head_revision_or_patch_checksum": "93db7979ce58393c98e7cfca27c2c0bec3ab9f25",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-CON-004/records-transcription-2026-10-06.md"
   ],
   "files_modified": [
+    "handoffs/WP-0A-CON-004-author-handoff.json",
     "work-packages/WP-0A-CON-004.json"
   ],
   "files_deleted": [],
