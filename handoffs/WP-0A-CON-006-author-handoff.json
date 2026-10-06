@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-CON-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "574c8a8c35e56f4cb472110ce227ff773b92ced0",
-  "head_revision_or_patch_checksum": "296cba85a38c762ee6b75cd6e33dfe73135e942b",
+  "base_revision": "25663e310e654cc0d04fa3a0e19b03a80ef3896e",
+  "head_revision_or_patch_checksum": "bf600198393ebc7a3dabb9ea8ae5a900472b654c",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-CON-006/a1-recheck-2026-10-06.md",
@@ -17,7 +17,8 @@
     "evidence/WP-0A-CON-006/q0-recheck-2026-10-06.md",
     "evidence/WP-0A-CON-006/q0-test-reverify-2026-10-05.md",
     "evidence/WP-0A-CON-006/r0-integration-verdict-2026-10-05.md",
-    "evidence/WP-0A-CON-006/r0-recheck-2026-10-06.md"
+    "evidence/WP-0A-CON-006/r0-recheck-2026-10-06.md",
+    "evidence/WP-0A-CON-006/r0-sync-reading-2026-10-06.md"
   ],
   "files_modified": [
     "contract-catalog/shared-kernel/ctr-ntf-001/manifest.json",
@@ -92,11 +93,11 @@
   ],
   "assumptions": [
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
-    "This branch was cut from origin/main 8c089cc. Its own content commits are a9916c0 (role-verdict conditions and the Owner's step 2) and 9b94f16 (R0's conditions: SC-1 tenant binding, eight pins), plus 798c168 (manifest records the 2026-10-06 re-checks in R0's and A1's words); the rest are cherry-picked role evidence files (-x) and normal merges of origin/main (6da7487 at b5d21d5, cd2b276 at fa10229, c4310ba at c75418b, 296cba8 at 574c8a8), none with an unresolved conflict. This handoff refresh is committed last and alone, against origin/HEAD = origin/main (R0 R8). The package's original work (pull requests #9 and #62) is already on main.",
+    "This branch was cut from origin/main 8c089cc. Its own content commits are a9916c0 (role-verdict conditions and the Owner's step 2) and 9b94f16 (R0's conditions: SC-1 tenant binding, eight pins), plus 798c168 (manifest records the 2026-10-06 re-checks in R0's and A1's words); the rest are cherry-picked role evidence files (-x) and normal merges of origin/main (6da7487 at b5d21d5, cd2b276 at fa10229, c4310ba at c75418b, 296cba8 at 574c8a8, 576ba6e at 25663e3), none with an unresolved conflict; the merge of 25663e3 needed no hand edit (R0: git show --cc shows no line new to both parents), and R0's reading of it is cherry-picked (-x) as bf60019. This handoff refresh is committed last and alone, against origin/HEAD = origin/main (R0 R8). The package's original work (pull requests #9 and #62) is already on main.",
     "The cross-vendor condition is WITHDRAWN for this package by the Product Owner on 2026-10-05 (step 2 item 1, extending RFC-2026-024; evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md). Independence is four distinct runs plus the conditional Security run, none acting on its own work, with the §0 spawning disclosure. This handoff is written by a subagent of the Author run /claude/a0_atlas.",
     "/claude/r0_steward succeeds /root/r0_steward for the pending acknowledgements (step 2 item 2). R0 gave both acknowledgements fresh at 9b94f16 (evidence/WP-0A-CON-006/r0-recheck-2026-10-06.md §4): catalog-registry.test.mjs (eight pins) and integrity-manifest.json (one digest, a00c7828…).",
     "This PR changes no RFC, no CONTRIBUTING_AGENTS.md, no CI and no gate rule, so it is not a governance PR under RFC-2026-025 §5 item 6. It does amend two test-kit files outside its paths (catalog-registry.test.mjs, eight pins; integrity-manifest.json, one digest), declared in ownership.amends_without_owning.",
-    "Status stays in_review. R0 does NOT give integration_verified at 9b94f16 (r0-recheck-2026-10-06.md §6): A6's countersignature of CTR-USG-001 untestable_by_schema (5) is owed (open_blockers[18]). A1, C0 and Q0 re-verified 9b94f16 non-blocking (security_approved_with_conditions, review_approved_with_conditions, test_verified_with_conditions); no role records stop-the-line. Per R0, once A6 countersigns with no change other than evidence and the handoff after 9b94f16, integration_verified may be recorded without another R0 run."
+    "Status stays in_review. R0 does NOT give integration_verified at 9b94f16 (r0-recheck-2026-10-06.md §6): A6's countersignature of CTR-USG-001 untestable_by_schema (5) is owed (open_blockers[18]). A1, C0 and Q0 re-verified 9b94f16 non-blocking (security_approved_with_conditions, review_approved_with_conditions, test_verified_with_conditions); no role records stop-the-line. Per R0, once A6 countersigns with no change other than evidence and the handoff after 9b94f16, integration_verified may be recorded without another R0 run. R0 read the sync at 576ba6e (evidence/WP-0A-CON-006/r0-sync-reading-2026-10-06.md): the PR's +/- lines against main are unchanged (64 paths before that file), the merge is clean, catalog-registry.test.mjs and both contracts are byte-identical to 9b94f16, every USG and NTF fixture's error list is byte-identical under main's new code-point validator, and the verdict at 9b94f16 stands; R0 still withholds integration_verified, and permits a merge as in_review under the Owner's delegation once its file is carried, this handoff is refreshed last and alone against origin/HEAD = origin/main, and bootstrap is green on that exact head while it still contains main. The merge, if CI is green, is by A0 (/claude/a0_atlas) on the Owner's words of 2026-10-06 \"คุณทำเลย\" and the standing delegation \"เอาตามที่คุณแนะนำทุกอย่าง\"; it is a merge as in_review, not an integration verdict."
   ],
   "acceptance_results": [
     {
@@ -167,19 +168,19 @@
     {
       "command": "node --test test-kits/contracts/catalog-registry.test.mjs test-kits/contracts/schema-mutation-coverage.test.mjs test-kits/contracts/shared-kernel-contract-catalog.test.mjs",
       "exit_code": 0,
-      "result": "tests 31, pass 31, fail 0, skipped 0; schema-mutation-coverage.test.mjs unedited against origin/main 574c8a8",
+      "result": "tests 31, pass 31, fail 0, skipped 0; schema-mutation-coverage.test.mjs unedited against origin/main 25663e3",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
       "command": "npm run regenerate:manifest",
       "exit_code": 0,
-      "result": "no change to test-kits/integrity-manifest.json after the merges of origin/main c75418b and 574c8a8",
+      "result": "no change to test-kits/integrity-manifest.json after the merges of origin/main c75418b, 574c8a8 and 25663e3 (run at bf60019)",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-006",
       "exit_code": 0,
-      "result": "WP-0A-CON-006: all 64 changed path(s) are declared, and every amendment explains one (after merging origin/main 574c8a8)",
+      "result": "WP-0A-CON-006: all 65 changed path(s) are declared, and every amendment explains one (after merging origin/main 25663e3 and carrying r0-sync-reading-2026-10-06.md)",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
@@ -239,8 +240,8 @@
     "WP-0A-CON-003"
   ],
   "reviewer_instructions": [
-    "Start from evidence/WP-0A-CON-006/author-r0-conditions-closure-2026-10-06.md (R0's conditions at 9b94f16) and evidence/WP-0A-CON-006/author-conditions-closure-2026-10-06.md (the earlier C0/Q0 conditions). The 2026-10-06 re-checks of 9b94f16 are on the branch: c0-recheck, a1-recheck, q0-recheck and r0-recheck-2026-10-06.md.",
-    "After 9b94f16 only evidence files, the manifest (R0's and A1's recorded wording in open_blockers[16] and [18], C0 F-5 in [13], Q0 N4 in [20]), main's own files via the merges of c75418b and 574c8a8, and this handoff changed. Confirm with git diff 9b94f16 HEAD against origin/main.",
+    "Start from evidence/WP-0A-CON-006/r0-sync-reading-2026-10-06.md (R0's reading of the main sync at 576ba6e: the verdict at 9b94f16 stands), then evidence/WP-0A-CON-006/author-r0-conditions-closure-2026-10-06.md (R0's conditions at 9b94f16) and evidence/WP-0A-CON-006/author-conditions-closure-2026-10-06.md (the earlier C0/Q0 conditions). The 2026-10-06 re-checks of 9b94f16 are on the branch: c0-recheck, a1-recheck, q0-recheck and r0-recheck-2026-10-06.md.",
+    "After 9b94f16 only evidence files, the manifest (R0's and A1's recorded wording in open_blockers[16] and [18], C0 F-5 in [13], Q0 N4 in [20]), main's own files via the merges of c75418b, 574c8a8 and 25663e3, and this handoff changed. Confirm with git diff 9b94f16 HEAD against origin/main.",
     "The contract changes move no assertion keyword. Check by running test-kits/contracts/schema-mutation-coverage.test.mjs unedited, and by confirming catalog-registry.test.mjs moves exactly the eight pins named in ownership.amends_without_owning.rationale and integrity-manifest.json exactly one digest (catalog-registry.test.mjs).",
     "Owed before integration_verified: A6's countersignature of CTR-USG-001 untestable_by_schema (5) and the x-rule (open_blockers[18]); A1 N-1 and Q0 N5 ask A6 to settle the business_profile_id-present-on-one-side edge case when countersigning. If A6 changes the wording, the pins move again and R0 re-acknowledges (R0 R7); if A6 rules the identifiers distinct, A1 re-checks.",
     "Carried, not closed here: the ten reference bounds and C0 F-5 (next increment, open_blockers[13]); SC-2 to A5 (open_blockers[19]); H-6 to WP-0A-CON-001 (open_blockers[17]); Q0 N2/N4 to WP-0A-CON-003/CON-008 (open_blockers[20])."
