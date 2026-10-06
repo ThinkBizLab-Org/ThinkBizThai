@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "dd11c6017c6667b3f782786e7744373180ad9e96",
-  "head_revision_or_patch_checksum": "bb4c35aa0d749b899a4e0b100818e988538bf819",
+  "base_revision": "411dfa7eeb2809d259e5559a54f54fd4d826f351",
+  "head_revision_or_patch_checksum": "180232246e2b4878d9bcd1d0045420a2c437d892",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-A0-006/a1-recheck-2026-10-07.md",
@@ -19,6 +19,7 @@
     "evidence/WP-0A-A0-006/r0-review-2026-10-07.md"
   ],
   "files_modified": [
+    "handoffs/WP-0A-A0-006-author-handoff.json",
     "work-packages/WP-0A-A0-006.json"
   ],
   "files_deleted": [],
@@ -67,7 +68,7 @@
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "tests 705, pass 705, fail 0, skipped 0, measured on the branch name agent/claude/WP-0A-A0-006-db00-data-decisions with this handoff in place (node v24.20.0); run again by node scripts/commit-when-clean.mjs, which refuses the commit unless it exits 0. The run before this handoff text was final measured 705/703/2, both failures the approval-language lint on two sentences of this handoff, which were reworded."
+      "result": "tests 705, pass 705, fail 0, skipped 0, measured by node scripts/commit-when-clean.mjs on the branch name agent/claude/WP-0A-A0-006-db00-data-decisions (node v24.20.0) at the earlier handoff commit cfec90a, and run again by commit-when-clean for this commit, which refuses unless it exits 0. A run before the handoff text was final measured 705/703/2, both failures the approval-language lint on two sentences of this handoff, which were reworded."
     },
     {
       "command": "node scripts/refresh-author-handoff.mjs --check",
@@ -82,7 +83,7 @@
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-006",
       "exit_code": 0,
-      "result": "all changed paths are declared, and every amendment explains one (10 paths before this handoff commit)"
+      "result": "all changed paths are declared, and every amendment explains one (11 paths against origin/main 411dfa7 before this handoff commit)"
     }
   ],
   "security_privacy_cost_impact": "None. No code, schema, grant, policy, role, credential or contract is touched; the branch changes one manifest and adds records.",
@@ -96,7 +97,7 @@
     "NOTHING PREVENTS THE NEXT STALE SENTENCE IN A BLOCKER LIST. A blocker list is prose and no lint reads English; this branch corrects sentences, it does not add a control."
   ],
   "open_risks_or_blockers": [
-    "Re-checks are owed at this head: Q0 (its re-check at 6fd2657 reads test_failed on the stale handoff and asks to be re-run on the refreshed head) and R0 (no re-check measured). C0's and A1's re-checks at 6fd2657 state they carry to a head whose only later change is this handoff file and the cherry-picked re-check files.",
+    "Re-checks are owed at this head: Q0 (its re-check at 6fd2657 reads test_failed on the stale handoff and asks to be re-run on the refreshed head) and R0 (no re-check measured). C0's and A1's re-checks at 6fd2657 state they carry to a head whose only later change is this handoff file and the cherry-picked re-check files; this head also carries the merge of origin/main 411dfa7 (WP-0A-CON-004 records, no path shared with this package), which those roles read under their own conditions.",
     "None of review_approved, security_approved, test_verified or integration_verified is held by this handoff.",
     "Out of this PR: the three amended_by entries (manifest open_blockers[4]) and DATA-DEC-03's remainder (open_blockers[0]), owed by their named owners."
   ],
@@ -108,7 +109,7 @@
   ],
   "reviewer_instructions": [
     "Read this branch against origin/main: one manifest modified, evidence files added under evidence/WP-0A-A0-006/, this handoff. node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-006 must exit 0.",
-    "Check that the commits after 6fd2657 are the three cherry-picked re-check files (blob-identical to their role commits 7f7639d, c0fb862, 7619af8) and this handoff, and nothing else.",
+    "Check that the commits after 6fd2657 are: the three cherry-picked re-check files (blob-identical to their role commits 7f7639d, c0fb862, 7619af8); cfec90a, an earlier refresh of this handoff that touches only this file; 1802322, a merge of origin/main 411dfa7 (PR #205, WP-0A-CON-004 records: three paths, none shared with this package); and this handoff commit. Nothing else.",
     "Re-measure on the branch NAME, not detached: node scripts/refresh-author-handoff.mjs --check exit 0, npm run check exit 0.",
     "For the manifest corrections, the per-finding table is evidence/WP-0A-A0-006/author-closure-2026-10-07.md §2 and the step 2 mapping is author-reverify-2026-10-06.md §3."
   ],
