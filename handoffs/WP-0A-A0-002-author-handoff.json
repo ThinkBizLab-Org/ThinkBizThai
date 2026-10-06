@@ -4,24 +4,16 @@
   "work_package_id": "WP-0A-A0-002",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "c75418b1265c163c91d181fc8482be7de363bcef",
-  "head_revision_or_patch_checksum": "c85af80057e5fe0cf6f42e47edab9c5a632045fd",
+  "base_revision": "b61735f79cf9435b0dae1e1bcde8f907018c2a11",
+  "head_revision_or_patch_checksum": "1a434ec0a1ca1ccf3513de918852cf3c29a4492d",
   "task_ids": [
     "WP-0A-A0-002",
     "G0-step-2"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-002/a1-security-reverify-2026-10-05.md",
-    "evidence/WP-0A-A0-002/author-reverify-2026-10-06.md",
-    "evidence/WP-0A-A0-002/c0-contract-reverify-2026-10-05.md",
-    "evidence/WP-0A-A0-002/c0-recheck-2026-10-06.md",
-    "evidence/WP-0A-A0-002/q0-test-reverify-2026-10-05.md",
-    "evidence/WP-0A-A0-002/r0-integration-verdict-2026-10-05.md",
-    "evidence/WP-0A-A0-002/r0-recheck-2026-10-06.md",
-    "evidence/WP-0A-A0-002/r0-sync-reading-2026-10-06.md"
+    "evidence/WP-0A-A0-002/records-transcription-2026-10-06.md"
   ],
   "files_modified": [
-    "handoffs/WP-0A-A0-002-author-handoff.json",
     "work-packages/WP-0A-A0-002.json"
   ],
   "files_deleted": [],
