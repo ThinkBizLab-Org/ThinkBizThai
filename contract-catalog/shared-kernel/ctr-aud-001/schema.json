@@ -102,7 +102,7 @@
       "type": "string",
       "pattern": "^audit\\.[a-z0-9_.]+$",
       "maxLength": 96,
-      "x-source": "OB-005 requires `reason`. It is a stable KEY rather than free text because CM-004 and CTR-ERR-001 establish stable machine codes with Thai message keys for anything a person reads, and because OBS-001 forbids full content on this path. Key-not-prose is a DECLARED INFERENCE from CM-004 and CTR-ERR-001, not wording in OB-005."
+      "x-source": "OB-005 requires `reason`. It is a stable KEY rather than free text because CM-004 and CTR-ERR-001 establish stable machine codes with Thai message keys for anything a person reads, and because OBS-001 forbids full content on this path. Key-not-prose is a DECLARED INFERENCE from CM-004 and CTR-ERR-001, not wording in OB-005. The maxLength 96 is also a DECLARED INFERENCE: no source states a length; it matches `action.name` and is not a control (recorded 2026-10-06 per independent contract review required change 5)."
     },
     "change": {
       "type": "object",
@@ -122,7 +122,7 @@
           "x-re2-note": "The two negative lookaheads `(?!/)` and `(?!.*\\.\\.)` were removed. They forbade a leading slash and any `..` segment, and the body grammar already forbids both: every `.` must be followed by `[A-Za-z0-9_-]+`, so `..` is unreachable, and the first body character cannot be `/`. Checked by exhaustion over 885793 strings across an alphabet containing every character-class boundary the pattern can turn on, plus the named hazards at full length: zero divergence. Removed for RE2 portability -- a lookahead makes an RE2-backed validator fail to COMPILE the schema rather than mis-evaluate it. CTR-API-001, CTR-IDM-001 and CTR-JOB-001 removed the identical pair on the identical argument; this contract was missed."
         }
       },
-      "x-source": "OB-005 requires a 'before-after ref'. A REFERENCE, not a value, is what makes the same task's 'secret/content redaction' achievable at all: the audit record cannot leak state it does not hold. The reference GRAMMAR -- closed scheme list, no leading slash, no `..` segment, no public URL -- is adopted from CTR-IDM-001 `result_ref` as precedent after that contract's own security review. The two scheme names are a DECLARED INFERENCE; no source names them.",
+      "x-source": "OB-005 requires a 'before-after ref'. A REFERENCE, not a value, is what makes the same task's 'secret/content redaction' achievable at all: the audit record cannot leak state it does not hold. The reference GRAMMAR -- closed scheme list, no leading slash, no `..` segment, no public URL -- is adopted from CTR-IDM-001 `result_ref` as precedent after that contract's own security review. The two scheme names are a DECLARED INFERENCE; no source names them. The maxLength 256 on `before_ref` and `after_ref` is a DECLARED INFERENCE adopted with that grammar from the CTR-IDM-001 reference precedent; no source states a length (recorded 2026-10-06 per independent contract review required change 5).",
       "x-rule": "SEC-009: a `change` block that names neither a before nor an after reference records nothing. `minProperties: 1` makes the block's presence mean something. Raised by A6 in co-owner review; note that `change` itself is required only for `action.category: delete` (allOf[0]), so five of the six categories may still omit it entirely."
     },
     "error": {
@@ -160,10 +160,11 @@
         "policy_ref": {
           "type": "string",
           "pattern": "^retention\\.[a-z0-9_.]+$",
-          "maxLength": 96
+          "maxLength": 96,
+          "x-maxlength-note": "DECLARED INFERENCE. The baseline states no length for a retention policy reference. 96 is the stable-key length this contract uses for `reason_key` and `action.name`. It is NOT a control. Recorded 2026-10-06 per independent contract review required change 5."
         }
       },
-      "x-source": "SEC-009's deliverable is 'Audit schema + retention', and PDPA-006 requires a machine-readable retention schedule per entity that names audit explicitly. The record therefore carries a reference to the policy that governs it. The DURATION is deliberately not pinned: PDPA-006 is undelivered and the baseline states that Thai legal counsel must confirm retention periods before production."
+      "x-source": "SEC-009's deliverable is 'Audit schema + retention', and PDPA-006 requires a machine-readable retention schedule per entity that names audit explicitly. The record therefore carries a reference to the policy that governs it. The DURATION is deliberately not pinned: PDPA-006 is undelivered, and the note directly under the baseline's PDPA table requires legal and tax requirements, and the incident notification period, to be confirmed by Thai legal experts before Production. That note does not name retention periods; it governs PDPA-006 by position only. An earlier version of this sentence paraphrased it as a requirement to confirm retention periods, which independent contract review (M5) showed the source does not say."
     },
     "details": {
       "type": "object",

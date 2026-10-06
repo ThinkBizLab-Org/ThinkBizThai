@@ -198,8 +198,13 @@ Baseline before this package was also `85 / 85`: these three contracts add
 fixtures to suites that iterate the catalog, not new test declarations, so no
 change to `test-kits/integrity-manifest.json` is required or made.
 
-**Conformance coverage is real, not incidental — proven by mutation on all three
-contracts.** Each mutation was applied, the suite run, and the fixture restored:
+**The conformance suite is wired to each schema — shown by FIXTURE mutation on all
+three contracts.** (Corrected 2026-10-06 per independent contract review required
+change 8: this heading originally read "Conformance coverage is real, not incidental —
+proven by mutation". Mutating a fixture proves the suite reads the schema; it does not
+prove a constraint is exercised. Constraint-mutation coverage is recorded in
+"Mutation coverage" below.) Each mutation was applied, the suite run, and the fixture
+restored:
 
 | Mutation | Suite result |
 |---|---|

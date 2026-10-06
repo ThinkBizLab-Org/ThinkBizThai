@@ -303,19 +303,19 @@ test('a contract does not quietly stop declaring what its fixtures cannot demons
 // deliberate act in a diff a reviewer reads, which is the whole point of writing one down.
 const CAVEAT_DIGESTS = {
   'ctr-api-001': { freeze_boundary: '815831740f125bb3' },
-  'ctr-aud-001': { freeze_boundary: '5a435a5ce9469e0f', untestable_by_fixture: '67c4cb4f02912a5a', untestable_by_schema: '8afa0bc10012b320' },
+  'ctr-aud-001': { freeze_boundary: '5ce0fa2202a2dbc6', untestable_by_fixture: '67c4cb4f02912a5a', untestable_by_schema: '8afa0bc10012b320' },
   'ctr-err-001': { freeze_boundary: '07345b618e8388f4' },
   'ctr-evt-001': { freeze_boundary: '236e75aeda851184' },
   'ctr-flg-001': { freeze_boundary: '4eac2ca0f49b152b', untestable_by_fixture: 'a33afe671089ceac' },
   'ctr-idm-001': { freeze_boundary: '5cba1fd899632d41' },
   'ctr-job-001': { freeze_boundary: '05243c910b16d414' },
   'ctr-mod-001': { freeze_boundary: '22314a6d0c859d81', untestable_by_fixture: '8053ad9e74ea24fd' },
-  'ctr-ntf-001': { freeze_boundary: '0d7a35df9e223055', untestable_by_fixture: '0b3a2ecd0bb8fa68', untestable_by_schema: 'd97d8cb30f2c4735' },
-  'ctr-obs-001': { freeze_boundary: '23991f04c65fefc7', untestable_by_fixture: 'bbdf43f4298434e5', untestable_by_schema: '5f8f6304b630de9e' },
+  'ctr-ntf-001': { freeze_boundary: 'dfe64a502dd9efb6', untestable_by_fixture: '1c65be26c333c651', untestable_by_schema: 'd97d8cb30f2c4735' },
+  'ctr-obs-001': { freeze_boundary: 'f29d8f232d3ce4eb', untestable_by_fixture: 'bbdf43f4298434e5', untestable_by_schema: '5f8f6304b630de9e' },
   'ctr-pag-001': { freeze_boundary: '7cc50c9d8daf646d', untestable_by_fixture: 'd5b82746b3379dcd', untestable_by_schema: '632e77c7c5fd5e87' },
-  'ctr-sec-001': { freeze_boundary: '5a5bd1954efaabed', untestable_by_fixture: '1ffa2979d8f056c7', untestable_by_schema: 'c4809fecbc249148' },
+  'ctr-sec-001': { freeze_boundary: '76d856658740ce9c', untestable_by_fixture: '1ffa2979d8f056c7', untestable_by_schema: 'c4809fecbc249148' },
   'ctr-ten-001': { freeze_boundary: '8f0ab5a50b9a2de4' },
-  'ctr-usg-001': { freeze_boundary: '8ef114c8bfe9c430', untestable_by_fixture: '39a25de940d47258', untestable_by_schema: '64599f030c306f60' },
+  'ctr-usg-001': { freeze_boundary: '8ef114c8bfe9c430', untestable_by_fixture: '07e5a82c4dfc9bf2', untestable_by_schema: '4fae58359f9457ac' },
 };
 
 test('a caveat cannot be replaced by its opposite', async () => {
@@ -427,7 +427,7 @@ test('an accepted gap cannot be rewritten into a reassurance', async () => {
 // pinned beside the digest so that a deletion and an addition cannot cancel out.
 const ANNOTATION_DIGESTS = {
   'ctr-api-001': { count: 10, digest: 'bbe5e0cc5f6c5bbb' },
-  'ctr-aud-001': { count: 22, digest: '69cdfdb6184b0cf0' },
+  'ctr-aud-001': { count: 23, digest: '3628c9d75ed1e406' },
   'ctr-err-001': { count: 1, digest: '591ca9e7afafdece' },
   'ctr-evt-001': { count: 12, digest: '1d3766091e62de86' },
   'ctr-flg-001': { count: 19, digest: '627b839672f67d8b' },
@@ -435,11 +435,11 @@ const ANNOTATION_DIGESTS = {
   'ctr-job-001': { count: 8, digest: 'b374d6bd002c3ad4' },
   'ctr-mod-001': { count: 20, digest: '29985bb8dcd4186c' },
   'ctr-ntf-001': { count: 15, digest: 'b2ad9b8499a8fce6' },
-  'ctr-obs-001': { count: 19, digest: '117d7f1aa91e5d10' },
+  'ctr-obs-001': { count: 21, digest: '66946f6cd3e9be78' },
   'ctr-pag-001': { count: 8, digest: 'b69a983bac7678fb' },
-  'ctr-sec-001': { count: 21, digest: '7041155ebdc45bda' },
+  'ctr-sec-001': { count: 21, digest: 'c6383e794198a422' },
   'ctr-ten-001': { count: 1, digest: '72dd93913f524475' },
-  'ctr-usg-001': { count: 14, digest: 'cb3bf23e846b1426' },
+  'ctr-usg-001': { count: 15, digest: '6819e111b2204ea4' },
 };
 
 // `description` and `title` belong here for the same reason `x-` keys do, and independent review
@@ -539,7 +539,7 @@ const FIXTURE_SET = {
     names: ['invalid-additionalproperties.json', 'invalid-blocked-but-activated.json', 'invalid-blocked-without-missing.json', 'invalid-capabilities-additionalproperties.json', 'invalid-capabilities-capability-key-pattern.json', 'invalid-capabilities-capability-key-type.json', 'invalid-capabilities-duplicated.json', 'invalid-capabilities-minitems.json', 'invalid-capabilities-required.json', 'invalid-capabilities-type.json', 'invalid-capabilities-version-minimum.json', 'invalid-capabilities-version-type.json', 'invalid-capabilities-wrong-type.json', 'invalid-cost-policy-additionalproperties.json', 'invalid-cost-policy-metered-type.json', 'invalid-cost-policy-required.json', 'invalid-cost-policy-type.json', 'invalid-cost-policy-usage-contract-pattern.json', 'invalid-cost-policy-usage-contract-type.json', 'invalid-data-policy-additionalproperties.json', 'invalid-data-policy-consent-reference-minlength.json', 'invalid-data-policy-consent-reference-type.json', 'invalid-data-policy-redaction-reference-minlength.json', 'invalid-data-policy-redaction-reference-type.json', 'invalid-data-policy-required.json', 'invalid-data-policy-retention-reference-minlength.json', 'invalid-data-policy-retention-reference-type.json', 'invalid-data-policy-tenant-scoped-type.json', 'invalid-data-policy-type.json', 'invalid-dependencies-additionalproperties.json', 'invalid-dependencies-duplicated.json', 'invalid-dependencies-module-key-pattern.json', 'invalid-dependencies-module-key-type.json', 'invalid-dependencies-range-minlength.json', 'invalid-dependencies-range-type.json', 'invalid-dependencies-required.json', 'invalid-dependencies-type.json', 'invalid-dependencies-wrong-type.json', 'invalid-lifecycle-additionalproperties.json', 'invalid-lifecycle-readiness-additionalproperties.json', 'invalid-lifecycle-readiness-missing-minitems.json', 'invalid-lifecycle-readiness-missing-type.json', 'invalid-lifecycle-readiness-reason-pattern.json', 'invalid-lifecycle-readiness-reason-type.json', 'invalid-lifecycle-readiness-type.json', 'invalid-lifecycle-required.json', 'invalid-lifecycle-state-enum.json', 'invalid-lifecycle-state-missing.json', 'invalid-lifecycle-supports-drain-type.json', 'invalid-lifecycle-type.json', 'invalid-missing-data-policy.json', 'invalid-missing-required-permissions.json', 'invalid-missing-unknown-reason.json', 'invalid-module-id-pattern.json', 'invalid-module-id-type.json', 'invalid-module-key-pattern.json', 'invalid-module-key-type.json', 'invalid-not-an-object.json', 'invalid-owner-role-enum.json', 'invalid-permissioned-data-not-tenant-scoped.json', 'invalid-permissioned-without-declarations.json', 'invalid-permissions-duplicated.json', 'invalid-permissions-minlength.json', 'invalid-permissions-type.json', 'invalid-permissions-wrong-type.json', 'invalid-readiness-reason-missing.json', 'invalid-ready-without-activation.json', 'invalid-ready-without-readiness.json', 'invalid-secret-handle-shape.json', 'invalid-secret-handles-duplicated.json', 'invalid-secret-handles-type.json', 'invalid-secret-handles-wrong-type.json', 'invalid-semver.json', 'invalid-unknown-classification.json', 'invalid-version-type.json', 'valid-blocked-missing-secret.json', 'valid-ready.json'],
   },
   'ctr-ntf-001': {
-    names: ['invalid-additionalproperties.json', 'invalid-channel-enum.json', 'invalid-command-carrying-delivery.json', 'invalid-command-without-deep-link.json', 'invalid-dedupe-key-minlength.json', 'invalid-dedupe-key-type.json', 'invalid-deep-link-additionalproperties.json', 'invalid-deep-link-omits-permission-flag.json', 'invalid-deep-link-public-url.json', 'invalid-deep-link-target-ref-type.json', 'invalid-deep-link-type.json', 'invalid-deep-link-without-permission.json', 'invalid-delivered-with-failure-class.json', 'invalid-delivery-additionalproperties.json', 'invalid-delivery-failure-class-enum.json', 'invalid-delivery-required.json', 'invalid-failure-missing-class-only.json', 'invalid-failure-without-class.json', 'invalid-kind-enum.json', 'invalid-message-free-text.json', 'invalid-message-key-type.json', 'invalid-missing-tenant-context.json', 'invalid-notification-id-minlength.json', 'invalid-notification-id-type.json', 'invalid-required.json', 'invalid-unknown-delivery-state.json', 'invalid-unsupported-locale.json', 'valid-command.json', 'valid-result-delivered.json', 'valid-result-failed-transient.json', 'valid-result-suppressed-duplicate.json'],
+    names: ['invalid-additionalproperties.json', 'invalid-channel-enum.json', 'invalid-command-carrying-delivery.json', 'invalid-command-without-deep-link.json', 'invalid-dedupe-key-minlength.json', 'invalid-dedupe-key-type.json', 'invalid-deep-link-additionalproperties.json', 'invalid-deep-link-omits-permission-flag.json', 'invalid-deep-link-public-url.json', 'invalid-deep-link-target-ref-type.json', 'invalid-deep-link-type.json', 'invalid-deep-link-without-permission.json', 'invalid-delivered-with-failure-class.json', 'invalid-delivery-additionalproperties.json', 'invalid-delivery-failure-class-enum.json', 'invalid-delivery-required.json', 'invalid-failure-without-class.json', 'invalid-kind-enum.json', 'invalid-message-free-text.json', 'invalid-message-key-type.json', 'invalid-missing-tenant-context.json', 'invalid-notification-id-minlength.json', 'invalid-notification-id-type.json', 'invalid-required.json', 'invalid-unknown-delivery-state.json', 'invalid-unsupported-locale.json', 'valid-command.json', 'valid-result-delivered.json', 'valid-result-failed-transient.json', 'valid-result-suppressed-duplicate.json'],
   },
   'ctr-obs-001': {
     names: ['accepted-gap-unbounded-error-code-label.json', 'invalid-additionalproperties.json', 'invalid-correlation-additionalproperties.json', 'invalid-correlation-causation-id-minlength.json', 'invalid-correlation-causation-id-type.json', 'invalid-correlation-correlation-id-minlength.json', 'invalid-correlation-correlation-id-type.json', 'invalid-correlation-job-id-minlength.json', 'invalid-correlation-job-id-type.json', 'invalid-correlation-request-id-minlength.json', 'invalid-correlation-request-id-type.json', 'invalid-correlation-required.json', 'invalid-correlation-trace-id-minlength.json', 'invalid-correlation-trace-id-type.json', 'invalid-correlation-type.json', 'invalid-dependencies-additionalproperties.json', 'invalid-dependencies-dependency-key-pattern.json', 'invalid-dependencies-dependency-key-type.json', 'invalid-dependencies-duplicated.json', 'invalid-dependencies-kind-enum.json', 'invalid-dependencies-required.json', 'invalid-dependencies-type.json', 'invalid-dependencies-wrong-type.json', 'invalid-down-but-ready.json', 'invalid-environment-enum.json', 'invalid-free-text-readiness-reason.json', 'invalid-liveness-additionalproperties.json', 'invalid-liveness-depends-on-external-provider.json', 'invalid-liveness-required.json', 'invalid-liveness-status-enum.json', 'invalid-liveness-type.json', 'invalid-module-additionalproperties.json', 'invalid-module-implementation-version-minlength.json', 'invalid-module-implementation-version-type.json', 'invalid-module-module-key-pattern.json', 'invalid-module-module-key-type.json', 'invalid-module-required.json', 'invalid-module-type.json', 'invalid-not-an-object.json', 'invalid-readiness-additionalproperties.json', 'invalid-readiness-capabilities-0-reason-key-too-long.json', 'invalid-readiness-capabilities-additionalproperties.json', 'invalid-readiness-capabilities-capability-key-pattern.json', 'invalid-readiness-capabilities-capability-key-type.json', 'invalid-readiness-capabilities-minitems.json', 'invalid-readiness-capabilities-ready-type.json', 'invalid-readiness-capabilities-reason-key-type.json', 'invalid-readiness-capabilities-required.json', 'invalid-readiness-capabilities-type.json', 'invalid-readiness-capabilities-wrong-type.json', 'invalid-readiness-ready-type.json', 'invalid-readiness-required.json', 'invalid-readiness-type.json', 'invalid-ready-with-unready-capability.json', 'invalid-redaction-additionalproperties.json', 'invalid-redaction-content-redacted-const.json', 'invalid-redaction-pii-redacted-const.json', 'invalid-redaction-required.json', 'invalid-redaction-secret-redacted-const.json', 'invalid-redaction-type.json', 'invalid-required.json', 'invalid-sli-tags-capability-key-pattern.json', 'invalid-sli-tags-capability-key-type.json', 'invalid-sli-tags-environment-pattern.json', 'invalid-sli-tags-environment-type.json', 'invalid-sli-tags-error-code-pattern.json', 'invalid-sli-tags-error-code-type.json', 'invalid-sli-tags-module-key-pattern.json', 'invalid-sli-tags-module-key-type.json', 'invalid-sli-tags-outcome-pattern.json', 'invalid-sli-tags-outcome-type.json', 'invalid-sli-tags-required.json', 'invalid-sli-tags-type.json', 'invalid-unknown-dependency-status.json', 'invalid-unready-capability-without-reason.json', 'invalid-user-content-metric-label.json', 'valid-down-and-not-ready.json', 'valid-provider-unavailable-but-still-live.json', 'valid-ready.json'],
@@ -769,12 +769,12 @@ const NORMATIVE_MANIFEST_FIELDS = {
   'ctr-idm-001': { agreement_witnesses: '6896abe613393b5d', source_references: 'a2ddd88c4de63b11' },
   'ctr-job-001': { source_references: '8dd32884974e5a9c' },
   'ctr-mod-001': { source_references: '3080fb571b82b306' },
-  'ctr-ntf-001': { source_references: '4cecd05ce0c57fe8' },
+  'ctr-ntf-001': { source_references: '26e6882a11fe0eff' },
   'ctr-obs-001': { source_references: 'b453f9f1ae08e083' },
   'ctr-pag-001': { source_references: 'aa4c153899a799b8' },
   'ctr-sec-001': { source_references: 'c93a993a44130494' },
   'ctr-ten-001': { trust_boundary: 'bb40cede6ad6253a', source_references: 'ee30c0ff36f94227' },
-  'ctr-usg-001': { source_references: '064d3597a41219b4' },
+  'ctr-usg-001': { source_references: '5be6fa77cfcd20cb' },
 };
 
 test('the normative manifest fields cannot be rewritten or invented', async () => {

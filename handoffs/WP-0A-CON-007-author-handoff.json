@@ -4,15 +4,25 @@
   "work_package_id": "WP-0A-CON-007",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "03c584b2652c74219dabca15e39a2b9c0bd487b6",
-  "head_revision_or_patch_checksum": "c30c8c8c5412393ed79535db13acdec42483113e",
+  "base_revision": "b5d21d554477dfb5c66d9237fd2fc0e0d65f71c7",
+  "head_revision_or_patch_checksum": "b612f10a46daae48479737b0abbd2a38722f4637",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-CON-007/test-verdict-q0.md",
-    "evidence/WP-0A-CON-007/review-contract-c0.md",
-    "evidence/WP-0A-CON-007/review-security-a1.md"
+    "evidence/WP-0A-CON-007/a1-security-reverify-2026-10-05.md",
+    "evidence/WP-0A-CON-007/author-conditions-closure-2026-10-06.md",
+    "evidence/WP-0A-CON-007/author-r0-conditions-closure-2026-10-06.md",
+    "evidence/WP-0A-CON-007/c0-contract-reverify-2026-10-05.md",
+    "evidence/WP-0A-CON-007/q0-test-reverify-2026-10-05.md",
+    "evidence/WP-0A-CON-007/r0-integration-verdict-2026-10-05.md"
   ],
-  "files_modified": [],
+  "files_modified": [
+    "architecture/decisions/RFC-2026-009-reference-bounds.md",
+    "evidence/WP-0A-CON-007/author-self-check.md",
+    "handoffs/WP-0A-CON-007-author-handoff.json",
+    "test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-CON-007.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -23,72 +33,113 @@
   "contracts_produced_or_changed": [],
   "assumptions": [
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
-    "RFC-2026-002 reserves the merge for the Product Owner. This package was never merged and main was never touched.",
-    "Cross-vendor review is NOT satisfied. Every run against this package is Anthropic claude-opus-5, carried as the recorded exception rather than as an equivalent.",
-    "The revisions above are the branch's CURRENT base and head. This stack has been rebased repeatedly; an earlier version of this handoff cited SHAs that no longer exist in any branch, which independent review caught. Re-derive them if the stack is rebased again."
+    "This PR edits RFC-2026-009, so it is a governance PR under RFC-2026-025 §5 item 6. On 2026-10-06 the Product Owner told A0 in chat `คุณทำเลย` (\"you do it\") about the two governance PRs waiting for the Owner (#187, #188); A0 presses this merge on those words, pinned with --match-head-commit, and records them in the next disposition.",
+    "Cross-vendor review was withdrawn for this package by the Product Owner on 2026-10-05 (step 2 item 1, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md; RFC-2026-024). Independence remains four distinct runs plus the conditional Security run, none acting on its own work.",
+    "The revisions above are regenerated from history by npm run refresh:handoff in the last commit, and cite this branch only. Re-derive them if the branch is rebased.",
+    "main moved to b5d21d5 (PR #187, WP-0A-CON-005) after the role verdicts; it was merged in as b612f10. The one conflict, test-kits/integrity-manifest.json, was resolved by keeping this PR's ctr-evt-001 digest and main's ctr-job-001 digest; regenerate:manifest rebuilt all 91 digests byte-identical to the resolution. This PR's diff against main is unchanged."
   ],
   "acceptance_results": [
     {
       "criterion": "metadata.schema_ref rejects every one of the sixteen hostile forms that the shipped schema accepted, and the probe is recorded as having been run against the schema BEFORE the fix.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-CON-007/author-self-check.md"
+      "evidence": "evidence/WP-0A-CON-007/author-conditions-closure-2026-10-06.md"
     },
     {
       "criterion": "metadata.schema_ref still accepts a well-formed contract name, so the guard is not one that rejects everything.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-CON-007/author-self-check.md"
+      "evidence": "evidence/WP-0A-CON-007/author-conditions-closure-2026-10-06.md"
     },
     {
       "criterion": "A value that satisfies the contract-name shape and exceeds the bound is rejected, so the bound is tested independently of the shape.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-CON-007/author-self-check.md"
+      "evidence": "evidence/WP-0A-CON-007/author-conditions-closure-2026-10-06.md"
     },
     {
       "criterion": "Every reference field this package touches carries a maxLength.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-CON-007/author-self-check.md"
+      "evidence": "evidence/WP-0A-CON-007/author-conditions-closure-2026-10-06.md"
     },
     {
       "criterion": "The guard asserts behaviour, never pattern text.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-CON-007/author-self-check.md"
+      "evidence": "evidence/WP-0A-CON-007/author-conditions-closure-2026-10-06.md"
     },
     {
       "criterion": "npm run check stays green with no test skipped, and no declared unkilled ceiling rises.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-CON-007/author-self-check.md"
+      "evidence": "evidence/WP-0A-CON-007/author-conditions-closure-2026-10-06.md"
     }
   ],
   "tests": [
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
+      "result": "see evidence/WP-0A-CON-007/author-conditions-closure-2026-10-06.md §7",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "node --test test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs",
+      "exit_code": 0,
+      "result": "tests 8, pass 8, fail 0, skipped 0, todo 0",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "node --test test-kits/contracts/schema-mutation-coverage.test.mjs",
+      "exit_code": 0,
+      "result": "tests 10, pass 10, fail 0, skipped 0, todo 0",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-CON-007.json",
+      "exit_code": 0,
+      "result": "four distinct role ids",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
   "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "No contract changes. This increment adds the three role verdicts WP-0A-CON-007 was missing and touches no contract-catalog file, schema or fixture. The Reviewer returned changes_required with a working exploit, and the fixes it names land in this package's own test kit in a later increment.",
+  "compatibility_impact": "No contract changes. No contract-catalog file, schema or fixture is touched. The guard is stricter: it walks the whole catalog, and a new unbounded reference field in any contract now fails CI unless it is recorded in KNOWN_UNBOUNDED with its owning package. A contract owner who bounds a listed field must remove its entry in the same change.",
   "known_limitations": [
-    "RFC-2026-009 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
-    "CTR-NTF-001 deep_link.target_ref remains unbounded. It belongs to A5 and is reported, not fixed.",
-    "The 256-character bound is a DECLARED INFERENCE. The longest reference in the catalog is 51 characters; no baseline task states a limit. A reviewer who knows the real ceiling should set it."
+    "CTR-NTF-001 deep_link.target_ref remains unbounded. It belongs to A5 (contract owner) through WP-0A-CON-006, and it is reported, not fixed. Since 2026-10-06 it and its three unbounded neighbours (notification_id, message_key, dedupe_key) are in the guard's KNOWN_UNBOUNDED list, so they are visible, and the list fails when the owner bounds them until the entry is removed.",
+    "RESOLVED 2026-10-06 (was: \"The 256-character bound is a DECLARED INFERENCE. The longest reference in the catalog is 51 characters; no baseline task states a limit. A reviewer who knows the real ceiling should set it.\"). The figure was wrong: the longest is 85 (ctr-usg-001 dedupe_key, valid fixture), or 48 counting *_ref only (A1 S-8, C0 F6). No baseline document states a limit. The bounds are now recorded as A0's decision as owner of the four contracts, under the Owner's 2026-09-28 instruction to carry out the work as A0 recommends (RFC-2026-009 R-2). 256 is load-bearing in migrations 050, 110 and 140 as length(...) <= 256 CHECK constraints, so a change in either direction needs a forward migration in the same change. A1's suggestion to lower schema_ref to 24 is recorded, not taken; it is CTR-EVT-001's owner's before freeze.",
+    "OWED by WP-0A-CON-001 (CTR-EVT-001's package; acknowledgement to /claude/r0_steward): the x-bound-note repeated on eight fields of contract-catalog/shared-kernel/ctr-evt-001/schema.json says the neighbouring fields accepted \"four of the sixteen\" hostile forms before the fix. They accepted sixteen of sixteen, and the note is wrong in every clause about event_type (A1 S-7, condition 1). The file is outside this package's writable paths. RFC-2026-009 R-3 records the true figures.",
+    "REPORTED, NOT FIXED: 49 reference-shaped fields in nine contracts this package does not own carry no bound. They are listed by owning package in RFC-2026-009 R-4 and in the guard's KNOWN_UNBOUNDED list: WP-0A-CON-001 (CTR-TEN-001 x7, which ride inside every CTR-EVT-001 event through tenant_context, and CTR-ERR-001 x2); WP-0A-CON-004 (CTR-SEC-001 x8, CTR-AUD-001 x4, CTR-OBS-001 x10); WP-0A-CON-003 (CTR-FLG-001 x4, CTR-MOD-001 x4); WP-0A-CON-006 (CTR-NTF-001 x4, CTR-USG-001 x6).",
+    "ESCALATED to CTR-JOB-001's owner (WP-0A-CON-001), required_before_freeze: job_type, lease_owner, progress_stage and last_error_code are bare {\"type\":\"string\"} on a contract this package bounded (A1 S-5). Also recorded on WP-0A-CON-005.",
+    "DEFERRED with the anchor-semantics test: occurred_at and five date-time siblings on the bounded contracts are defended only by format: \"date-time\", which JSON Schema 2020-12 makes an annotation by default (A1 S-6). This repository's validator asserts it. A cross-validator conformance test belongs with the first non-JS consumer (RFC-2026-009 R-5).",
+    "The declared assertion floor for test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs in scripts/test-suite-contract.mjs stays at 11 while the file now makes more assertions. A floor below the count still holds. Raising it is the owner of scripts/ (Integration Owner path), not this package. The test count (8) and the test-name digest are unchanged, because every 2026-10-06 change is inside an existing test."
   ],
   "open_risks_or_blockers": [
-    "RFC-2026-009 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
-    "CTR-NTF-001 deep_link.target_ref remains unbounded. It belongs to A5 and is reported, not fixed.",
-    "The 256-character bound is a DECLARED INFERENCE. The longest reference in the catalog is 51 characters; no baseline task states a limit. A reviewer who knows the real ceiling should set it."
+    "RESOLVED 2026-10-06 (was: \"RFC-2026-009 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.\"). RFC-2026-009 carries the Product Owner disposition of 2026-09-02, commit 82aae60, on its status line (A1 condition 8, C0 §5). What is still open is the sequencing, in required_human_authorities[0], for the Integration Owner.",
+    "CTR-NTF-001 deep_link.target_ref remains unbounded. It belongs to A5 (contract owner) through WP-0A-CON-006, and it is reported, not fixed. Since 2026-10-06 it and its three unbounded neighbours (notification_id, message_key, dedupe_key) are in the guard's KNOWN_UNBOUNDED list, so they are visible, and the list fails when the owner bounds them until the entry is removed.",
+    "RESOLVED 2026-10-06 (was: \"The 256-character bound is a DECLARED INFERENCE. The longest reference in the catalog is 51 characters; no baseline task states a limit. A reviewer who knows the real ceiling should set it.\"). The figure was wrong: the longest is 85 (ctr-usg-001 dedupe_key, valid fixture), or 48 counting *_ref only (A1 S-8, C0 F6). No baseline document states a limit. The bounds are now recorded as A0's decision as owner of the four contracts, under the Owner's 2026-09-28 instruction to carry out the work as A0 recommends (RFC-2026-009 R-2). 256 is load-bearing in migrations 050, 110 and 140 as length(...) <= 256 CHECK constraints, so a change in either direction needs a forward migration in the same change. A1's suggestion to lower schema_ref to 24 is recorded, not taken; it is CTR-EVT-001's owner's before freeze.",
+    "OWED by WP-0A-CON-001 (CTR-EVT-001's package; acknowledgement to /claude/r0_steward): the x-bound-note repeated on eight fields of contract-catalog/shared-kernel/ctr-evt-001/schema.json says the neighbouring fields accepted \"four of the sixteen\" hostile forms before the fix. They accepted sixteen of sixteen, and the note is wrong in every clause about event_type (A1 S-7, condition 1). The file is outside this package's writable paths. RFC-2026-009 R-3 records the true figures.",
+    "REPORTED, NOT FIXED: 49 reference-shaped fields in nine contracts this package does not own carry no bound. They are listed by owning package in RFC-2026-009 R-4 and in the guard's KNOWN_UNBOUNDED list: WP-0A-CON-001 (CTR-TEN-001 x7, which ride inside every CTR-EVT-001 event through tenant_context, and CTR-ERR-001 x2); WP-0A-CON-004 (CTR-SEC-001 x8, CTR-AUD-001 x4, CTR-OBS-001 x10); WP-0A-CON-003 (CTR-FLG-001 x4, CTR-MOD-001 x4); WP-0A-CON-006 (CTR-NTF-001 x4, CTR-USG-001 x6).",
+    "ESCALATED to CTR-JOB-001's owner (WP-0A-CON-001), required_before_freeze: job_type, lease_owner, progress_stage and last_error_code are bare {\"type\":\"string\"} on a contract this package bounded (A1 S-5). Also recorded on WP-0A-CON-005.",
+    "DEFERRED with the anchor-semantics test: occurred_at and five date-time siblings on the bounded contracts are defended only by format: \"date-time\", which JSON Schema 2020-12 makes an annotation by default (A1 S-6). This repository's validator asserts it. A cross-validator conformance test belongs with the first non-JS consumer (RFC-2026-009 R-5).",
+    "The declared assertion floor for test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs in scripts/test-suite-contract.mjs stays at 11 while the file now makes more assertions. A floor below the count still holds. Raising it is the owner of scripts/ (Integration Owner path), not this package. The test count (8) and the test-name digest are unchanged, because every 2026-10-06 change is inside an existing test.",
+    "CLOSED 2026-10-06 (was: \"OWED before this package can leave in_review: C0, A1 and Q0 re-checks of the 2026-10-06 head against their own conditions, and an Integration Owner verdict by /claude/r0_steward. The verdicts on file (03c584b) predate this increment.\"). Closed by the four role files: C0 evidence/WP-0A-CON-007/c0-contract-reverify-2026-10-05.md (b19d2c9, review_approved_with_conditions, no merge-holding condition), A1 evidence/WP-0A-CON-007/a1-security-reverify-2026-10-05.md (bd49abc, security_approved_with_conditions), Q0 evidence/WP-0A-CON-007/q0-test-reverify-2026-10-05.md (14d35c1, test_verified), and R0 evidence/WP-0A-CON-007/r0-integration-verdict-2026-10-05.md (f1a403b). STATUS integration_verified, as R0 words it (§6): \"`integration_verified`, effective when both of these hold, and not before: 1. The three role files (C0 b19d2c9, A1 bd49abc, Q0 14d35c1) and this file are on agent/claude/WP-0A-CON-007-reference-bounds. 2. The required bootstrap check is green on that exact new head, and that head still contains current main.\" Condition 1 holds from the commit that records this (the four commits are cherry-picked with -x). Condition 2 is not yet measured at the time of writing; until it holds, this status is not in effect. Merge path (R0 §4 R3): the Product Owner personally, under RFC-2026-025 §5 item 6 and required_human_authorities[1]; A0 must not merge it under the standing delegation, and shows the Owner A1's open condition (R1).",
+    "OPEN, gates done (not integration_verified) -- R0 R1 / A1 N-1, owner WP-0A-CON-001 (Integration Owner /claude/r0_steward, who accepted both items as owed in evidence/WP-0A-CON-007/r0-integration-verdict-2026-10-05.md §4 R1): WP-0A-CON-001 owes (a) the x-bound-note fix on contract-catalog/shared-kernel/ctr-evt-001/schema.json (\"four of the sixteen\"; the true figure is sixteen of sixteen, RFC-2026-009 R-3) and (b) the bound decision on the four CTR-JOB-001 strings job_type, lease_owner, progress_stage and last_error_code, required_before_freeze. Both must be recorded on WP-0A-CON-001's side (work-packages/WP-0A-CON-001.json open_blockers or evidence/WP-0A-CON-001/), through a PR that owns those paths, citing R0 R1 and A1 N-1, before WP-0A-CON-007 moves to done.",
+    "OPEN, advisory -- R0 R4, owner WP-0A-A0-002: work-packages/WP-0A-A0-002.json amended_by carries a WP-0A-CON-007 entry naming the Author (/claude/a0_atlas) as acknowledger, and does not mention the 2026-10-06 change. Bring it into line (acknowledger /claude/r0_steward, status given, pointer to evidence/WP-0A-CON-007/r0-integration-verdict-2026-10-05.md §5) in a PR that owns that path. Not blocking; listed by R0 among the steps before done.",
+    "OPEN, low -- Q0 O-1, owner of test-kits/ratchets-bite.test.mjs: the catalog-wide ratchet in this package's guard has no meta-ratchet; mutants T01-T03 survive every repository guard. Adding a third reversal (an unbounded reference in a contract this package does not own) to ratchets-bite's check over this suite would make them visible (evidence/WP-0A-CON-007/q0-test-reverify-2026-10-05.md §6).",
+    "OPEN, low (diagnostics, suggestion) -- Q0 O-2 (with C0 N-4), owner: this test's next edit: CATALOG_REFERENCE_FIELD_FLOOR equals the current count (76) and fires before the stale-list message that would name the field. Move the floor assertions after the three list assertions, or set the floor a little below the count.",
+    "OPEN, low (record precision) -- Q0 O-3, owner: the next edit of RFC-2026-009 R-2 (next RFC correction): migration db/foundation/migrations/070_research.sql:792 also carries length(object_ref) <= 256; R-2 and author-conditions-closure-2026-10-06.md §3 name 050, 110 and 140 and omit 070. The conclusion (a change in either direction needs a forward migration) is unaffected.",
+    "OPEN, informational -- Q0 O-4, no owner: the owning-package label on each KNOWN_UNBOUNDED entry is never asserted; a wrong owner would pass. RFC-2026-009 R-4 is the record of ownership.",
+    "OPEN, low -- C0 N-1, owner CTR-EVT-001's owner (WP-0A-CON-001), before freeze: the ratchet pins bound presence catalog-wide but bound value only for schema_ref and the seven REFERENCE_FIELDS; raising event_id or correlation_id 128 -> 1000000 leaves this guard green and turns schema-mutation-coverage red with \"changed without being recorded\". Pinning the six envelope ids as behaviour (128 accepted, 129 rejected) would remove the dependence (evidence/WP-0A-CON-007/c0-contract-reverify-2026-10-05.md §5).",
+    "OPEN, low -- C0 N-2 (with A1 N-3), owner: the next change to the test-name digest in scripts/test-suite-contract.mjs: the test title \"every reference-shaped field in the contracts this package touches carries an upper bound\" overstates what it asserts (it walks all fourteen contracts and accepts 49 known gaps). The rename belongs with the next change to that digest (RFC-2026-009 R-7).",
+    "OPEN, informational (wording) -- A1 N-2, owner A1's own record: R-5 and the CTR-JOB-001 escalation above describe job_type, lease_owner, progress_stage and last_error_code as bare {\"type\":\"string\"}; they carry minLength: 1, and already did at 03c584b. Substance unchanged: no pattern and no upper bound (evidence/WP-0A-CON-007/a1-security-reverify-2026-10-05.md §3).",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This package's range dcb3ffc..653f699 covers 106 path(s) — 93 contract-catalog file(s), 2 test file(s), 1 decision record(s), 7 work-package manifest(s). Revert through a reviewed revert PR. Constraints on four Candidate contracts and one test file; no persisted data, provider state, credential, migration or customer-data effect.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This increment changes one test file, one decision record (record corrections only, the decision unchanged), one manifest, two integrity digests and evidence. No contract, migration, persisted data, provider state, credential or customer-data effect. The 256 bound recorded in RFC-2026-009 R-2 is load-bearing in migrations 050, 110 and 140, so changing the BOUND (not reverting this increment) needs a forward migration.",
   "recommended_next_work_packages": [
+    "WP-0A-CON-001",
     "WP-0A-CON-008"
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-CON-007/ first: it records what was verified, what was refused and why, and the independent findings that corrected this package.",
-    "Ten independent verification runs were dispatched against this stack. The first eight each shipped an untested business rule past every guard; the ninth and tenth could not, after roughly 22,000 and 9,350 mutations respectively, but each still found real defects elsewhere. Assume an eleventh exists.",
-    "Attack the guards rather than reading them. Every defect found so far came from execution and none from reading.",
-    "The author is /claude/a0_atlas. Reviewer, tester and integration verification are open and must be distinct runs; cross-vendor review is not satisfied and is carried as a recorded exception."
+    "Read evidence/WP-0A-CON-007/author-conditions-closure-2026-10-06.md first: it maps every C0, A1 and Q0 condition to its disposition, closed here or owed with its owner.",
+    "Then read evidence/WP-0A-CON-007/author-r0-conditions-closure-2026-10-06.md: it records how the Author carried the four role verdicts into the manifest.",
+    "Attack the guard rather than reading it. The 17-mutant campaign in §5 of that file is the Author's; a re-check should run its own.",
+    "Check RFC-2026-009 R-1 to R-7 against the tree: the figures 85, 48, 49, 76 and 14 are measurements at e1fa28e.",
+    "The author is /claude/a0_atlas. The C0, A1 and Q0 re-checks and the Integration verdict by /claude/r0_steward are on file, each from a distinct run: evidence/WP-0A-CON-007/c0-contract-reverify-2026-10-05.md, a1-security-reverify-2026-10-05.md, q0-test-reverify-2026-10-05.md and r0-integration-verdict-2026-10-05.md. Their open items are listed by owner in open_risks_or_blockers. The merge is the Product Owner's personal act (RFC-2026-025 §5 item 6)."
   ],
   "superseded_by": null
 }
