@@ -66,3 +66,14 @@ when an author handoff claims another role approved something*, which runs the s
 copy and fails on the same test. Nothing else was red. The records commit is therefore a plain
 `git commit`, as `evidence/WP-0A-CON-003/records-transcription-2026-10-06.md` §5 did for that case alone.
 The handoff refresh that follows, last and alone, is what clears it.
+
+## 6. One mechanical manifest change the branch-scope guard forces
+
+`node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-004` exited **74** after the first handoff
+refresh: `ownership.amends_without_owning.paths` still declared `test-kits/contracts/catalog-registry.test.mjs`
+and `test-kits/integrity-manifest.json`, which this records-only branch does not change. CI runs the same
+step on a pull request. Following the precedent of `WP-0A-CON-003` and `WP-0A-A0-005`
+(`evidence/WP-0A-A0-005/author-reverify-2026-10-06.md` §3), the paths are emptied and the rationale gains
+one sentence saying why; the earlier rationale text and `recorded_on` are kept, because the amendments are
+unchanged history merged in PR #196 and their record on `WP-0A-A0-002` and `WP-0A-CON-008` is still owed
+(R0 R3). No rule, contract or test moves. The handoff is then refreshed again, last and alone.
