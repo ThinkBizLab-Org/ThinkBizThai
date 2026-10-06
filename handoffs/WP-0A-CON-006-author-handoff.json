@@ -5,10 +5,37 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "0955b32e6de055a6677d9e1b0e73373d209cb613",
-  "head_revision_or_patch_checksum": "0955b32e6de055a6677d9e1b0e73373d209cb613",
+  "head_revision_or_patch_checksum": "42549669ad6edae6dd4696c249e295463daadc3b",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-dedupe-key-contact-detail.json",
+    "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-dedupe-key-too-long.json",
+    "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-deep-link-target-ref-too-long.json",
+    "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-message-key-too-long.json",
+    "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-notification-id-too-long.json",
+    "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-business-profile-id-too-long.json",
+    "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-job-id-too-long.json",
+    "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-provider-key-too-long.json",
+    "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-workspace-id-too-long.json",
+    "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-supersedes-usage-id-too-long.json",
+    "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-estimated-carries-supersedes-usage-id.json",
+    "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-usage-id-too-long.json",
+    "evidence/WP-0A-CON-006/author-bounds-increment-2026-10-07.md"
+  ],
+  "files_modified": [
+    "contract-catalog/shared-kernel/ctr-ntf-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-ntf-001/schema.json",
+    "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-supersedes-usage-id-minlength.json",
+    "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-supersedes-usage-id-type.json",
+    "contract-catalog/shared-kernel/ctr-usg-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-usg-001/schema.json",
+    "handoffs/WP-0A-CON-006-author-handoff.json",
+    "test-kits/contracts/catalog-registry.test.mjs",
+    "test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs",
+    "test-kits/contracts/schema-mutation-coverage.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-CON-006.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -111,13 +138,13 @@
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-006",
       "exit_code": 0,
-      "result": "every changed path declared (see the PR body for the exact line)",
+      "result": "WP-0A-CON-006: all 25 changed path(s) are declared, and every amendment explains one (at 4254966)",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
   "migration_and_data_impact": "None. No migration, provider call, credential or customer data. Synthetic fixtures only: twelve added, two corrected to stay single-fault.",
-  "compatibility_impact": "Narrowing at Draft. Values that were legal before and are rejected now: an id longer than 128, a message_key longer than 128, a target_ref longer than 256, a provider_key longer than 64, an NTF dedupe_key longer than 128 or outside ^ntf:[A-Za-z0-9_-]+(?::[A-Za-z0-9_.-]+)*$, and an estimated USG event that carries cost.supersedes_usage_id. Every shipped valid fixture still validates. Draft consumers may run exploratory spikes only (Decision Register 5.1).",
+  "compatibility_impact": "BREAKING, as a narrowing, at Draft only. Values that were legal before and are rejected now: an id longer than 128, a message_key longer than 128, a target_ref longer than 256, a provider_key longer than 64, an NTF dedupe_key longer than 128 or outside ^ntf:[A-Za-z0-9_-]+(?::[A-Za-z0-9_.-]+)*$, and an estimated USG event that carries cost.supersedes_usage_id. Every shipped valid fixture still validates. Draft consumers may run exploratory spikes only (Decision Register 5.1).",
   "known_limitations": [
     "CLOSED 2026-10-05 BY A0 (/claude/a0_atlas), RECORD CORRECTION, NOT A NEW FINDING: evidence/WP-0A-A0-006/blocker-re-audit.md (main @ 963990f) verdict CON-006 #01 CLOSED, re-verified at main @ 600b48b: architecture/decisions/RFC-2026-004-catalog-reference-integrity.md:3 reads the Product Owner's 2026-09-02 disposition (see the manifest for the verbatim status line). Closed in place so no later index moves; cited from evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md and evidence/g0-tracker-th.md. Text as recorded: SUPERSEDED 2026-09-06, verified against the tree rather than remembered. This entry read: 'RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.' The Status line of architecture/decisions/RFC-2026-004-catalog-reference-integrity.md now reads the Product Owner's 2026-09-02 disposition (verbatim in the manifest), so the disposition this entry was waiting for has happened. What remains is narrower and is that RFC's own Limitations section, which the approval leaves standing word for word: it does not approve Gate G0, does not authorize a merge, does not advance any contract freeze level, and does not substitute for the independent Reviewer, Tester, Security or Integration Owner evidence RFC-2026-002 requires. Every merge of this package still needs all of that separately; what it no longer needs is a disposition of RFC-2026-004.",
     "CTR-NTF-001 SHOULD NOT HAVE BEEN AUTHORED BY THIS PACKAGE. Independent review graded it High: Decision Register 4.1 reserves proposing a contract to its owner and 4.3 makes A0's role 'producer submits proposal and fixture; A0 assigns version'. A5 is the sole owner and A0 wrote the proposal. Ratification after the fact is a weaker and different control. The '14 of 14 materialized' figure therefore counts an unratified non-owner draft as coverage and must not be cited as G0 evidence without that qualification.",
