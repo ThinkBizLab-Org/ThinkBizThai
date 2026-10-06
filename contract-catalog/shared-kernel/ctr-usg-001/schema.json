@@ -18,7 +18,9 @@
     "usage_id": {
       "type": "string",
       "minLength": 1,
-      "x-source": "OB-004 depends on EV-001; an event needs a unique id. DECLARED INFERENCE from the Event Envelope, section 3.2."
+      "x-source": "OB-004 depends on EV-001; an event needs a unique id. DECLARED INFERENCE from the Event Envelope, section 3.2.",
+      "maxLength": 128,
+      "x-bound-note": "Bounded 2026-10-07 under open_blockers[13] (C0 N-6; RFC-2026-009 R-4 lists it among the 49 unbounded reference-shaped fields), because A1 measured a 1,000,000-character value ACCEPTED on its siblings (A1-S3). No baseline task states a length limit for any reference (RFC-2026-009 R-2), so THE BOUND IS A DECLARED INFERENCE, taken from RFC-2026-009's values for the same class: 128 for an id, 256 for a `scheme:path` reference. An event id: 128, the bound CTR-EVT-001.event_id carries, and this id is also ID-002's redelivery key. It bounds length, not content; an id is opaque (RFC-2026-009 R-5)."
     },
     "occurred_at": {
       "type": "string",
@@ -73,19 +75,27 @@
       "properties": {
         "workspace_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "x-bound-note": "Bounded 2026-10-07 under open_blockers[13] (C0 N-6; RFC-2026-009 R-4 lists it among the 49 unbounded reference-shaped fields), because A1 measured a 1,000,000-character value ACCEPTED on its siblings (A1-S3). No baseline task states a length limit for any reference (RFC-2026-009 R-2), so THE BOUND IS A DECLARED INFERENCE, taken from RFC-2026-009's values for the same class: 128 for an id, 256 for a `scheme:path` reference. An id: 128, the bound CTR-IDM-001.scope.workspace_id carries. Section 3.1 requires it to EQUAL tenant_context.workspace_id (see attribution's x-rule), so its bound must not be narrower than any tenant identifier this catalog admits."
         },
         "business_profile_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "x-bound-note": "Bounded 2026-10-07 under open_blockers[13] (C0 N-6; RFC-2026-009 R-4 lists it among the 49 unbounded reference-shaped fields), because A1 measured a 1,000,000-character value ACCEPTED on its siblings (A1-S3). No baseline task states a length limit for any reference (RFC-2026-009 R-2), so THE BOUND IS A DECLARED INFERENCE, taken from RFC-2026-009's values for the same class: 128 for an id, 256 for a `scheme:path` reference. An id: 128, the same bound as workspace_id, for the same reason."
         },
         "job_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "x-bound-note": "Bounded 2026-10-07 under open_blockers[13] (C0 N-6; RFC-2026-009 R-4 lists it among the 49 unbounded reference-shaped fields), because A1 measured a 1,000,000-character value ACCEPTED on its siblings (A1-S3). No baseline task states a length limit for any reference (RFC-2026-009 R-2), so THE BOUND IS A DECLARED INFERENCE, taken from RFC-2026-009's values for the same class: 128 for an id, 256 for a `scheme:path` reference. An id that names a CTR-JOB-001 job: 128, CTR-JOB-001.job_id's own bound, so every job id that contract admits can be attributed here and no longer one can. It bounds length, not content: A1-S3 measured this field ACCEPTING an email address, and a 128-character bound does not change that. Recorded under the manifest's untestable_by_schema."
         },
         "provider_key": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9._-]*$"
+          "pattern": "^[a-z][a-z0-9._-]*$",
+          "maxLength": 64,
+          "x-bound-note": "Bounded 2026-10-07 under open_blockers[13] (C0 N-6; RFC-2026-009 R-4 lists it among the 49 unbounded reference-shaped fields), because A1 measured a 1,000,000-character value ACCEPTED on its siblings (A1-S3). No baseline task states a length limit for any reference (RFC-2026-009 R-2), so THE BOUND IS A DECLARED INFERENCE, taken from RFC-2026-009's values for the same class: 128 for an id, 256 for a `scheme:path` reference. A provider key is a KEY that names one configured provider, the same class as CTR-EVT-001.producer.module_key, a registry name, which RFC-2026-009 bounds at 64; it takes 64 for that reason. The longest one any fixture uses is 10 characters. The pattern already keeps it to lowercase letters, digits, `.`, `_` and `-`."
         }
       },
       "x-source": "OB-004 acceptance: 'workspace/business/job/provider attribution ครบ'. workspace, job and provider are required; business_profile_id is conditional because section 3.1 makes it conditional in the Tenant Context.",
@@ -121,7 +131,9 @@
         "supersedes_usage_id": {
           "type": "string",
           "minLength": 1,
-          "x-source": "OB-008 reconciliation: a provider statement replaces an estimate. Without a reference to the estimate it supersedes, a reported event and the estimate it replaces are two events for one cost. DECLARED INFERENCE from OB-008; the task does not name the field. It is optional, so a first report with no prior estimate is expressible. CORRECTION, raised by A6 in co-owner review: an earlier version of this note claimed 'self-reference is rejected'. It is not, and it never was -- comparing two properties of one document is outside this validator's subset, so a document whose `cost.supersedes_usage_id` equals its own `usage_id` VALIDATES. Rejecting self-reference, and rejecting two events that supersede the same estimate, are resolver obligations; both are recorded under untestable_by_schema. A consumer must not build a fake on the strength of the old sentence."
+          "x-source": "OB-008 reconciliation: a provider statement replaces an estimate. Without a reference to the estimate it supersedes, a reported event and the estimate it replaces are two events for one cost. DECLARED INFERENCE from OB-008; the task does not name the field. It is optional, so a first report with no prior estimate is expressible. CORRECTION, raised by A6 in co-owner review: an earlier version of this note claimed 'self-reference is rejected'. It is not, and it never was -- comparing two properties of one document is outside this validator's subset, so a document whose `cost.supersedes_usage_id` equals its own `usage_id` VALIDATES. Rejecting self-reference, and rejecting two events that supersede the same estimate, are resolver obligations; both are recorded under untestable_by_schema. A consumer must not build a fake on the strength of the old sentence.",
+          "maxLength": 128,
+          "x-bound-note": "Bounded 2026-10-07 under open_blockers[13] (C0 N-6; RFC-2026-009 R-4 lists it among the 49 unbounded reference-shaped fields), because A1 measured a 1,000,000-character value ACCEPTED on its siblings (A1-S3). No baseline task states a length limit for any reference (RFC-2026-009 R-2), so THE BOUND IS A DECLARED INFERENCE, taken from RFC-2026-009's values for the same class: 128 for an id, 256 for a `scheme:path` reference. It holds a usage_id, so it takes usage_id's own bound, 128: any other bound would either make a valid usage_id unreferenceable or admit a reference no usage_id can equal."
         }
       },
       "x-source": "OB-004 requires correct money precision. A decimal STRING with an explicit scale, never a number: MOD-130 in Decision Register 4.2 forbids floating-point money. `basis` is a DECLARED INFERENCE from OB-008, which reconciles usage against provider statements and therefore needs to know whether a figure was reported or estimated."
@@ -137,5 +149,39 @@
       "$ref": "../ctr-ten-001/schema.json",
       "x-source": "Section 3.1: every command, query, job and event touching customer data carries the Trusted Tenant Context."
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "cost": {
+            "type": "object",
+            "properties": {
+              "basis": {
+                "const": "estimated"
+              }
+            },
+            "required": [
+              "basis"
+            ]
+          }
+        },
+        "required": [
+          "cost"
+        ]
+      },
+      "then": {
+        "properties": {
+          "cost": {
+            "not": {
+              "required": [
+                "supersedes_usage_id"
+              ]
+            }
+          }
+        }
+      },
+      "x-rule": "C0 F-5 (evidence/WP-0A-CON-006/c0-recheck-2026-10-06.md), first of the two options C0 offered, taken 2026-10-07: an event whose cost.basis is `estimated` cannot carry cost.supersedes_usage_id. The field's own x-source makes it meaningful only on a provider statement that replaces an estimate (OB-008); an estimate superseding something has no meaning, and before this rule nothing declared it. C0's second option, declaring in untestable_by_schema that the field is ignored on an estimate, was NOT taken because the rule IS expressible in this validator's subset (C0 measured it), and this catalog declares as untestable only what the subset cannot express. DECLARED INFERENCE from OB-008, with A6 co-signature owed. The invalid fixture that witnesses it is owed with the too-long fixtures, through WP-0A-CON-008's FIXTURE_SET."
+    }
+  ]
 }
