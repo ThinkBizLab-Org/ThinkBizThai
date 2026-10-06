@@ -4,11 +4,16 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "9b34be7d7895df3f6a1cc739051299f4cddcbe20",
-  "head_revision_or_patch_checksum": "475fa3dca9423cdfc7fecb7d28ae3087cfc88ecd",
+  "base_revision": "25663e310e654cc0d04fa3a0e19b03a80ef3896e",
+  "head_revision_or_patch_checksum": "204c8c5c6f2d0ce15c76a05ebc0aa27058d34abd",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-A0-004/author-negative-control-skip-2026-10-06.md"
+    "evidence/WP-0A-A0-004/a1-ci-increment-2026-10-06.md",
+    "evidence/WP-0A-A0-004/author-negative-control-skip-2026-10-06.md",
+    "evidence/WP-0A-A0-004/author-role-findings-disposition-2026-10-06.md",
+    "evidence/WP-0A-A0-004/c0-ci-increment-2026-10-06.md",
+    "evidence/WP-0A-A0-004/q0-ci-increment-2026-10-06.md",
+    "evidence/WP-0A-A0-004/r0-ci-increment-2026-10-06.md"
   ],
   "files_modified": [
     ".github/workflows/ci.yml",
