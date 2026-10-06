@@ -4,11 +4,20 @@
   "work_package_id": "WP-0A-A0-003",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "d863f4053bfd0db5b1e94aeb88fc9b7071320598",
-  "head_revision_or_patch_checksum": "a8e492bbef476e57cc8c479d418951d8966b3305",
+  "base_revision": "411dfa7eeb2809d259e5559a54f54fd4d826f351",
+  "head_revision_or_patch_checksum": "ee290bc6d3166ec9648184d16c512bbf03c17fce",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-A0-003/author-increment-2026-10-07.md"
+    "evidence/WP-0A-A0-003/a1-recheck-2026-10-06.md",
+    "evidence/WP-0A-A0-003/a1-review-2026-10-07.md",
+    "evidence/WP-0A-A0-003/author-closure-2026-10-07.md",
+    "evidence/WP-0A-A0-003/author-increment-2026-10-07.md",
+    "evidence/WP-0A-A0-003/c0-recheck-2026-10-06.md",
+    "evidence/WP-0A-A0-003/c0-review-2026-10-07.md",
+    "evidence/WP-0A-A0-003/q0-recheck-2026-10-06.md",
+    "evidence/WP-0A-A0-003/q0-review-2026-10-07.md",
+    "evidence/WP-0A-A0-003/r0-recheck-2026-10-06.md",
+    "evidence/WP-0A-A0-003/r0-review-2026-10-07.md"
   ],
   "files_modified": [
     "evidence/VERIFICATION.md",
@@ -30,7 +39,7 @@
   "contracts_produced_or_changed": [],
   "assumptions": [
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
-    "This is the scanner increment the 2026-10-06 refresh deferred until PR #190 merged. Branch agent/claude/WP-0A-A0-003-secret-scan-2026-10-07, cut from origin/main b61735f and fast-forwarded to d863f40 (PR #199, records of WP-0A-A0-002 only) before the first commit; both contain PR #190's merge 5debf57. It changes scripts/scan-repository-secrets.mjs and test-kits/secret-scan.test.mjs (this package's own), the manifest and evidence, and four files it does not own, declared in ownership.amends_without_owning: scripts/test-suite-contract.mjs and test-kits/integrity-manifest.json (WP-0A-A0-002, floors, name digest and digests only), test-kits/branch-identity.test.mjs (WP-0A-CON-008, one row) and evidence/VERIFICATION.md (WP-0A-CON-008, regenerated).",
+    "This is the scanner increment the 2026-10-06 refresh deferred until PR #190 merged. Branch agent/claude/WP-0A-A0-003-secret-scan-2026-10-07, cut from origin/main b61735f and fast-forwarded to d863f40 (PR #199, records of WP-0A-A0-002 only) before the first commit; both contain PR #190's merge 5debf57. It changes scripts/scan-repository-secrets.mjs and test-kits/secret-scan.test.mjs (this package's own), the manifest and evidence, and four files it does not own, declared in ownership.amends_without_owning: scripts/test-suite-contract.mjs and test-kits/integrity-manifest.json (WP-0A-A0-002, floors, name digest and digests only), test-kits/branch-identity.test.mjs (WP-0A-CON-008, one row) and evidence/VERIFICATION.md (WP-0A-CON-008, regenerated). Later main syncs, each a plain merge with no conflict on this PR's paths: origin/main dd11c601 (merge dfbf2fc3) and origin/main 411dfa7e, PR #205, records of WP-0A-CON-004 only (merge ee290bc6). The scanner and suite digests are unchanged by both merges: scripts/scan-repository-secrets.mjs dce41df8d408a5421af4caed937cf574cdb721ad135ca2469e8ef88120264571, test-kits/secret-scan.test.mjs 2a34046ef8411266b86c718aebda10c5db81b03ef089519db23c7bfa15e67bd0.",
     "The earlier branch name agent/claude/WP-0A-A0-003-secret-scan is merged into main and still checked out in a finished workflow worktree on this machine, so git refuses it here; ownership.branch now names the suffixed branch (ownership.branch_note), and the pinned branch table in test-kits/branch-identity.test.mjs follows it.",
     "Not a governance PR: it changes no RFC, no CONTRIBUTING_AGENTS.md, no CI workflow and no gate rule. It changes a script and a test, so RFC-2026-025 §5 item 2 applies: C0, Q0 and A1 re-check this increment and R0 gives a fresh verdict at its head before a merge.",
     "Q0 L3 was re-measured at b61735f rather than taken on Q0's 1478f34 numbers; two widenings were taken (one narrowed) and two refused with the measured price, recorded in the scanner beside the rule and in open_blockers[18]. Recording the refusals in RFC-2026-005 is left to the RFC correction already owed (open_blockers[21]), which is a governance PR."
@@ -44,47 +53,47 @@
     {
       "criterion": "node scripts/scan-repository-secrets.mjs . exits 0 on the repository as it stands, and the suite asserts the same thing so a future commit that makes the tree trip its own scanner fails CI.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-closure-2026-10-07.md; the role re-checks at d75362727399fccaf9ca3fff6f72c980cf54fabc: c0-recheck-2026-10-06.md, q0-recheck-2026-10-06.md, a1-recheck-2026-10-06.md, r0-recheck-2026-10-06.md"
     },
     {
       "criterion": "Every row of the decoy table in test-kits/secret-scan.test.mjs is detected, and by the specific rule the row names, so a row cannot be kept green by an unrelated pattern widening.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-closure-2026-10-07.md; the role re-checks at d75362727399fccaf9ca3fff6f72c980cf54fabc: c0-recheck-2026-10-06.md, q0-recheck-2026-10-06.md, a1-recheck-2026-10-06.md, r0-recheck-2026-10-06.md"
     },
     {
       "criterion": "No row of the false-positive table fires. The table includes shapes taken verbatim from this repository's committed prose and evidence.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-closure-2026-10-07.md; the role re-checks at d75362727399fccaf9ca3fff6f72c980cf54fabc: c0-recheck-2026-10-06.md, q0-recheck-2026-10-06.md, a1-recheck-2026-10-06.md, r0-recheck-2026-10-06.md"
     },
     {
       "criterion": "An unreadable file, an unlistable directory, an undecodable file, an oversize file, and a symbolic link each produce a finding rather than a pass, and each is regression-tested.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §1. The five kinds this criterion names are regression-tested. The sixth kind in required_tests (non-regular entry) is NOT tested: Q0 L1, reproduced at main, owed after PR #190"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-closure-2026-10-07.md; the role re-checks at d75362727399fccaf9ca3fff6f72c980cf54fabc: c0-recheck-2026-10-06.md, q0-recheck-2026-10-06.md, a1-recheck-2026-10-06.md, r0-recheck-2026-10-06.md. The five kinds this criterion names are regression-tested, and the sixth kind in required_tests (non-regular entry: a FIFO and a UNIX socket each produce unscannable-entry) is tested since the 2026-10-07 increment (open_blockers[17], Q0 L1, closed by Q0 at d7536272)"
     },
     {
       "criterion": "The email-address rule is exempt only under evidence/ and handoffs/; the Thai national ID and Thai phone rules have no exemption anywhere; a credential inside evidence prose is still reported. All four properties are regression-tested.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-closure-2026-10-07.md; the role re-checks at d75362727399fccaf9ca3fff6f72c980cf54fabc: c0-recheck-2026-10-06.md, q0-recheck-2026-10-06.md, a1-recheck-2026-10-06.md, r0-recheck-2026-10-06.md"
     },
     {
       "criterion": "node scripts/validate-work-package-ownership.mjs work-packages exits 0, proving the transfer leaves no path co-owned and every declared output covered by its own package's writable paths.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-closure-2026-10-07.md; the role re-checks at d75362727399fccaf9ca3fff6f72c980cf54fabc: c0-recheck-2026-10-06.md, q0-recheck-2026-10-06.md, a1-recheck-2026-10-06.md, r0-recheck-2026-10-06.md"
     },
     {
       "criterion": "The WP-0A-A0-001 amendment is limited to removing the two transferred paths and adding an ownership.amended_by block; no status, role, gate, acceptance criterion, or delivered output of that package changes.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-closure-2026-10-07.md; the role re-checks at d75362727399fccaf9ca3fff6f72c980cf54fabc: c0-recheck-2026-10-06.md, q0-recheck-2026-10-06.md, a1-recheck-2026-10-06.md, r0-recheck-2026-10-06.md"
     },
     {
       "criterion": "No file in the repository contains a literal credential-shaped string. Every decoy in the suite is assembled from fragments at runtime, because the suite is itself inside the tree the scanner walks.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md §4 (re-run at main 8c089cc); evidence/WP-0A-A0-003/author-self-check.md for the original measurement"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-closure-2026-10-07.md; the role re-checks at d75362727399fccaf9ca3fff6f72c980cf54fabc: c0-recheck-2026-10-06.md, q0-recheck-2026-10-06.md, a1-recheck-2026-10-06.md, r0-recheck-2026-10-06.md"
     },
     {
       "criterion": "The Author does not review, security-review, test-verify, or integrate this package.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-reverify-2026-10-06.md; no role verdict is given or implied here"
+      "evidence": "evidence/WP-0A-A0-003/author-increment-2026-10-07.md; evidence/WP-0A-A0-003/author-closure-2026-10-07.md; the role re-checks at d75362727399fccaf9ca3fff6f72c980cf54fabc: c0-recheck-2026-10-06.md, q0-recheck-2026-10-06.md, a1-recheck-2026-10-06.md, r0-recheck-2026-10-06.md; the Author gives no role verdict; each verdict is the named role's own file"
     }
   ],
   "tests": [
@@ -97,13 +106,13 @@
     {
       "command": "node --test test-kits/secret-scan.test.mjs",
       "exit_code": 0,
-      "result": "tests 57, pass 57, fail 0, skipped 0, todo 0",
+      "result": "tests 59, pass 59, fail 0, skipped 0, todo 0",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
-      "command": "mutation harness on a disposable rsync copy (19 rows incl. control; evidence §2)",
+      "command": "mutation harness on a disposable rsync copy, one string replacement per copy (evidence/WP-0A-A0-003/author-increment-2026-10-07.md §2 and author-closure-2026-10-07.md §2)",
       "exit_code": 0,
-      "result": "control passes 57/57; all 18 mutations killed, incl. M15, M23-M28 and C0's architecture/ carve-out and 4 KB skip",
+      "result": "increment: control 57/57 and all 18 mutations killed; closure: control 59/59 and every listed mutation killed (X1-X3, X6, X10-X11 and the rest of closure §2). Independent harnesses: C0, Q0, A1 and R0 re-checks at d7536272 (survivors only the disclosed residuals: R0-F3 lib/ carve-out, A1 S4/S5/S11, Q0 N11 email-address offset)",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
@@ -133,17 +142,17 @@
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-003",
       "exit_code": 0,
-      "result": "every changed path declared",
+      "result": "every changed path declared (run on the branch name after the main 411dfa7e merge)",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
       "command": "npm run check (on agent/claude/WP-0A-A0-003-secret-scan-2026-10-07)",
       "exit_code": 0,
-      "result": "tests 714, pass 714, fail 0, skipped 0, todo 0 (npm run record:verification, which refuses an unclean run)",
+      "result": "tests 716, pass 716, fail 0, skipped 0, todo 0 (after this refresh, on the branch name, with origin/main 411dfa7e contained)",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
-  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. Every credential, card and identifier in the new tests is assembled from fragments at run time; the full-tree scan stays at zero findings. Detection widened (Thai ID printed grouping; PASSPHRASE, SIGNING_KEY and trailing PASS/AUTH/SALT/PWD) and narrowed in one place (npmrc-auth-token no longer fires on documented placeholders and environment reads, A1 C3). The size limit is now enforced before a file is read (C0 R2). Cost: the secret-scan suite takes about 6 s instead of about 1.5 s.",
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. Every credential, card and identifier in the new tests is assembled from fragments at run time; the full-tree scan stays at zero findings. Detection widened (Thai ID printed grouping; PASSPHRASE, SIGNING_KEY and trailing PASS/AUTH/SALT/PWD) and narrowed in one place (npmrc-auth-token no longer fires on documented placeholders and environment reads, A1 C3). The size limit is now enforced before a file is read (C0 R2). Cost: the secret-scan suite takes about 6 s instead of about 1.5 s (measured 6.0 s at 59 tests after the main 411dfa7e merge). The copy test writes a temporary copy of the tree, removed on exit and on SIGINT, SIGTERM and SIGHUP but not on SIGKILL (open_blockers[24]).",
   "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect.",
   "compatibility_impact": "No contract changes. scanDirectory keeps its signature and return value; scanTree and isEnvironmentReference are new exports.",
   "known_limitations": [
@@ -159,19 +168,19 @@
     "The scanner and its test are digested in test-kits/integrity-manifest.json, which RFC-2026-003 records as a TRIPWIRE WITH NO SELF-ANCHOR: a commit that edits a guarded file and its digest together passes. This package inherits that property and does not improve it.",
     "The ownership transfer amends WP-0A-A0-001, whose Integration Owner /root/r0_steward is an OpenAI Codex run that was not available in this session. That manifest records acknowledgement_status: pending and the amendment is not complete until countersigned. UPDATED 2026-10-06: on 2026-10-05 the Product Owner named /claude/r0_steward the successor for acknowledgements recorded pending against /root/r0_steward (step 2 item 2, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 row 2). The WP-0A-A0-003 entry in WP-0A-A0-001.json ownership.amended_by still reads acknowledgement_required_from: /root/r0_steward, acknowledgement_status: pending. That record is WP-0A-A0-001's (outside this package's writable paths): owed by /claude/r0_steward, who reviews the transfer and records the acknowledgement there; A0 cannot give it, having authored the transfer. Still open.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work.",
-    "C0 R1 (High, blocking the Reviewer verdict, evidence/WP-0A-A0-003/review-contract-c0.md §5, §9) and Q0 L2 (evidence/WP-0A-A0-003/test-verdict-q0.md §7): the path-shape test in test-kits/secret-scan.test.mjs enumerates five prefixes, so a carve-out aimed at a sixth path, or a size/offset-based skip, survives the suite and npm run check. Re-verified at main 8c089cc on a disposable copy: one inserted line at the top of scanText that returns no findings for paths under architecture/ leaves the suite 46/46 green (evidence/WP-0A-A0-003/author-reverify-2026-10-06.md). Remedy as C0 §5 and Q0 L2 give it: path-independence derived from the real tree, size-and-offset independence, walk coverage over the real top-level directories, scanDirectory reporting files read; correct the test's comment. Owed in scripts/scan-repository-secrets.mjs or test-kits/secret-scan.test.mjs, both owned by this package. NOT DONE IN THE 2026-10-06 REFRESH: PR #190 (WP-0A-A0-005, branch agent/claude/WP-0A-A0-005-cardholder-data-scan) is changing both files right now to fix A1-005-1, and a concurrent edit would conflict with it. Dependency: this lands as the next increment of this package after PR #190 merges, from a main that contains it; it changes the scanner/suite, so C0, Q0 and A1 re-check it and R0 gives a fresh verdict.",
-    "Q0 L1 (blocking the Tester verdict): required_tests declares a fail-closed test for a non-regular entry and none exists. Re-verified at main 8c089cc on a disposable copy: replacing the unscannable-entry finding at scripts/scan-repository-secrets.mjs:550 with a silent continue leaves the suite 46/46 green (evidence/WP-0A-A0-003/author-reverify-2026-10-06.md). Remedy: a FIFO (mkfifo) under a scanned directory must produce unscannable-entry. Owed in scripts/scan-repository-secrets.mjs or test-kits/secret-scan.test.mjs, both owned by this package. NOT DONE IN THE 2026-10-06 REFRESH: PR #190 (WP-0A-A0-005, branch agent/claude/WP-0A-A0-005-cardholder-data-scan) is changing both files right now to fix A1-005-1, and a concurrent edit would conflict with it. Dependency: this lands as the next increment of this package after PR #190 merges, from a main that contains it; it changes the scanner/suite, so C0, Q0 and A1 re-check it and R0 gives a fresh verdict.",
-    "Non-blocking conditions still open at main 8c089cc, each owed by this package: C0 R2, MAX_FILE_BYTES is enforced after readFile reads the whole file (scripts/scan-repository-secrets.mjs:492-499), so stat before reading; C0 R3, rule length floors are unpinned, so add a just-below-the-floor row per floored rule to the false-positive table; A1 C3, npmrc-auth-token (scripts/scan-repository-secrets.mjs:350) does not reuse the isPlaceholderValue filter (the netrc-password and vault-token parts of C3 are done: lines 351-359); Q0 L3, the four measured free widenings (uppercase secret name with ':', PASS/PWD/PASSPHRASE/AUTH/SALT/SIGNING_KEY, Thai ID with a space separator, Thai phone with parentheses/(0)/bare 66), each taken in the scanner or recorded as a priced refusal in RFC-2026-005 (an RFC change is a governance PR the Owner merges). Owed in scripts/scan-repository-secrets.mjs or test-kits/secret-scan.test.mjs, both owned by this package. NOT DONE IN THE 2026-10-06 REFRESH: PR #190 (WP-0A-A0-005, branch agent/claude/WP-0A-A0-005-cardholder-data-scan) is changing both files right now to fix A1-005-1, and a concurrent edit would conflict with it. Dependency: this lands as the next increment of this package after PR #190 merges, from a main that contains it; it changes the scanner/suite, so C0, Q0 and A1 re-check it and R0 gives a fresh verdict.",
-    "Q0 L4, DISCLOSED HERE as Q0 allows: UTF-16 text passes the scanner silently. A UTF-16 file is neither detected as UTF-16 nor decoded as such, so a credential in it is interleaved with NUL bytes and no rule matches; the \"opaque bytes\" wording elsewhere in this list does not cover this case. Open; detecting a BOM or NUL-interleaving and decoding is owed by this package after PR #190 merges.",
-    "Q0 L5, NAMED HERE as Q0 allows: no rule detects Thai-market provider credentials: LINE channel access tokens and channel secrets, Omise (skey_/pkey_) and 2C2P, nor SCB (A1 round 2, evidence/WP-0A-A0-003/review-security-head.md §5, found all undetected). The rationale that added Meta and Stripe rules applies to them, and the architecture names LINE OA and PromptPay. Open; rules for them are owed by this package after PR #190 merges.",
+    "C0 R1 and Q0 L2: FIXED in the 2026-10-07 increment (open_blockers[16]) from a main containing PR #190, and closed by their raising roles' re-checks at d75362727399fccaf9ca3fff6f72c980cf54fabc (evidence/WP-0A-A0-003/c0-recheck-2026-10-06.md, q0-recheck-2026-10-06.md). Residual the suite still does not see, disclosed in open_blockers[5] and [24]: a carve-out keyed to a path name neither the tree nor FUTURE_PATHS has (R0-F3, e.g. lib/; .go/.rb/.java/.php/.cs, credentials, .git-credentials, .envrc, .htpasswd per C0 N7), carve-outs keyed to a value or a name (A1 S4/S5/S11), and the email-address rule's offset (Q0 M2 / N11, Low).",
+    "Q0 L1: FIXED in the 2026-10-07 increment (open_blockers[17]): a FIFO and a UNIX socket each produce unscannable-entry with exit code 71. Closed by Q0's re-check at d75362727399fccaf9ca3fff6f72c980cf54fabc (evidence/WP-0A-A0-003/q0-recheck-2026-10-06.md).",
+    "The non-blocking conditions C0 R2 (stat before read), C0 R3 (length floors pinned), A1 C3 (npmrc-auth-token placeholder filter) and Q0 L3 (the measured widenings: the Thai ID printed grouping and PASSPHRASE/SIGNING_KEY/PASS/AUTH/SALT/PWD taken, the short words narrowed to the last word of the name; ':' for the assignment rule and the bare-66/(0)/parenthesised phone forms refused with a measured lower-bound price) were answered in the 2026-10-07 increment and closure (open_blockers[18], [24]). Recording the two L3 refusals in RFC-2026-005 is left to the governance correction (open_blockers[21]).",
+    "Q0 L4, DISCLOSED HERE as Q0 allows: UTF-16 text passes the scanner silently. A UTF-16 file is neither detected as UTF-16 nor decoded as such, so a credential in it is interleaved with NUL bytes and no rule matches; the \"opaque bytes\" wording elsewhere in this list does not cover this case. Open; detecting a BOM or NUL-interleaving and decoding is owed by this package (PR #190 has merged; not done in this PR).",
+    "Q0 L5, NAMED HERE as Q0 allows: no rule detects Thai-market provider credentials: LINE channel access tokens and channel secrets, Omise (skey_/pkey_) and 2C2P, nor SCB (A1 round 2, evidence/WP-0A-A0-003/review-security-head.md §5, found all undetected). The rationale that added Meta and Stripe rules applies to them, and the architecture names LINE OA and PromptPay. Open; rules for them are owed by this package (PR #190 has merged; not done in this PR).",
     "A1 C4(b) and C0 R5 on the RFC: RFC-2026-005 reports 19/56 as its uncorrelated figure and does not record A1 round 2 (8/56 against a fresh, harder 56-family corpus; 12/12 on the named families). Owed by this package as a dated correction to RFC-2026-005, which is a governance PR the Product Owner merges personally (RFC-2026-025 §5 item 6). A1 C4(a), no cardholder-data rule, is closed by RFC-2026-008 (open_blockers[15]).",
     "Referred outside this package (named, not fixed): C0 R7, .agents/capability-profiles/cc-c0-contract-reviewer.json records accepted_work_package WP-0A-A0-002 (.agents/** is read-only here; owner WP-0A-A0-001 / its Integration Owner); C0 R8, the corrupted sentence in contract-catalog/shared-kernel/ctr-sec-001/schema.json x-opacity-limitation (owner WP-0A-CON-004); C0 R9, WP-0A-A0-001.json ownership.amended_by_shape_note counts three amendments where five exist (owner WP-0A-A0-001).",
-    "Role verdicts at 1ad4515 (this PR's records increment): C0 re-verified changes_required on the package (evidence/WP-0A-A0-003/c0-contract-reverify-2026-10-05.md), A1 re-verified security_approved_with_conditions (a1-security-reverify-2026-10-05.md), Q0 re-verified test_failed on the package (q0-test-reverify-2026-10-05.md), and R0 gave integration_not_verified on the package with PR #191 integrable as a records increment on conditions D1-D5 (r0-integration-verdict-2026-10-05.md). C0 R1 and Q0 L1/L2 reproduce at main 8c089cc. Owed after the R1/L1 increment lands from a main containing PR #190: C0 re-check (/claude/c0_contract_reviewer), Q0 re-test (/claude/q0_sentinel), A1 re-check (/claude/a1_bastion), then a fresh Integration verdict (/claude/r0_steward). The package stays in_review until then. The role runs' minor records findings C0 N1/Q0 F1/A1 N4 (assumptions[3]) and C0 N2/Q0 F2 (compatibility_impact) are deliberately NOT answered in this PR, per R0 D1 and §3; they are owed at the next increment's handoff refresh. UPDATED 2026-10-06 after the main sync: R0 re-read the PR at d9acb6b (evidence/WP-0A-A0-003/r0-sync-reading-2026-10-06.md): the sync changes nothing its verdict rests on (same 7 paths, same patch-id, scanner and suite digests unchanged, PR #190 not merged); the package stays integration_not_verified and in_review; PR #191 is integrable as a records increment on S1-S4 (this refresh last and alone after git fetch; check:handoff and check exit 0 on the branch name with current main contained; green bootstrap on this exact head; D2 recorded in the merge record). Stop-the-line none."
+    "Role verdicts at d75362727399fccaf9ca3fff6f72c980cf54fabc (the closure head), carried onto this branch by cherry-pick -x: C0 review_approved (evidence/WP-0A-A0-003/c0-recheck-2026-10-06.md), Q0 test_verified (q0-recheck-2026-10-06.md), A1 security_approved_with_conditions with no merge-blocking condition (a1-recheck-2026-10-06.md; its open condition C4(b)/N3 with N9 belongs to the RFC-2026-005 governance correction), and R0 integration_not_verified on the package at that head, PR #203 integrable on E1-E6 (r0-recheck-2026-10-06.md). Each verdict carries to the final head only while the scanner and suite digests are unchanged, which they are. integration_verified is NOT recorded here: R0's §5 wording needs the final head SHA and a green bootstrap run id on it, neither of which exists before this refresh, which must be last and alone. It is owed in the records change that moves the status, after E5 holds. The package stays in_review. Earlier verdicts (1ad4515, 1478f34, 4bcb5f1, 6cc6c93) are superseded by these re-checks."
   ],
   "open_risks_or_blockers": [
-    "The fixes for C0 R1, Q0 L1/L2 and the non-blocking conditions are the Author's; none is closed until the raising role re-checks this head: C0 (/claude/c0_contract_reviewer), Q0 (/claude/q0_sentinel), A1 (/claude/a1_bastion), then a fresh R0 verdict (/claude/r0_steward).",
+    "The role re-checks at d75362727399fccaf9ca3fff6f72c980cf54fabc are in and carried: C0 review_approved, Q0 test_verified, A1 security_approved_with_conditions (no merge-blocking condition), R0 integration_not_verified with PR #203 integrable on E1-E6. E1 (origin/main 411dfa7e merged, plain, no conflict) and E3 (R0's file carried) hold at this head; E4 is this refresh; E5 is a green bootstrap run on the final head with branch scope and database steps executed; E6 is the merger's D6 record. integration_verified is recorded in R0's §5 words only after E5, in a later records change.",
     "Acknowledgements still pending: WP-0A-A0-003.json ownership.amended_by[0] (owed by /claude/r0_steward) and the WP-0A-A0-003 entry in WP-0A-A0-001.json ownership.amended_by (owed by /claude/r0_steward as successor).",
-    "Still open and not addressed here: Q0 L4 (UTF-16), Q0 L5 (Thai-market provider rules), the RFC-2026-005 correction (A1 C4(b), N3, C0 R5, and now the two L3 refusals) as a governance PR, git history unscanned.",
+    "Still open and not addressed here: A1 N6 / C0 N3 residue (SIGKILL leaves the temporary copy; a run from the main checkout walks .claude/; run npm run check from a clone or worktree), Q0 M2 / N11 (email-address not in the offset property, Low), Q0 L4 (UTF-16), Q0 L5 (Thai-market provider rules), the RFC-2026-005 correction (A1 C4(b), N3, C0 R5, and now the two L3 refusals) as a governance PR, git history unscanned.",
     "Merge conflict risk: scripts/test-suite-contract.mjs and test-kits/branch-identity.test.mjs are also edited by the concurrent WP-0A-A0-002 branch (adjacent rows); whichever merges second resolves by keeping both rows."
   ],
   "rollback_or_forward_fix": "Revert through a reviewed revert PR of this PR's merge commit: it restores the scanner and suite, the two floors and digest in scripts/test-suite-contract.mjs, the integrity digests, the branch-table row and the manifest exactly. No persisted data, provider state, credential, migration or customer-data effect. The forward fix for a false positive is to narrow the offending rule and add the case to the false-positive table, never to disable the scan:secrets step.",
@@ -179,7 +188,7 @@
     "WP-0A-A0-003"
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-003/author-increment-2026-10-07.md first: §1 maps each finding to its change, §2 is the mutation table, §3 the L3 re-measurement, §4 what the new tests do not prove.",
+    "Read evidence/WP-0A-A0-003/author-increment-2026-10-07.md (the increment) and author-closure-2026-10-07.md (the first-review closure) first, then the role re-checks at d7536272: c0-recheck-2026-10-06.md, q0-recheck-2026-10-06.md, a1-recheck-2026-10-06.md, r0-recheck-2026-10-06.md.",
     "C0: R1 is the property tests in test-kits/secret-scan.test.mjs after the \"C0 R1 (High) and Q0 L2\" banner, and the corrected comment in the old path-shape test. Q0: L1 is the FIFO and socket test; L2 is scanTree plus the read-list and appended-copy tests. A1: C3 and N1 are the new rows in NEW_RULE_FALSE_POSITIVES and the npmrc accept.",
     "Re-run the mutations on your own copy rather than reading the table; the harness is one string replacement in scripts/scan-repository-secrets.mjs per row.",
     "The author is /claude/a0_atlas. Reviewer, Tester, Security and Integration verification are open and must be distinct runs."
