@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-009",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "4dd767df435e63c46603f7716da811dae287ee1d",
-  "head_revision_or_patch_checksum": "4138f63400e0357c1215e02de72238f5a4910ff2",
+  "base_revision": "0955b32e6de055a6677d9e1b0e73373d209cb613",
+  "head_revision_or_patch_checksum": "fc8754306b63d06011ea47dc91d3f82d97dae3a6",
   "task_ids": [
     "WP-0A-A0-009",
     "G0-step-4"
@@ -127,6 +127,16 @@
       "command": "make db-rls-smoke (not run here: no database on this machine)",
       "exit_code": 0,
       "result": "read from CI instead: run 37493702216 at 411dfa7 logs 'db-rls-smoke: 1200 isolation case(s) passed.'; 4dd767d adds only records. The rule-4 cases this package cites run there. Q0 should read the run at this PR's head."
+    },
+    {
+      "command": "npm run verify (run by node scripts/commit-when-clean.mjs for the handoff commit 2a90a30)",
+      "exit_code": 0,
+      "result": "clean: tests 705, pass 705, fail 0, skipped 0, todo 0"
+    },
+    {
+      "command": "git merge origin/main (0955b32, PR #203, WP-0A-A0-003; clean, no conflict, no file of this package touched) then node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-009",
+      "exit_code": 0,
+      "result": "all 3 changed path(s) are declared, and every amendment explains one"
     }
   ],
   "security_privacy_cost_impact": "None. No code, schema, grant, policy, role, contract or credential is touched; the files are a manifest, a handoff and one evidence note under evidence/WP-0A-A0-009/ with no secrets or personal data. One security-relevant statement changes: the manifest no longer says RFC-2026-019 §5's fourth rule cannot be written; migration 172's command functions are owned by app_command and the isolation cases assert their refusals as authenticated.",
