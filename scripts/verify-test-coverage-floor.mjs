@@ -701,13 +701,21 @@ export async function assertNoPackageManagerConfig(directory = '.') {
 //     and a regular file whose real path is inside the repository root;
 //   - digested in the integrity manifest, so editing it is an edit to a protected file.
 // A dynamic `import()` whose argument is not one string literal, any `require` or `createRequire`
-// (as a name or as a member), and any `import`/`require` inside a template literal's `${...}`, is
+// spelled plainly (as a name or as a member), any `\u` escape left in code (an escaped identifier
+// names the same binding to V8 and a different word to these regexes), any CR, U+2028 or U+2029 in
+// a walked module (V8 ends a `//` comment there; the scanners here end it at LF only), and any
+// `import`/`require` after the first `${` of a template span AS stripNonCode READS THAT SPAN, is
 // refused outright: those are modules the walk cannot name.
 //
 // Both halves are needed. Containment alone leaves an undigested fixture free to be gutted;
-// digesting alone leaves route (b), which edits a digest anyway. Together they close the STATIC
-// routes: an import statement, re-export or literal `import()` that escapes is refused, and one
-// that is added to an undigested module is refused because no module in the closure is undigested.
+// digesting alone leaves route (b), which edits a digest anyway. Together they refuse the static
+// forms the walk READS: an import statement, re-export or literal `import()` that escapes is
+// refused, and one that is added to an undigested module is refused because no module in the
+// closure is undigested. What the walk reads is bounded by stripNonCode, which is a scanner, not a
+// parser: a NESTED template ends its span at the first inner backtick, so an import after that
+// backtick, inside a later span with no `${`, is not seen (A1 N2, Q0-E7, R0 R9, C0 R1), and a
+// regex literal after `)` or after a keyword (`return`, `typeof`, `case`) is read as division.
+// Both are stripNonCode misreads, open_blockers[11], listed below with the other residuals.
 //
 // What this does NOT cover, stated so nobody cites it for more (C0 F2, A1 F2, Q0-E4, R0 R3).
 // Code that loads code at RUN time is not an import this walk can see: `new Function(...)`,
@@ -801,6 +809,19 @@ export function extractImports(raw) {
   for (const match of stripped.matchAll(/(?<![\w$])(require|createRequire)(?![\w$])/g)) {
     refusals.push(`\`${match[1]}\` at offset ${match.index}: CommonJS loading is outside what the static walk reads`);
   }
+  // A1 N1 / R0 R8. `create\u0052equire` is `createRequire` to V8, as a named import or as a member,
+  // and no word above matches it. Outside a string, comment, regex or template, a backslash can only
+  // start such an escape, so any `\u` left in the stripped text is refused rather than decoded.
+  for (const match of stripped.matchAll(/\\u/g)) {
+    refusals.push(`a \\u escape at offset ${match.index} outside any literal: an escaped identifier is a name this walk cannot read`);
+  }
+  // Q0-E6 / C0 R1. V8 ends a `//` comment at CR, U+2028 and U+2029 as well as at LF; stripNonCode
+  // and literalAt end it at LF only, so the rest of that line was code to the loader and comment to
+  // the walk, and a decoy could stand there for literalAt. No walked module needs one of them.
+  const lineEnd = raw.search(/[\r\u2028\u2029]/);
+  if (lineEnd !== -1) {
+    refusals.push(`a CR, U+2028 or U+2029 at offset ${lineEnd}: V8 ends a line comment there and this walk does not`);
+  }
   // R0 R2. stripNonCode blanks a whole template literal, `${...}` included, so
   // `${await import('../../outside.mjs')}` was invisible to the walk. A loader keyword
   // after the first `${` of a template span is refused. The interpolation is not parsed: a `}`
@@ -815,7 +836,10 @@ export function extractImports(raw) {
       refusals.push(`a template literal at offset ${start} names a module loader after an interpolation, where the walk cannot read it`);
     }
   }
-  for (const match of stripped.matchAll(/(?<![\w$.])(import|export)(?![\w$])/g)) {
+  // Q0-E5. A `.` before the keyword marks a member (`x.import`), but a spread is three of them:
+  // `{...import('../../outside.mjs')}` was skipped as a member, guard 0. Only a `.` that is not
+  // itself after a `.` is a member access.
+  for (const match of stripped.matchAll(/(?<![\w$])(?<!(?<!\.)\.)(import|export)(?![\w$])/g)) {
     const keyword = match[1];
     const at = match.index;
     const after = at + keyword.length;
@@ -850,7 +874,12 @@ export function extractImports(raw) {
         continue;
       }
       from = after + clause[0].length;
-    } else {
+    } else if (!literalAt(raw, after)) {
+      // R0 R7. A string right after `import` IS the specifier of a side-effect import, and the
+      // clause must not be matched past it: the blanked string is whitespace on the stripped text,
+      // so `import '../evil.mjs'` + newline + `from` + newline + `'./decoy.mjs'` (two statements
+      // by ASI) matched the clause and read the decoy. Only when no string stands there is
+      // there a clause to read.
       const clause = stripped.slice(after).match(IMPORT_CLAUSE);
       if (clause) from = after + clause[0].length;
     }
@@ -878,7 +907,9 @@ export function assertTestBindingIntact(file, raw, imports, strippedSource = und
   const stripped = strippedSource ?? stripNonCode(raw);
   const importAt = stripped.search(/(?<![\w$.])import\s+test\s+from(?![\w$])/);
   const importedAt = importAt === -1 ? -1 : stripped.indexOf('test', importAt + 6);
-  for (const match of stripped.matchAll(/(?<![\w$.])test(?![\w$])/g)) {
+  // The Q0-E5 spread applies here too: `{ ...test }` passes the binding on, and a `.` lookbehind
+  // skipped it as a member. A `.` after another `.` is a spread, not a member access.
+  for (const match of stripped.matchAll(/(?<![\w$])(?<!(?<!\.)\.)test(?![\w$])/g)) {
     if (match.index === importedAt) continue;
     // Bounded scans, not slices: a whole-file `slice().replace(/\s+$/)` per occurrence made this
     // quadratic on the 600KB isolation suites.

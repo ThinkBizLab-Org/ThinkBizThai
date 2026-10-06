@@ -675,6 +675,19 @@ test('E4: specifiers the walk cannot name are refused, not skipped', async () =>
     // Q0-E4 / R0 R3: createRequire reached as a member, not as a name.
     'a member createRequire': "const load = (await import('node:module')).createRequire(import.meta.url);\n",
     'createRequire through getBuiltinModule': "const load = process.getBuiltinModule('node:module').createRequire(import.meta.url);\n",
+    // Q0-E5: a spread is three dots, not a member access.
+    'an import behind a spread': "const spread = { ...import('../../e4-outside.mjs') };\n",
+    'an import behind a spread with a space': "const spread = [... import('../../e4-outside.mjs')];\n",
+    // R0 R7: a side-effect import whose clause regex used to reach a later `from` and its decoy.
+    'a side-effect import before a stray from': "import '../../e4-outside.mjs'\nfrom\n'./fixture.mjs'; var from;\n",
+    'a commented side-effect import before a stray from': "import /* x */ '../../e4-outside.mjs'\nfrom\n'./fixture.mjs'; var from;\n",
+    // A1 N1 / R0 R8: createRequire spelled with a Unicode escape, as a name and as a member.
+    'an escaped createRequire import': "import { create\\u0052equire as load } from 'node:module';\n",
+    'an escaped createRequire member': "import * as m from 'node:module';\nconst load = m.create\\u0052equire(import.meta.url);\n",
+    // Q0-E6 / C0 R1: CR and U+2028 end a line comment for V8 and not for the scanners.
+    'a CR ending a line comment': "// note\rimport '../../e4-outside.mjs';\n",
+    'a U+2028 ending a line comment': "// note\u2028import '../../e4-outside.mjs';\n",
+    'a U+2029 inside a string': "const text = 'a\u2029b';\n",
   };
   for (const [why, body] of Object.entries(cases)) {
     const fixture = await closureFixture({
@@ -737,6 +750,8 @@ test('Q0-C1: a shadowed or aliased test binding is refused', async () => {
     // C0 F3: the `*` of a generator was read as an operator before a call.
     'a generator declaration': "import test from 'node:test';\nfunction* test() {}\ntest('a', () => {});\n",
     'an async generator declaration': "import test from 'node:test';\nasync function *test() {}\ntest('a', () => {});\n",
+    // Q0-E5's spread, applied to the binding: `...test` passes it on.
+    'a spread of the binding': "import test from 'node:test';\nconst copy = [...test];\ntest('a', () => {});\n",
   };
   for (const [why, raw] of Object.entries(shadowed)) {
     const { imports } = extractImports(raw);
