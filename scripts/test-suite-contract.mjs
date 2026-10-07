@@ -273,7 +273,10 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // 1121 to 1320 with batch rfc-025-records-path (2026-10-07, RFC-2026-025 §6 proposed): the classifier's test adds its
 // assertions, and the floor is raised to the guard's own count at this head, which also takes in the assertions batches
 // 173 and 174 added under a floor they did not move.
-  'test-kits/db/foundation-contract.test.mjs': 1320,
+// 1320 to 1329 with that batch's first review round (2026-10-08, C0 F4, Q2, R-4, A1-1, C0 F2): the classifier test
+// pins the merged-commit-on-main and old-mode rules and the narrowed record, status and authorities rules; the
+// guard's own count, no test added or renamed.
+  'test-kits/db/foundation-contract.test.mjs': 1329,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.

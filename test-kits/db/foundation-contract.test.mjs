@@ -6101,8 +6101,12 @@ test('batch 174: a job names its actor and request, NOT NULL with no default, bo
 // check. The light path §6 proposes rests on these two answers, so each rule is shown to bite, in pure functions and
 // then through the CLI on a throwaway git repository built here (no network, no remote, nothing of this tree's
 // history assumed). The measurement against the real PRs of 2026-10-05..07 is in the batch's plan, not here.
+// The review round of 2026-10-07 (C0, A1, Q0, R0 on PR #211) narrowed it: only named Markdown records under
+// evidence/<package>/, status moves forward short of `done`, required_human_authorities strictly appended; and it
+// pinned the two rules no test held (the merged commit is on main; a non-regular OLD mode).
 import {
-  GENERATED_PATHS, amendedByDelta, amendsNarrowedOnly, appendOnlyStrings, classifyDiff, manifestDelta, parseRawDiff, syncDelta,
+  GENERATED_PATHS, RECORD_FILE_NAME, amendedByDelta, amendsNarrowedOnly, appendOnlyStrings, appendedEntriesOnly, classifyDiff, manifestDelta,
+  parseRawDiff, statusMove, syncDelta,
 } from '../../scripts/db/classify-records-only.mjs';
 
 test('the records-only classifier and the mechanical sync check fail closed, each rule biting (RFC-2026-025 §6, proposed)', async () => {
@@ -6116,7 +6120,8 @@ test('the records-only classifier and the mechanical sync check fail closed, eac
       amends_without_owning: { paths: ['a', 'b'], rationale: 'r' },
     },
   };
-  const edit = (f) => { const m = structuredClone(base); f(m); return manifestDelta(JSON.stringify(base), JSON.stringify(m)); };
+  const edit = (f, moves) => { const m = structuredClone(base); f(m); return manifestDelta(JSON.stringify(base), JSON.stringify(m), moves); };
+  const moves = [];
   assert.deepEqual(edit((m) => {
     m.status = 'integration_verified';
     m.open_blockers[0] = 'CLOSED by R0. Text as recorded: b0';
@@ -6126,7 +6131,8 @@ test('the records-only classifier and the mechanical sync check fail closed, eac
     m.ownership.amended_by[0].acknowledgement_status = 'acknowledged';
     m.ownership.amended_by[0].acknowledgement_record = 'evidence/WP-Y/r0.md';
     m.ownership.amends_without_owning = { paths: ['a'], rationale: 'records increment' };
-  }), [], 'every records change at once');
+  }, moves), [], 'every records change at once');
+  assert.deepEqual(moves, ['in_review -> integration_verified'], 'the status move is named for the reader');
   assert.deepEqual(edit(() => {}), [], 'no change');
   const refused = [
     [(m) => { m.open_blockers.pop(); }, /open_blockers: 1 entr/],
@@ -6135,6 +6141,13 @@ test('the records-only classifier and the mechanical sync check fail closed, eac
     [(m) => { m.required_human_authorities = []; }, /required_human_authorities: 1 entr/],
     [(m) => { m.open_blockers = 'b0'; }, /not a list of strings/],
     [(m) => { m.status = 7; }, /status: not a string/],
+    [(m) => { m.status = 'done'; }, /in_review -> done \(a move to done is not a record\)/],
+    [(m) => { m.status = 'in_progress'; }, /in_review -> in_progress \(a backward move is not a record\)/],
+    [(m) => { m.status = 'blocked'; }, /only a move along the flow is a record/],
+    [(m) => { m.status = 'zzz'; }, /only a move along the flow is a record/],
+    [(m) => { m.required_human_authorities[0] = 'Not required any more: h0'; }, /required_human_authorities\[0\]: changed/],
+    [(m) => { m.required_human_authorities[0] = 'h0 -- waived'; }, /required_human_authorities\[0\]: changed/],
+    [(m) => { m.ownership.amends_without_owning.rationale = 5; }, /rationale: not a string/],
     [(m) => { m.role_assignments.reviewer_agent_run_id = '/r/a0'; }, /role_assignments: changed/],
     [(m) => { m.ownership.branch = 'agent/y'; }, /ownership\.branch: changed/],
     [(m) => { m.ownership.writable_paths.push('scripts/**'); }, /ownership\.writable_paths: changed/],
@@ -6153,17 +6166,27 @@ test('the records-only classifier and the mechanical sync check fail closed, eac
   assert.deepEqual(manifestDelta('[]', '[]'), ['the manifest is not a JSON object on both sides']);
   assert.deepEqual(appendOnlyStrings('x', [''], ['anything']), ['x[0]: reworded (the old text is not kept whole at its start or end)'], 'an empty entry cannot be "kept"');
   assert.deepEqual(amendedByDelta([{ a: 1 }], [{ a: 1 }]), []);
+  assert.deepEqual(statusMove('ready', 'test_verified'), { reasons: [], move: 'ready -> test_verified' });
+  assert.deepEqual(appendedEntriesOnly('h', ['a'], ['a', 'b']), []);
+  for (const name of ['records-transcription-2026-10-06.md', 'session-2026-10-08-pass.md', 'light-path-reading-2026-10-08.md']) {
+    assert.ok(RECORD_FILE_NAME.test(name), name);
+  }
+  for (const name of ['product-owner-disposition-2026-10-08.md', 'a1-review-2026-10-08.md', 'r0-recheck.md', 'records-transcription-x.json',
+    '.gitattributes', 'session-.md', 'session-x.md.mjs']) {
+    assert.ok(!RECORD_FILE_NAME.test(name), name);
+  }
   assert.deepEqual(amendsNarrowedOnly(undefined, { paths: [] }), ['ownership.amends_without_owning: not an object on both sides']);
 
   // Paths: only evidence/<package>/**, handoffs/*.json and work-packages/*.json, added or modified, regular files.
-  const blobs = { o: 'old record\n', n: 'old record\nappended\n', r: 'rewritten\n', j0: JSON.stringify(base), j1: JSON.stringify({ ...base, status: 'done' }) };
+  const blobs = { o: 'old record\n', n: 'old record\nappended\n', r: 'rewritten\n', j0: JSON.stringify(base), j1: JSON.stringify({ ...base, status: 'test_verified' }) };
   const text = (id) => { if (!(id in blobs)) throw new Error(`no blob ${id}`); return blobs[id]; };
   const ch = (status, path, oldBlob = 'o', newBlob = 'n', oldMode = '100644', newMode = '100644') => ({ status, path, oldBlob, newBlob, oldMode, newMode });
-  const ok = classifyDiff([ch('A', 'evidence/WP-X/r0-reading.md'), ch('M', 'evidence/WP-X/plan.md'), ch('M', 'handoffs/WP-X-author-handoff.json'),
-    ch('M', 'work-packages/WP-X.json', 'j0', 'j1')], text);
+  const ok = classifyDiff([ch('A', 'evidence/WP-X/light-path-reading-2026-10-08.md'), ch('M', 'evidence/WP-X/session-plan.md'),
+    ch('M', 'handoffs/WP-X-author-handoff.json'), ch('M', 'work-packages/WP-X.json', 'j0', 'j1')], text);
   assert.equal(ok.recordsOnly, true, ok.reasons.join('; '));
+  assert.deepEqual(ok.statusMoves, ['work-packages/WP-X.json: status in_review -> test_verified']);
   const no = (c, reason) => {
-    const r = classifyDiff([ch('A', 'evidence/WP-X/ok.md'), c], text);
+    const r = classifyDiff([ch('A', 'evidence/WP-X/records-transcription-ok.md'), c], text);
     assert.equal(r.recordsOnly, false, `${c.path} must not be records-only`);
     assert.ok(r.reasons.some((x) => reason.test(x)), `${c.path}: expected ${reason}, got ${JSON.stringify(r.reasons)}`);
   };
@@ -6174,7 +6197,16 @@ test('the records-only classifier and the mechanical sync check fail closed, eac
     no(ch('M', path), /outside evidence/);
   }
   for (const path of GENERATED_PATHS) no(ch('M', path), /a generated file, not a record/);
-  no(ch('M', 'evidence/WP-X/c0-review.md', 'o', 'r'), /rewritten, not appended to/);
+  no(ch('M', 'evidence/WP-X/records-transcription-x.md', 'o', 'r'), /rewritten, not appended to/);
+  no(ch('M', 'evidence/WP-X/session-x.md', 'o', 'n', '100755', '100644'), /mode 100755 -> 100644/);
+  // §5 item 1's exclusions stand: an Owner disposition or a role's file, new or appended to, is not a record; nor is
+  // any other name or type under evidence/ (A1-1, A1-4, Q1, R-3).
+  for (const path of ['evidence/WP-X/product-owner-disposition-2026-10-08.md', 'evidence/WP-X/a1-review-2026-10-08.md',
+    'evidence/WP-X/run.mjs', 'evidence/WP-X/m.sql', 'evidence/WP-X/.github/workflows/ci.yml', 'evidence/WP-X/.gitattributes',
+    'evidence/WP-X/sub/records-transcription-x.md']) {
+    no(ch('A', path), /not a record file/);
+  }
+  no(ch('M', 'evidence/WP-X/r0-review.md'), /not a record file/);
   no(ch('D', 'evidence/WP-X/c0-review.md'), /status D/);
   no(ch('R', 'evidence/WP-X/a.md -> evidence/WP-X/b.md'), /status R/);
   no(ch('T', 'evidence/WP-X/a.md'), /status T/);
@@ -6183,7 +6215,7 @@ test('the records-only classifier and the mechanical sync check fail closed, eac
   no(ch('A', 'work-packages/WP-Z.json'), /a new work-package manifest is not a record/);
   no(ch('M', 'work-packages/WP-X.json', 'j0', 'r'), /does not parse as JSON/);
   assert.equal(classifyDiff([], text).recordsOnly, false, 'an empty diff is not classified');
-  assert.throws(() => classifyDiff([ch('M', 'evidence/WP-X/a.md', 'o', 'missing')], text), /no blob/, 'an unreadable blob throws, which the CLI turns into exit 2');
+  assert.throws(() => classifyDiff([ch('M', 'evidence/WP-X/session-a.md', 'o', 'missing')], text), /no blob/, 'an unreadable blob throws, which the CLI turns into exit 2');
   const raw = ':100644 100644 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb M\0evidence/WP-X/a.md\0'
     + ':100644 100644 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb R100\0x\0y\0';
   assert.deepEqual(parseRawDiff(raw).map((c) => `${c.status} ${c.path}`), ['M evidence/WP-X/a.md', 'R x -> y']);
@@ -6214,7 +6246,7 @@ test('the records-only classifier and the mechanical sync check fail closed, eac
     const commit = async (m) => { await g('add', '-A'); await g('commit', '-q', '-m', m); return (await g('rev-parse', 'HEAD')).stdout.trim(); };
     const exit = async (...a) => { try { const r = await run(process.execPath, [cli, ...a], { cwd: dir, env }); return [0, r.stdout]; } catch (e) { return [e.code, e.stdout + e.stderr]; } };
     await g('init', '-q');
-    await put('evidence/WP-X/plan.md', 'plan\n');
+    await put('evidence/WP-X/session-plan.md', 'plan\n');
     await put('handoffs/WP-X-author-handoff.json', '{"head":"a"}\n');
     await put('work-packages/WP-X.json', `${JSON.stringify(base, null, 2)}\n`);
     await put('scripts/tool.mjs', 'export const a = 1;\n');
@@ -6222,25 +6254,26 @@ test('the records-only classifier and the mechanical sync check fail closed, eac
     await put('test-kits/integrity-manifest.json', '{"files":{}}\n');
     const root = await commit('base');
     await g('checkout', '-q', '-b', 'records');
-    await put('evidence/WP-X/r0-reading.md', 'R0 reads\n');
-    await put('evidence/WP-X/plan.md', 'plan\nappended\n');
+    await put('evidence/WP-X/light-path-reading-2026-10-08.md', 'R0 reads\n');
+    await put('evidence/WP-X/session-plan.md', 'plan\nappended\n');
     await put('handoffs/WP-X-author-handoff.json', '{"head":"b"}\n');
     await put('work-packages/WP-X.json', `${JSON.stringify({ ...base, status: 'integration_verified', open_blockers: [...base.open_blockers, 'b2'] }, null, 2)}\n`);
     const tip = await commit('records');
     let [code, out] = await exit('main', 'records');
     assert.equal(code, 0, out);
     assert.match(out, /records-only: all 4 changed path\(s\) are records/);
+    assert.match(out, /status move for the reader to check against its role verdict: work-packages\/WP-X\.json: status in_review -> integration_verified/);
     await put('scripts/tool.mjs', 'export const a = 2;\n');
     await commit('a script');
     [code, out] = await exit('main', 'records');
     assert.equal(code, 1, out);
     assert.match(out, /scripts\/tool\.mjs: outside evidence/);
     await g('reset', '-q', '--hard', tip);
-    await g('rm', '-q', 'evidence/WP-X/plan.md');
+    await g('rm', '-q', 'evidence/WP-X/session-plan.md');
     await commit('a deletion');
     [code, out] = await exit('main', 'records');
     assert.equal(code, 1, out);
-    assert.match(out, /evidence\/WP-X\/plan\.md: status D/);
+    assert.match(out, /evidence\/WP-X\/session-plan\.md: status D/);
     await g('reset', '-q', '--hard', tip);
     [code, out] = await exit('main', 'no-such-ref');
     assert.equal(code, 2, `an unknown ref is a usage error, fail closed: ${out}`);
@@ -6273,17 +6306,29 @@ test('the records-only classifier and the mechanical sync check fail closed, eac
     [code, out] = await exit('--sync', tip, doctored, 'main');
     assert.equal(code, 1, out);
     assert.match(out, /neither the PR nor main changed: scripts\/tool\.mjs/);
+    // A merge of a commit that is not on main is not a sync, however clean it is (C0 F4 M1, Q2, R-4): a side branch cut
+    // from main, merged without conflict, fails on that rule alone.
+    await g('reset', '-q', '--hard', tip);
+    await g('checkout', '-q', '-b', 'side', 'main');
+    await put('other/side-only.md', 's\n');
+    await commit('side work, not on main');
+    await g('checkout', '-q', 'records');
+    await g('merge', '-q', '--no-edit', 'side');
+    const sideMerge = (await g('rev-parse', 'HEAD')).stdout.trim();
+    [code, out] = await exit('--sync', tip, sideMerge, 'main');
+    assert.equal(code, 1, out);
+    assert.match(out, /the commit merged in, [0-9a-f]+, is not on main/);
     // main changes the PR's own path: not mechanical, whatever the resolution.
     await g('reset', '-q', '--hard', tip);
     await g('checkout', '-q', 'main');
-    await put('evidence/WP-X/plan.md', 'plan\nmain wrote here\n');
+    await put('evidence/WP-X/session-plan.md', 'plan\nmain wrote here\n');
     await commit('main touches the PR path');
     await g('checkout', '-q', 'records');
     await g('merge', '-q', '--no-edit', '-X', 'ours', 'main');
     const conflicted = (await g('rev-parse', 'HEAD')).stdout.trim();
     [code, out] = await exit('--sync', tip, conflicted, 'main');
     assert.equal(code, 1, out);
-    assert.match(out, /main changed the PR's own path\(s\): evidence\/WP-X\/plan\.md/);
+    assert.match(out, /main changed the PR's own path\(s\): evidence\/WP-X\/session-plan\.md/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

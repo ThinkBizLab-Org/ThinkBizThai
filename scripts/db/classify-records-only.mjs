@@ -30,6 +30,43 @@ export const GENERATED_PATHS = ['test-kits/integrity-manifest.json', 'evidence/V
 // byte-for-byte the same value (deep-equal after parsing).
 export const MANIFEST_RECORD_FIELDS = ['status', 'open_blockers', 'required_human_authorities'];
 
+// The evidence files the light path may add or append to (review round of 2026-10-07: A1-1, C0 F3, Q1, A1-4, R-3).
+// §5 item 1 excluded Owner dispositions and role-review files from the record-only exemption; a new file of any name
+// under evidence/<package>/ re-admitted both, and any file TYPE besides (a script, SQL, a CI-shaped path, a
+// .gitattributes that hides later diffs from the one reader). So a record is a Markdown file directly under
+// evidence/<package>/ whose name says what it is: a transcription of words already written elsewhere, a session
+// record, or the one reader's own verdict (§6.2). Anything else under evidence/ takes the full path.
+export const RECORD_FILE_NAME = /^(?:records-transcription|session|light-path-reading)-[A-Za-z0-9][A-Za-z0-9._-]*\.md$/;
+
+// The flow of CONTRIBUTING_AGENTS.md "Work and evidence flow". On the light path a status may stay, or move FORWARD
+// along it to any state short of `done` (review round of 2026-10-07: C0 F2, A1-3, Q3, R-3). A backward move, a move
+// to `done` or to `blocked`, and a value outside the flow are not records. Whether the role verdict that authorises
+// the move exists is the reader's to check (§6.2 item 1); the classifier names every move it admits so the reader
+// cannot miss one.
+export const STATUS_FLOW = ['backlog', 'ready', 'in_progress', 'in_review', 'review_approved', 'test_verified', 'integration_verified', 'done'];
+
+export function statusMove(before, after) {
+  if (typeof after !== 'string') return { reasons: ['status: not a string'] };
+  const from = STATUS_FLOW.indexOf(before);
+  const to = STATUS_FLOW.indexOf(after);
+  if (from < 0 || to < 0) return { reasons: [`status: ${JSON.stringify(before)} -> ${JSON.stringify(after)} (only a move along the flow is a record)`] };
+  if (after === 'done') return { reasons: [`status: ${before} -> done (a move to done is not a record)`] };
+  if (to <= from) return { reasons: [`status: ${before} -> ${after} (a backward move is not a record)`] };
+  return { reasons: [], move: `${before} -> ${after}` };
+}
+
+// required_human_authorities: strictly append-only. An old entry may not gain text at either end -- "Not required any
+// more: ..." or "... -- waived" reads as a waiver of a human-only authority after one reading (A1-3). New entries may
+// follow at the end.
+export function appendedEntriesOnly(field, before, after) {
+  if (before === undefined && after === undefined) return [];
+  const old = before ?? [];
+  if (!Array.isArray(old) || !old.every((s) => typeof s === 'string')) return [`${field}: the base value is not a list of strings`];
+  if (!Array.isArray(after) || !after.every((s) => typeof s === 'string')) return [`${field}: the new value is not a list of strings`];
+  if (after.length < old.length) return [`${field}: ${old.length - after.length} entr(y/ies) removed`];
+  return old.flatMap((was, i) => (after[i] === was ? [] : [`${field}[${i}]: changed (only new entries at the end are a record here)`]));
+}
+
 const REGULAR = '100644';
 
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -117,8 +154,9 @@ export function amendsNarrowedOnly(before, after) {
   return reasons;
 }
 
-// One work-package manifest, before and after. Returns the reasons it is NOT a records change ([] = it is).
-export function manifestDelta(beforeText, afterText) {
+// One work-package manifest, before and after. Returns the reasons it is NOT a records change ([] = it is). Every
+// status move it admits is pushed onto `moves`, when one is given.
+export function manifestDelta(beforeText, afterText, moves = []) {
   let before;
   let after;
   try { before = JSON.parse(beforeText); } catch { return ['the base manifest does not parse as JSON']; }
@@ -128,11 +166,17 @@ export function manifestDelta(beforeText, afterText) {
   for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
     if (deepEqual(before[key], after[key])) continue;
     if (key === 'status') {
-      if (typeof after.status !== 'string') reasons.push('status: not a string');
+      const s = statusMove(before.status, after.status);
+      reasons.push(...s.reasons);
+      if (s.move) moves.push(s.move);
       continue;
     }
-    if (key === 'open_blockers' || key === 'required_human_authorities') {
+    if (key === 'open_blockers') {
       reasons.push(...appendOnlyStrings(key, before[key], after[key]));
+      continue;
+    }
+    if (key === 'required_human_authorities') {
+      reasons.push(...appendedEntriesOnly(key, before[key], after[key]));
       continue;
     }
     if (key === 'ownership') {
@@ -155,13 +199,17 @@ export function manifestDelta(beforeText, afterText) {
 const isWorkPackageManifest = (path) => /^work-packages\/[^/]+\.json$/.test(path);
 
 // One changed path, as `git diff --raw` reports it. `text` reads a blob by id. Returns the reasons it is NOT a
-// records change ([] = it is).
-export function classifyChange(change, text) {
+// records change ([] = it is). Status moves it admits are pushed onto `moves`.
+export function classifyChange(change, text, moves = []) {
   const { status, path, oldMode, newMode, oldBlob, newBlob } = change;
   if (status !== 'A' && status !== 'M') return [`${path}: status ${status} (only an addition or a modification is a record)`];
   if (newMode !== REGULAR || (status === 'M' && oldMode !== REGULAR)) return [`${path}: mode ${oldMode} -> ${newMode} (only a regular, non-executable file)`];
   if (GENERATED_PATHS.includes(path)) return [`${path}: a generated file, not a record`];
   if (path.startsWith('evidence/') && path.split('/').length >= 3) {
+    const parts = path.split('/');
+    if (parts.length !== 3 || !RECORD_FILE_NAME.test(parts.at(-1))) {
+      return [`${path}: not a record file (only records-transcription-*.md, session-*.md or light-path-reading-*.md directly under evidence/<package>/; an Owner disposition, a role's file or any other name or type takes the full path)`];
+    }
     if (status === 'A') return [];
     // An existing record is appended to, never rewritten: a role's verdict or an Owner's transcribed words cannot be
     // edited on the light path.
@@ -170,18 +218,22 @@ export function classifyChange(change, text) {
   if (path.startsWith('handoffs/') && path.endsWith('.json') && path.split('/').length === 2) return [];
   if (isWorkPackageManifest(path)) {
     if (status !== 'M') return [`${path}: a new work-package manifest is not a record`];
-    return manifestDelta(text(oldBlob), text(newBlob)).map((r) => `${path}: ${r}`);
+    const found = [];
+    const reasons = manifestDelta(text(oldBlob), text(newBlob), found).map((r) => `${path}: ${r}`);
+    moves.push(...found.map((m) => `${path}: status ${m}`));
+    return reasons;
   }
   return [`${path}: outside evidence/<package>/**, handoffs/*.json and work-packages/*.json`];
 }
 
-// The whole diff. Returns { recordsOnly, reasons, paths }.
+// The whole diff. Returns { recordsOnly, reasons, paths, statusMoves }.
 export function classifyDiff(changes, text) {
   if (!Array.isArray(changes) || changes.length === 0) {
-    return { recordsOnly: false, reasons: ['an empty diff is not classified (nothing to merge on the light path)'], paths: [] };
+    return { recordsOnly: false, reasons: ['an empty diff is not classified (nothing to merge on the light path)'], paths: [], statusMoves: [] };
   }
-  const reasons = changes.flatMap((c) => classifyChange(c, text));
-  return { recordsOnly: reasons.length === 0, reasons, paths: changes.map((c) => c.path) };
+  const statusMoves = [];
+  const reasons = changes.flatMap((c) => classifyChange(c, text, statusMoves));
+  return { recordsOnly: reasons.length === 0, reasons, paths: changes.map((c) => c.path), statusMoves };
 }
 
 // `git diff --raw -z --no-abbrev` output: ":<oldmode> <newmode> <oldsha> <newsha> <status>\0<path>\0" per entry.
@@ -286,7 +338,9 @@ function main(argv) {
     }
     console.log(`mechanical sync: ${merge} = ${tip} + ${r.mergedMain} (old branch point ${r.oldBranchPoint}); no conflict inside the PR's own paths.`);
     if (r.generatedTouched.length > 0) {
-      console.log(`  generated file(s) involved: ${r.generatedTouched.join(', ')} -- regenerate (npm run regenerate:manifest, npm run record:verification) and cmp; a difference is not mechanical.`);
+      // This script does not rebuild them (C0 F5, A1-5, Q4): exit 0 is the first half of §6.3's test, and the
+      // regenerate-and-cmp round trip is the second. CI on the final head is the backstop.
+      console.log(`  generated file(s) involved: ${r.generatedTouched.join(', ')} -- NOT checked here: regenerate (npm run regenerate:manifest, npm run record:verification) and cmp; a difference makes the sync not mechanical.`);
     }
     return 0;
   }
@@ -297,6 +351,8 @@ function main(argv) {
     return 1;
   }
   console.log(`records-only: all ${r.paths.length} changed path(s) are records (${r.mergeBase.slice(0, 7)}..${r.head.slice(0, 7)}).`);
+  // Every status move admitted, so the reader of §6.2 checks each against the role verdict that authorises it.
+  for (const m of r.statusMoves) console.log(`  status move for the reader to check against its role verdict: ${m}`);
   return 0;
 }
 

@@ -5,7 +5,7 @@ Date: 2026-09-28
 Author: `/claude/a0_atlas` (A0 Integration / DB-00)
 Amends: `RFC-2026-002` (temporary manual merge control), clause "the Product Owner may perform the final manual merge"
 Origin: the one-page decision summary of 2026-09-28, item 4. The records this RFC reconciles are cited in §1.
-Amendment §6: **Proposed 2026-10-07, not approved.** The Owner asked for it in the words `ข้อ 4 mw`. §1–§5 above are unchanged and stay approved. §6 takes effect only if the Owner approves it. It is a governance change, so under §5 item 6 the Owner merges it personally.
+Amendment §6: **Proposed 2026-10-07, not approved.** The Owner replied `ข้อ 4 mw` to A0's recommendation (4); A0 reads that as a go-ahead to propose §6, and the reading is A0's. §1–§5 above are unchanged and stay approved. §6 takes effect only if the Owner approves it. It is a governance change, so under §5 item 6 the Owner merges it personally.
 
 ---
 
@@ -134,19 +134,30 @@ renames off. Every changed path must pass all of the following rules:
 
 1. **Added or modified only.** A deletion, rename, copy or type change is not a record. The file must be a
    regular file with mode `100644`, so a symlink or an executable is not a record.
-2. **`evidence/<package>/**`.** A new file is a record. An existing file is a record only if it is
-   appended to: the old content must survive whole as the prefix of the new content. This rule stops the
-   light path from rewriting a role's verdict or a transcription of the Owner's words.
+2. **`evidence/<package>/<name>.md`, for three names only.** The file sits directly under
+   `evidence/<package>/` and its name is `records-transcription-*.md` (words already written elsewhere,
+   transcribed), `session-*.md` (a session record) or `light-path-reading-*.md` (the one reader's verdict,
+   §6.2). Any other name or type under `evidence/` is not a record: an Owner disposition, a role's review,
+   re-check or verdict file, a script, SQL, JSON, a dotfile such as `.gitattributes`, or a file in a
+   subdirectory. A new file of the three names is a record. An existing one is a record only if it is
+   appended to: the old content must survive whole as the prefix of the new content.
    `evidence/VERIFICATION.md` and any file directly under `evidence/` are not records.
 3. **`handoffs/*.json`.** Added or modified.
 4. **`work-packages/*.json`.** Modified only. Both sides must parse. Each field must be deep-equal to the
    base except these:
-   - `status`, which must still be a string. The schema and the role-separation validators still judge
-     the value.
-   - `open_blockers` and `required_human_authorities`: **append-only** lists of strings. Nothing may be
-     removed or reordered. Every old entry stays whole, either unchanged or kept verbatim at the start of
-     its new text (text appended) or at the end (a transcribed closing clause put in front of it, the way
-     PR #201 closed CON-003's `open_blockers[10]`). New entries may follow at the end.
+   - `status`: unchanged, or moved **forward** along the flow of `CONTRIBUTING_AGENTS.md`
+     (`backlog → … → integration_verified`), skipping steps if it must. A backward move, a move to `done`
+     or to `blocked`, and any value outside the flow are not records. No validator judges whether the move
+     is earned: the schema checks the value is known and the role-separation validator checks the role
+     ids, neither checks the transition. That judgement is the reader's (§6.2 item 1). The classifier
+     prints every status move it admits, so the reader cannot miss one.
+   - `open_blockers`: an **append-only** list of strings. Nothing may be removed or reordered. Every old
+     entry stays whole, either unchanged or kept verbatim at the start of its new text (text appended,
+     which may be a closing clause after it) or at the end (a transcribed closing clause put in front of
+     it, the way PR #201 closed CON-003's `open_blockers[10]`). New entries may follow at the end.
+   - `required_human_authorities`: **strictly** append-only. Every old entry is unchanged; new entries may
+     follow at the end. Text added at either end of an old entry could read as waiving a human-only
+     authority, so it is not a record.
    - `ownership.amended_by`: the same entries in the same order. Only keys that begin with `acknowledg`
      may change or be added. This is the acknowledgement transcription.
    - `ownership.amends_without_owning`: may be **narrowed**, meaning paths are dropped and never added.
@@ -155,23 +166,60 @@ renames off. Every changed path must pass all of the following rules:
    schema, RFC, CI file, `CONTRIBUTING_AGENTS.md`, `package.json`, lockfile, the integrity manifest,
    `ownership.branch`, `writable_paths`, `role_assignments` and every other manifest field.
 
-§6.1 is narrower than §5 item 1 in one place. The branch slot (`ownership.branch`, the pinned lines of
-`test-kits/branch-identity.test.mjs` and the regenerated integrity manifest) is **not** records-only under
-§6. A PR that moves a branch slot touches a test file and a generated digest file, and those take the full
-path. It is wider than §5 item 1 in two places, each named here for the Owner. First, it admits any file
-added under `evidence/<package>/`, while §5 admitted only `session-*.md`. Second, it admits the manifest
-fields listed in item 4, where §5 admitted only open-blocker text. The classifier enforces append-only
-mechanically. Only the reader of §6.2 can judge whether a transcription is accurate.
+**How §6.1 compares with §5 item 1, for the Owner.** §5 item 1 admitted `session-*.md` files, one
+manifest line (`ownership.branch`) and the generated files that follow from them. It did **not** cover
+"Owner dispositions or role-review files", "removing or rewording an open blocker", or "any other manifest
+field".
+
+- **Narrower in one place.** The branch slot (`ownership.branch`, the pinned lines of
+  `test-kits/branch-identity.test.mjs` and the regenerated integrity manifest) is **not** records-only
+  under §6. A PR that moves a branch slot touches a test file and a generated digest file, and those take
+  the full path.
+- **Kept as §5 had it.** Owner dispositions and role-review files stay off the light path: item 2 admits
+  three file names only, so a new or appended `product-owner-disposition-*` or role file takes the full
+  path.
+- **Wider in four places, each a reversal or an addition the Owner is asked about in §6.7.**
+  1. Two more evidence file names: `records-transcription-*.md` and the reader's
+     `light-path-reading-*.md`.
+  2. **Closing a blocker.** §5 item 1 excluded rewording an open blocker. §6 admits a closing clause
+     written after the old text or put in front of it, with the old text kept whole (Q-025-6-3).
+  3. **Status moves**, forward only and short of `done` (Q-025-6-4).
+  4. The acknowledgement keys of `ownership.amended_by`, a narrowing of
+     `ownership.amends_without_owning` and a restated `rationale`, and new entries at the end of
+     `required_human_authorities`.
+
+The classifier enforces the shape mechanically. Only the reader of §6.2 can judge whether a transcription
+is accurate and whether a status move is earned. The classifier does not check that
+`evidence/<package>/` and `handoffs/*.json` belong to the PR's own package. `verify-branch-scope`, which CI
+runs on every PR, does that, and §6 relies on it.
 
 ### 6.2 What a records-only PR needs
 
 1. **One independent reading** replaces the four role runs and the re-check round. The reader is **R0**
    (`/claude/r0_steward`), or **C0** (`/claude/c0_contract_reviewer`) when R0 is the subject of the records,
-   for example when the PR transcribes R0's own verdict or acknowledgement. The reader:
-   - runs the classifier on the head and records the command and exit code;
+   for example when the PR transcribes R0's own verdict or acknowledgement.
+
+   **The Integration Owner is not waived.** §5 item 3 and §5 item 6 still require the Integration Owner's
+   verdict wherever the package's gates require it. When R0 reads, that reading is R0's verdict on the PR.
+   When C0 reads in R0's place, the Integration Owner's verdict is the R0 file the records transcribe: it
+   must already be on `main` before the PR opens, and it must name the package and the change (and, for a
+   status move, the target status). C0 checks the transcription against it. If no such R0 file is on
+   `main`, C0 cannot stand in, and R0 reads.
+
+   The reader:
+   - runs the classifier on the head and records the command, its exit code and every status move it
+     prints;
    - reads every added or appended line against its source. A transcription is checked against the role
-     file it cites, and a merge fact against `gh`/`git`;
-   - records one verdict file under `evidence/<package>/`.
+     file it cites, and a merge fact against `gh`/`git`. A clause that closes a blocker raised by a
+     Security/Privacy run must cite that role's own file;
+   - checks **every status move** against the role verdict file that authorises the target status. That
+     file must be on `main` and name the package and the status. A move with no such verdict is a
+     blocking finding, and so is any move by the Author beyond `in_review`;
+   - checks that the added lines carry no personal data, private URL, credential or customer content.
+     `evidence/` and `handoffs/` are where the repository's e-mail scan is relaxed, so no scan stands in
+     for this. A record that quotes anything from outside the repository (a chat, a log, provider output)
+     other than a role's or the Owner's words leaves the light path;
+   - records one verdict file, `evidence/<package>/light-path-reading-<date>.md`.
 
    That verdict file is itself a record, so committing it keeps the PR records-only.
 2. **No re-check round** unless the reader raises a **blocking** finding. A fix for a blocking finding is
@@ -179,16 +227,25 @@ mechanically. Only the reader of §6.2 can judge whether a transcription is accu
    the PR has left the light path and takes the full path.
 3. **A0 may merge it under the standing delegation.** §2 item 1 still applies: green required CI on the
    head, a merge commit pinned with `--match-head-commit`, the handoff last and alone, and the next state
-   record quoting the delegation. §5 item 6 also applies: the head contains current `main`, no security
-   finding of any grade is open, and the delegation predates the merge or names its sequence.
+   record quoting the delegation. §5 item 6 also applies in full: the head contains current `main`, no
+   security finding of any grade is open, the Integration Owner's verdict exists where the package's gates
+   require it (item 1 says which file that is), and the delegation predates the merge or names its
+   sequence.
 4. **The Author still never approves its own work** (§2 item 4). The reading is the independent judgement.
    The classifier only decides which path the PR takes.
 
 ### 6.3 Mechanical sync: merging `main` into a PR branch
 
-A merge of `main` into a PR branch is **mechanical** when
-`node scripts/db/classify-records-only.mjs --sync <pre-merge-tip> <merge> origin/main` exits **0**. The
-command checks that:
+A merge of `main` into a PR branch is **mechanical** when **both** of these hold:
+
+- (a) `node scripts/db/classify-records-only.mjs --sync <pre-merge-tip> <merge> origin/main` exits **0**;
+  and
+- (b) every generated file involved round-trips through its generator (item 1 below).
+
+The script checks (a) only. It does not rebuild or compare a generated file, and it exits 0 on a merge
+whose generated file was edited by hand. (b) is the operator's step, and CI on the final head is the
+backstop: `npm run check` refuses a digest that does not match its file and a removed entry. The command
+checks that:
 
 - the merge has two parents, and the first is the PR tip;
 - the second parent is on `origin/main`;
@@ -201,7 +258,8 @@ A mechanical sync **voids no role verdict and needs no carry or sync reading**. 
 
 1. Every generated file involved is rebuilt by its generator, never resolved by hand:
    `npm run regenerate:manifest`, then `npm run record:verification`, then a `cmp` (or a clean
-   `git diff --exit-code`) against the committed file. A difference makes the sync not mechanical.
+   `git diff --exit-code`) against the committed file. A difference makes the sync not mechanical. The
+   record of a sync cites the `cmp`.
 2. The handoff refresh comes last and alone (`npm run refresh:handoff` on the branch **name**, then
    `npm run check:handoff`).
 3. The required CI check must be green on the final head. CI is what catches a semantic interaction: a
@@ -235,12 +293,19 @@ These were measured with the classifier at this branch's head, run read-only ove
   #205 (CON-004) and #206 (A0-005). These are the five `records-transcription-2026-10-06.md` increments.
   None of the five has a role file in its own diff. Each transcribed wording that R0 had written in
   advance, in a file merged with the PR before it.
+- **Re-measured on 2026-10-08 with the classifier as narrowed after the first review round** (record
+  names, forward status moves short of `done`, strictly appended `required_human_authorities`): the same
+  five PRs, and the same 48 of 50 syncs. It prints four status moves, each `in_review` →
+  `integration_verified`: #198, #199, #201 and #205. #206 moves no status. The commands are in
+  `evidence/WP-0A-DB-00/a0-batch-rfc-025-records-path-closure-2026-10-08.md`.
 - **The other 21 are not records-only, and §6 would change nothing for them.** Examples are #202
   (A0-006's move to `in_review`, which changes `role_assignments`, `independence` and `outputs`, with 11
   role files) and #207 and #208 (`role_assignments`, plus a reworded blocker). A PR that names its role
   runs is not records-only under §6.1.
-- **50 merges of `main` into those PRs' branches. The sync check calls 48 mechanical.** The two it
-  rejects are the two that drew a reading of substance that night:
+- **50 merges of `main` into those PRs' branches. The sync check calls 48 mechanical.** That is the
+  script's count, part (a) of §6.3 only. Nobody ran the regenerate-and-`cmp` of part (b) on those merges,
+  so 48 is an upper bound for the full rule. The two it rejects are the two that drew a reading of
+  substance that night:
   - `31879073` on #196, where `main` changed `test-kits/contracts/catalog-registry.test.mjs`. This is the
     sync that C0's and Q0's carry readings and R0's R-1 in `evidence/WP-0A-CON-004/` were written for.
   - `f6652ee0` on #197, where `main` changed `scripts/test-suite-contract.mjs`
@@ -256,7 +321,8 @@ These were measured with the classifier at this branch's head, run read-only ove
 
 1. **CI wiring.** The classifier is a script, and CI does not run it. WP-0A-A0-004 owns
    `.github/workflows/ci.yml`. A step that prints the classifier's verdict on every PR, without gating on
-   it, is owed there. That is a CI change, a governance PR of its own.
+   it, is owed there. That is a CI change, a governance PR of its own. It should exist before the first
+   delegated light-path merge, so that the exit code is not only something the reader reports.
 2. **The classifier is not itself digested.** Its test,
    `test-kits/db/foundation-contract.test.mjs`, is digested, so gutting the classifier turns that test red.
    The script file is not in `test-kits/integrity-manifest.json`. Adding it means a `DIGESTED_FLOOR` line
@@ -270,9 +336,24 @@ These were measured with the classifier at this branch's head, run read-only ove
 
 - **Q-025-6-1.** Approve §6 as written: yes or no. A0 recommends yes.
 - **Q-025-6-2.** Should a branch-slot move stay off the light path, as §6.1 says, or be admitted as in
-  §5 item 1? A0 recommends keeping it off. It touches a test file.
-- **Q-025-6-3.** Should a transcribed closing clause put **in front of** a blocker's verbatim text count
-  as append-only (§6.1 item 4)? Two of the five transcriptions above depend on it: #201 (CON-003
-  `open_blockers[10]`) and #206 (A0-005 `open_blockers[3]`). Without it, neither is records-only, as
-  measured with that branch of the rule removed. A0 recommends yes, because the reader of §6.2 checks the
-  clause against its source.
+  §5 item 1? A0 recommends keeping it off. It touches a test file. A related cost: §6.3 compares whole
+  paths, so a sync between two open PRs that each move a branch slot is never mechanical, even when
+  their lines differ (#210 and this PR are an example). A line-level rule would be a later change.
+- **Q-025-6-3.** Should a transcribed closing clause count as append-only (§6.1 item 4), whether it is
+  put **in front of** a blocker's verbatim text or written **after** it? Either form closes a blocker,
+  which §5 item 1 kept off its exemption. Two of the five transcriptions above depend on the front form:
+  #201 (CON-003 `open_blockers[10]`) and #206 (A0-005 `open_blockers[3]`). Without it, neither is
+  records-only, as measured with that branch of the rule removed. A0 recommends yes for both forms,
+  because the reader of §6.2 checks the clause against its source. This applies to `open_blockers` only:
+  `required_human_authorities` is strictly append-only.
+- **Q-025-6-4.** Should a status move, forward only and short of `done`, ride the light path, with the
+  reader checking it against a role verdict on `main` (§6.1 item 4, §6.2 item 1)? Four of the five
+  transcriptions above are moves from `in_review` to `integration_verified`. Without it, those four take
+  the full path. A0 recommends yes.
+- **Q-025-6-5.** When R0 is the subject of the records, may C0 read in R0's place, with R0's verdict file
+  already on `main` standing as the Integration Owner's verdict (§6.2 item 1)? Four of the five
+  transcriptions above transcribe R0's own wording. A0 recommends yes.
+
+**Order before the merge.** The Owner answers Q-025-6-1 to Q-025-6-5. A0 records the answers on this
+branch, in a disposition and in the status lines, so that `main` never holds a §6 whose status contradicts
+the decision. The roles re-read that commit (§5 item 2). Then the Owner merges.
