@@ -158,8 +158,8 @@ const COVERAGE_FLOOR = 0.70;
 const SITE_FLOOR = {
   'ctr-api-001': 42, 'ctr-aud-001': 63, 'ctr-err-001': 23, 'ctr-evt-001': 51,
   'ctr-flg-001': 74, 'ctr-idm-001': 38, 'ctr-job-001': 42, 'ctr-mod-001': 87,
-  'ctr-ntf-001': 39, 'ctr-obs-001': 83, 'ctr-pag-001': 38, 'ctr-sec-001': 76,
-  'ctr-ten-001': 23, 'ctr-usg-001': 37 };
+  'ctr-ntf-001': 44, 'ctr-obs-001': 83, 'ctr-pag-001': 38, 'ctr-sec-001': 76,
+  'ctr-ten-001': 23, 'ctr-usg-001': 45 };
 
 // Held at the measured actual, not at a round number above it. Slack in this ceiling is
 // room for coverage to regress without anything failing, so every fixture that closes a
@@ -170,7 +170,7 @@ const SITE_FLOOR = {
 // file asserts that relationship rather than leaving two numbers to drift apart.
 const UNKILLED_CEILING = {
   'ctr-api-001': 1, 'ctr-aud-001': 5, 'ctr-err-001': 0, 'ctr-evt-001': 0, 'ctr-flg-001': 14,
-  'ctr-idm-001': 1, 'ctr-job-001': 0, 'ctr-mod-001': 10, 'ctr-ntf-001': 9, 'ctr-obs-001': 6,
+  'ctr-idm-001': 1, 'ctr-job-001': 0, 'ctr-mod-001': 10, 'ctr-ntf-001': 10, 'ctr-obs-001': 6,
   'ctr-pag-001': 8, 'ctr-sec-001': 12, 'ctr-ten-001': 0, 'ctr-usg-001': 1 };
 
 // `$schema`, `$id`, `title` and `description` are metadata: deleting one cannot change any
@@ -683,6 +683,12 @@ const UNKILLED_SITES = {
   'ctr-ntf-001': [
     'allOf.2.if.required',
     'allOf.3.if.required',
+    // SUBSUMED by the `dedupe_key` pattern WP-0A-CON-006 added on 2026-10-07 for A1-S3 / SC-3,
+    // exactly as CTR-USG-001's below. The pattern's shortest match is `ntf:` plus one character,
+    // so the empty string is the only string `minLength: 1` would have caught, and the pattern
+    // rejects it. Verified: `invalid-dedupe-key-minlength.json` (`dedupe_key: ""`) against the
+    // minLength-less schema still fails the pattern.
+    'properties.dedupe_key.minLength',
     'properties.delivery.type',
     'properties.tenant_context.$ref',
     'type',
@@ -1366,7 +1372,7 @@ const CONSTRAINT_SURFACE = {
     ],
   },
   'ctr-ntf-001': {
-    digest: 'fb2df24d208929e2',
+    digest: '26745885a51295ac',
     sites: [
       ".additionalProperties = false",
       ".allOf.0.if.properties = [kind]",
@@ -1394,11 +1400,14 @@ const CONSTRAINT_SURFACE = {
       ".allOf.3.then.properties.delivery.not.required = [\"failure_class\"]",
       ".properties = [channel, dedupe_key, deep_link, delivery, kind, locale, message_key, notification_id, tenant_context]",
       ".properties.channel.enum = [\"in_app\",\"email\",\"line\"]",
+      ".properties.dedupe_key.maxLength = 128",
       ".properties.dedupe_key.minLength = 1",
+      ".properties.dedupe_key.pattern = \"^ntf:[A-Za-z0-9_-]+(?::[A-Za-z0-9_.-]+)*$\"",
       ".properties.dedupe_key.type = \"string\"",
       ".properties.deep_link.additionalProperties = false",
       ".properties.deep_link.properties = [requires_permission, target_ref]",
       ".properties.deep_link.properties.requires_permission.const = true",
+      ".properties.deep_link.properties.target_ref.maxLength = 256",
       ".properties.deep_link.properties.target_ref.pattern = \"^(app|content|asset|job):[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*)*$\"",
       ".properties.deep_link.properties.target_ref.type = \"string\"",
       ".properties.deep_link.required = [\"target_ref\",\"requires_permission\"]",
@@ -1411,8 +1420,10 @@ const CONSTRAINT_SURFACE = {
       ".properties.delivery.type = \"object\"",
       ".properties.kind.enum = [\"command\",\"result\"]",
       ".properties.locale.enum = [\"th-TH\"]",
+      ".properties.message_key.maxLength = 128",
       ".properties.message_key.pattern = \"^notification\\\\.[a-z_.]+$\"",
       ".properties.message_key.type = \"string\"",
+      ".properties.notification_id.maxLength = 128",
       ".properties.notification_id.minLength = 1",
       ".properties.notification_id.type = \"string\"",
       ".properties.tenant_context.$ref = \"../ctr-ten-001/schema.json\"",
@@ -1712,18 +1723,22 @@ const CONSTRAINT_SURFACE = {
     ],
   },
   'ctr-usg-001': {
-    digest: '3c08b240792db0fc',
+    digest: '8f81070a5da43640',
     sites: [
       ".additionalProperties = false",
       ".properties = [attribution, cost, dedupe_key, dimension, occurred_at, quantity, tenant_context, usage_id]",
       ".properties.attribution.additionalProperties = false",
       ".properties.attribution.properties = [business_profile_id, job_id, provider_key, workspace_id]",
+      ".properties.attribution.properties.business_profile_id.maxLength = 128",
       ".properties.attribution.properties.business_profile_id.minLength = 1",
       ".properties.attribution.properties.business_profile_id.type = \"string\"",
+      ".properties.attribution.properties.job_id.maxLength = 128",
       ".properties.attribution.properties.job_id.minLength = 1",
       ".properties.attribution.properties.job_id.type = \"string\"",
+      ".properties.attribution.properties.provider_key.maxLength = 64",
       ".properties.attribution.properties.provider_key.pattern = \"^[a-z][a-z0-9._-]*$\"",
       ".properties.attribution.properties.provider_key.type = \"string\"",
+      ".properties.attribution.properties.workspace_id.maxLength = 128",
       ".properties.attribution.properties.workspace_id.minLength = 1",
       ".properties.attribution.properties.workspace_id.type = \"string\"",
       ".properties.attribution.required = [\"workspace_id\",\"job_id\",\"provider_key\"]",
@@ -1734,6 +1749,7 @@ const CONSTRAINT_SURFACE = {
       ".properties.cost.properties.amount.type = \"string\"",
       ".properties.cost.properties.basis.enum = [\"provider_reported\",\"estimated\"]",
       ".properties.cost.properties.currency.enum = [\"THB\",\"USD\"]",
+      ".properties.cost.properties.supersedes_usage_id.maxLength = 128",
       ".properties.cost.properties.supersedes_usage_id.minLength = 1",
       ".properties.cost.properties.supersedes_usage_id.type = \"string\"",
       ".properties.cost.required = [\"amount\",\"currency\",\"basis\"]",
@@ -1753,6 +1769,7 @@ const CONSTRAINT_SURFACE = {
       ".properties.quantity.required = [\"amount\",\"unit\"]",
       ".properties.quantity.type = \"object\"",
       ".properties.tenant_context.$ref = \"../ctr-ten-001/schema.json\"",
+      ".properties.usage_id.maxLength = 128",
       ".properties.usage_id.minLength = 1",
       ".properties.usage_id.type = \"string\"",
       ".required = [\"usage_id\",\"occurred_at\",\"dimension\",\"quantity\",\"attribution\",\"cost\",\"dedupe_key\",\"tenant_context\"]",

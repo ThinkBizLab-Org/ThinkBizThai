@@ -4,10 +4,24 @@
   "work_package_id": "WP-0A-A0-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "2e18f75dbc72ec3c03cb9e5966c7f1cb65fa592a",
-  "head_revision_or_patch_checksum": "c5a48a84834939ad8fcf945b3be2053b0d4002e2",
+  "base_revision": "dc7b96849a833afb5918478d816027d695da9bf5",
+  "head_revision_or_patch_checksum": "4ccfcdd627d6630fdd99da59ea4ad6e783137c46",
   "task_ids": [],
-  "files_added": [],
+  "files_added": [
+    "evidence/WP-0A-A0-006/a1-recheck-2026-10-07.md",
+    "evidence/WP-0A-A0-006/a1-recheck-2026-10-07b.md",
+    "evidence/WP-0A-A0-006/a1-review-2026-10-07.md",
+    "evidence/WP-0A-A0-006/author-closure-2026-10-07.md",
+    "evidence/WP-0A-A0-006/author-reverify-2026-10-06.md",
+    "evidence/WP-0A-A0-006/c0-recheck-2026-10-07.md",
+    "evidence/WP-0A-A0-006/c0-recheck-2026-10-07b.md",
+    "evidence/WP-0A-A0-006/c0-review-2026-10-07.md",
+    "evidence/WP-0A-A0-006/q0-recheck-2026-10-07.md",
+    "evidence/WP-0A-A0-006/q0-recheck-2026-10-07b.md",
+    "evidence/WP-0A-A0-006/q0-review-2026-10-07.md",
+    "evidence/WP-0A-A0-006/r0-recheck-2026-10-07b.md",
+    "evidence/WP-0A-A0-006/r0-review-2026-10-07.md"
+  ],
   "files_modified": [
     "handoffs/WP-0A-A0-006-author-handoff.json",
     "work-packages/WP-0A-A0-006.json"
@@ -21,67 +35,87 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT CHANGES NO DECISION AND NO CODE. It corrects three sentences in this package's own open_blockers that were true when written and false afterwards, and it removes one that is fully discharged. Same defect class as commit 9aee8bb, which repaired six such sentences in a test helper; this is the manifest version of it.",
-    "ONE BLOCKER IS DISCHARGED AND THEREFORE REMOVED. It said RFC-2026-015 was Proposed and that DB-00 must neither start on DATA-DEC-02 nor merge on DATA-DEC-01 until the record was disposed. That record was disposed on 2026-09-04, DATA-DEC-01 as `app` and DATA-DEC-02 as the wrapper command contract; read the RFC's status line for its wording rather than this file. DB-00 has since built and merged on both -- db/foundation/migrations/000_foundation.sql through 140_audit.sql and the Makefile command contract are on main -- so the blocker is not stale, it is spent, and it leaves open_blockers instead of being reworded.",
-    "THE OTHER THREE ARE CORRECTED RATHER THAN DROPPED, because each had a true half. The DATA-DEC-03 referral is discharged while the QUESTION it referred is not, and RFC-2026-022 §5/8's measurement is why: the only member of app_worker is postgres, which bypasses row level security. prefer_cross_vendor_review is untouched by any disposition. G0's restriction still stands while the clause that justified it -- \"which a Proposed decision record is\" -- stopped being true.",
-    "amends_without_owning IS EMPTIED, and that is a change to a record rather than an oversight. It carried five paths from this package's earlier increment; this branch touches none of them, and verify-branch-scope refuses a declaration that explains nothing the branch changed. The five are named in the manifest's new rationale and remain in git history.",
-    "STATUS IS DELIBERATELY NOT MOVED: this package stays in_progress. An Author may move work only as far as in_review, and doing so would be a claim about completeness rather than the correction of a false sentence, which is all this increment is."
+    "THIS INCREMENT CHANGES NO DECISION AND NO CODE. It changes one file this package owns, work-packages/WP-0A-A0-006.json, and adds records under evidence/WP-0A-A0-006/ and this handoff. RFC-2026-015 is not edited; no RFC, CONTRIBUTING_AGENTS.md, CI workflow or gate changes, so this is not a governance PR under RFC-2026-025 §5 item 6.",
+    "STATUS MOVES in_progress -> in_review, the furthest an Author may move it. The package's work (RFC-2026-015 and evidence/WP-0A-A0-006/blocker-re-audit.md) has been on main since PR #45 (squash 1a9f589, 2026-09-04); the RFC's disposition is recorded in its own status line (234693c), which this handoff cites rather than restates.",
+    "THE OWNER'S STEP 2 OF 2026-10-05 IS APPLIED BY A0's MAPPING, not by the Owner naming this package: item 1 (RFC-2026-024's cross-vendor withdrawal) sets independence.prefer_cross_vendor_review to false and replaces cross_vendor_exception with the withdrawal's record; item 2 (/claude/r0_steward succeeds /root/r0_steward) is recorded in role_assignments._run_id_disambiguation; item 3 (no Product reviewer for tooling and contract packages) is recorded in role_assignments.product_reviewer_note. Source: evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md; the Author's reading is evidence/WP-0A-A0-006/author-reverify-2026-10-06.md §3.",
+    "STALE MANIFEST SENTENCES ARE CORRECTED WITH THEIR TEXT AS RECORDED KEPT IN PLACE: open_blockers[0] (DATA-DEC-03's service path; \"the only member of app_worker is postgres\" is false since migration 173 and RFC-2026-028), open_blockers[1] closed in place, required_human_authorities[0] marked GIVEN 2026-09-04, rollback_or_forward_fix, and _run_id_disambiguation. package_evidence[2] gains the manifest argument without which the declared command exits 64.",
+    "THE FIRST ROLE VERDICTS (C0, A1, Q0, R0 at 89c9ec9) AND THE RE-CHECKS OF C0, A1 AND Q0 AT 6fd2657 ARE CHERRY-PICKED WITH -x, UNCHANGED. The Author's response to each first-verdict finding is evidence/WP-0A-A0-006/author-closure-2026-10-07.md. A0 executes under the Owner's standing delegation (`เอาตามที่คุณแนะนำทุกอย่าง`) and the 2026-10-06 night instruction (`คืนนี้คุณยิงยาว เหมือนเดิมเบย ไม่ต้องถามผม ไล่ทำไปทั้งคืน`); it approves, tests, integrates and acknowledges nothing."
   ],
   "acceptance_results": [
     {
-      "criterion": "Every corrected sentence was checked against the artifact it describes",
+      "criterion": "RFC proposes DATA-DEC-01 and DATA-DEC-02 only, with the data package's default and what changes if the Owner picks otherwise",
       "result": "met",
-      "evidence": "RFC-2026-015's status line carries a disposition dated 2026-09-04. RFC-2026-016 §4 and RFC-2026-017's status line carry the partial DATA-DEC-03 closure. RFC-2026-022 §5/8 carries the app_worker measurement. evidence/g0-tracker-th.md still reads Specification Baseline Complete / External Verification Pending."
+      "evidence": "Met on main at 1a9f589 (PR #45) and unchanged by this branch; the Author's reading with line references is evidence/WP-0A-A0-006/author-reverify-2026-10-06.md §5 row 1. Not a verdict; C0 reads it."
     },
     {
-      "criterion": "A blocker is removed only when spent, not when merely inconvenient",
+      "criterion": "DATA-DEC-03 referred to A1, no answer proposed, A0 must not close it alone",
       "result": "met",
-      "evidence": "One of four removed; three kept with the false clause corrected and the correction stated inside the blocker, so a reader sees what moved and why."
+      "evidence": "RFC-2026-015 §DATA-DEC-03 (author-reverify §5 row 2). The manifest's open_blockers[0] names what remains as A1's, WP-0A-DB-00's and the Integration Owner's and answers none of it."
     },
     {
-      "criterion": "No decision, code, migration, contract or status changes",
+      "criterion": "Committed with status Proposed; an agent must not write Approved",
       "result": "met",
-      "evidence": "Two files, both owned by this package under ownership.writable_paths: its own manifest and this handoff."
+      "evidence": "1a9f589's status line reads Proposed; the later status line is commit 234693c, which transcribes the human disposition and is not the proposing commit (author-reverify §4). The criterion is not edited."
+    },
+    {
+      "criterion": "Re-audit records 36 verdicts and marks the two it could not re-measure as unknown",
+      "result": "met",
+      "evidence": "evidence/WP-0A-A0-006/blocker-re-audit.md, point-in-time at main 963990f, not re-run here (author-reverify §5 row 4)."
+    },
+    {
+      "criterion": "npm run check green, nothing skipped, no floor lowered",
+      "result": "met",
+      "evidence": "See tests: npm run check measured on this branch name with this handoff in place. This branch changes no test and no floor."
     }
   ],
   "tests": [
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "see evidence/VERIFICATION.md; this increment adds no test and changes no count"
+      "result": "tests 716, pass 716, fail 0, skipped 0 at 4ccfcdd with this refreshed handoff in the working tree (npm run check on the branch name agent/claude/WP-0A-A0-006-db00-data-decisions, node v24.20.0); A1 measured the same 716 at 5c10378 in a1-recheck-2026-10-07b.md. This commit, made after the cherry-pick of A1 66a36f8 and the merge of origin/main dc7b968, is made by commit-when-clean, which refuses unless npm run check exits 0 on the branch name with this handoff in place."
+    },
+    {
+      "command": "node scripts/refresh-author-handoff.mjs --check",
+      "exit_code": 0,
+      "result": "the handoff describes the branch: nothing substantive after its cited head"
+    },
+    {
+      "command": "node --test test-kits/handoff-conformance.test.mjs",
+      "exit_code": 0,
+      "result": "tests 19, pass 19"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-006",
       "exit_code": 0,
-      "result": "both changed paths are owned by this package and no amendment is declared"
+      "result": "all changed paths are declared, and every amendment explains one (15 paths against origin/main dc7b968 before this handoff commit)"
     }
   ],
-  "security_privacy_cost_impact": "None. No code, schema, grant, policy, role or contract is touched.",
+  "security_privacy_cost_impact": "None. No code, schema, grant, policy, role, credential or contract is touched; the branch changes one manifest and adds records.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "None.",
   "known_limitations": [
-    "NOTHING PREVENTS THE NEXT STALE SENTENCE. A blocker list is prose and no lint reads English. The control that would catch this class ties a blocker naming a decision record to that record's status, and it is not written here -- WP-0A-DB-00 reached the same conclusion about position claims and gave the same reason: a lint that reads English will be wrong about English.",
-    "THREE SIBLING PACKAGES CARRY THE SAME DEFECT AND ARE NOT FIXED HERE. WP-0A-A0-007, -008 and -009 each hold blockers a disposition falsified. Each manifest is owned by its own package, so each correction is its own increment on its own declared branch; the audit for all four is in this handoff's recommended_next_work_packages.",
-    "THIS BRANCH IS CUT FROM main, WHICH DOES NOT YET CARRY THE QUADRATIC-STRIP FIX, so npm run check takes about fourteen minutes here rather than forty seconds. That is a property of the base, not of this increment.",
-    "THE TALLY IN THIS HANDOFF'S SIBLINGS WAS OFF BY ONE CLASS. Across the four packages the counts were reported as 6 spent / 7 corrected / 6 untouched; measured, they are 6 / 8 / 5, because this package's prefer_cross_vendor_review blocker gained a sentence and was counted as untouched. The original clause is preserved verbatim so the substance is unaffected -- only the arithmetic was wrong, which is the same class of defect as everything else this increment repairs.",
-    "amends_without_owning CARRIED A DANGLING `recorded_on` AND IT IS NOW REMOVED. It named work-packages/WP-0A-A0-002.json as the register holding the amendment record; that register's ownership.amended_by has entries for WP-0A-A0-005, WP-0A-CON-007 and WP-0A-CON-008 and never for this package. The reference was dangling before this branch and became meaningless once `paths` was emptied.",
-    "REBASED TWICE, ONTO ff12b8b AND THEN 2e18f75, AS PRs #104, #105 AND #106 MERGED, and the base this branch declares moved each time. Nothing in this package's blockers cites a count, so nothing here went stale -- but that is a property of what this package happens to say rather than of the process, and the sibling package that DOES cite counts had to be re-measured at every step."
+    "THE FIVE OUT-OF-PACKAGE EDITS OF 1a9f589 (AND ONE RE-PIN IN 234693c) HAVE NO ownership.amended_by ENTRY ON THEIR OWNERS. Those manifests (WP-0A-A0-001, WP-0A-A0-002, WP-0A-CON-008) are outside this package's writable_paths, so the entries are recorded as owed in open_blockers[4], not written here. Not a merge condition of this package by R0-4 and A1 F1.",
+    "C0 F4 IS NOT ACTED ON, as C0 asked: RFC-2026-015 is Approved and its text is not edited for a heading.",
+    "68a947dc WAS COMMITTED WITH git commit -F ON A MEASURED RED STATE (the stale handoff), disclosed in author-closure-2026-10-07.md §4 and recorded by C0 N1 and Q0 Q4. This handoff commit is the one that goes through scripts/commit-when-clean.mjs.",
+    "R0's RE-CHECK AT 9c18d05 (r0-recheck-2026-10-07b.md) READS integration_conditional, NOT integration_verified. Its conditions V1-V6 are procedural: role files carried file-only, C0's and A1's own word on whether their verdicts carry across merge 1802322 and the syncs with main, Q0's test_verified, the sync with main, this handoff refreshed last and alone, and nothing else changed. A1 has now written its carry file (a1-recheck-2026-10-07b.md, cherry-picked from 66a36f8): its verdict at 6fd2657 carries to 5c10378. Whether R0 reads V1-V6 as met is R0's to say, not this handoff's.",
+    "NOTHING PREVENTS THE NEXT STALE SENTENCE IN A BLOCKER LIST. A blocker list is prose and no lint reads English; this branch corrects sentences, it does not add a control."
   ],
   "open_risks_or_blockers": [
-    "The three corrected blockers remain OPEN and are listed in the manifest. This increment closes none of them."
+    "At 9c18d05 C0 re-checked (no block on its account; its carry rule N3 covers a mechanical sync with main plus this handoff), Q0 returned test_verified, and R0 returned integration_conditional pending V1-V6 of its file §5. At 5c10378 A1 re-checked (a1-recheck-2026-10-07b.md): its security/privacy verdict at 6fd2657 carries, no stop-the-line, not blocking; its INFO N1 asked for the sync with origin/main dc7b968 (PRs #206-#209, 50 paths, none shared with this package), done here as merge 4ccfcdd. Still open: R0's integration verdict on this head.",
+    "None of review_approved, security_approved, test_verified or integration_verified is held by this handoff.",
+    "Out of this PR: the three amended_by entries (manifest open_blockers[4]) and DATA-DEC-03's remainder (open_blockers[0]), owed by their named owners."
   ],
-  "rollback_or_forward_fix": "ROLLBACK: revert this commit. The manifest returns to four blockers, one of which describes a record that was disposed on 2026-09-04, and to five amendment paths this branch does not touch.",
+  "rollback_or_forward_fix": "Revert this increment through a reviewed revert PR: it changes only this package's manifest and adds evidence files and this handoff, all records. Withdrawing the package's 2026-09-04 work (RFC-2026-015, Approved and built on by WP-0A-DB-00) is not a free revert; it is a superseding RFC through the Product Owner with a forward fix to what depends on it (manifest rollback_or_forward_fix).",
   "recommended_next_work_packages": [
-    "WP-0A-A0-007: blocker 1 is spent -- RFC-2026-016 was disposed 2026-09-05 and its §2 amended 2026-09-08 -- and blocker 4 carries the same false G0 tail. Blockers 0, 2 and 3 are still true.",
-    "WP-0A-A0-008: blocker 0 is spent (RFC-2026-017 disposed 2026-09-05, and 001_service_roles.sql creates the roles on main). Blockers 1 and 2 need rewriting rather than removing: \"No tenant table exists\" is false against 45 tables and 554 isolation cases, of which 116 are service cases, but RFC-2026-017 §7's negative is still undischarged because app_worker's only member is postgres. Blocker 3 carries the G0 tail.",
-    "WP-0A-A0-009: blockers 0, 1 and 2 are all spent -- the record was disposed 2026-09-06, RFC-2026-018's status line now records the supersession, and the three lint rules RFC-2026-019 §5 names are written at scripts/db/run.mjs:307, :632 and :1003. Blocker 4 needs rewriting: the lint rules exist, and what is still owed is the isolation case that cannot be written before a command function exists. Blockers 3 and 5 are still true.",
+    "WP-0A-A0-001, WP-0A-A0-002 and WP-0A-CON-008: each records in its own ownership.amended_by the edits WP-0A-A0-006 made to its paths in 1a9f589 / 234693c (manifest open_blockers[4]).",
+    "A1: acceptance as DATA-DEC-03's co-owner, owed by RFC-2026-028's status line; not this package's to give.",
     "A rule tying a blocker that names a decision record to that record's status, if one can be written without reading prose."
   ],
   "reviewer_instructions": [
-    "Check the removal first: read RFC-2026-015's status line, confirm it records a disposition, then confirm 000..140 and the Makefile command contract are on main.",
-    "For each of the three kept blockers, check that the half retained is still true and the half corrected was actually false. The DATA-DEC-03 one is the one to press on, because it claims a PARTIAL closure and partial is a harder claim than either extreme.",
-    "Check that emptying amends_without_owning lost nothing a reader needs: the five earlier paths are named in the manifest rationale.",
-    "Confirm nothing outside this package's two owned files changed."
+    "Read this branch against origin/main: one manifest modified, evidence files added under evidence/WP-0A-A0-006/, this handoff. node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-006 must exit 0.",
+    "Check that the commits after 6fd2657 are: the three cherry-picked re-check files at 6fd2657 (blob-identical to 7f7639d, c0fb862, 7619af8); cfec90a, a handoff-only refresh; 1802322, a mechanical merge of origin/main 411dfa7 (PR #205, three WP-0A-CON-004 paths); 9c18d05, a handoff-only refresh; the three cherry-picked re-checks at 9c18d05 (C0 9a46871, Q0 4fc4c63, R0 6b587f4, each one file, blob-identical to its source); 13cc35c, a mechanical merge of origin/main 4dd767d (PR #200, twelve WP-0A-A0-007 paths); 16b9bbf, a mechanical merge of origin/main 0955b32 (PR #203, WP-0A-A0-003 paths including scripts and test-kits it owns); 5c10378, a handoff-only refresh; 1045800, the cherry-picked A1 re-check (one file, blob-identical to 66a36f8); 4ccfcdd, a mechanical merge of origin/main dc7b968 (PRs #206-#209, 50 paths, none of this package's); every merge tree equals git merge-tree; and this handoff commit. Nothing else; the manifest is unchanged since 68a947d.",
+    "Re-measure on the branch NAME, not detached: node scripts/refresh-author-handoff.mjs --check exit 0, npm run check exit 0.",
+    "For the manifest corrections, the per-finding table is evidence/WP-0A-A0-006/author-closure-2026-10-07.md §2 and the step 2 mapping is author-reverify-2026-10-06.md §3."
   ],
   "superseded_by": null
 }
