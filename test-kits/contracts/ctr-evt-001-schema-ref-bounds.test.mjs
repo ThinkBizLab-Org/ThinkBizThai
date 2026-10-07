@@ -257,14 +257,11 @@ const KNOWN_UNBOUNDED = new Map([
     .map((p) => [`ctr-flg-001.${p}`, 'WP-0A-CON-003']),
   ...['module_key', 'module_id', 'capabilities.capability_key', 'dependencies.module_key']
     .map((p) => [`ctr-mod-001.${p}`, 'WP-0A-CON-003']),
-  ...['notification_id', 'message_key', 'deep_link.target_ref', 'dedupe_key']
-    .map((p) => [`ctr-ntf-001.${p}`, 'WP-0A-CON-006 (contract owner A5)']),
   ...['workspace_id', 'business_profile_id', 'page_context_profile_id', 'actor.id', 'request_id',
     'correlation_id', 'causation_id']
     .map((p) => [`ctr-ten-001.${p}`, 'WP-0A-CON-001']),
-  ...['usage_id', 'attribution.workspace_id', 'attribution.business_profile_id', 'attribution.job_id',
-    'attribution.provider_key', 'cost.supersedes_usage_id']
-    .map((p) => [`ctr-usg-001.${p}`, 'WP-0A-CON-006']),
+  // CTR-NTF-001's four and CTR-USG-001's six were bounded by WP-0A-CON-006 on 2026-10-07
+  // (its open_blockers[13]) and removed from this list in the same change.
 ]);
 
 test('every reference-shaped field in the contracts this package touches carries an upper bound', async () => {
