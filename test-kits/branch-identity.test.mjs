@@ -123,7 +123,7 @@ const BRANCH_OWNERSHIP = {
   'agent/root/WP-0A-CON-001-contract-catalog': 'WP-0A-CON-001',
   'agent/claude/WP-0A-CON-002-restore-rfc-002': 'WP-0A-CON-002',
   'agent/claude/WP-0A-CON-003-stale-blockers': 'WP-0A-CON-003',
-  'agent/claude/WP-0A-CON-004-security-audit-observability': 'WP-0A-CON-004',
+  'agent/claude/WP-0A-CON-004-security-audit-observability-2026-10-07': 'WP-0A-CON-004',
   'agent/claude/WP-0A-CON-005-job-reference-hardening': 'WP-0A-CON-005',
   'agent/claude/WP-0A-CON-006-stale-blockers': 'WP-0A-CON-006',
   'agent/claude/WP-0A-CON-007-reference-bounds': 'WP-0A-CON-007',

@@ -247,24 +247,16 @@ const BOUNDED_CONTRACTS = ['ctr-api-001', 'ctr-evt-001', 'ctr-idm-001', 'ctr-job
 // ctr-ten-001 itself. That is how the guard sees what rides inside CTR-EVT-001.tenant_context:
 // referenceFields does not follow `$ref` (A1 S-4, Q0 §4), and it does not need to when every
 // contract is walked.
+//
+// WP-0A-CON-004 bounded its 22 entries on 2026-10-07 (CTR-SEC-001 x8, CTR-AUD-001 x4, CTR-OBS-001
+// x10) and removed them here, so the stale-entry check below now holds those fields to their bound.
 const KNOWN_UNBOUNDED = new Map([
-  ...['audit_id', 'actor.id', 'correlation_id', 'causation_id']
-    .map((p) => [`ctr-aud-001.${p}`, 'WP-0A-CON-004']),
   ...['message_key', 'correlation_id']
     .map((p) => [`ctr-err-001.${p}`, 'WP-0A-CON-001']),
   ...['policy_key', 'reason_key', 'audit.actor.id', 'audit.reason_key']
     .map((p) => [`ctr-flg-001.${p}`, 'WP-0A-CON-003']),
   ...['module_key', 'module_id', 'capabilities.capability_key', 'dependencies.module_key']
     .map((p) => [`ctr-mod-001.${p}`, 'WP-0A-CON-003']),
-  ...['correlation.correlation_id', 'correlation.request_id', 'correlation.causation_id',
-    'correlation.trace_id', 'correlation.job_id', 'module.module_key',
-    'readiness.capabilities.capability_key', 'dependencies.dependency_key', 'sli_tags.module_key',
-    'sli_tags.capability_key']
-    .map((p) => [`ctr-obs-001.${p}`, 'WP-0A-CON-004']),
-  ...['scope.workspace_id', 'scope.business_profile_id', 'scope.page_context_profile_id',
-    'scope.capability_key', 'rotation.owner.id', 'revocation.actor.id', 'revocation.reason_key',
-    'correlation_id']
-    .map((p) => [`ctr-sec-001.${p}`, 'WP-0A-CON-004']),
   ...['workspace_id', 'business_profile_id', 'page_context_profile_id', 'actor.id', 'request_id',
     'correlation_id', 'causation_id']
     .map((p) => [`ctr-ten-001.${p}`, 'WP-0A-CON-001']),

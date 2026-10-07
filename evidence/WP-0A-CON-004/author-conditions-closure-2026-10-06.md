@@ -83,6 +83,8 @@ unmerged. Their work is on `main`, and their open blockers are still inherited.
 
 ## 5. Commands at this branch (base `main` `8c089cc` plus this increment)
 
+*Note added 2026-10-07 (Q0 O-3): this heading is true of the commands below, which ran on `8c089cc`. The branch later merged `main` `fa10229` and then `9e15881`; §6 records the merge and the new branch point.*
+
 | Command | Exit | Result |
 |---|---|---|
 | `node --test test-kits/contracts/shared-kernel-schema-conformance.test.mjs` | 0 | 6 tests, 6 pass, 0 fail, 0 skipped, 0 todo |
