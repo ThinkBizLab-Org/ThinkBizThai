@@ -506,6 +506,15 @@ test('a comment, a string and a whitespace run do not change where a regex may b
     ["class C { static #in = 4; static r() { return C.#in / 2 + import('./x.mjs') / 1; } }", 'division', 'a private name #in'],
     // C0 N2: a string ends the word before it, so `return 'a' / 2` divides.
     ["const f = () => { return 'a' / 2 + import('./x.mjs') / 1; };", 'division', 'a keyword, then a string'],
+    // C0 N3, Q0-E9: a non-ASCII identifier whose ASCII tail spells a keyword is one identifier, so
+    // the slash divides. Read as the keyword, the span to the next slash -- the import() -- vanished.
+    ["const éreturn = 4; const q = éreturn / 2 + import('./x.mjs') / 1;", 'division', 'a non-ASCII identifier ending in a keyword'],
+    ["const ไทยin = 4; const q = ไทยin / 2 + import('./x.mjs') / 1;", 'division', 'a Thai-prefixed identifier ending in a keyword'],
+    ['function f() { return /x/; }', 'regex', 'a keyword, then a non-ASCII space'],
+    // R0 R15, A1 N4: a string, template or regex literal ends an expression, so the slash divides.
+    ["const q = 'a' / 2 + import('./x.mjs') / 1;", 'division', 'a string literal, then a division'],
+    ["const q = `a` / 2 + import('./x.mjs') / 1;", 'division', 'a template literal, then a division'],
+    ["const q = /a/ / 2 + import('./x.mjs') / 1;", 'division', 'a regex literal, then a division'],
   ];
   for (const [code, reading, why] of cases) {
     const stripped = stripNonCode(code);

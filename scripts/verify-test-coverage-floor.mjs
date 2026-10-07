@@ -204,8 +204,12 @@ function regexCanFollow(previous) {
 // the merge of main's scripts/scan-repository-secrets.mjs (PR #203) refused the clean tree.
 // Only words that are reserved in a module belong here (C0 N1, A1 N3, Q0-E8, R0 R11): `of` is an
 // ordinary identifier (`const of = 4; of / 2` divides), so it is left out, and a regex after
-// `for (x of` is read as division -- the body becomes code, which fails closed. A word after `.`
-// or `#` is a member name (`x.return`, `this.#return`) and never counts as a keyword.
+// `for (x of` is read as division -- the body becomes code, and that is an OPEN misread like a
+// regex after `)`: a quote in that body opens a string that can run over an import (R0 R14,
+// open_blockers[11]). A word after `.` or `#` is a member name (`x.return`, `this.#return`) and
+// never counts as a keyword. A word is every identifier character V8 reads, not only [\w$]: any
+// non-ASCII character that is not whitespace continues it, so `éreturn` and `ไทยin` are whole
+// identifiers, not the keywords `return` and `in` (C0 N3, Q0-E9).
 const KEYWORDS_BEFORE_REGEX = new Set(['return', 'typeof', 'case', 'in', 'instanceof', 'new', 'delete', 'void', 'throw', 'yield', 'await', 'do', 'else']);
 
 // `templates`, when given, collects the [start, end) of every span read as a template literal.
@@ -225,10 +229,14 @@ export function stripNonCode(source, templates = null) {
   // for isolation-cases.mjs (701KB, larger) -- the difference being how many slashes sit in code
   // positions rather than inside string literals.
   //
-  // Only four things are ever appended, and all four are whitespace: keepNewlines() output for a
-  // comment, a regex literal or a string literal. The single-character code append below is the
-  // ONLY one that can change the answer, which is what makes an incremental variable exact rather
-  // than an approximation of the scan it replaces.
+  // Besides the single-character code append, only keepNewlines() output is ever appended -- for a
+  // comment, a regex literal or a string/template literal -- and it is all whitespace. A comment
+  // changes nothing, so it leaves lastSignificant alone. A string, template or regex literal is
+  // different: it ENDS an expression, so a `/` after it divides. Leaving lastSignificant at the
+  // character before the literal (`=` in `'a' / 2`) read that `/` as a regex start that blanked
+  // the code to the next slash, an import included (R0 R15, A1 N4, Q0-N2). Those two branches set
+  // lastSignificant to '/', which regexCanFollow does not list, so division follows. With that,
+  // the incremental variable is exact rather than an approximation of the scan it replaces.
   let lastSignificant = '';
   // The last word appended as code, and whether the last character appended continued it. Kept the
   // same way as lastSignificant: updated on append, never recovered by scanning `out`.
@@ -272,6 +280,7 @@ export function stripNonCode(source, templates = null) {
       out += keepNewlines(source.slice(i, stop));
       inWord = false;
       lastWord = '';
+      lastSignificant = '/'; // R0 R15: a regex literal ends an expression; a `/` after it divides
       i = stop;
       continue;
     }
@@ -291,11 +300,13 @@ export function stripNonCode(source, templates = null) {
       out += keepNewlines(source.slice(i, stop));
       inWord = false;
       lastWord = '';
+      lastSignificant = '/'; // R0 R15: a string or template ends an expression; a `/` after it divides
       i = stop;
       continue;
     }
     out += source[i];
-    if (/[\w$]/.test(source[i])) {
+    // C0 N3: a non-ASCII character that is not whitespace continues a word, as it does for V8.
+    if (/[\w$]/.test(source[i]) || (source[i] > '\x7f' && source[i].trim() !== '')) {
       if (!inWord) wordIsMember = lastSignificant === '.' || lastSignificant === '#';
       lastWord = inWord ? lastWord + source[i] : source[i];
       inWord = true;
@@ -742,10 +753,14 @@ export async function assertNoPackageManagerConfig(directory = '.') {
 // refused, and one that is added to an undigested module is refused because no module in the
 // closure is undigested. What the walk reads is bounded by stripNonCode, which is a scanner, not a
 // parser: a NESTED template ends its span at the first inner backtick, so an import after that
-// backtick, inside a later span with no `${`, is not seen (A1 N2, Q0-E7, R0 R9, C0 R1), and a
-// regex literal after `)` is read as division (after a reserved keyword it no longer is:
-// KEYWORDS_BEFORE_REGEX, which excludes `of` and any member name, `x.return` or `this.#return`).
-// Both are stripNonCode misreads, open_blockers[11], listed below with the other residuals.
+// backtick, inside a later span with no `${`, is not seen (A1 N2, Q0-E7, R0 R9, C0 R1); a
+// regex literal after `)` or after `of` is read as division, and a quote in its body then opens
+// a string that can run over an import (R0 R14; after a reserved keyword it is read as a regex:
+// KEYWORDS_BEFORE_REGEX, which excludes `of` and any member name, `x.return` or `this.#return`);
+// and a division after `++`/`--` or a `}` is read as a regex start that blanks the code to the
+// next slash (A1 N4, Q0-N2). A division after a string, template or regex literal, and after a
+// non-ASCII identifier whose ASCII tail spells a keyword, is read correctly (R0 R15, C0 N3).
+// All of these are stripNonCode misreads, open_blockers[11], listed below with the other residuals.
 //
 // What this does NOT cover, stated so nobody cites it for more (C0 F2, A1 F2, Q0-E4, R0 R3).
 // Code that loads code at RUN time is not an import this walk can see: `new Function(...)`,
