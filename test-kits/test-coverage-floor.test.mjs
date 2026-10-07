@@ -498,6 +498,14 @@ test('a comment, a string and a whitespace run do not change where a regex may b
     ['const a = typeof /* c */ /x/;', 'regex', 'a keyword and a comment before the slash'],
     ['const a = x.return / 2;', 'division', 'a member named like a keyword'],
     ['const a = returned / 2;', 'division', 'a word that only starts like a keyword'],
+    // C0 N1, A1 N3, Q0-E8, R0 R11: `of` is an identifier and a private name is a member, so each
+    // slash below divides. Read as a regex, the span to the next slash -- the import() -- vanished.
+    ["const of = 4; const q = of / 2 + import('./x.mjs') / g;", 'division', 'an identifier named of'],
+    ["class C { #return = 1; f() { return this.#return / 2 + import('./x.mjs') / 1; } }", 'division', 'a private name #return'],
+    ["class C { #typeof = 1; f() { return this.#typeof / 2 + import('./x.mjs') / 1; } }", 'division', 'a private name #typeof'],
+    ["class C { static #in = 4; static r() { return C.#in / 2 + import('./x.mjs') / 1; } }", 'division', 'a private name #in'],
+    // C0 N2: a string ends the word before it, so `return 'a' / 2` divides.
+    ["const f = () => { return 'a' / 2 + import('./x.mjs') / 1; };", 'division', 'a keyword, then a string'],
   ];
   for (const [code, reading, why] of cases) {
     const stripped = stripNonCode(code);
@@ -508,6 +516,9 @@ test('a comment, a string and a whitespace run do not change where a regex may b
       assert.equal(slashes, 0, `${why}: the regex literal must be blanked, not read as division`);
     } else {
       assert.ok(slashes >= 1, `${why}: the division must survive as code, not be eaten as a regex`);
+    }
+    if (code.includes('import(')) {
+      assert.ok(stripped.includes('import('), `${why}: the loader call must stay in code for the walk to see`);
     }
   }
 });

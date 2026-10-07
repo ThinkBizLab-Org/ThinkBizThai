@@ -202,7 +202,11 @@ function regexCanFollow(previous) {
 // that ends no expression, where it starts a regex literal. `return /^(?:import\.meta)/` was read as
 // division, the regex body became code, and `import` inside it was an import with no specifier:
 // the merge of main's scripts/scan-repository-secrets.mjs (PR #203) refused the clean tree.
-const KEYWORDS_BEFORE_REGEX = new Set(['return', 'typeof', 'case', 'in', 'of', 'instanceof', 'new', 'delete', 'void', 'throw', 'yield', 'await', 'do', 'else']);
+// Only words that are reserved in a module belong here (C0 N1, A1 N3, Q0-E8, R0 R11): `of` is an
+// ordinary identifier (`const of = 4; of / 2` divides), so it is left out, and a regex after
+// `for (x of` is read as division -- the body becomes code, which fails closed. A word after `.`
+// or `#` is a member name (`x.return`, `this.#return`) and never counts as a keyword.
+const KEYWORDS_BEFORE_REGEX = new Set(['return', 'typeof', 'case', 'in', 'instanceof', 'new', 'delete', 'void', 'throw', 'yield', 'await', 'do', 'else']);
 
 // `templates`, when given, collects the [start, end) of every span read as a template literal.
 // Only the import walk asks for it (R0 R2): an `import()` inside `${...}` is blanked here like the
@@ -230,7 +234,7 @@ export function stripNonCode(source, templates = null) {
   // same way as lastSignificant: updated on append, never recovered by scanning `out`.
   let lastWord = '';
   let inWord = false;
-  let wordIsMember = false; // `x.return / 2` divides: a member name is not a keyword
+  let wordIsMember = false; // `x.return / 2` and `this.#return / 2` divide: a member name is not a keyword
   const keepNewlines = (text) => text.replace(/[^\n]/g, ' ');
   while (i < source.length) {
     const two = source.slice(i, i + 2);
@@ -292,7 +296,7 @@ export function stripNonCode(source, templates = null) {
     }
     out += source[i];
     if (/[\w$]/.test(source[i])) {
-      if (!inWord) wordIsMember = lastSignificant === '.';
+      if (!inWord) wordIsMember = lastSignificant === '.' || lastSignificant === '#';
       lastWord = inWord ? lastWord + source[i] : source[i];
       inWord = true;
     } else {
@@ -739,7 +743,8 @@ export async function assertNoPackageManagerConfig(directory = '.') {
 // closure is undigested. What the walk reads is bounded by stripNonCode, which is a scanner, not a
 // parser: a NESTED template ends its span at the first inner backtick, so an import after that
 // backtick, inside a later span with no `${`, is not seen (A1 N2, Q0-E7, R0 R9, C0 R1), and a
-// regex literal after `)` is read as division (after a keyword it no longer is: KEYWORDS_BEFORE_REGEX).
+// regex literal after `)` is read as division (after a reserved keyword it no longer is:
+// KEYWORDS_BEFORE_REGEX, which excludes `of` and any member name, `x.return` or `this.#return`).
 // Both are stripNonCode misreads, open_blockers[11], listed below with the other residuals.
 //
 // What this does NOT cover, stated so nobody cites it for more (C0 F2, A1 F2, Q0-E4, R0 R3).

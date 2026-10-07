@@ -93,7 +93,11 @@ was fixed in this package's guard instead:
 
 - After a word, a slash now starts a regex when the word is a keyword that ends no expression (`return`, `typeof`,
   `case`, `in`, `of`, `instanceof`, `new`, `delete`, `void`, `throw`, `yield`, `await`, `do`, `else`).
-- That rule does not apply to a member name (`x.return / 2`).
+  **[CORRECTED in `a0-closure-recheck-2026-10-07b.md`: `of` is an identifier, not a reserved word, and is removed
+  from the set (C0 N1, A1 N3, Q0-E8, R0 R11).]**
+- That rule does not apply to a member name (`x.return / 2`). **[CORRECTED: as written at `3545de1a` this held only
+  after `.`; a private name such as `this.#return` was read as a keyword. A word after `#` is now a member too, so the
+  sentence holds for both. See `a0-closure-recheck-2026-10-07b.md`.]**
 - The last word is tracked incrementally, like `lastSignificant`, so the scan stays linear.
 
 Cases were added to `a comment, a string and a whitespace run do not change where a regex may begin`.
