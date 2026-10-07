@@ -24,24 +24,34 @@
       "properties": {
         "correlation_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A correlation id is an opaque identifier, so it takes 128, the identifier bound RFC-2026-009 R-2 set for event_id, correlation_id, causation_id, subject.id and job_id in CTR-EVT-001, CTR-API-001, CTR-IDM-001 and CTR-JOB-001, so one identifier has one accepted length across the catalog. It keeps an id an identifier rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material pasted into it. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
         },
         "request_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A request id is an opaque identifier, so it takes 128, the identifier bound RFC-2026-009 R-2 set for event_id, correlation_id, causation_id, subject.id and job_id in CTR-EVT-001, CTR-API-001, CTR-IDM-001 and CTR-JOB-001, so one identifier has one accepted length across the catalog. It keeps an id an identifier rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material pasted into it. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
         },
         "causation_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A causation id is an opaque identifier, so it takes 128, the identifier bound RFC-2026-009 R-2 set for event_id, correlation_id, causation_id, subject.id and job_id in CTR-EVT-001, CTR-API-001, CTR-IDM-001 and CTR-JOB-001, so one identifier has one accepted length across the catalog. It keeps an id an identifier rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material pasted into it. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
         },
         "trace_id": {
           "type": "string",
           "minLength": 1,
-          "x-source": "DECLARED INFERENCE, previously UNSOURCED. Decision Register 5.2 names CTR-OBS-001 \"Correlation/health/readiness\" and OB-001 requires one trace to follow a workflow across retry, worker and adapter. Neither names a trace_id FIELD. Independent review found this rule shipped with no source while its four siblings were sourced, which falsified this package's claim that no rule lacks one."
+          "maxLength": 128,
+          "x-source": "DECLARED INFERENCE, previously UNSOURCED. Decision Register 5.2 names CTR-OBS-001 \"Correlation/health/readiness\" and OB-001 requires one trace to follow a workflow across retry, worker and adapter. Neither names a trace_id FIELD. Independent review found this rule shipped with no source while its four siblings were sourced, which falsified this package's claim that no rule lacks one.",
+          "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A trace id (the trace wire format is out of this contract's scope, so no narrower length is inferred from it) is an opaque identifier, so it takes 128, the identifier bound RFC-2026-009 R-2 set for event_id, correlation_id, causation_id, subject.id and job_id in CTR-EVT-001, CTR-API-001, CTR-IDM-001 and CTR-JOB-001, so one identifier has one accepted length across the catalog. It keeps an id an identifier rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material pasted into it. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
         },
         "job_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A job id is an opaque identifier, so it takes 128, the identifier bound RFC-2026-009 R-2 set for event_id, correlation_id, causation_id, subject.id and job_id in CTR-EVT-001, CTR-API-001, CTR-IDM-001 and CTR-JOB-001, so one identifier has one accepted length across the catalog. It keeps an id an identifier rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material pasted into it. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
         }
       },
       "x-source": "Decision Register 5.2 CTR-OBS-001 requires 'propagation'; OB-001 requires ONE trace to follow a workflow across retry, worker and adapter; OBS-004 requires the browser, API, outbox, worker and provider spans to join up. The field names are Workstream 3.1 (`correlation_id`, `request_id`, `causation_id`) and 3.3 (`job_id`). `correlation_id` is the only required one because OB-001 makes it the identity that must survive a retry."
@@ -56,7 +66,9 @@
       "properties": {
         "module_key": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9-]*$"
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "maxLength": 64,
+          "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A module key is a stable KEY, not an id or a reference, so the RFC-2026-009 identifier bound of 128 does not carry over. It takes 64, the bound RFC-2026-009 R-2 set for CTR-EVT-001 producer.module_key, so a module key has one accepted length across the catalog. It is NOT a control; the pattern carries the shape. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
         },
         "implementation_version": {
           "type": "string",
@@ -119,7 +131,9 @@
             "properties": {
               "capability_key": {
                 "type": "string",
-                "pattern": "^[a-z][a-z0-9.]*$"
+                "pattern": "^[a-z][a-z0-9.]*$",
+                "maxLength": 64,
+                "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A capability key is a stable KEY, not an id or a reference, so the RFC-2026-009 identifier bound of 128 does not carry over. It takes 64, the maxLength CTR-OBS-001 sli_tags.capability_key takes (its pattern carried that limit as a `{1,64}` quantifier until 2026-10-07, when the limit moved to maxLength), so a capability key scoped on a credential or reported in readiness can always be carried as an SLI tag. It is NOT a control; the pattern carries the shape. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
               },
               "ready": {
                 "type": "boolean"
@@ -170,7 +184,9 @@
         "properties": {
           "dependency_key": {
             "type": "string",
-            "pattern": "^[a-z][a-z0-9.-]*$"
+            "pattern": "^[a-z][a-z0-9.-]*$",
+            "maxLength": 64,
+            "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A dependency key is a stable KEY, not an id or a reference, so the RFC-2026-009 identifier bound of 128 does not carry over. It takes 64, the module-key bound RFC-2026-009 R-2 set for CTR-EVT-001 producer.module_key: a dependency is named by a module or provider key of the same kind. It is NOT a control; the pattern carries the shape. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
           },
           "kind": {
             "enum": [
@@ -200,7 +216,9 @@
       "properties": {
         "module_key": {
           "type": "string",
-          "pattern": "^[a-z0-9_.:-]{1,64}$"
+          "pattern": "^[a-z0-9_.:-]+$",
+          "maxLength": 64,
+          "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A module key is a stable KEY, not an id or a reference, so the RFC-2026-009 identifier bound of 128 does not carry over. It takes 64, the bound RFC-2026-009 R-2 set for CTR-EVT-001 producer.module_key, so a module key has one accepted length across the catalog. The length limit moved from the pattern's `{1,64}` quantifier to this maxLength on 2026-10-07: the accept set is unchanged (`+` with maxLength 64 admits exactly what `{1,64}` admitted), and the bound is now testable on its own, because a quantifier and a maxLength stating the same limit leave each unkillable by the other. It is NOT a control; the pattern carries the shape. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
         },
         "environment": {
           "type": "string",
@@ -214,7 +232,9 @@
         },
         "capability_key": {
           "type": "string",
-          "pattern": "^[a-z0-9_.:-]{1,64}$"
+          "pattern": "^[a-z0-9_.:-]+$",
+          "maxLength": 64,
+          "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A capability key is a stable KEY, not an id or a reference, so the RFC-2026-009 identifier bound of 128 does not carry over. It takes 64, the length this label admitted before, and the bound CTR-SEC-001 scope.capability_key and readiness capability_key now take, so a capability key can always be carried as an SLI tag. The length limit moved from the pattern's `{1,64}` quantifier to this maxLength on 2026-10-07: the accept set is unchanged (`+` with maxLength 64 admits exactly what `{1,64}` admitted), and the bound is now testable on its own, because a quantifier and a maxLength stating the same limit leave each unkillable by the other. It is NOT a control; the pattern carries the shape. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
         },
         "outcome": {
           "type": "string",
