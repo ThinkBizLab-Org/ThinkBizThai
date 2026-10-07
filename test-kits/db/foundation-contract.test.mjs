@@ -6096,3 +6096,195 @@ test('batch 174: a job names its actor and request, NOT NULL with no default, bo
   assert.match(minted.detail, /no tenant context: the database mints none: "ok 1"/);
   assert.match(await readFile('scripts/db/authz-proofs.mjs', 'utf8'), /await proveTheJobTenantContext\(run, ids\),\n/, 'runProofs runs it');
 });
+
+// RFC-2026-025 §6 (PROPOSED 2026-10-07, the Owner's `ข้อ 4 mw`): the records-only classifier and the mechanical sync
+// check. The light path §6 proposes rests on these two answers, so each rule is shown to bite, in pure functions and
+// then through the CLI on a throwaway git repository built here (no network, no remote, nothing of this tree's
+// history assumed). The measurement against the real PRs of 2026-10-05..07 is in the batch's plan, not here.
+import {
+  GENERATED_PATHS, amendedByDelta, amendsNarrowedOnly, appendOnlyStrings, classifyDiff, manifestDelta, parseRawDiff, syncDelta,
+} from '../../scripts/db/classify-records-only.mjs';
+
+test('the records-only classifier and the mechanical sync check fail closed, each rule biting (RFC-2026-025 §6, proposed)', async () => {
+  // Manifests: status, appended blockers and authorities, an acknowledgement and a narrowing are records; nothing else is.
+  const base = {
+    work_package_id: 'WP-X', status: 'in_review', open_blockers: ['b0', 'b1'], required_human_authorities: ['h0'],
+    role_assignments: { reviewer_agent_run_id: '/r/c0' },
+    ownership: {
+      branch: 'agent/x', writable_paths: ['evidence/WP-X/**'],
+      amended_by: [{ work_package_id: 'WP-Y', change: 'c', acknowledgement_status: 'pending' }],
+      amends_without_owning: { paths: ['a', 'b'], rationale: 'r' },
+    },
+  };
+  const edit = (f) => { const m = structuredClone(base); f(m); return manifestDelta(JSON.stringify(base), JSON.stringify(m)); };
+  assert.deepEqual(edit((m) => {
+    m.status = 'integration_verified';
+    m.open_blockers[0] = 'CLOSED by R0. Text as recorded: b0';
+    m.open_blockers[1] = 'b1 -- appended';
+    m.open_blockers.push('b2');
+    m.required_human_authorities.push('h1');
+    m.ownership.amended_by[0].acknowledgement_status = 'acknowledged';
+    m.ownership.amended_by[0].acknowledgement_record = 'evidence/WP-Y/r0.md';
+    m.ownership.amends_without_owning = { paths: ['a'], rationale: 'records increment' };
+  }), [], 'every records change at once');
+  assert.deepEqual(edit(() => {}), [], 'no change');
+  const refused = [
+    [(m) => { m.open_blockers.pop(); }, /open_blockers: 1 entr/],
+    [(m) => { m.open_blockers[0] = 'B0'; }, /open_blockers\[0\]: reworded/],
+    [(m) => { m.open_blockers.reverse(); }, /open_blockers\[0\]: reworded/],
+    [(m) => { m.required_human_authorities = []; }, /required_human_authorities: 1 entr/],
+    [(m) => { m.open_blockers = 'b0'; }, /not a list of strings/],
+    [(m) => { m.status = 7; }, /status: not a string/],
+    [(m) => { m.role_assignments.reviewer_agent_run_id = '/r/a0'; }, /role_assignments: changed/],
+    [(m) => { m.ownership.branch = 'agent/y'; }, /ownership\.branch: changed/],
+    [(m) => { m.ownership.writable_paths.push('scripts/**'); }, /ownership\.writable_paths: changed/],
+    [(m) => { m.ownership.amended_by[0].change = 'other'; }, /amended_by\[0\]\.change: changed/],
+    [(m) => { m.ownership.amended_by.push({ acknowledgement_status: 'x' }); }, /amended_by: entries added/],
+    [(m) => { delete m.ownership.amended_by[0].acknowledgement_status; }, /acknowledgement_status: removed/],
+    [(m) => { m.ownership.amends_without_owning.paths.push('scripts/run-test-suite.mjs'); }, /widened by scripts\/run-test-suite\.mjs/],
+    [(m) => { m.ownership.amends_without_owning.recorded_on = ['x']; }, /amends_without_owning\.recorded_on: changed/],
+    [(m) => { m.acceptance_criteria = ['new']; }, /acceptance_criteria: changed/],
+  ];
+  for (const [f, reason] of refused) {
+    const reasons = edit(f);
+    assert.ok(reasons.some((r) => reason.test(r)), `${f}: expected ${reason}, got ${JSON.stringify(reasons)}`);
+  }
+  assert.deepEqual(manifestDelta('{', '{}'), ['the base manifest does not parse as JSON']);
+  assert.deepEqual(manifestDelta('[]', '[]'), ['the manifest is not a JSON object on both sides']);
+  assert.deepEqual(appendOnlyStrings('x', [''], ['anything']), ['x[0]: reworded (the old text is not kept whole at its start or end)'], 'an empty entry cannot be "kept"');
+  assert.deepEqual(amendedByDelta([{ a: 1 }], [{ a: 1 }]), []);
+  assert.deepEqual(amendsNarrowedOnly(undefined, { paths: [] }), ['ownership.amends_without_owning: not an object on both sides']);
+
+  // Paths: only evidence/<package>/**, handoffs/*.json and work-packages/*.json, added or modified, regular files.
+  const blobs = { o: 'old record\n', n: 'old record\nappended\n', r: 'rewritten\n', j0: JSON.stringify(base), j1: JSON.stringify({ ...base, status: 'done' }) };
+  const text = (id) => { if (!(id in blobs)) throw new Error(`no blob ${id}`); return blobs[id]; };
+  const ch = (status, path, oldBlob = 'o', newBlob = 'n', oldMode = '100644', newMode = '100644') => ({ status, path, oldBlob, newBlob, oldMode, newMode });
+  const ok = classifyDiff([ch('A', 'evidence/WP-X/r0-reading.md'), ch('M', 'evidence/WP-X/plan.md'), ch('M', 'handoffs/WP-X-author-handoff.json'),
+    ch('M', 'work-packages/WP-X.json', 'j0', 'j1')], text);
+  assert.equal(ok.recordsOnly, true, ok.reasons.join('; '));
+  const no = (c, reason) => {
+    const r = classifyDiff([ch('A', 'evidence/WP-X/ok.md'), c], text);
+    assert.equal(r.recordsOnly, false, `${c.path} must not be records-only`);
+    assert.ok(r.reasons.some((x) => reason.test(x)), `${c.path}: expected ${reason}, got ${JSON.stringify(r.reasons)}`);
+  };
+  for (const path of ['scripts/db/run.mjs', 'test-kits/db/foundation-contract.test.mjs', 'contract-catalog/shared-kernel/index.json',
+    'db/foundation/migrations/175_x.sql', '.github/workflows/ci.yml', 'architecture/decisions/RFC-2026-025-owner-delegated-merge.md',
+    'CONTRIBUTING_AGENTS.md', 'package.json', 'package-lock.json', 'evidence/g0-tracker-th.md', 'handoffs/nested/x.json', 'handoffs/x.md',
+    'work-packages/nested/WP-X.json', 'tests/db/identity/x.test.mjs']) {
+    no(ch('M', path), /outside evidence/);
+  }
+  for (const path of GENERATED_PATHS) no(ch('M', path), /a generated file, not a record/);
+  no(ch('M', 'evidence/WP-X/c0-review.md', 'o', 'r'), /rewritten, not appended to/);
+  no(ch('D', 'evidence/WP-X/c0-review.md'), /status D/);
+  no(ch('R', 'evidence/WP-X/a.md -> evidence/WP-X/b.md'), /status R/);
+  no(ch('T', 'evidence/WP-X/a.md'), /status T/);
+  no(ch('A', 'evidence/WP-X/run.sh', 'o', 'n', '000000', '100755'), /mode 000000 -> 100755/);
+  no(ch('A', 'evidence/WP-X/link', 'o', 'n', '000000', '120000'), /mode 000000 -> 120000/);
+  no(ch('A', 'work-packages/WP-Z.json'), /a new work-package manifest is not a record/);
+  no(ch('M', 'work-packages/WP-X.json', 'j0', 'r'), /does not parse as JSON/);
+  assert.equal(classifyDiff([], text).recordsOnly, false, 'an empty diff is not classified');
+  assert.throws(() => classifyDiff([ch('M', 'evidence/WP-X/a.md', 'o', 'missing')], text), /no blob/, 'an unreadable blob throws, which the CLI turns into exit 2');
+  const raw = ':100644 100644 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb M\0evidence/WP-X/a.md\0'
+    + ':100644 100644 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb R100\0x\0y\0';
+  assert.deepEqual(parseRawDiff(raw).map((c) => `${c.status} ${c.path}`), ['M evidence/WP-X/a.md', 'R x -> y']);
+  assert.throws(() => parseRawDiff(':garbage\0p\0'), /unparsed raw diff entry/);
+
+  // The sync rule, in its pure form.
+  const s = (o) => syncDelta({ parents: ['T', 'X'], tip: 'T', prPaths: ['p'], mainPaths: ['m'], mergeVsMain: ['p'], mergeVsTip: ['m'], samePrPaths: true, sameMainPaths: true, ...o });
+  assert.equal(s({}).mechanical, true);
+  assert.deepEqual(s({ prPaths: ['p', ...GENERATED_PATHS], mainPaths: ['m', ...GENERATED_PATHS] }).generatedTouched, [...GENERATED_PATHS].sort(), 'a conflict on a generated file alone stays mechanical, and is named for regeneration');
+  assert.match(s({ mainPaths: ['m', 'p'] }).reasons.join(), /main changed the PR's own path\(s\): p/);
+  assert.match(s({ samePrPaths: false }).reasons.join(), /changed the PR's own paths/);
+  assert.match(s({ sameMainPaths: false }).reasons.join(), /changed main's paths/);
+  assert.match(s({ mergeVsMain: ['p', 'q'] }).reasons.join(), /neither the PR nor main changed: q/);
+  assert.match(s({ mergeVsTip: ['m', 'q'] }).reasons.join(), /main did not change: q/);
+  assert.match(s({ parents: ['T'] }).reasons.join(), /1 parent\(s\), not 2/);
+  assert.match(s({ parents: ['X', 'T'] }).reasons.join(), /first parent X is not the PR tip T/);
+
+  // The CLI, end to end, on a throwaway repository.
+  const cli = join(process.cwd(), 'scripts/db/classify-records-only.mjs');
+  const dir = await mkdtemp(join(tmpdir(), 'records-only-'));
+  try {
+    const env = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 'records-only-test', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 'records-only-test', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' };
+    delete env.GIT_DIR;
+    delete env.GIT_WORK_TREE;
+    delete env.GIT_INDEX_FILE;
+    const g = (...a) => run('git', ['-c', 'commit.gpgsign=false', '-c', 'init.defaultBranch=main', ...a], { cwd: dir, env });
+    const put = (p, c) => mkdir(join(dir, p, '..'), { recursive: true }).then(() => writeFile(join(dir, p), c));
+    const commit = async (m) => { await g('add', '-A'); await g('commit', '-q', '-m', m); return (await g('rev-parse', 'HEAD')).stdout.trim(); };
+    const exit = async (...a) => { try { const r = await run(process.execPath, [cli, ...a], { cwd: dir, env }); return [0, r.stdout]; } catch (e) { return [e.code, e.stdout + e.stderr]; } };
+    await g('init', '-q');
+    await put('evidence/WP-X/plan.md', 'plan\n');
+    await put('handoffs/WP-X-author-handoff.json', '{"head":"a"}\n');
+    await put('work-packages/WP-X.json', `${JSON.stringify(base, null, 2)}\n`);
+    await put('scripts/tool.mjs', 'export const a = 1;\n');
+    await put('other/main-only.md', 'm0\n');
+    await put('test-kits/integrity-manifest.json', '{"files":{}}\n');
+    const root = await commit('base');
+    await g('checkout', '-q', '-b', 'records');
+    await put('evidence/WP-X/r0-reading.md', 'R0 reads\n');
+    await put('evidence/WP-X/plan.md', 'plan\nappended\n');
+    await put('handoffs/WP-X-author-handoff.json', '{"head":"b"}\n');
+    await put('work-packages/WP-X.json', `${JSON.stringify({ ...base, status: 'integration_verified', open_blockers: [...base.open_blockers, 'b2'] }, null, 2)}\n`);
+    const tip = await commit('records');
+    let [code, out] = await exit('main', 'records');
+    assert.equal(code, 0, out);
+    assert.match(out, /records-only: all 4 changed path\(s\) are records/);
+    await put('scripts/tool.mjs', 'export const a = 2;\n');
+    await commit('a script');
+    [code, out] = await exit('main', 'records');
+    assert.equal(code, 1, out);
+    assert.match(out, /scripts\/tool\.mjs: outside evidence/);
+    await g('reset', '-q', '--hard', tip);
+    await g('rm', '-q', 'evidence/WP-X/plan.md');
+    await commit('a deletion');
+    [code, out] = await exit('main', 'records');
+    assert.equal(code, 1, out);
+    assert.match(out, /evidence\/WP-X\/plan\.md: status D/);
+    await g('reset', '-q', '--hard', tip);
+    [code, out] = await exit('main', 'no-such-ref');
+    assert.equal(code, 2, `an unknown ref is a usage error, fail closed: ${out}`);
+    [code, out] = await exit('--sync', tip);
+    assert.equal(code, 2, out);
+
+    // Sync: main moves on a path the PR does not touch (and on the generated file), then on the PR's own path.
+    await g('checkout', '-q', 'main');
+    await put('other/main-only.md', 'm1\n');
+    await put('test-kits/integrity-manifest.json', '{"files":{"x":"1"}}\n');
+    await commit('main moves elsewhere');
+    await g('checkout', '-q', 'records');
+    await g('merge', '-q', '--no-edit', 'main');
+    const merged = (await g('rev-parse', 'HEAD')).stdout.trim();
+    [code, out] = await exit('--sync', tip, merged, 'main');
+    assert.equal(code, 0, out);
+    assert.match(out, /mechanical sync/);
+    assert.match(out, /generated file\(s\) involved: test-kits\/integrity-manifest\.json/);
+    [code, out] = await exit('--sync', root, merged, 'main');
+    assert.equal(code, 1, out);
+    assert.match(out, /first parent .* is not the PR tip/);
+    [code, out] = await exit('--sync', root, tip, 'main');
+    assert.equal(code, 1, out);
+    assert.match(out, /1 parent\(s\), not 2/);
+    // A merge that slips a hand edit into a path neither side changed is not mechanical.
+    await put('scripts/tool.mjs', 'export const a = 3;\n');
+    await g('add', '-A');
+    await g('commit', '-q', '--amend', '--no-edit');
+    const doctored = (await g('rev-parse', 'HEAD')).stdout.trim();
+    [code, out] = await exit('--sync', tip, doctored, 'main');
+    assert.equal(code, 1, out);
+    assert.match(out, /neither the PR nor main changed: scripts\/tool\.mjs/);
+    // main changes the PR's own path: not mechanical, whatever the resolution.
+    await g('reset', '-q', '--hard', tip);
+    await g('checkout', '-q', 'main');
+    await put('evidence/WP-X/plan.md', 'plan\nmain wrote here\n');
+    await commit('main touches the PR path');
+    await g('checkout', '-q', 'records');
+    await g('merge', '-q', '--no-edit', '-X', 'ours', 'main');
+    const conflicted = (await g('rev-parse', 'HEAD')).stdout.trim();
+    [code, out] = await exit('--sync', tip, conflicted, 'main');
+    assert.equal(code, 1, out);
+    assert.match(out, /main changed the PR's own path\(s\): evidence\/WP-X\/plan\.md/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
