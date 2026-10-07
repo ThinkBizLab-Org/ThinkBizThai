@@ -88,6 +88,16 @@ commit with a normal merge. Generated tables are regenerated (`regenerate:manife
 The path count at the resulting head is measured with `node scripts/verify-branch-scope.mjs origin/main
 WP-0A-A0-002` and reported by A0 with the push.
 
+Measured after the merge (merge commit `c1a6b351`, no conflict), on the branch name:
+
+- `npm run regenerate:manifest`: 104 digests, no change. `node scripts/verify-test-coverage-floor.mjs`: 0.
+- `node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-002`: exit 0, "all 25 changed path(s) are declared"
+  (R0 R12: 25 at this head; 20 at `8206b0cb`). The five added are this round's four role files and this note.
+- With a throwaway `npm run refresh:handoff` (it would cite `7fb0fc0..c1a6b35`, 16 added, 9 modified, 0 deleted):
+  `npm run record:verification` recorded 724 passing, `evidence/VERIFICATION.md` unchanged; `npm run verify` exit 0,
+  `clean: exit 0 — tests 724, pass 724, fail 0, skipped 0, todo 0`. The handoff was restored afterwards.
+- This paragraph is committed after the merge, with plain `git commit` for the same stale-handoff reason.
+
 ## 5. What this run did not do
 
 It moved no status, refreshed no handoff, closed no blocker and merged no PR. It edited no file outside the paths
