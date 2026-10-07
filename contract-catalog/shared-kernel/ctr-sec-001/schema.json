@@ -34,19 +34,27 @@
       "properties": {
         "workspace_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A workspace id is an opaque identifier, so it takes 128, the identifier bound RFC-2026-009 R-2 set for event_id, correlation_id, causation_id, subject.id and job_id in CTR-EVT-001, CTR-API-001, CTR-IDM-001 and CTR-JOB-001, so one identifier has one accepted length across the catalog. It keeps an id an identifier rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material pasted into it. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
         },
         "business_profile_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A business profile id is an opaque identifier, so it takes 128, the identifier bound RFC-2026-009 R-2 set for event_id, correlation_id, causation_id, subject.id and job_id in CTR-EVT-001, CTR-API-001, CTR-IDM-001 and CTR-JOB-001, so one identifier has one accepted length across the catalog. It keeps an id an identifier rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material pasted into it. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
         },
         "page_context_profile_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A page context profile id is an opaque identifier, so it takes 128, the identifier bound RFC-2026-009 R-2 set for event_id, correlation_id, causation_id, subject.id and job_id in CTR-EVT-001, CTR-API-001, CTR-IDM-001 and CTR-JOB-001, so one identifier has one accepted length across the catalog. It keeps an id an identifier rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material pasted into it. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
         },
         "capability_key": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9.]*$"
+          "pattern": "^[a-z][a-z0-9.]*$",
+          "maxLength": 64,
+          "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A capability key is a stable KEY, not an id or a reference, so the RFC-2026-009 identifier bound of 128 does not carry over. It takes 64, the maxLength CTR-OBS-001 sli_tags.capability_key takes (its pattern carried that limit as a `{1,64}` quantifier until 2026-10-07, when the limit moved to maxLength), so a capability key scoped on a credential or reported in readiness can always be carried as an SLI tag. It is NOT a control; the pattern carries the shape. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
         }
       },
       "x-source": "Decision Register 5.2 CTR-SEC-001 requires 'scope'; PT-010 produces a 'scoped credential resolver'; MR-004 produces a 'readiness result per capability/scope', which is why the scope is keyed by capability as well as tenant. The Workspace -> Business Profile -> Page Context nesting is DEC-010 and Workstream 3.1.",
@@ -104,7 +112,9 @@
             },
             "id": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "maxLength": 128,
+              "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A rotation owner id is an opaque identifier, so it takes 128, the identifier bound RFC-2026-009 R-2 set for event_id, correlation_id, causation_id, subject.id and job_id in CTR-EVT-001, CTR-API-001, CTR-IDM-001 and CTR-JOB-001, so one identifier has one accepted length across the catalog. It keeps an id an identifier rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material pasted into it. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
             }
           },
           "x-source": "INF-006 requires 'rotation owner/date complete'. The owner is a TYPED reference rather than a free string because Workstream 3.1 forbids a free-string actor. The two kinds are the two credential ownerships PT-010 names: platform-managed and BYOK."
@@ -182,13 +192,17 @@
             },
             "id": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "maxLength": 128,
+              "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A revoking actor id is an opaque identifier, so it takes 128, the identifier bound RFC-2026-009 R-2 set for event_id, correlation_id, causation_id, subject.id and job_id in CTR-EVT-001, CTR-API-001, CTR-IDM-001 and CTR-JOB-001, so one identifier has one accepted length across the catalog. It keeps an id an identifier rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material pasted into it. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
             }
           }
         },
         "reason_key": {
           "type": "string",
-          "pattern": "^secret\\.[a-z_.]+$"
+          "pattern": "^secret\\.[a-z_.]+$",
+          "maxLength": 96,
+          "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A revocation reason is a stable KEY, not an id or a reference, so the RFC-2026-009 identifier bound of 128 does not carry over. It takes 96, the stable-key length this family already uses for CTR-AUD-001 reason_key and action.name and CTR-OBS-001 readiness reason_key, so one reason-key length runs through the security and operations contracts. It is NOT a control against free text; the pattern carries that. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
         }
       },
       "x-source": "PT-010 requires immediate revocation; SEC-009 requires that a CREDENTIAL action records actor and correlation. SEC-009 does not name a reason: requiring `reason_key` is a DECLARED INFERENCE from OB-005's reason on an audited action. The reason is a stable key rather than prose because CTR-ERR-001 establishes Thai message keys for anything a person reads; that key-not-prose choice is a DECLARED INFERENCE from CTR-ERR-001 and CM-004."
@@ -196,7 +210,9 @@
     "correlation_id": {
       "type": "string",
       "minLength": 1,
-      "x-source": "SEC-009 requires actor AND correlation on a credential action; OB-001 requires one trace across the workflow."
+      "maxLength": 128,
+      "x-source": "SEC-009 requires actor AND correlation on a credential action; OB-001 requires one trace across the workflow.",
+      "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. A correlation id is an opaque identifier, so it takes 128, the identifier bound RFC-2026-009 R-2 set for event_id, correlation_id, causation_id, subject.id and job_id in CTR-EVT-001, CTR-API-001, CTR-IDM-001 and CTR-JOB-001, so one identifier has one accepted length across the catalog. It keeps an id an identifier rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material pasted into it. Value chosen 2026-10-07 by A0 (/claude/a0_atlas) as Author under the Owner's delegation; the co-owner's countersignature is recorded in WP-0A-CON-004, not here."
     }
   },
   "allOf": [

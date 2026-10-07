@@ -105,6 +105,13 @@ longer be the same string — which is a worse and more immediate defect than th
 process irregularity. **A1 is a required authority and is not in this session;
 this author must not resolve it.** It is in `required_human_authorities`.
 
+*Correction note 2026-10-07 (C0 N-3 on PR #196): the two claims in point 2 below,
+"excludes mixed-case base64 and nothing else" and "compose to **zero** coverage", are
+withdrawn. A1 measured the scanner detecting 12 of the 15 credential bodies the pattern
+admits; the pattern excludes every format with a mandatory uppercase character. The
+current wording is CTR-SEC-001 `handle.x-opacity-limitation` and `open_blockers[1]`.
+The text below is kept as the dated record it is.*
+
 **2. The pattern is not a control, and is no longer described as one.** It
 excludes mixed-case base64 and nothing else: lowercase hex, lowercase base32 and
 lowercase dashed token shapes all pass. Review further showed that
