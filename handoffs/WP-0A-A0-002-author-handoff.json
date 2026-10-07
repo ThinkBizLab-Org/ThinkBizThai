@@ -4,14 +4,38 @@
   "work_package_id": "WP-0A-A0-002",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "dd11c6017c6667b3f782786e7744373180ad9e96",
-  "head_revision_or_patch_checksum": "8a339c749b515bfce7aea1be3a16974fbf6e8619",
+  "base_revision": "389f38454b0c9711fca1e595f71511970e835076",
+  "head_revision_or_patch_checksum": "6b37b9ed4854df6ca4dd61dff96ca39bbb631186",
   "task_ids": [
     "WP-0A-A0-002",
     "G0-step-2"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-002/author-increment-2026-10-07.md"
+    "evidence/WP-0A-A0-002/a0-closure-2026-10-07.md",
+    "evidence/WP-0A-A0-002/a0-closure-recheck-2026-10-07.md",
+    "evidence/WP-0A-A0-002/a0-closure-recheck-2026-10-07b.md",
+    "evidence/WP-0A-A0-002/a0-closure-recheck-2026-10-07c.md",
+    "evidence/WP-0A-A0-002/a1-recheck-2026-10-06.md",
+    "evidence/WP-0A-A0-002/a1-recheck-2026-10-07.md",
+    "evidence/WP-0A-A0-002/a1-recheck-2026-10-07b.md",
+    "evidence/WP-0A-A0-002/a1-recheck-2026-10-07c.md",
+    "evidence/WP-0A-A0-002/a1-review-2026-10-07.md",
+    "evidence/WP-0A-A0-002/author-increment-2026-10-07.md",
+    "evidence/WP-0A-A0-002/c0-recheck-2026-10-07.md",
+    "evidence/WP-0A-A0-002/c0-recheck-2026-10-07b.md",
+    "evidence/WP-0A-A0-002/c0-recheck-2026-10-07c.md",
+    "evidence/WP-0A-A0-002/c0-recheck-2026-10-07d.md",
+    "evidence/WP-0A-A0-002/c0-review-2026-10-07.md",
+    "evidence/WP-0A-A0-002/q0-recheck-2026-10-06.md",
+    "evidence/WP-0A-A0-002/q0-recheck-2026-10-06b.md",
+    "evidence/WP-0A-A0-002/q0-recheck-2026-10-07.md",
+    "evidence/WP-0A-A0-002/q0-recheck-2026-10-07b.md",
+    "evidence/WP-0A-A0-002/q0-review-2026-10-07.md",
+    "evidence/WP-0A-A0-002/r0-recheck-2026-10-07.md",
+    "evidence/WP-0A-A0-002/r0-recheck-2026-10-07b.md",
+    "evidence/WP-0A-A0-002/r0-recheck-2026-10-07c.md",
+    "evidence/WP-0A-A0-002/r0-recheck-2026-10-08.md",
+    "evidence/WP-0A-A0-002/r0-review-2026-10-07.md"
   ],
   "files_modified": [
     "evidence/VERIFICATION.md",
@@ -34,11 +58,10 @@
   "contracts_produced_or_changed": [],
   "assumptions": [
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
-    "The package's work is already on main (PR #3, merge 41e47bf), and RFC-2026-003 reads Approved 2026-09-02. This branch changes records only: the manifest, the Author's re-verification record, the role re-verdict files (C0, A1, Q0 and R0 of 2026-10-05; the C0 and R0 re-checks of 2026-10-06 and R0's sync reading of 2026-10-06, carried by cherry-pick -x as identical blobs) and this handoff. No script, test, contract, RFC, CI or gate changes, so by RFC-2026-025 §5 item 6 it is not a governance PR. The Author decides nothing by carrying the role files.",
-    "Role verdicts at main: C0 changes_requested (c0-contract-reverify-2026-10-05.md), then review_approved for the corrected records at 1d067b7b (c0-recheck-2026-10-06.md); A1 security_approved_with_conditions (a1-security-reverify-2026-10-05.md); Q0 test_verified_with_conditions (q0-test-reverify-2026-10-05.md); R0 integration_changes_requested (r0-integration-verdict-2026-10-05.md), then integration_conditional at 1d067b7b (r0-recheck-2026-10-06.md), whose §4 lists the conditions at the final head; after main moved, R0's sync reading (r0-sync-reading-2026-10-06.md) keeps integration_conditional, with Y1-Y3 in its §4 replacing items 3-5 of that §4. The status field stays in_review; recording integration_verified is R0's, after merge, in R0's words.",
-    "The Owner's step 2 (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md, \"บืนยันขั้น 2\") is applied to this manifest: item 1 (cross-vendor condition withdrawn), item 2 (/claude/r0_steward succeeds /root/r0_steward for the pending acknowledgements; none is given here), item 3 (no Product reviewer for a tooling package).",
-    "The three ownership.amended_by acknowledgers are corrected from /claude/a0_atlas (the Author of the amending packages) to /claude/r0_steward (this package's Integration Owner). Correcting the field gives no acknowledgement; all three stay pending.",
-    "2026-10-06: origin/main moved twice while this PR was open and was merged into this branch both times: fa102298 (PR #188) at 881fc0a0, then c75418b1 (PR #189) at 0a431932. The PR's own diff did not change byte for byte across either merge, and no protected path is in it (R0 measured this in r0-sync-reading-2026-10-06.md). R0's verdict stands with Y1-Y3: Y1 is this commit (the reading cherry-picked byte for byte as ddf0bb67, then this handoff-only refresh, check:handoff exit 0), Y2 is a green bootstrap on the final head that contains origin/main, Y3 is the ten-path scope with an empty protected-path diff. The merge into main is done by the Author under the Product Owner's words of 2026-10-06, \"คุณทำเลย\", and the standing delegation \"เอาตามที่คุณแนะนำทุกอย่าง\"; the Author approves and verifies nothing of its own.",
+    "This PR (#204) is a GOVERNANCE PR under RFC-2026-025 §5 item 6: it changes scripts/verify-test-coverage-floor.mjs, the test-integrity guard that CI runs as its own step, adding the E4 import walk (exit 92), together with scripts/run-test-suite.mjs, scripts/test-suite-contract.mjs, test-kits/test-coverage-floor.test.mjs, test-kits/branch-identity.test.mjs, test-kits/integrity-manifest.json, evidence/VERIFICATION.md, work-packages/WP-0A-A0-002.json, this handoff and evidence files under evidence/WP-0A-A0-002/. No contract, RFC, ci.yml, migration or db/** path changes.",
+    "The last code commit is f985ec51 (C0 N3 / Q0-E9 non-ASCII identifiers, R0 R15 '/' after a literal; R0 R14 'fails closed' wording withdrawn), described in evidence/WP-0A-A0-002/a0-closure-recheck-2026-10-07c.md. The C0, Q0, R0 and A1 re-checks of f985ec51 are carried onto the branch by cherry-pick -x as identical blobs: evidence/WP-0A-A0-002/c0-recheck-2026-10-07d.md, q0-recheck-2026-10-06b.md, r0-recheck-2026-10-08.md and a1-recheck-2026-10-07c.md. Each role's verdict is in its own file; the Author gives none and decides nothing by carrying them.",
+    "2026-10-08: origin/main moved to 389f3845 (PR #210) and was merged into this branch at 6b37b9ed. The only conflict was one digest line in test-kits/integrity-manifest.json; it was resolved by keeping the branch's key set (a superset of main's, no main-only key) and running npm run regenerate:manifest, which was byte-stable across two runs with the guard at exit 0. No guard, guard-test or scanner line changed in that merge.",
+    "Merging: the Product Owner's standing delegation \"เอาตามที่คุณแนะนำทุกอย่าง\" and A0's relay of the Owner's pre-authorisation for tonight's merges are recorded, not re-decided; open_blockers[13] (which names the Product Owner as the one who presses the merge) is to be reconciled at the merge step, as R0 condition 4 of r0-recheck-2026-10-08.md records. This handoff merges nothing and moves no status.",
     "The base, head and file lists are regenerated by npm run refresh:handoff rather than typed."
   ],
   "acceptance_results": [
@@ -65,17 +88,17 @@
     {
       "criterion": "No contract status, package status other than this package, provider, schema, credential, or gate state changes.",
       "result": "pass",
-      "evidence": "git diff origin/main...HEAD touches ten paths: work-packages/WP-0A-A0-002.json, eight files under evidence/WP-0A-A0-002/ and this handoff; verify-branch-scope exit 0."
+      "evidence": "git diff origin/main...HEAD touches 34 paths, all declared: verify-branch-scope origin/main WP-0A-A0-002 exit 0. No contract status, other package status, provider, schema, credential or gate state changes."
     },
     {
       "criterion": "The Author does not review, security-review, test-verify, or integrate this package.",
       "result": "pending",
-      "evidence": "The Author gives no verdict. C0 (review_approved on re-check), A1 (with conditions), Q0 (with conditions) and R0 (integration_conditional on re-check) gave their own verdicts; integration_verified is not yet recorded (open_blockers[7], [8])."
+      "evidence": "The Author gives no verdict. C0, Q0, A1 and R0 re-checked f985ec51 in their own files; integration_verified is not yet recorded (open_blockers[9], [13])."
     },
     {
       "criterion": "npm run check fails closed under every demonstrated neutralisation: a wrapper around the runner, an unquoted or extra-flag command, the superseded glob, a bare '**' inside a segment, a shell that does not strip quotes, check no longer invoking the runner or the guard, the guard running after the runner, the guard itself neutered, a relocated test root, files declaring no test, and a run that executes fewer tests than the floor.",
       "result": "pending",
-      "evidence": "Q0 re-verdict test_verified_with_conditions (q0-test-reverify-2026-10-05.md). Finding 1 is answered for CI by ci.yml:69-75; Finding 2 and C1 stay recorded, not fixed (open_blockers[10])."
+      "evidence": "Pending on the record, not claimed here: the 'fails closed' wording for the E4 walk was withdrawn at f985ec51 (R0 R14). Q0's re-check of f985ec51 is q0-recheck-2026-10-06b.md; open_blockers[10] and [11] stay open."
     },
     {
       "criterion": "Each amended manifest records the amendment in-file with the authorizing decision record and a pending acknowledgement from its Integration Owner.",
@@ -155,36 +178,61 @@
       "exit_code": 0,
       "result": "clean: exit 0 — tests 692, pass 692, fail 0, skipped 0, todo 0",
       "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "npm run regenerate:manifest (twice) after resolving the integrity-manifest conflict of the origin/main 389f3845 merge, then node scripts/verify-test-coverage-floor.mjs",
+      "exit_code": 0,
+      "result": "104 digests rebuilt, byte-stable across two runs (cmp equal); guard exit 0",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "npm run verify (on the branch name at 6b37b9ed, origin/main 389f3845 contained, before this handoff refresh)",
+      "exit_code": 1,
+      "result": "tests 724, pass 722, fail 2: both are the stale-handoff tests for this branch",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "npm run check:handoff and npm run verify (on the branch name at 6b37b9ed, with this refreshed handoff in the working tree)",
+      "exit_code": 0,
+      "result": "check:handoff exit 0; clean: exit 0 — tests 724, pass 724, fail 0, skipped 0, todo 0",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-002 (at 6b37b9ed)",
+      "exit_code": 0,
+      "result": "all 34 changed path(s) are declared",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
-  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none.",
-  "migration_and_data_impact": "None. Records only; no schema, migration, provider, credential or customer-data effect.",
-  "compatibility_impact": "No contract-catalog file, script or test changes, so no consumer is affected.",
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. The change narrows what a green npm run check can execute (the E4 import walk refuses, with exit 92, imports that escape the repository, cross a symbolic link or name an undigested or unexpected file). Cost impact none.",
+  "migration_and_data_impact": "None. Guard, test and record changes only; no schema, migration, provider, credential or customer-data effect.",
+  "compatibility_impact": "No contract-catalog file changes. A test file, or a .mjs module in a test's import closure, that imports from outside the repository, through a symbolic link, an undigested file, a non-literal import(), a plainly spelled require/createRequire, a \\u escape, CR, U+2028 or U+2029 now fails the guard with exit 92; none exists at this head (guard exit 0).",
   "known_limitations": [
     "The test-integrity guard is a tripwire, not a control: a commit that edits a guarded file and its digest together passes (open_blockers[1]).",
-    "E4: code from outside the repository can run during a green npm run check. The guard does not inspect imports, and modules imported by digested tests are not digested, so E4 is NOT in the digest class: a non-digested imported module can import out-of-tree code with the guard at exit 0 and integrity-manifest.json unchanged (open_blockers[9]; owner WP-0A-A0-002, for a code increment).",
-    "The declared/executed reconciliation (exit 88) compares counts, not identities, and rejects table-driven tests by design (open_blockers[10]); a nested template literal can invent a phantom declaration (open_blockers[11])."
+    "The E4 import walk reads code through stripNonCode, a scanner and not a parser. Known misreads that can hide an import, recorded OPEN in open_blockers[11] and not claimed exhaustive: an import after a nested template inside ${...}; after a regex literal that follows ')' or 'of'; after a division that follows '++', '--' or '}'. Each needs a digested file edited and its digest regenerated, so each is in the digest class of open_blockers[1].",
+    "Runtime loaders are not walked: new Function, direct and indirect eval, node:vm, Worker, module.register and computed members; nor a spawned process or files read as data. These too need a digested file edited.",
+    "The declared/executed reconciliation (exit 88) compares counts, not identities, and there is a parse/hash/load race (open_blockers[10])."
   ],
   "open_risks_or_blockers": [
     "Tripwire: a commit that edits a guarded file and its digest together passes; the anchor is outside the repository (manifest open_blockers[1]).",
-    "The RFC-2026-003 amendment acknowledgements on WP-0A-A0-001 and WP-0A-CON-001 are still pending. The Product Owner named /claude/r0_steward as successor of /root/r0_steward on 2026-10-05; the successor has not acted (open_blockers[3]).",
+    "The RFC-2026-003 amendment acknowledgements on WP-0A-A0-001 and WP-0A-CON-001 are still pending; the successor /claude/r0_steward has not acted (open_blockers[3]).",
     "The WP-0A-CON-001 npm run check addendum is still owed, now by /claude/r0_steward (open_blockers[4]).",
     "The secret scanner finding C1 is tracked at repository level; a green scan:secrets is not cited as assurance (open_blockers[5]).",
-    "Role verdicts at main are recorded: C0 review_approved on re-check, A1 and Q0 with conditions, R0 integration_conditional on re-check at 1d067b7b. R0's conditions at the final head are in evidence/WP-0A-A0-002/r0-recheck-2026-10-06.md §4 items 1, 2 and 6-8 and evidence/WP-0A-A0-002/r0-sync-reading-2026-10-06.md §4 (Y1-Y3, replacing items 3-5), including CI bootstrap green on every step (open_blockers[7]).",
-    "The status field reads in_review while the work is on main through PR #3; recording integration_verified is /claude/r0_steward's, in the words of r0-recheck-2026-10-06.md §4, after merge (open_blockers[8]).",
-    "E4, A1 T1, Q0 F2/F3/C1 and A1 S5 are recorded, not fixed (open_blockers[9]-[11]); E4 is an open gap on main owned by this package for a code increment.",
+    "open_blockers[9] (E4) stays open until R0 records integration_verified; R0's verdict at f985ec51 is integration_conditional, and the conditions it lists in r0-recheck-2026-10-08.md §5 (role re-checks carried, origin/main merged, handoff refreshed last and alone, CI bootstrap green on the exact head, open_blockers[13] reconciled at merge) are what that record awaits.",
+    "open_blockers[10] and [11] stay open; the stripNonCode misreads in [11] are named, not fixed.",
+    "Owed to the next increment, not in this PR: a runtime resolve hook (module.register with a resolve() refusing any URL outside the repository root or through a symbolic link), A0's recommendation in a0-closure-recheck-2026-10-07c.md §6, which R0 R18 asks to carry into a work package.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
   ],
-  "rollback_or_forward_fix": "This branch is records only: revert its commits through a reviewed revert PR, which restores the earlier manifest and handoff and removes the evidence files it adds. The package's work on main (PR #3) reverts as its manifest states; no persisted data, provider state, credential, migration or customer-data effect.",
+  "rollback_or_forward_fix": "Revert the PR's commits through a reviewed revert PR: this restores the earlier guard, scanner tests, suite contract, integrity-manifest digests, manifest and handoff and removes the evidence files it adds. No persisted data, provider state, credential, migration or customer-data effect.",
   "recommended_next_work_packages": [
     "WP-0A-A0-003",
     "WP-0A-CON-008"
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-002/r0-recheck-2026-10-06.md §4 and evidence/WP-0A-A0-002/r0-sync-reading-2026-10-06.md §4 first: together they list the conditions under which integration_verified may be recorded at the final head without another R0 run (Y1-Y3 of the sync reading replace items 3-5 of the re-check).",
-    "Role verdicts are their own files: c0-recheck-2026-10-06.md, a1-security-reverify-2026-10-05.md, q0-test-reverify-2026-10-05.md, r0-recheck-2026-10-06.md, r0-sync-reading-2026-10-06.md. The C0 and R0 re-checks and R0's sync reading are carried by cherry-pick -x as identical blobs.",
-    "The manifest is not changed on this PR after 355a94cc; the status transcription to integration_verified happens after merge, in R0's words.",
+    "Read evidence/WP-0A-A0-002/r0-recheck-2026-10-08.md §5 first: it lists the conditions under which integration_verified may be recorded and the words R0 asks A0 to record.",
+    "Role re-checks of f985ec51 are their own files: c0-recheck-2026-10-07d.md, q0-recheck-2026-10-06b.md, a1-recheck-2026-10-07c.md and r0-recheck-2026-10-08.md, carried by cherry-pick -x as identical blobs. The code change they re-check is described in a0-closure-recheck-2026-10-07c.md.",
+    "After f985ec51 the branch gains only those four role files, the merge of origin/main 389f3845 (integrity-manifest digests regenerated) and this handoff refresh; no guard, scanner test or manifest change.",
     "The author is /claude/a0_atlas. Every role file opens with the RFC-2026-024 §0 spawning disclosure."
   ],
-  "superseded_by": "Earlier versions of this handoff described commit 1873ade and later heads; their role conditions were remediated in follow-up Author commits (evidence/WP-0A-A0-002/author-remediation.md through author-remediation-4.md, and author-reverify-2026-10-06.md). This version describes the branch at the head it cites."
+  "superseded_by": "Earlier versions of this handoff described earlier heads, most recently 8a339c74; their text described the records-only round that reached main. This version describes the E4 code increment at the head it cites."
 }
