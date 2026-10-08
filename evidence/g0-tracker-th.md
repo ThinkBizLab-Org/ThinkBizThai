@@ -185,7 +185,8 @@ CON-003 #04 (required list ที่ซ้อนใน subschema ยังไม
 | 023 Cross-agent dry run | **done** (protocol) | แถว Cross-vendor dry run ด้านบน | — | — |
 | 024 Risk acceptance/sign-off | **decided, conditional** (2026-10-08) | Owner ตัดสิน D0: ผ่านแบบ approved fallback ([disposition](WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md) §4) | Owner merge PR นี้เอง (D0); register §7.2 ข้อ 2/6/8 กลายเป็นเงื่อนไขของงาน G1 (การอ่านของ A0, disposition §4.2); รายการภายนอกทั้งหมดยังค้าง | PO; เจ้าของ register ถอดความ |
 
-นับแบบ done = 1, partial = 0.5: 2 done + 18 partial + 4 not started = 11/24 ≈ 46%.
+นับแบบ done = 1, partial = 0.5: 2 done + 18 partial + 3 not started (002, 005, 016) + 1 decided, conditional (024) = 11/24 ≈ 46%.
+แถว 024 "decided, conditional" นับเป็น 0 (การนับของ A0): D0 เป็นคำตัดสินของ Owner แต่ checklist ที่ลงนามและเจ้าของ deferred risk ตาม acceptance ของแถวนี้ยังไม่มี (แก้ 2026-10-08 ตาม C0 F3, Q0 F3, R0 R-3)
 ตามมาตรฐานหลักฐานเข้ม (acceptance ครบพร้อมหลักฐานอิสระ) = 2/24.
 
 ### 15 แพ็กเกจ: role verdict ล่าสุด
@@ -219,29 +220,43 @@ CON-003 #04 (required list ที่ซ้อนใน subschema ยังไม
 
 - **G0 ผ่านด้วย approved fallback** ตาม pass rule ของ readiness report
   (`docs/sprint-0a/sprint-0a-g0-readiness-report-th.md:190`: "external blocker ที่กระทบ P0 มีหลักฐานหรือ approved fallback").
-  fallback ของแต่ละรายการภายนอกคือการผูกกับ gate ที่มันขวางจริง (ตารางด้านล่าง) — gate นั้นคือ due gate และ stop condition
+  fallback ของแต่ละรายการภายนอกคือการผูกกับ gate ที่มันขวางจริง (ตารางด้านล่าง) — gate นั้นคือ due gate.
+  stop condition ระหว่างรอคือของเอกสารต้นทาง (readiness report §10 และ register §3) ตามคำต่อคำ D0 ไม่ได้เปลี่ยนข้อใด
 - **ข้อจำกัดบังคับ: ห้าม production customer data จนกว่า legal/PDPA จะผ่าน** (stop condition ของ OPEN-002, register บรรทัด 111) ใช้ synthetic data เท่านั้น
 - **ไม่มีรายการภายนอกใดเสร็จ** บันทึกนี้ไม่อ้างว่าเสร็จ
 - **ที่ D0 ไม่ได้พูดถึง:** pass rule ของ register §7.2 (บรรทัด 360-372) เข้มกว่า — ข้อ 2 (contract ที่ First Slice ใช้ต้อง Frozen v1; ยังไม่มีฉบับใด Frozen),
   ข้อ 6 (wireframe ทุก core flow; G0-004 partial), ข้อ 8 (PO และ A0 ลง Approved). A0 อ่านว่าข้อ 2 และ 6 กลายเป็นเงื่อนไขของงาน G1 ที่ใช้มัน
-  (`WP-0A-CON-008` ต้อง freeze ก่อน implementation ตาม register บรรทัด 190) — **การอ่านนี้เป็นของ A0** เจ้าของ register ต้องถอดความ หรือ Owner แก้
+  (`WP-0A-CON-008` ต้อง freeze ก่อน implementation ตาม register บรรทัด 190) — **การอ่านนี้เป็นของ A0** เจ้าของ register ต้องถอดความ หรือ Owner แก้.
+  บันทึกนี้ไม่ได้ตรวจข้อ 1, 3, 4, 5, 7 และวรรคท้ายของข้อ 8 ("Security/QA ไม่มี stop-the-line issue ค้าง") (disposition §4.2)
+- **ที่ D0 ไม่ได้พูดถึงใน pass rule ของ readiness report เอง (`:190`):** D0 ตอบเฉพาะเงื่อนไข approved fallback.
+  อีกสามเงื่อนไข — internal specification ไม่ถอยหลัง, PO อนุมัติ scope/contracts (CTR-* ทุกฉบับยังเป็น Candidate/Draft),
+  และไม่มี Critical risk ที่ไม่มี owner/due gate — บันทึกนี้ไม่ได้ตรวจและไม่อ้างว่าผ่าน (disposition §4.2)
+- **OPEN-002:** register บรรทัด 111 กำหนด due "G0 policy draft; final ก่อน G6" แต่ D0 ผูก legal/PDPA กับ G2 — A0 อ่านว่าเลื่อน
+  policy draft ไป G2; D0 ไม่ได้เอ่ยถึง OPEN-002 และ stop condition ของมันยังอยู่ครบ เจ้าของ register ต้องถอดความ
 - `CONTRIBUTING_AGENTS.md` หัวข้อ "Current gate constraint" ยังเขียนว่า G0 ยังไม่ผ่าน — เป็น governance ต้องแก้ผ่าน PR ที่ Owner merge เอง ไม่แก้ในที่นี้
+- **กติกาช่วงระหว่างนี้ (การอ่านของ A0 รอ Owner ยืนยันหรือแก้):** "Current gate constraint" ของ `CONTRIBUTING_AGENTS.md` และบรรทัด 373
+  ของ register ("ถ้าไม่ผ่าน G0 อนุญาตเฉพาะ Spike, …") **ยังผูกพัน agent ทุกตัวเหมือนเดิม** จนกว่า governance PR ที่แก้ข้อความนั้นจะถูก Owner merge —
+  งาน G1 ที่ผูก production schema หรือ external provider ยังไม่เริ่มก่อนนั้น (A1-1, R0 R-4)
 
 ### รายการภายนอก ผูกกับ gate ที่ขวางจริง (แผน §6)
 
-| รายการภายนอก | ขวาง gate | stop condition ระหว่างรอ | เสร็จ? |
+คอลัมน์ stop condition **ไม่ใช่ถ้อยคำของ Owner**: แต่ละช่องคัดคำต่อคำจากเอกสารต้นทางพร้อมบรรทัด — "R§10" คือ
+`docs/sprint-0a/sprint-0a-g0-readiness-report-th.md` §10, "register" คือ `docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md`.
+ช่องที่ติด **[A0 อนุมาน, Owner ไม่เคยเห็น]** ไม่มีเอกสารต้นทางรองรับ (เขียนใหม่ 2026-10-08 ตาม C0 F1: คอลัมน์เดิมเป็นข้อความของ A0 ที่ไม่ได้ติดป้าย และสี่แถวอ่อนกว่า R§10)
+
+| รายการภายนอก | ขวาง gate (แผน §6) | stop condition ระหว่างรอ (คำต่อคำ พร้อมที่มา) | เสร็จ? |
 |---|---|---|---|
-| นิติบุคคล โดเมน DNS (D14) | G1 (email), G2 (Meta, privacy URL) | ห้ามสร้าง email sender, Meta app, privacy URL | ไม่ |
-| Supabase Pro (สิงคโปร์ 2 project), Vercel Pro, 2FA, secret ใน GitHub | G1 | ห้าม provision; agent สร้างบัญชีหรือใส่ credential แทนไม่ได้ | ไม่ |
-| Meta: Business Verification, developer app, test Page + IG Professional, MTA-002/003 ด้วย credential จริง | G2 (MCN-002 ขึ้นกับ MTA-002), G6 (App Review) | ห้าม publishing จริง; fake adapter เท่านั้น | ไม่ |
-| ที่ปรึกษากฎหมาย/PDPA: privacy notice, terms, data-deletion, DPA | **G2** | **ห้าม production customer data** | ไม่ |
-| Email provider + SPF/DKIM/DMARC (D8) | G2 (OTP/invite) | ห้าม production email | ไม่ |
-| Usability SME 5 ราย บน prototype | ก่อน freeze ของ WP-1A-A5-002/003 | token/component ทำแบบแก้กลับได้เท่านั้น | ไม่ |
-| Consent ของ 5 pilot workspace (OPEN-011) | G2 pilot | synthetic fixtures เท่านั้น | ไม่ |
-| นักบัญชี | G6 | ห้ามสรุป tax/refund/retention เป็น final | ไม่ |
-| ผู้ตรวจด้านสกินแคร์ | ก่อน Pack 2 pilot (G3/G4) | ห้ามถือว่า claim rules ผ่านการตรวจ | ไม่ |
-| ราคา storage และ restore drill | G5/G6 (D10 ปิดแค่การเลือก provider) | ห้ามอ้าง storage SLA | ไม่ |
-| Stripe Thailand | เลื่อนหลัง G0 ตามขั้น 2 ข้อ 4; Beta ใช้ manual invoice | ห้ามขาย Paid Beta ผ่าน Stripe | ไม่ (deferred) |
+| นิติบุคคล โดเมน DNS (D14) | G1 (email), G2 (Meta, privacy URL) | D14: "ต้องมีก่อนสร้าง Meta app, email sender และ privacy URL" | ไม่ |
+| Supabase Pro (สิงคโปร์ 2 project), Vercel Pro, 2FA, secret ใน GitHub | G1 | ไม่มีเอกสารต้นทาง **[A0 อนุมาน, Owner ไม่เคยเห็น]** ไม่ provision environment ของ G1 ก่อนมีบัญชี; แผน §6: "agent สร้างบัญชีหรือใส่ credential แทนไม่ได้" | ไม่ |
+| Meta: Business Verification, developer app, test Page + IG Professional, MTA-002/003 ด้วย credential จริง | G2 (MCN-002 ขึ้นกับ MTA-002), G6 (App Review) | R§10 บรรทัด 198: "ห้ามเปิด publishing จริง" (safe work: "Fake adapter, fixtures, contract tests") | ไม่ |
+| ที่ปรึกษากฎหมาย/PDPA: privacy notice, terms, data-deletion, DPA | **G2** | D0: "ห้าม production customer data จนกว่าข้อ legal/PDPA จะผ่าน"; register บรรทัด 111 (OPEN-002): "ห้าม Production customer data ถ้า legal/retention noticeไม่พร้อม"; R§10 บรรทัด 200: "ห้ามสรุป tax/refund/retention เป็น final" | ไม่ |
+| Email provider + SPF/DKIM/DMARC (D8) | G2 (OTP/invite) | register บรรทัด 119 (OPEN-010): "ห้าม Production email ก่อน SPF/DKIM/DMARC/testพร้อม" | ไม่ |
+| Usability SME 5 ราย บน prototype | ก่อน freeze ของ WP-1A-A5-002/003 | R§10 บรรทัด 201: "ห้ามอ้างว่า onboarding ผ่านผู้ใช้จริง"; แผน §6: "token และ component ทำแบบแก้กลับได้ไปก่อน แต่ freeze ควรรอผล" | ไม่ |
+| Consent ของ 5 pilot workspace (OPEN-011) | G2 pilot | register บรรทัด 120 (OPEN-011): "ห้ามนำ content ลูกค้ามา train/eval โดยไม่มี permission" (safe default: "Synthetic fixtures") | ไม่ |
+| นักบัญชี | G6 | R§10 บรรทัด 200: "ห้ามสรุป tax/refund/retention เป็น final" | ไม่ |
+| ผู้ตรวจด้านสกินแคร์ | ก่อน Pack 2 pilot (G3/G4) | R§10 บรรทัด 202: "ห้ามเปิด autonomous skincare publishing" | ไม่ |
+| ราคา storage และ restore drill | G5/G6 (D10 ปิดแค่การเลือก provider) | R§10 บรรทัด 203: "ห้ามเปิด self-service permanent deletion"; register บรรทัด 129 (OPEN-020): "ห้าม Domain ผูก bucket URL/provider SDK" | ไม่ |
+| Stripe Thailand | ไม่อยู่ในแผน §6; เลื่อนหลัง G0 ตามขั้น 2 ข้อ 4; Beta ใช้ manual invoice | R§10 บรรทัด 199: "ห้ามขาย Paid Beta จริง" **[A0 อนุมาน, Owner ไม่เคยเห็น]** การนับ manual invoice เป็น approved fallback ของข้อนี้เป็นการอ่านของ A0 — D0 ไม่ได้เอ่ยถึง Stripe จึง **ยังไม่ได้รับการยืนยัน** | ไม่ (deferred) |
 
 ### OPEN-010/018/019/020 — ตัดสินเท่าที่ถ้อยคำของ D ไปถึง (register ยังไม่ได้แก้; `docs/**` read-only)
 
@@ -259,7 +274,7 @@ CON-003 #04 (required list ที่ซ้อนใน subschema ยังไม
 D2 Vercel Pro `sin1` · D3 Supabase `staging` + `prod` ใน `ap-southeast-1` ไม่เปิด branching ใน G1 · D4 Email OTP ก่อน, Google เป็น P1 ·
 D5 ตัดตัวเลือก service-role key (request path ใช้ JWT ของ user + command function; worker ใช้ login role ของ RFC-028) — ข้อความใน
 `WP-0A-DB-00.required_human_authorities[0]` ยังต้องให้เจ้าของแพ็กเกจปิด · D7 Supabase Vault แบบมีเงื่อนไขการวัดของ A1 ก่อน MCN-001 ·
-D9 Sentry ปิด default PII · D11 polling ใน G1/G2 · D12 Tailwind + shadcn/ui, A5 เสนอฟอนต์ไทย · D13 ชื่อ WP `WP-1A-*` (G1) และ `WP-1B-*` (G2) ·
+D9 Sentry ปิด default PII, scrub ฝั่ง server และต้องลง subprocessor map (PRV-001) · D11 polling ใน G1/G2 · D12 Tailwind + shadcn/ui, A5 เสนอฟอนต์ไทย · D13 ชื่อ WP `WP-1A-*` (G1) และ `WP-1B-*` (G2) ·
 D14 นิติบุคคล/โดเมน/อีเมลต้องมีก่อน Meta app, email sender, privacy URL · **RFC-2026-030** (risk-tiered review) รับข้อเสนอแล้ว แต่ไฟล์ RFC ยังไม่มี
 และเป็น governance ที่ Owner merge เอง — จนกว่าจะ merge กติกาสี่บทบาทเดิมใช้ต่อ
 
@@ -267,3 +282,9 @@ D14 นิติบุคคล/โดเมน/อีเมลต้องม�
 
 PR ที่บันทึกนี้เป็น governance (แก้ gate) — RFC-2026-025 §5 item 6 และถ้อยคำของ D0 เอง ("gate-record PR ที่ Owner merge เอง")
 ให้ **Owner merge เอง** คำว่า `ให้ A0 กดเอง` (2026-10-08T06:11:04Z) ตอบคำถามเรื่อง PR อื่น (disposition §7)
+
+หลัง Owner รับ D0 มีอีกสาม turn ในเซสชันเดียวกันที่พูดตรงข้าม (บันทึกคำต่อคำใน disposition §7.1, เพิ่มตาม Q0 F1):
+A0 (06:31:57Z) "ทุกตัวผ่านการตรวจ 4 role แล้วผมกด merge เองตามที่คุณสั่ง" โดยข้อ 2 ของรายการคือบันทึกนี้;
+Owner (06:32:20Z) "ลุยต่อเลย"; A0 (06:32:49Z) "ทุกตัวผ่าน 4 role แล้วผมจะ merge ทีละตัว".
+ทั้งสามไม่เปลี่ยนผู้ merge: `ลุยต่อเลย` ไม่ได้ระบุ PR ใด, governance PR "never by delegation" (RFC-2026-025 §5 item 6) และ D0 เองกำหนดให้ Owner merge.
+A0 และ orchestrator ห้ามกด merge PR นี้ จนกว่า Owner จะกดเองหรือสั่งโดยระบุ PR #214. **A0 ค้างการแก้ข้อความทั้งสองในแชตกับ Owner**

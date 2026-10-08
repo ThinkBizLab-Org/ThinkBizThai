@@ -19,16 +19,18 @@
     "integration_owner": [
       "integration-release"
     ],
-    "conditional_reviewers": []
+    "conditional_reviewers": [
+      "security-privacy"
+    ]
   },
   "role_assignments": {
     "author_agent_run_id": "/claude/a0_atlas",
     "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
     "tester_agent_run_id": "/claude/q0_sentinel",
     "integration_owner_agent_run_id": "/claude/r0_steward",
-    "security_reviewer_agent_run_id": null,
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
     "product_reviewer_agent_run_id": null,
-    "product_reviewer_note": "Both conditional slots are null by A0's reading, for a reviewer to contest: the package is a gate record with no UX surface and no code, schema, secret or data path, and review_and_test_gates carries neither a security nor a product step. The Owner is the decision-maker the record transcribes; the Owner is not a role run."
+    "product_reviewer_note": "The product slot is null by A0's reading, for a reviewer to contest: the package is a gate record with no UX surface and no code, schema, secret or data path. The Owner is the decision-maker the record transcribes; the Owner is not a role run. The security slot was null at first; A1-3 (evidence/WP-0A-A0-001/a1-review-2026-10-07.md) asked for it because the record decides D5 (service path), D7 (secret storage), D9 (PII) and the PDPA constraint, so it now names /claude/a1_bastion with a security_approved gate, as WP-0A-A0-004 does."
   },
   "independence": {
     "no_self_approval": true,
@@ -44,7 +46,7 @@
   "required_human_authorities": [
     "The Product Owner merges the PR carrying this record personally: D0 as accepted reads \"gate-record PR ที่ Owner merge เอง\", and RFC-2026-025 §5 item 6 reserves a gate change to the Owner. A direction to A0 to press it must name the PR."
   ],
-  "purpose": "The package plan §2 (g1-g2-plan-2026-10-08, outside the repository, transcribed verbatim in evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md §2.2) names for the G0 conditional exit record: record D0, bind every external item to the gate it actually blocks, update the G0 tracker, and record OPEN-010/018/019/020 as decided by D8/D1/D6/D10. The record's files are WP-0A-A0-001's outputs (evidence/g0-tracker-th.md and evidence/WP-0A-A0-001/**), written on that package's branch, because that package owns the G0 records and no amended_by transfer is made. This manifest registers the package plan §2 names, carries its review status, and owns only itself and evidence/WP-0A-A0-010/**. See evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md §8.",
+  "purpose": "The package plan §2 (g1-g2-plan-2026-10-08, outside the repository, transcribed verbatim in evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md §2.2) names for the G0 conditional exit record: record D0, bind every external item to the gate it actually blocks, update the G0 tracker, and record OPEN-010/018/019/020 as decided by D8/D1/D6/D10. The record's files are WP-0A-A0-001's outputs (evidence/g0-tracker-th.md and evidence/WP-0A-A0-001/**), written on that package's branch, because that package owns the G0 records and no amended_by transfer is made. This manifest registers the package plan §2 names, carries its review status, and owns only itself and evidence/WP-0A-A0-010/**. Its in_review status labels WP-0A-A0-001's increment on that package's branch: this package has no output of its own beyond this manifest, every acceptance criterion is about WP-0A-A0-001's files, its role files sit under evidence/WP-0A-A0-001/, and ownership.branch is a declared future slot that does not exist on the remote yet (C0 F5, Q0 F5, R0 R-5). See evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md §8.",
   "scope": {
     "include": [
       "The Owner's 2026-10-08 disposition of D0-D14 and RFC-2026-030 (proposal), transcribed verbatim with what each decision does not decide",
@@ -151,6 +153,7 @@
   "review_and_test_gates": [
     "author_complete",
     "review_approved",
+    "security_approved",
     "test_verified",
     "integration_verified"
   ]

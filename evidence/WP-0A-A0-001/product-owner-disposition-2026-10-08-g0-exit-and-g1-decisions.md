@@ -165,9 +165,15 @@ external item is done.** Every account, provider, adviser and credential named b
 Under D0, the Owner's decision is that **G0 passes by approved fallback**. The pass rule invoked is the readiness
 report's (`docs/sprint-0a/sprint-0a-g0-readiness-report-th.md:190`): internal specification items do not regress, the
 Product Owner approves scope/contracts, every external blocker that affects P0 has evidence **or an approved
-fallback**, and no Critical risk lacks an owner and a due gate. The approved fallback for each external item is
-that it is bound to the gate it actually blocks (§2.3). That gate is the item's due gate and its stop condition. Until
-an item passes, the work its gate needs may not proceed past that gate.
+fallback**, and no Critical risk lacks an owner and a due gate. D0's words address the third of these four conditions
+only (§4.2). The approved fallback for each external item is that it is bound to the gate it actually blocks (§2.3).
+That gate is the item's due gate. Until an item passes, the work its gate needs may not proceed past that gate.
+
+The stop conditions that bind while an item waits are **those of its source documents**, chiefly the readiness
+report's §10 (`docs/sprint-0a/sprint-0a-g0-readiness-report-th.md:194-203`) and the register's §3 rows. §4.3 quotes
+them verbatim with their lines. D0 did not change any of them, and the Owner was shown no stop-condition text, so
+this record states none in the Owner's name. (Corrected 2026-10-08 after C0 F1; see
+`a0-closure-2026-10-08-pr214-reviews.md`.)
 
 **The binding constraint:** **no production customer data until legal/PDPA passes.** This is the register's OPEN-002
 stop condition (register line 111), restated by D0 for the whole of the post-G0 period. Synthetic data only, as the
@@ -175,11 +181,34 @@ stop condition (register line 111), restated by D0 for the whole of the post-G0 
 
 ### 4.2 What D0 did not address, recorded so no later reader assumes it did
 
+- **Three of the four conditions of the readiness pass rule that D0 invokes** (`:190`). D0's words and this record's
+  evidence address only (c), "external blocker ที่กระทบ P0 มีหลักฐานหรือ approved fallback". This record did **not**
+  check the other three, and it does not say they are met:
+  - (a) "รายการ internal specification ไม่ถอยหลัง": not checked by this record.
+  - (b) "Product Owner อนุมัติ scope/contracts": no Owner approval of contracts is on the record. Every CTR-* in
+    `contract-catalog/shared-kernel/index.json` is Candidate (9) or Draft (5). The 2026-08-31 baseline approval
+    (`product-owner-baseline-approval.md`) approves the register baseline "without changing its contract statuses",
+    and it says it does not "advance a Candidate/Draft contract to Frozen".
+  - (d) "ไม่มี Critical risk ที่ไม่มี owner/due gate": the tracker's owner column and the gate binding of §4.3 may meet
+    it, but this record did not check every Critical risk against them.
+
+  The Owner's decision stands either way. The record must not suggest that it was checked against (a), (b) or (d).
+  (Added after C0 F2.)
 - **The register's own G0 pass rule is stricter.** Register §7.2 (lines 360-372) requires, among other things:
   - item 2: "Contract ที่ First Slice ใช้ต้อง `Frozen v1`". No contract in `contract-catalog/shared-kernel/index.json` is
     Frozen.
   - item 6: a wireframe for every core flow with all states. G0-004 is partial.
-  - item 8: "Product Owner และ A0 ลงสถานะ `Approved`".
+  - item 8: "Product Owner และ A0 ลงสถานะ `Approved`; Security/QA ไม่มี stop-the-line issue ค้าง". The second
+    clause, that Security/QA hold no open stop-the-line issue, was **not checked** by this record.
+
+  The other items were not checked by this record either (added after A1-2):
+  - item 1 (line 364): "P0 decision ไม่มี Open item ที่ทำให้ schema/security/product promise เปลี่ยนอย่างมีนัยสำคัญ".
+    OPEN-002 (region, retention, legal basis, DPA) is still open, and so are OPEN-010/019/020 beyond what D8/D6/D10
+    decide (§5).
+  - item 3 (line 366), fixtures/fakes for every consumer; item 4 (line 367), ERD/RLS/retention against module
+    ownership; item 7 (line 370), the vendor-neutral dry run (G0-023 is done for the protocol).
+  - item 5 (line 368): "Meta risk, AI quality risk, privacy/security และ commercial risk มี owner/mitigation". The
+    privacy/security risks were not each checked for an owner and a mitigation.
 
   `CONTRIBUTING_AGENTS.md:10-17` ranks the register above the readiness report. D0 cites only the readiness report.
   The plan's §2 handles item 2 as owed **before G1 implementation** (`WP-0A-CON-008`), and register line 190 independently
@@ -188,25 +217,43 @@ stop condition (register line 111), restated by D0 for the whole of the post-G0 
   register's owner must transcribe it or the Owner must correct it (§6).
 - **`CONTRIBUTING_AGENTS.md` "Current gate constraint"** still says "Sprint 0A is Specification Baseline Complete /
   External Verification Pending. Until G0 passes, agents may work only on spikes…". It now contradicts D0. It is
-  governance text and is not edited here (§6).
+  governance text and is not edited here (§6). The register's line after §7.2 (line 373) says the same: "ถ้าไม่ผ่าน G0
+  อนุญาตเฉพาะ Spike, Prototype, Fixture, Fake Adapter, Contract Test และ reversible foundation ที่ไม่ผูก schema เท่านั้น".
+- **Which rule binds agents between this merge and the governance PR.** D0 did not say. `CONTRIBUTING_AGENTS.md:10-17`
+  ranks "Approved RFC/Decision that is newer than the affected baseline" first, so a reader could take D0 to have
+  lifted the guide's constraint already. **A0's reading, for the Owner to confirm or correct:** the guide's "Current
+  gate constraint" and the register's line 373 **continue to bind every agent unchanged** until the governance PR
+  that rewrites them is merged by the Owner. G1 implementation that binds production schema or an external provider
+  does not start before then. (Added after A1-1 and R0 R-4. The question is owed to the Owner; see the closure note.)
+- **OPEN-002's due gate.** Register line 111 sets OPEN-002 (region, retention per data class, legal basis, DPA) due
+  "G0 policy draft; final ก่อน G6". D0, through plan §6, binds the legal/PDPA adviser to **G2**. A0 reads that as
+  moving the G0 policy draft to G2, but D0 did not name OPEN-002, and its stop condition ("ห้าม Production customer data ถ้า legal/retention
+  noticeไม่พร้อม") stands unchanged. The register's owner must transcribe the due-gate change (§6). (Added after Q0 F4.)
 - **G0-024** (risk acceptance / signed checklist) is not made by A0. The Owner's words are the decision. The tracker
   records the exit as **decided, conditional**, and the Owner's merge of this PR is the act D0 itself names.
 
 ### 4.3 Each external item, bound to the gate it blocks
 
-| External item (tracker row) | Gate it blocks (plan §6) | Stop condition until it passes | Done? |
+The gate column is plan §6, which the Owner accepted through D0. The stop-condition column is **not** the Owner's
+text. Each cell quotes its source verbatim, with the file and line. "R§10" is
+`docs/sprint-0a/sprint-0a-g0-readiness-report-th.md` §10 and "register" is
+`docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md`. A cell marked **[A0, not shown to the Owner]**
+is A0's derivation, and no source document states it. (Rewritten after C0 F1. The earlier column was A0's own text,
+unlabelled, and four of its rows were weaker than R§10.)
+
+| External item (tracker row) | Gate it blocks (plan §6) | Stop condition until it passes (verbatim, with source) | Done? |
 |---|---|---|---|
-| Legal entity, domain, DNS (D14) | G1 (email), G2 (Meta, privacy URL) | No email sender, Meta app or privacy URL | **No** |
-| Supabase Pro (Singapore, 2 projects), Vercel Pro, 2FA, GitHub secrets | G1 | No provisioning; agents cannot create accounts or enter credentials | **No** |
-| Meta: Business Verification, developer app, test Page + IG Professional, MTA-002/003 with real credentials | G2 (MCN-002 depends on MTA-002) and G6 (App Review) | No real publishing (readiness report §10); fake adapter only | **No** |
-| Legal/PDPA adviser: privacy notice, terms, data-deletion policy, DPA | **G2** | **No production customer data** (D0; register OPEN-002 line 111) | **No** |
-| Email provider and SPF/DKIM/DMARC (D8) | G2 (OTP/invite) | No production email (register OPEN-010 line 119) | **No** |
-| Usability with 5 SMEs on the prototype | Before freezing `WP-1A-A5-002`/`003` | Tokens/components only as reversible work | **No** |
-| Consent of 5 pilot workspaces (OPEN-011) | G2 pilot | Synthetic fixtures only (step 2 item 14) | **No** |
-| Accountant | G6 | No final tax/refund/retention claim (readiness report §10) | **No** |
-| Qualified skincare reviewer | Before the Pack 2 pilot (G3/G4) | No claim rules treated as reviewed | **No** |
-| Storage pricing and restore drill | G5/G6 (D10 closes only the provider choice) | No storage SLA claim | **No** |
-| Stripe Thailand | Deferred after G0 by the 2026-10-05 decision (step 2 item 4); Beta is manual invoice | No paid Beta via Stripe | **No** (deferred) |
+| Legal entity, domain, DNS (D14) | G1 (email), G2 (Meta, privacy URL) | D14 as accepted (§2.1): "ต้องมีก่อนสร้าง Meta app, email sender และ privacy URL" | **No** |
+| Supabase Pro (Singapore, 2 projects), Vercel Pro, 2FA, GitHub secrets | G1 | No source states one. **[A0, not shown to the Owner]** The G1 environments are not provisioned before these exist. Plan §6, as the reason to start now: "agent สร้างบัญชีหรือใส่ credential แทนไม่ได้" | **No** |
+| Meta: Business Verification, developer app, test Page + IG Professional, MTA-002/003 with real credentials | G2 (MCN-002 depends on MTA-002) and G6 (App Review) | R§10 line 198 (Meta credentials/app review): "ห้ามเปิด publishing จริง". Safe work there: "Fake adapter, fixtures, contract tests" | **No** |
+| Legal/PDPA adviser: privacy notice, terms, data-deletion policy, DPA | **G2** | D0 as accepted (§2.1): "ห้าม production customer data จนกว่าข้อ legal/PDPA จะผ่าน". Register line 111 (OPEN-002): "ห้าม Production customer data ถ้า legal/retention noticeไม่พร้อม". R§10 line 200 (Legal/accounting review): "ห้ามสรุป tax/refund/retention เป็น final" | **No** |
+| Email provider and SPF/DKIM/DMARC (D8) | G2 (OTP/invite) | Register line 119 (OPEN-010): "ห้าม Production email ก่อน SPF/DKIM/DMARC/testพร้อม" | **No** |
+| Usability with 5 SMEs on the prototype | Before freezing `WP-1A-A5-002`/`003` | R§10 line 201 (SME usability participants): "ห้ามอ้างว่า onboarding ผ่านผู้ใช้จริง". Plan §6, as shown to the Owner: "token และ component ทำแบบแก้กลับได้ไปก่อน แต่ freeze ควรรอผล" | **No** |
+| Consent of 5 pilot workspaces (OPEN-011) | G2 pilot | Register line 120 (OPEN-011): "ห้ามนำ content ลูกค้ามา train/eval โดยไม่มี permission". Safe default there: "Synthetic fixtures" | **No** |
+| Accountant | G6 | R§10 line 200 (Legal/accounting review): "ห้ามสรุป tax/refund/retention เป็น final" | **No** |
+| Qualified skincare reviewer | Before the Pack 2 pilot (G3/G4) | R§10 line 202 (Skincare domain reviewer): "ห้ามเปิด autonomous skincare publishing" | **No** |
+| Storage pricing and restore drill | G5/G6 (D10 closes only the provider choice) | R§10 line 203 (Storage restore/purge evidence): "ห้ามเปิด self-service permanent deletion". Register line 129 (OPEN-020): "ห้าม Domain ผูก bucket URL/provider SDK" | **No** |
+| Stripe Thailand | Not in plan §6. Deferred after G0 by the 2026-10-05 decision (step 2 item 4); Beta is manual invoice | R§10 line 199 (Stripe live Thai configuration): "ห้ามขาย Paid Beta จริง". **[A0, not shown to the Owner]** Counting the manual-invoice Beta as this item's approved fallback is A0's reading. The tracker already says it must be confirmed in G0-024, and D0 does not mention Stripe, so it is **still unconfirmed**. | **No** (deferred) |
 
 ## 5. OPEN-010, OPEN-018, OPEN-019, OPEN-020
 
@@ -224,7 +271,7 @@ the register entries are **not edited here**. Their owner must transcribe them (
 
 | File | Needs | Owner |
 |---|---|---|
-| `docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md` §3 | Disposition notes citing this file: OPEN-010 (criteria + timing only), OPEN-018 (application tier), OPEN-019 (implementation only, limits open), OPEN-020 (provider only). §7.1 G0-024 and the status column. §7.2: how D0's conditional exit reads against items 2, 6 and 8 (§4.2). | Register owner (A0/Product), by RFC or an Owner-approved edit |
+| `docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md` §3 | Disposition notes citing this file: OPEN-010 (criteria + timing only), OPEN-018 (application tier), OPEN-019 (implementation only, limits open), OPEN-020 (provider only), OPEN-002 (the G0 policy-draft due date against D0's G2 binding of legal/PDPA; stop condition unchanged; §4.2, added after Q0 F4). §7.1 G0-024 and the status column. §7.2: how D0's conditional exit reads against items 1-8 (§4.2). | Register owner (A0/Product), by RFC or an Owner-approved edit |
 | `docs/sprint-0a/sprint-0a-g0-readiness-report-th.md` §9 checklist, §10 | The G0 result (conditional exit, D0) and the gate binding of §4.3 | Readiness report owner |
 | `CONTRIBUTING_AGENTS.md` "Current gate constraint" | No longer true after D0. Replace it with the conditional-exit wording, the no-production-customer-data constraint, and the register-line-190 Frozen-v1 rule. Governance: the Owner merges it. | Owner, by a governance PR |
 | `architecture/decisions/RFC-2026-029-*.md` | To be written (D1) | A0 author, governance |
@@ -234,15 +281,28 @@ the register entries are **not edited here**. Their owner must transcribe them (
 
 ### 6.1 RFC-2026-030 ("risk-tiered review"), as accepted
 
-The Owner's "รวม RFC-030 ด้วย" accepts the proposal that plan §7.2 item 7 describes. The proposal keeps separation of
-duties: the Author never approves its own work. It scales the review depth by tier: **H** (migration/RLS, auth,
-secret/OAuth, publish, billing, CI/gate) gets four full roles with A1 security and a re-check. **M** (logic inside one
-module with tests, touching no schema or secret) gets Reviewer + Tester, with R0 at the end of the WP rather than on
-every PR. **L** (UI component, copy and style behind a feature flag, with no data path) gets one independent Reviewer
-plus CI/Playwright, and the Tester reads the artifacts. A classifier decides the tier and fails closed. **The RFC file does
-not exist yet, and this PR does not write it.** The proposal changes the rule in `CONTRIBUTING_AGENTS.md` § Separation
-of duties, so the RFC is a governance PR, and the Owner merges it personally (RFC-2026-025 §5 item 6). Until that RFC
-is merged, the current four-role rule applies unchanged.
+The Owner's "รวม RFC-030 ด้วย" accepts the proposal in plan §7.2 item 7. That item, with its tier table, is quoted
+here **verbatim** (plan lines 242-250), because this is the only copy in the repository of what the Owner accepted.
+(Replaced after C0 F4 and R0 R-7. The earlier paraphrase dropped the item's **[อนุมาน]** label and the L tier's
+"(A5 คนละ run)".)
+
+> 7. **[อนุมาน] RFC-2026-030 "risk-tiered review":** คงหลัก separation of duties ไว้ทั้งหมด เพราะ Author ไม่มีวันอนุมัติงานตัวเอง แต่ปรับ *ความลึก* ตาม tier
+>
+> | Tier | ครอบคลุม | Review ที่ต้องมี |
+> |---|---|---|
+> | H | migration/RLS, auth, secret/OAuth, publish, billing, CI/gate | 4 role เต็มพร้อม A1 security และ re-check |
+> | M | logic ภายใน module เดียวที่มีเทสต์ และไม่แตะ schema/secret | Reviewer + Tester ส่วน R0 ตรวจตอนจบ WP ไม่ใช่ทุก PR |
+> | L | UI component, copy, style หลัง feature flag ที่ไม่มี data path | Reviewer อิสระหนึ่งคน (A5 คนละ run) + CI/Playwright ส่วน Tester อ่าน artifact |
+>
+>    การเปลี่ยนนี้แตะ `CONTRIBUTING_AGENTS.md` ("Every implementation package has distinct Author, Independent Reviewer, Independent Tester, and Integration Owner") จึงต้องให้ Owner ตัดสิน และ classifier ควรตัดสิน tier แบบ fail-closed เหมือน §6.1
+
+In the quote, "เหมือน §6.1" refers to RFC-2026-025 §6.1 (the records-only classifier), not to this file's §6.1.
+
+The item is marked **[อนุมาน]**: the proposal is A0's inference, and the Owner's acceptance makes it his decision
+without making the inference a repository fact. **The RFC file does not exist yet, and this PR does not write it.** The
+proposal changes the rule in `CONTRIBUTING_AGENTS.md` § Separation of duties, so the RFC is a governance PR, and the
+Owner merges it personally (RFC-2026-025 §5 item 6). Until that RFC is merged, the current four-role rule applies
+unchanged.
 
 ## 7. Who merges this PR
 
@@ -255,11 +315,43 @@ merges himself"). Plan §2 says the same of `WP-0A-A0-010`. The Owner's `ให�
 sequence explicitly". **On the record as it stands, the Owner merges this PR himself.** If he instead directs A0 to
 press it, that direction must name this PR, and it should be quoted as PR #211's exception was (RFC-2026-025 §6).
 
+### 7.1 Three later turns that say the opposite, recorded verbatim (added after Q0 F1)
+
+After the Owner's acceptance, the same session (`27edf3de`) has three more turns about merging. A0 told the Owner,
+twice, the opposite of what §7 concludes. The turns are quoted verbatim from the transcript.
+
+1. A0, `2026-10-08T06:31:57Z`, opening its list of three governance PRs:
+
+   > ตอนนี้รันสาม governance PR พร้อมกัน ทุกตัวผ่านการตรวจ 4 role แล้วผมกด merge เองตามที่คุณสั่ง:
+
+   Item 2 of that list is this record: "**บันทึกทางออกจาก G0 และการตัดสินใจ D0–D14:**".
+2. The Owner, `2026-10-08T06:32:20Z`:
+
+   > ลุยต่อเลย
+
+3. A0, `2026-10-08T06:32:49Z`, after a five-row table whose row 2 is "บันทึกทางออกจาก G0 และการตัดสินใจ D0–D14 |
+   governance":
+
+   > ทุกตัวผ่าน 4 role แล้วผมจะ merge ทีละตัว พื้นที่ดิสก์ยังว่าง 13 GB
+
+**They do not change who merges this PR.**
+- A0's two statements are A0's, not the Owner's. A0's "ตามที่คุณสั่ง" stretched the `06:11:04Z` words (§2) to PRs they
+  did not name.
+- `ลุยต่อเลย` ("carry on") names no PR. RFC-2026-025 §5 item 6 says a governance PR is merged by the Owner "personally,
+  never by delegation". A delegation must be "given after the PR it names exists, or must name its sequence
+  explicitly". PR #214 did not exist at `06:32:20Z`.
+- D0 itself, as accepted, says "gate-record PR ที่ Owner merge เอง".
+
+So neither A0 nor the orchestrator that runs it may press this PR. That holds until the Owner merges it himself, or
+gives a direction that names PR #214 and is quoted the way #211's was. **A0 owes the Owner a correction in chat** of
+both statements (`06:31:57Z`, `06:32:49Z`) for every governance PR they covered. The closure note
+`a0-closure-2026-10-08-pr214-reviews.md` records that this is owed.
+
 ## 8. Where `WP-0A-A0-010` sits
 
 Plan §2 names `WP-0A-A0-010` as the package for this record. `CONTRIBUTING_AGENTS.md` gives no package the right to
 create another package's manifest. Every earlier package created its own manifest on its own branch, for example
-`WP-0A-A0-009` (commit `53d7d2e9`). The record's files are A0-001's: the tracker (`evidence/g0-tracker-th.md`) and the G0
+`WP-0A-A0-009` (commit `8701555f`, which adds `work-packages/WP-0A-A0-009.json`; corrected after Q0 F2). The record's files are A0-001's: the tracker (`evidence/g0-tracker-th.md`) and the G0
 evidence directory are in A0-001's `writable_paths`. Moving them would need an `amended_by` transfer, which this PR does
 not make. So:
 
@@ -270,6 +362,14 @@ not make. So:
 
 A reviewer who reads the guide as requiring A0-010 to be created on its own branch should say so. The manifest can then
 move in a follow-up without touching the record.
+
+**What the reviews said (2026-10-08).** C0 (F5) accepted the placement. C0, Q0 (F5) and R0 (R-5) noted three facts,
+now stated in the manifest's `purpose`. First, A0-010's `in_review` status labels WP-0A-A0-001's increment on this
+branch. A0-010 has no output of its own beyond its manifest. Second, its declared branch
+`agent/claude/WP-0A-A0-010-g0-conditional-exit` is a future slot that does not exist yet. Third, its role files sit
+under `evidence/WP-0A-A0-001/`. A1 (A1-3) asked that its security slot not be null, because this record decides
+D5, D7 and D9 and the PDPA constraint. The manifest now names `/claude/a1_bastion`, lists `security-privacy` as a
+conditional reviewer and carries a `security_approved` gate, as `WP-0A-A0-004` does. The product slot stays null.
 
 ## 9. What this file is not
 
