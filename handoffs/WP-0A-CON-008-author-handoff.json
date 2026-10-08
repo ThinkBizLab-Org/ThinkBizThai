@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "9de0483e44e116479093db0a71a027e26e89b513",
-  "head_revision_or_patch_checksum": "7a8e03fb3cba74e0e3de84724ffda177e1cf88f7",
+  "base_revision": "4b5dac8ec3e7d62da1b88909b4f2baa187a301e8",
+  "head_revision_or_patch_checksum": "ef1ca23f19b371b7acc627cd111b82f4047435e6",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-CON-008/a1-recheck-2026-10-07.md",
@@ -40,7 +40,8 @@
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
     "RFC-2026-002 reserves the merge for the Product Owner. This package was never merged and main was never touched.",
     "Cross-vendor review is NOT satisfied. Every run against this package is Anthropic claude-opus-5, carried as the recorded exception rather than as an equivalent.",
-    "The revisions above are the branch's CURRENT base and head, and the base is now derived rather than carried: git merge-base HEAD against main, origin/main or origin/HEAD, whichever resolves latest. It is no longer copied forward from the previous increment, which is what made WP-0A-CON-002's handoff claim 861 files its branch never wrote."
+    "The revisions above are the branch's CURRENT base and head, and the base is now derived rather than carried: git merge-base HEAD against main, origin/main or origin/HEAD, whichever resolves latest. It is no longer copied forward from the previous increment, which is what made WP-0A-CON-002's handoff claim 861 files its branch never wrote.",
+    "2026-10-08: main moved to 4b5dac8 (PR #215, WP-1A-A0-001) after the role re-checks at 45f962f7 and the records commit 7a8e03fb. It was merged in as a MECHANICAL SYNC under RFC-2026-025 §6.3 (approved 2026-10-08): `node scripts/db/classify-records-only.mjs --sync HEAD^1 HEAD` exits 0 ('no conflict inside the PR's own paths'); the only generated file involved, test-kits/integrity-manifest.json, regenerates byte-identical (cmp 0). Under §6.3 a mechanical sync voids no role verdict and needs no carry reading; the handoff refresh last-and-alone and CI green on the final head still apply. The merge is pressed by A0 under the standing delegation `เอาตามที่คุณแนะนำทุกอย่าง` and the Owner's 2026-10-08 `ให้ A0 กดทุกตัวในแผน (Recommended)`."
   ],
   "acceptance_results": [
     {
