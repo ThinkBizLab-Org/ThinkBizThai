@@ -5,15 +5,18 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "d44dbdbb1efebc9d891e3d31fdf01a8a8060c59a",
-  "head_revision_or_patch_checksum": "a6838f05deaef7c088f2c7225fe0ce9255a2a5db",
+  "head_revision_or_patch_checksum": "7a10c5d3c6a18fd9df72cef88b1e4c3af60e288b",
   "task_ids": [
     "WP-0A-A0-008",
     "G0-step-4"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-008/a1-carry-2026-10-09.md",
+    "evidence/WP-0A-A0-008/light-path-reading-2026-10-09.md",
     "evidence/WP-0A-A0-008/records-transcription-2026-10-09.md"
   ],
   "files_modified": [
+    "handoffs/WP-0A-A0-008-author-handoff.json",
     "work-packages/WP-0A-A0-008.json"
   ],
   "files_deleted": [],
@@ -71,12 +74,10 @@
   "compatibility_impact": "None.",
   "known_limitations": [
     "npm run check:handoff at PR #208's merged head 763b4d60 cannot be re-run on the branch name now that it is merged; that it was the last and alone commit rests on git show --stat (one file).",
-    "R0's optional wording items (C0 F2 and A1-008-3 in open_blockers[1], A1-008-4 / Q0-N1 in rollback_or_forward_fix, the dated notes in open_blockers[0] and required_human_authorities[1]) are not made: none has exact wording on main, and required_human_authorities is strictly append-only on the records path."
+    "R0's further wording items (optional: C0 F2 and A1-008-3 in open_blockers[1], A1-008-4 / Q0-N1 in rollback_or_forward_fix, the dated note in open_blockers[0]; given by R0 §5.1 as an instruction, not optional: the dated note on required_human_authorities[1] — C0 light-path advisory A1) are not made: none has exact wording on main, and required_human_authorities is strictly append-only on the records path."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[0] (whether RFC-2026-017 §7 is discharged) stays open: C0 F3 reads it met at the policy layer, A1-008-1 reads it not discharged as written, and R0 §3.2 does not pick the more permissive reading.",
-    "open_blockers[1] (production service path) and [2] (Gate G0) stay open; the production path is owed to RFC-2026-028's open items and RFC-2026-026's worker half.",
-    "RFC-2026-017's status line and §7 \"does not exist yet\" are stale; correcting them is a governance PR for the RFC's owner."
+    "FULL PATH now (A1 and C0 role files carried): C0 light-path reading blocked on B1 (A1 carry clause tripped by the 763b4d60 handoff prose rewrite); A1 then ruled after the merge (a1-carry-2026-10-09.md) that security_approved carries to 763b4d60 (R19 class: PR #208 was pressed before that re-check existed). Owed: C0, A1, Q0 and R0 read this PR’s final head; then A0 presses under the Owner’s standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), CI green on the exact head, pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "WP-0A-A0-008 RECORDS 2026-10-09: before merge, close the PR. After merge, a reviewed revert of this records PR returns WP-0A-A0-008 to in_review and restores open_blockers[3] to the text kept after \"Text as recorded: \"; it removes records-transcription-2026-10-09.md. PR #208's merged content and the four role files are unaffected.",
   "recommended_next_work_packages": [
