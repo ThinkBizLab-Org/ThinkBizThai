@@ -5,10 +5,16 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "bd019c9cde305109aca4088d50f62109e4d9c2a4",
-  "head_revision_or_patch_checksum": "bd019c9cde305109aca4088d50f62109e4d9c2a4",
+  "head_revision_or_patch_checksum": "8526ca67125c62d75879021f23a03159c762c6b7",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-CON-008/g1-freeze-readiness-2026-10-08.md"
+  ],
+  "files_modified": [
+    "handoffs/WP-0A-CON-008-author-handoff.json",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-CON-008.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -65,27 +71,29 @@
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes and no catalog file touched. One exported helper changes shape: scripts/refresh-author-handoff.mjs branchTipBefore now returns a result object ({ ok, tip } or { ok: false, message }) rather than a bare SHA, matching branchPointOf beside it. Its only callers are that script's own main() and test-kits/handoff-conformance.test.mjs, both updated here. One new exit code, 94, for a merge whose branch side cannot be determined; 91 and 93 are unchanged.",
+  "compatibility_impact": "No contract changes and no catalog file touched. The 2026-10-08 increment adds one evidence record (evidence/WP-0A-CON-008/g1-freeze-readiness-2026-10-08.md), corrects open_blockers[0] of the manifest in place, records the increment as a new open_blockers entry, narrows amends_without_owning to test-kits/integrity-manifest.json, and moves that file's one digest line by regeneration. No script, test, schema, fixture or status changed.",
   "known_limitations": [
-    "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
-    "A1 and A6 sign-off is outstanding for four contracts and cannot be represented by an agent.",
-    "The freeze check establishes presence, not sufficiency. Four items are named in the RFC where a script cannot see what the phrase meant: stable ordering, auth rules, decimal money and bounded cardinality.",
-    "CTR-NTF-001 remains unassessed; A5 owns it.",
-    "The ambiguous merge is refused, not resolved: a merge built on the integration branch out of two heads it does not contain -- what a merge queue produces -- exits 94 rather than picking one. If that shape becomes ordinary here it needs a rule, not a guess.",
-    "branchTipBefore consults an integration ref only for a merge commit. An ordinary commit is still HEAD^ with no ref resolved, so a clone with no default branch behaves exactly as it did."
+    "No contract was moved: none of the twelve G1 contracts has every precondition for its next step met with evidence on main (record sections 2 and 3).",
+    "Every Candidate to Frozen v1 step waits on G0 itself: the Decision Register defines Frozen v1 as a contract that has passed G0, and the G0 exit record (WP-0A-A0-010) does not exist on main.",
+    "CTR-SEC-001 lacks A1's promotion signature; CTR-AUD-001 and CTR-OBS-001 lack A6's countersignature of their 2026-10-07 bound values; CTR-NTF-001 lacks A5's ratification and is outside this package's scope.",
+    "The Owner's 2026-10-08 approval of the G1/G2 plan is not recorded on main and was not relied on.",
+    "The record lists what main records as owed; a freeze review may find more. RFC-2026-010's presence-not-sufficiency limits stand."
   ],
   "open_risks_or_blockers": [
-    "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
+    "CORRECTED 2026-10-08 BY A0 (/claude/a0_atlas) IN PLACE, RECORD CORRECTION (index kept; manifest open_blockers[0] carries the full wording): RFC-2026-010 is no longer Proposed. Its status line records the 2026-09-02 disposition under which CTR-API-001, CTR-PAG-001, CTR-IDM-001, CTR-MOD-001 and CTR-FLG-001 are Candidate. STILL OPEN: CTR-SEC-001 lacks A1's promotion signature, CTR-AUD-001 and CTR-OBS-001 lack A6's countersignature of their 2026-10-07 bound values, CTR-USG-001's promotion is undisposed, and CTR-NTF-001 is A5's (evidence/WP-0A-CON-008/g1-freeze-readiness-2026-10-08.md section 3).",
     "A1 and A6 sign-off is outstanding for four contracts and cannot be represented by an agent.",
     "The freeze check establishes presence, not sufficiency. Four items are named in the RFC where a script cannot see what the phrase meant: stable ordering, auth rules, decimal money and bounded cardinality.",
     "CTR-NTF-001 remains unassessed; A5 owns it.",
-    "A SHA-256 digest can contain a Luhn-valid 13-to-19 digit run by coincidence, and test-kits/integrity-manifest.json is a file of 83 such digests rewritten whenever any protected file changes. This branch was first spelled `WP-0A-CON-008-sweep-age-floor`; the resulting digest of work-packages/WP-0A-CON-008.json contained a Visa-shaped 13-digit run that scan-repository-secrets.mjs correctly reported as a payment card number. It was a false positive with no data behind it, and there is no allowlist to silence one -- deliberately, per that scanner's own comments. The branch was renamed to `WP-0A-CON-008-pid-reuse-age-floor` to change the digest, which is a workaround and not a fix: roughly one regenerated digest in a few hundred will trip this again, on any package, for reasons having nothing to do with that package's work. The scanner is outside this package's writable paths and an exemption there is explicitly reserved for a reviewed decision with a named owner. The offending run is not reproduced here, because that rule is not prose-exempt and quoting it fails the scan -- which this entry established by doing it. Recorded so the next author finds a diagnosis, not a mystery."
+    "ADDED 2026-10-08 BY A0 (/claude/a0_atlas), INCREMENT 'G1 freeze readiness' (G1/G2 plan section 2), STATUS STAYS in_review: evidence/WP-0A-CON-008/g1-freeze-readiness-2026-10-08.md assesses, at origin/main bd019c9c, each of the twelve contracts G1 consumes against its next freeze step. RESULT: NO CONTRACT MOVED, because none has every precondition met with evidence on main. (1) Candidate to Frozen v1 for CTR-TEN-001, CTR-ERR-001, CTR-API-001, CTR-IDM-001, CTR-EVT-001, CTR-JOB-001, CTR-MOD-001 and CTR-FLG-001 is blocked for all eight by G0 not having passed (Decision Register 1.2 and 5.1 define Frozen v1 as a contract that has passed G0; G0-024 is blocked; WP-0A-A0-010, the G0 exit record, does not exist on main), and in addition per contract by the items the record names with their owners, among them the missing CTR-TEN-001 scope matrix, the CTR-JOB-001 tenant_context restatement owed by WP-0A-CON-001 after migration 174, and CTR-MOD-001's CS-1 handle-syntax RFC and CS-2 length non-composability with CTR-SEC-001 (A0 + A1). (2) Draft to Candidate v1: CTR-SEC-001 lacks A1's promotion signature (A1: 'not a co-owner signature promoting CTR-SEC-001'); CTR-AUD-001 and CTR-OBS-001 lack A6's countersignature of the fourteen 2026-10-07 bound values (WP-0A-CON-004 open_blockers[17]) and CTR-OBS-001 module.implementation_version is unbounded (open_blockers[18]); CTR-NTF-001 lacks A5's ratification and stays outside this package's scope. The Owner's 2026-10-08 approval of the plan is not recorded on main and was not relied on; it could not in any case supply a co-owner signature or pass G0. No status, schema, fixture, version or owner changed."
   ],
   "rollback_or_forward_fix": "Revert through a reviewed revert PR. Reverting restores a comparison point that is main whenever a branch has merged main into itself, which leaves check:handoff red with 'on no path to this branch' and refresh:handoff refusing to rewrite it -- so a reverted branch must be kept linear, as batch 040's was.",
   "recommended_next_work_packages": [
-    "None. This is the top of the stack; the next actions are the Product Owner dispositions listed in OVERNIGHT-SUMMARY.md and RFC-2026-010."
+    "WP-0A-CON-004: an increment for A6's countersignature of the four CTR-AUD-001 and ten CTR-OBS-001 bound values and the CTR-OBS-001 implementation_version bound, with an A1 promotion signature on CTR-SEC-001; then the Product Owner's RFC-2026-010 disposition for those three.",
+    "WP-0A-A0-010: the G0 exit record, without which no contract can be Frozen.",
+    "WP-0A-CON-001: the CTR-TEN-001 scope matrix and bounds, the CTR-JOB-001 tenant_context restatement and bounds, and the API/IDM/EVT x-amended-by records."
   ],
   "reviewer_instructions": [
+    "2026-10-08 increment: read evidence/WP-0A-CON-008/g1-freeze-readiness-2026-10-08.md. Check each 'blocked by' citation against main bd019c9c, and check that no file under contract-catalog/ or any status changed (git diff origin/main --stat).",
     "Read evidence/WP-0A-CON-008/ first: it records what was verified, what was refused and why, and the independent findings that corrected this package.",
     "Ten independent verification runs were dispatched against this stack. The first eight each shipped an untested business rule past every guard; the ninth and tenth could not, after roughly 22,000 and 9,350 mutations respectively, but each still found real defects elsewhere. Assume an eleventh exists.",
     "Attack the guards rather than reading them. Every defect found so far came from execution and none from reading.",
