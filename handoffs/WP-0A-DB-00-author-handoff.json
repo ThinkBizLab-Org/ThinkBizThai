@@ -5,12 +5,14 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "f1bb62021d36bc926f39d1973fb983074d5c24cf",
-  "head_revision_or_patch_checksum": "2e0d462b3686f2c52f1f09aad25653c1fb77083c",
+  "head_revision_or_patch_checksum": "26427333da2b2babdf00b36b378098a2c51d81a4",
   "task_ids": [],
   "files_added": [
+    "evidence/WP-0A-DB-00/light-path-reading-2026-10-08-pr219.md",
     "evidence/WP-0A-DB-00/records-transcription-2026-10-08-pr211.md"
   ],
   "files_modified": [
+    "handoffs/WP-0A-DB-00-author-handoff.json",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
@@ -53,10 +55,11 @@
   "known_limitations": [
     "C0, A1 and Q0 final-round words for PR #211 are owed; some source paths were rewritten later (R-17) and need commit-pinned sources.",
     "R-17 (pin RFC-2026-025 line 348 citation to 454f6935) is an RFC edit, not made here.",
-    "C0-218-3 (advisory) stays recorded in PR #218."
+    "C0-218-3 (advisory) stays recorded in PR #218.",
+    "LP219-1 (C0 advisory, not fixed: a content commit would void the reading): the closing sentence of the [203] append, after R0’s verbatim words, is A0’s, not R0’s (\"C0’s, A1’s and Q0’s final-round words for PR #211 are not transcribed here; each stays owed from its own role file.\"); the next DB-00 records PR may mark it as A0’s."
   ],
   "open_risks_or_blockers": [
-    "Records light path: one independent reading by C0 (R0 is the subject). A0 presses under RFC-2026-025 §6.2 item 3 once bootstrap is green on the final head, pinned with --match-head-commit."
+    "Records light path: C0 read 8b4425f1 (evidence/WP-0A-DB-00/light-path-reading-2026-10-08-pr219.md, carried with -x): no blocking finding. A0 presses under RFC-2026-025 §6.2 item 3 once bootstrap is green on the final head, pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: revert; records only.",
   "recommended_next_work_packages": [
