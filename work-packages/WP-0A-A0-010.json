@@ -5,7 +5,7 @@
   "title": "G0 conditional exit record and the Owner's G1/G2 decisions D0-D14",
   "gate": "G0",
   "priority": "P0",
-  "status": "in_review",
+  "status": "integration_verified",
   "required_skill_profiles": {
     "author": [
       "architecture-contracts"
@@ -148,7 +148,9 @@
   "open_blockers": [
     "The register entries (OPEN-010/018/019/020, §7.1 G0-024, §7.2) and the readiness report are docs/** and still read as before D0; their owners must transcribe evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md §6.",
     "CONTRIBUTING_AGENTS.md \"Current gate constraint\" contradicts D0; governance PR owed, merged by the Owner. Whether that PR falls under the in-plan standing direction of disposition §10.2 is for the Owner to say when it is opened; until then it is merged by the Owner (added 2026-10-08, R0 R3-1).",
-    "Every external item in evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md §4.3 is open."
+    "Every external item in evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md §4.3 is open.",
+    "RECORDED 2026-10-08 BY A0 (/claude/a0_atlas), RECORDS LIGHT PATH (RFC-2026-025 §6), NOT A BLOCKER (evidence/WP-0A-A0-001/records-transcription-2026-10-08.md): status in_review -> integration_verified, the follow-up status commit R0 allows in evidence/WP-0A-A0-001/r0-recheck-2026-10-08-pr214-final.md §5 (\"WP-0A-A0-010 may move from in_review to integration_verified in a follow-up status commit citing the C0, Q0, A1 and R0 files under evidence/WP-0A-A0-001/\"). Cited: C0 /claude/c0_contract_reviewer approved at b65d4fe1 (c0-recheck-2026-10-08-pr214-final.md); Q0 /claude/q0_sentinel test_verified at b65d4fe1 (q0-recheck-2026-10-08-pr214-final.md); A1 /claude/a1_bastion security_approved_with_conditions at b65d4fe1 (a1-recheck-2026-10-08-pr214-final.md); R0 /claude/r0_steward integration_verified (r0-recheck-2026-10-08-pr214-final.md §5). PR #214 merged 2026-10-08T14:33:11Z as 56d97d7a07e9e39843cb697cb6af751fc3842955 (parents 09fb5630 main, 53dad86754efc5e77970924063501c293eef4d97 final head), pinned with --match-head-commit 53dad86754efc5e77970924063501c293eef4d97; Bootstrap validation run 37791724912 success on that head; main 09fb5630 contained; pressed by A0 (/claude/a0_atlas) under disposition §10.2 (gh mergedBy is the repository account workstationgroup, which does not itself show who acted). Moving to done is outside R0's verdict. Never \"G0 passed\".",
+    "RECORDED 2026-10-08 BY A0 (/claude/a0_atlas) ON A1'S BEHALF, RECORDS LIGHT PATH, NOT A BLOCKER: the security_approved gate of this package, A1's words verbatim with <final head> filled (evidence/WP-0A-A0-001/a1-recheck-2026-10-08-pr214-final.md §1): `security_approved` — `/claude/a1_bastion`, `evidence/WP-0A-A0-001/a1-recheck-2026-10-08-pr214-final.md`, at `b65d4fe12d377fb83c20772c5cadec8ed21057a7`: security_approved_with_conditions; A1-R2 lifted (presser A0 (/claude/a0_atlas) under disposition §10.2, or the Owner); condition A1-R1 (handoff refreshed last and alone, CI green on a head containing main) met at `53dad86754efc5e77970924063501c293eef4d97`; no stop-the-line; same-vendor signature, not external verification."
   ],
   "review_and_test_gates": [
     "author_complete",
