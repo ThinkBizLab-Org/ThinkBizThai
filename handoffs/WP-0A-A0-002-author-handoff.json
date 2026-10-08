@@ -5,16 +5,19 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "1940d7beb1039fa02252bbb5233b7ee539565f2b",
-  "head_revision_or_patch_checksum": "bc198bd178b04efc07cb398b26766d8e1372ab87",
+  "head_revision_or_patch_checksum": "671256a65a51a0007ff285c905c48b355255e030",
   "task_ids": [
     "WP-0A-A0-002",
     "G0-step-2"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-002/a1-recheck-2026-10-09.md",
     "evidence/WP-0A-A0-002/a1-review-2026-10-09.md",
     "evidence/WP-0A-A0-002/c0-recheck-2026-10-09.md",
+    "evidence/WP-0A-A0-002/c0-recheck-2026-10-09b.md",
     "evidence/WP-0A-A0-002/light-path-reading-2026-10-09.md",
     "evidence/WP-0A-A0-002/q0-test-2026-10-09.md",
+    "evidence/WP-0A-A0-002/q0-test-2026-10-09b.md",
     "evidence/WP-0A-A0-002/r0-ruling-2026-10-09.md",
     "evidence/WP-0A-A0-002/records-transcription-2026-10-09.md"
   ],
@@ -43,9 +46,9 @@
   ],
   "tests": [
     {
-      "command": "npm run check (Q0, on the branch name at 258ff248)",
+      "command": "npm run check (Q0, on the branch name at fe8d0b22)",
       "exit_code": 0,
-      "result": "735 tests, 735 pass (evidence/WP-0A-A0-002/q0-test-2026-10-09.md); restated by Q0 on the final head"
+      "result": "735 tests, 735 pass (evidence/WP-0A-A0-002/q0-test-2026-10-09b.md)"
     },
     {
       "command": "node scripts/commit-when-clean.mjs <message-file> (this refresh)",
@@ -69,7 +72,7 @@
     "R5 for WP-0A-DB-00 is owed on that package’s branch."
   ],
   "open_risks_or_blockers": [
-    "Full path, not governance. Carried: C0 light-path reading (blocked, superseded), C0 re-check review_approved (A and B), A1 security_approved, R0 integration_conditional with conditions 1-6 (r0-ruling-2026-10-09.md §4), Q0 test_verified at 258ff248. bc198bd1 applies R0’s §5 sentence edits to [13] and [14], so C0 (short re-read), A1 (carry voided by a manifest edit) and Q0 (new head) read the final head. Then A0 presses under the Owner’s standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), CI green on the exact head, pinned with --match-head-commit."
+    "Full path, not governance. Final-head readings at fe8d0b22, carried with -x: C0 review_approved (c0-recheck-2026-10-09b.md), A1 security_approved, no condition (a1-recheck-2026-10-09.md; R19 not a security finding), Q0 test_verified 735/735 on the branch name (q0-test-2026-10-09b.md); R0 integration_conditional at 258ff248 with conditions 1-6 (r0-ruling-2026-10-09.md §4), the commits since being those conditions. A0 presses under the Owner’s standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once bootstrap is green on this exact head, pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert returns WP-0A-A0-002 to in_review and reopens open_blockers[9] and [13] as their old text; no code, digest or external state is involved.",
   "recommended_next_work_packages": [
