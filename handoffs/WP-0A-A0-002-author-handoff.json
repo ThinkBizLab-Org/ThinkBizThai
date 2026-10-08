@@ -5,15 +5,21 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "1940d7beb1039fa02252bbb5233b7ee539565f2b",
-  "head_revision_or_patch_checksum": "b3f827bcf33cb46958d7e2a44faf74405dec9285",
+  "head_revision_or_patch_checksum": "bc198bd178b04efc07cb398b26766d8e1372ab87",
   "task_ids": [
     "WP-0A-A0-002",
     "G0-step-2"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-002/a1-review-2026-10-09.md",
+    "evidence/WP-0A-A0-002/c0-recheck-2026-10-09.md",
+    "evidence/WP-0A-A0-002/light-path-reading-2026-10-09.md",
+    "evidence/WP-0A-A0-002/q0-test-2026-10-09.md",
+    "evidence/WP-0A-A0-002/r0-ruling-2026-10-09.md",
     "evidence/WP-0A-A0-002/records-transcription-2026-10-09.md"
   ],
   "files_modified": [
+    "handoffs/WP-0A-A0-002-author-handoff.json",
     "work-packages/WP-0A-A0-002.json"
   ],
   "files_deleted": [],
@@ -25,7 +31,7 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT is the post-merge record of PR #204 on the records light path (RFC-2026-025 §6): R0 words from evidence/WP-0A-A0-002/r0-recheck-2026-10-08.md §5 transcribed; status in_review -> integration_verified; see evidence/WP-0A-A0-002/records-transcription-2026-10-09.md.",
+    "THIS INCREMENT is the post-merge record of PR #204 (PR #220). It began on the records light path; C0 blocked it (light-path-reading-2026-10-09.md B1, B2), so R0’s ruling and C0’s re-check of 56e47b22 were carried and the PR takes the FULL path (C0, A1, Q0, R0). R0 words from evidence/WP-0A-A0-002/r0-recheck-2026-10-08.md §5 transcribed; status in_review -> integration_verified; see evidence/WP-0A-A0-002/records-transcription-2026-10-09.md.",
     "The presser of PR #204 (A0) is A0’s record; gh mergedBy shows only the repository account."
   ],
   "acceptance_results": [
@@ -37,7 +43,12 @@
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (on branch agent/claude/WP-0A-A0-002-contract-test-coverage-2026-10-07)",
+      "command": "npm run check (Q0, on the branch name at 258ff248)",
+      "exit_code": 0,
+      "result": "735 tests, 735 pass (evidence/WP-0A-A0-002/q0-test-2026-10-09.md); restated by Q0 on the final head"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs <message-file> (this refresh)",
       "exit_code": 0,
       "result": "see this commit"
     },
@@ -51,12 +62,14 @@
   "migration_and_data_impact": "None.",
   "compatibility_impact": "None. No code, test or generated file changes.",
   "known_limitations": [
-    "open_blockers[10] and [11] stay open (R0).",
-    "R5 for WP-0A-DB-00 is owed on that package’s branch.",
-    "The reader is asked to judge two items flagged in evidence/WP-0A-A0-002/records-transcription-2026-10-09.md §2: the #210 merge under R0 condition 2, and C0’s approved_with_conditions at the final head."
+    "open_blockers[10] and [11] stay open (R0). A1 N5 (Low) to be named in [11] at its next edit (C0 A2, A1).",
+    "R19 (R0, process, recorded not excused): PR #204 was pressed before R0 condition 2 and C0 condition 4 re-checks existed; harmless as measured afterwards (r0-ruling-2026-10-09.md).",
+    "R22 (advisory): records-transcription-2026-10-09.md §2 item 2 does not say the integrity manifest moved; [13] and [14] now say so.",
+    "A5 (C0): [13] older text dates the overnight words 2026-10-07/08; their source says 2026-10-06 night. For a later records edit.",
+    "R5 for WP-0A-DB-00 is owed on that package’s branch."
   ],
   "open_risks_or_blockers": [
-    "Records light path: one independent reading by C0 (R0 is the subject). A0 presses under RFC-2026-025 §6.2 item 3 once bootstrap is green on the final head, pinned with --match-head-commit."
+    "Full path, not governance. Carried: C0 light-path reading (blocked, superseded), C0 re-check review_approved (A and B), A1 security_approved, R0 integration_conditional with conditions 1-6 (r0-ruling-2026-10-09.md §4), Q0 test_verified at 258ff248. bc198bd1 applies R0’s §5 sentence edits to [13] and [14], so C0 (short re-read), A1 (carry voided by a manifest edit) and Q0 (new head) read the final head. Then A0 presses under the Owner’s standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), CI green on the exact head, pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert returns WP-0A-A0-002 to in_review and reopens open_blockers[9] and [13] as their old text; no code, digest or external state is involved.",
   "recommended_next_work_packages": [
@@ -68,5 +81,5 @@
     "Compare open_blockers as parsed JSON: [9] and [13] keep their old text whole; [14] matches R0 §5 verbatim; [15] quotes the Owner words from the DB-00 disposition §6 item 5.",
     "Run node scripts/db/classify-records-only.mjs origin/main <head>."
   ],
-  "superseded_by": "Earlier versions of this handoff described earlier heads, most recently 8a339c74; their text described the records-only round that reached main. This version describes the E4 code increment at the head it cites."
+  "superseded_by": "Earlier versions of this handoff described earlier heads, most recently 56e47b22 (the E4 code increment, merged in PR #204 at ae163ed8). This version describes the post-merge records increment of PR #220 at the head it cites."
 }
