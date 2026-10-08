@@ -68,7 +68,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/root/WP-0A-A0-001-repository-bootstrap",
+    "branch": "agent/root/WP-0A-A0-001-repository-bootstrap-2026-10-07",
     "amended_by": [
       {
         "work_package_id": "WP-0A-A0-002",
@@ -146,11 +146,11 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "work-packages/WP-0A-CON-002.json",
-        "work-packages/WP-0A-CON-003.json",
-        "work-packages/WP-0A-CON-006.json"
+        "test-kits/branch-identity.test.mjs",
+        "test-kits/integrity-manifest.json",
+        "work-packages/WP-0A-A0-010.json"
       ],
-      "rationale": "THIS INCREMENT (2026-10-05, /claude/a0_atlas acting as A0 Integration on the G0 records this package owns; the manifest's author_agent_run_id /root is unchanged) records the Product Owner's confirmation of G0 step 2 (`บืนยันขั้น 2`, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md) and corrects stale G0 records. It amends three manifests it does not own, open_blockers text only, and nothing else in them: the nine blockers evidence/WP-0A-A0-006/blocker-re-audit.md found CLOSED (CON-002 #01, #11, #12, #13; CON-003 #01, #04; CON-006 #01, #06, #11) are each re-verified at main @ 600b48b and closed IN PLACE with the original text kept, so no index any record cites moves: six with a CLOSED prefix, and three (CON-002 #01 and #13, CON-003 #04) with a PARTLY CLOSED prefix that keeps open, as an OPEN REMAINDER, what the re-audit did not close (C0 F2/F3, evidence/WP-0A-A0-001/c0-g0-records-review-2026-10-05.md). The three packages' Author is the same run (/claude/a0_atlas), but the re-audit said clearing them is each owner's act; this amendment is recorded so the branch-scope guard and a reviewer see it, and it is not record-only under RFC-2026-025 §5 item 1 (rewording an open blocker). Inside writable_paths: evidence/WP-0A-A0-001/**, evidence/g0-tracker-th.md, this manifest (open_blockers[1] closed in place; this field), and this package's author handoff."
+      "rationale": "THIS INCREMENT (2026-10-08, /claude/a0_atlas acting as A0 on the G0 records this package owns; author_agent_run_id /root is unchanged) records the Product Owner's G0 conditional exit and G1/G2 decisions (`รับตามแนะนำทั้งหมด รวม RFC-030 ด้วย ลุยเลย`, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md). Inside writable_paths: that file, evidence/g0-tracker-th.md, this manifest and this package's author handoff. Outside them, three paths. (1) It CREATES work-packages/WP-0A-A0-010.json, the package the Owner-approved plan §2 names for this record, which owns only itself and evidence/WP-0A-A0-010/**. CONTRIBUTING_AGENTS.md gives no package the right to create another's manifest; the record's files are this package's, so the record is written here and the new manifest is declared here (disposition §8). (2) test-kits/branch-identity.test.mjs (WP-0A-CON-008's file) pins every ownership.branch: this increment repoints this package's row to the -2026-10-07 slot in both lists and adds the new package's row, and nothing else in it; (3) test-kits/integrity-manifest.json, that file's digest, rebuilt by npm run regenerate:manifest. Precedent: ae3d289b moved WP-0A-A0-002's slot the same way. ownership.branch moves to the -2026-10-07 suffix because the unsuffixed local branch is checked out in the primary working copy and cannot be checked out in this worktree; the unsuffixed remote branch is merged into main at 51770475. status stays integration_verified, as at the 2026-10-05 increment: the bootstrap it certifies is unchanged, and this increment's review status is carried by WP-0A-A0-010 (in_review). This is a GOVERNANCE PR (a gate record, RFC-2026-025 §5 item 6): the Owner merges it. Presser of PR #214 (added 2026-10-08, R0 R3-1): A0 (/claude/a0_atlas), under the Owner's standing direction of 2026-10-08T10:21:21Z recorded in evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md §10.2, or the Owner."
     },
     "read_only_paths": [
       "README.md",
