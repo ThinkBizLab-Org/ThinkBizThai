@@ -4,77 +4,56 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "600b48b68092eb82d80c91ce0bc00d747cf1a7a4",
-  "head_revision_or_patch_checksum": "ef3c5549b91dc41fa6ae0e414b44021d737b5725",
+  "base_revision": "bd019c9cde305109aca4088d50f62109e4d9c2a4",
+  "head_revision_or_patch_checksum": "bd019c9cde305109aca4088d50f62109e4d9c2a4",
   "task_ids": [
     "WP-0A-A0-001",
-    "G0-step-2"
+    "WP-0A-A0-010",
+    "G0-conditional-exit"
   ],
-  "files_added": [
-    "evidence/WP-0A-A0-001/c0-g0-records-2026-10-05.md",
-    "evidence/WP-0A-A0-001/c0-g0-records-review-2026-10-05.md",
-    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md",
-    "evidence/WP-0A-A0-001/q0-g0-records-2026-10-05.md",
-    "evidence/WP-0A-A0-001/r0-g0-records-2026-10-05.md"
-  ],
-  "files_modified": [
-    "evidence/g0-tracker-th.md",
-    "handoffs/WP-0A-A0-001-author-handoff.json",
-    "work-packages/WP-0A-A0-001.json",
-    "work-packages/WP-0A-CON-002.json",
-    "work-packages/WP-0A-CON-003.json",
-    "work-packages/WP-0A-CON-006.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
-    "DEC-020",
-    "DEC-014",
-    "DEC-016",
-    "DEC-004",
-    "OPEN-001",
     "OPEN-002",
-    "OPEN-003",
-    "OPEN-004",
-    "OPEN-006",
-    "OPEN-007",
-    "OPEN-009",
+    "OPEN-010",
     "OPEN-011",
-    "OPEN-012",
-    "OPEN-014",
-    "OPEN-016",
-    "OPEN-017",
+    "OPEN-018",
+    "OPEN-019",
+    "OPEN-020",
+    "RFC-2026-001",
+    "RFC-2026-011",
+    "RFC-2026-017",
     "RFC-2026-024",
-    "RFC-2026-025"
+    "RFC-2026-025",
+    "RFC-2026-028"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "WRITER DISCLOSURE: this increment was written by /claude/a0_atlas (A0 Integration), a subagent of the Author run. The agent_run_id field reads /root because test-kits/handoff-conformance.test.mjs requires it to equal the manifest author_agent_run_id of WP-0A-A0-001, which this increment does not change. /root did not write it.",
-    "THIS INCREMENT records the Product Owner's reply of 2026-10-05, `บืนยันขั้น 2` (a typo for ยืนยันขั้น 2, \"confirm step 2\"), to the fourteen items of A0's step-2 message, in evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md, and corrects stale G0 records. The disposition quotes the message as sent (Thai, verbatim) with an English translation, and A0 reads the reply as confirming the fourteen items as the message words them and no more. A0's earlier draft recorded fifteen items, overstating what the Owner was shown (an OPEN-001 pricing item never sent; feature-flag, minimum-retention and 'Thai' qualifiers); C0 F1 caught it and this increment corrects it.",
-    "The branch is the one WP-0A-A0-001 already declares (ownership.branch), so no branch slot, pinned test line or integrity manifest moves.",
-    "docs/** is read-only to this package; CONTRIBUTING_AGENTS.md and RFC-2026-002 are governance (RFC-2026-025 §5 item 6). None is edited; what each needs is listed in the disposition §5.",
-    "Not record-only under RFC-2026-025 §5: item 1 excludes Owner dispositions and blocker rewording, and item 5's mechanical check does not exist in scripts/."
+    "WRITER DISCLOSURE: this increment was written by /claude/a0_atlas (A0), a subagent of the Author run. The agent_run_id field reads /root because test-kits/handoff-conformance.test.mjs requires it to equal the manifest author_agent_run_id of WP-0A-A0-001, which this increment does not change. /root did not write it.",
+    "THIS INCREMENT records the Product Owner's reply of 2026-10-08T06:31:21Z, `รับตามแนะนำทั้งหมด รวม RFC-030 ด้วย ลุยเลย`, to A0's message of 06:18:11Z asking whether to accept D0-D14 of the G1/G2 plan as recommended and RFC-030. The plan file is outside the repository; it was sent with SendUserFile at 06:17:54Z and its sha256 (7cabce38...) is recorded. The disposition quotes the message verbatim and copies the plan's D0-D14, §2 and §6 tables verbatim. A0 reads the reply as accepting each recommendation exactly as worded, and no more: choices a recommendation leaves for later (D8's provider brand, D7's A1 measurement, D6's operational limits) are recorded as not decided.",
+    "D0 is recorded as a G0 conditional exit under the readiness report's pass rule (sprint-0a-g0-readiness-report-th.md:190), each external item bound to the gate it blocks, with the constraint: no production customer data until legal/PDPA passes. No external item is represented as done. The register's stricter §7.2 pass rule (items 2, 6, 8) was not addressed by D0; A0's reading that items 2 and 6 become conditions on G1 work is recorded as A0's.",
+    "WP-0A-A0-010 (named by the plan's §2) is created as a manifest at in_review owning only itself and evidence/WP-0A-A0-010/**; the record's files are this package's (tracker, G0 evidence), so they are written here. CONTRIBUTING_AGENTS.md grants no package the right to create another's manifest; the creation is declared under ownership.amends_without_owning (disposition §8).",
+    "ownership.branch moves to agent/root/WP-0A-A0-001-repository-bootstrap-2026-10-07: the unsuffixed local branch is checked out in the primary working copy, and its remote is merged into main at 51770475. The two pinned rows in test-kits/branch-identity.test.mjs (WP-0A-CON-008's file) move with it and the new package's row is added; test-kits/integrity-manifest.json is rebuilt.",
+    "docs/** is read-only to this package; CONTRIBUTING_AGENTS.md (its \"Current gate constraint\" now contradicts D0) and RFC-2026-029/030 are governance. None is edited or written here; disposition §6 lists each owner."
   ],
   "acceptance_results": [
     {
-      "criterion": "Owner words transcribed verbatim with A0's message exactly as sent (14 items, Thai verbatim plus translation), and which OPEN-*/DEC-* each item closes only as far as its words go",
-      "result": "pass for author self-check: evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §1-§3; OPEN-001 pricing, OPEN-002 retention and OPEN-007 feature flag recorded as not decided by the Owner's words (C0 F1)"
+      "criterion": "The Owner's words and A0's message quoted verbatim; the plan's D0-D14 table copied faithfully",
+      "result": "pass for author self-check: evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md §1-§2.3"
     },
     {
-      "criterion": "DEC-020 vs master-plan DEC-07 payment conflict resolved in the register's favour",
-      "result": "pass for author self-check: disposition §3 item 4; Beta entitlement source under CONTRIBUTING_AGENTS.md:45 left open for the Owner"
+      "criterion": "Each D-item listed with its recommendation as now decided, and what it does not decide",
+      "result": "pass for author self-check: disposition §3"
     },
     {
-      "criterion": "Nine blockers evidence/WP-0A-A0-006/blocker-re-audit.md found closed are closed in their manifests with a citation",
-      "result": "pass for author self-check: each re-verified at main 600b48b and closed in place (CON-002 #01 #11 #12 #13, CON-003 #01 #04, CON-006 #01 #06 #11), original text kept; CON-002 #01, CON-002 #13 and CON-003 #04 are PARTLY CLOSED with their open remainder kept open (C0 F2/F3)"
+      "criterion": "G0 tracker updated per D0: approved fallback under the readiness report pass rule, each external item bound to its gate, no production customer data until legal/PDPA passes; no external item claimed done",
+      "result": "pass for author self-check: evidence/g0-tracker-th.md header, checklist rows, G0-024 row, section \"G0 ทางออกแบบมีเงื่อนไข (D0)\""
     },
     {
-      "criterion": "Protected-CI contradictions corrected against a live read",
-      "result": "pass for author self-check: gh api .../branches/main/protection read 2026-10-05 (strict, bootstrap, enforce_admins); evidence/g0-tracker-th.md rows and WP-0A-A0-001 open_blockers[1] corrected; CONTRIBUTING_AGENTS.md:61-79 and the RFC-2026-002 status line recorded, not edited"
-    },
-    {
-      "criterion": "Tracker product-reviewer explanation replaced by \"role verdicts missing\"; G0-001..024 status table recorded",
-      "result": "pass for author self-check: evidence/g0-tracker-th.md, section G0 ขั้น 2"
+      "criterion": "OPEN-010/018/019/020 recorded as decided by D8/D1/D6/D10 in evidence, register not edited, its owner named",
+      "result": "pass for author self-check: disposition §5 and §6; tracker OPEN table"
     }
   ],
   "tests": [
@@ -104,33 +83,30 @@
       "result": "required check bootstrap, strict true, enforce_admins true, force push and deletion disallowed, conversation resolution required, no required pull-request review"
     }
   ],
-  "security_privacy_cost_impact": "None. Records only: no code, schema, migration, contract, CI, credential or customer data. A JWT-shaped probe for CON-002 #13 was built in memory with synthetic content and never written to disk.",
+  "security_privacy_cost_impact": "None. Records only: no code, schema, migration, contract, CI, credential or customer data. The decisions recorded bind future cost (Supabase Pro x2, Vercel Pro, Sentry, an email provider) but nothing is provisioned.",
   "migration_and_data_impact": "None. No database migration, RLS change, object-storage operation or external state change.",
-  "compatibility_impact": "No contract changes. Three other packages' manifests change open_blockers text only (closed in place, no index moves), recorded in WP-0A-A0-001 ownership.amends_without_owning.",
+  "compatibility_impact": "No contract changes. One new manifest (WP-0A-A0-010); WP-0A-A0-001's branch slot moves to the -2026-10-07 suffix with its two pinned test rows.",
   "known_limitations": [
-    "Decision 1 (RFC-2026-024 extended to 15 packages) is recorded but not applied to the 15 manifests' independence fields.",
-    "Decision 2 names /claude/r0_steward as successor; every acknowledgement recorded against /root/r0_steward stays pending until that run gives it.",
-    "OPEN-004 model id and ceiling, OPEN-006 size cap and A6 metric C-01's single formula are still owed.",
-    "Not decided by the Owner's words: OPEN-001 pricing (never proposed; only manual invoice, no automatic charging, Stripe after G0 was), including its pricing draft due before G0; OPEN-002 retention (only the Singapore region was proposed); OPEN-007's feature flag (only video/Reel to P1 was proposed).",
-    "Open remainders kept open: CON-002 #01 (no required pull-request review; retiring RFC-2026-002 needs an RFC), CON-002 #13 (CTR-TEN-001 actor.id admits a JWT-shaped value; owed to WP-0A-CON-001), CON-003 #04 (nested required lists unmeasured).",
-    "The register, master plan, readiness report, CONTRIBUTING_AGENTS.md and RFC-2026-002 status line still carry the superseded text.",
-    "The G0 status table is A0's reading of the tree, not an independent verification."
+    "Every external item (entity/domain, Supabase/Vercel accounts, Meta verification and MTA-002/003, legal/PDPA, email provider, usability, pilot consent, accountant, skincare reviewer, storage pricing/restore) is open.",
+    "The register (OPEN-010/018/019/020, §7.1, §7.2), the readiness report and CONTRIBUTING_AGENTS.md \"Current gate constraint\" still carry pre-D0 text; their owners must transcribe (disposition §6).",
+    "RFC-2026-029 (D1) and RFC-2026-030 (accepted proposal) are not written; until they are approved no dependency may be added and the four-role rule applies unchanged.",
+    "WP-0A-DB-00.required_human_authorities[0] still reads as an open service-path choice; closing it per D5 is that package's edit.",
+    "Placing WP-0A-A0-010's record under WP-0A-A0-001 is A0's reading of the guide (disposition §8); a reviewer may require the manifest to move to its own branch."
   ],
   "open_risks_or_blockers": [
-    "The Beta payment entitlement source under manual invoicing is undefined against CONTRIBUTING_AGENTS.md:45 (Owner + security owner).",
-    "OPEN-008 (Meta App Review path) remains open; it was not in the step-2 list.",
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending."
+    "This is a GOVERNANCE PR (a gate record): D0 as accepted and RFC-2026-025 §5 item 6 both say the Owner merges it personally; the Owner's earlier `ให้ A0 กดเอง` named a different PR.",
+    "The register §7.2 G0 pass rule (Frozen v1 for first-slice contracts, wireframes, the PO and A0 status sign-off) is stricter than the rule D0 invoked; WP-0A-CON-008 must freeze the G1 contracts before implementation (register line 190)."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores the previous records; no persisted data or external state is involved.",
   "recommended_next_work_packages": [
-    "Role runs on this PR (C0 review of the disposition and the nine closures; Q0 re-measure of each closure; R0 integration), since it is not record-only under RFC-2026-025 §5.",
-    "Apply decision 1 to the 15 manifests and close their cross-vendor blocker lines, citing evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md.",
-    "/claude/r0_steward gives or refuses the pending acknowledgements it now holds.",
-    "Re-verification of CON-005, A0-004, A0-005 and CON-007 first, per the G0 survey step 3."
+    "Role runs on this PR (C0 on the disposition against the plan file and the transcript; Q0 re-measure of every citation; R0 integration); it is not record-only under RFC-2026-025 §5/§6.",
+    "The Owner merges this PR personally.",
+    "WP-1A-A0-001: RFC-2026-029 (stack, dependency allowlist, lockfile policy); RFC-2026-030 (risk-tiered review) as a governance PR; a governance PR updating CONTRIBUTING_AGENTS.md \"Current gate constraint\".",
+    "WP-0A-CON-008: freeze CTR-TEN/ERR/API/IDM/EVT/JOB/MOD/FLG to Frozen v1; WP-0A-DB-00: triage open_blockers and close required_human_authorities[0] per D5."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md first, then the \"G0 ขั้น 2\" section of evidence/g0-tracker-th.md.",
-    "Diff 600b48b..a3d61f3; check each CLOSED prefix against the cited file and line at that head, and that every original blocker text is kept after \"Text as recorded:\".",
-    "Re-read branch protection yourself, read-only, before relying on the corrected protected-CI rows."
+    "Read evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md first, then the section \"G0 ทางออกแบบมีเงื่อนไข (D0)\" of evidence/g0-tracker-th.md.",
+    "Compare §2.1-§2.3 byte for byte with /Users/bank/ThinkBizThai/.claude/g1-g2-plan-2026-10-08.md (sha256 7cabce388122f4d0497698b87df6c60686d244d88e2eb3d10f33afb1206e73e2), and §1.1/§2 with session 27edf3de at 06:18:11Z and 06:31:21Z.",
+    "Check that no row anywhere represents an external item as done, and that each OPEN closure goes no further than its D-item's words."
   ]
 }

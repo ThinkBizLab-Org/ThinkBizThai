@@ -73,7 +73,7 @@ test('every branch in this repository resolves to exactly one package', async ()
   // Against the real manifests: the declarations must actually be consistent.
   const branches = new Map();
   for (const ref of [
-    'agent/root/WP-0A-A0-001-repository-bootstrap',
+    'agent/root/WP-0A-A0-001-repository-bootstrap-2026-10-07',
     'agent/root/WP-0A-CON-001-contract-catalog',
     'agent/claude/WP-0A-A0-002-contract-test-coverage-2026-10-07',
     'agent/claude/WP-0A-CON-008-merge-parent-order',
@@ -115,7 +115,7 @@ test('a package that declares a branch is not still in backlog', async () => {
 //
 // The whole mapping is pinned. Repointing a branch is a diff line in this table too.
 const BRANCH_OWNERSHIP = {
-  'agent/root/WP-0A-A0-001-repository-bootstrap': 'WP-0A-A0-001',
+  'agent/root/WP-0A-A0-001-repository-bootstrap-2026-10-07': 'WP-0A-A0-001',
   'agent/claude/WP-0A-A0-002-contract-test-coverage-2026-10-07': 'WP-0A-A0-002',
   'agent/claude/WP-0A-A0-003-secret-scan-2026-10-07': 'WP-0A-A0-003',
   'agent/claude/WP-0A-A0-004-ci-independent-guard-step': 'WP-0A-A0-004',
@@ -134,6 +134,7 @@ const BRANCH_OWNERSHIP = {
   'agent/claude/WP-0A-DB-00-batch-rfc-025-records-path': 'WP-0A-DB-00',
   'agent/claude/WP-0A-A0-008-service-path': 'WP-0A-A0-008',
   'agent/claude/WP-0A-A0-009-service-path-corrected': 'WP-0A-A0-009',
+  'agent/claude/WP-0A-A0-010-g0-conditional-exit': 'WP-0A-A0-010',
 };
 
 test('the whole branch-to-package mapping is pinned, not four rows of it', async () => {

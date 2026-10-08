@@ -1,8 +1,11 @@
 # G0 Evidence Tracker — ThinkBizThai
 
-สถานะ ณ วันที่ 2026-10-05 (ตรวจกับ `main @ 600b48b`): **Specification Baseline Complete / External
-Verification Pending** — การตัดสินใจของ Product Owner ขั้น 2 เมื่อ 2026-10-05 และตารางสถานะ G0-001..024
-อยู่ในหัวข้อ "G0 ขั้น 2" ด้านล่าง
+สถานะ ณ วันที่ 2026-10-08 (ตรวจกับ `main @ bd019c9c`): **G0 ผ่านแบบมีเงื่อนไขด้วย approved fallback
+(Product Owner ตัดสิน D0, 2026-10-08)** — รายการภายนอกทุกข้อยัง **ไม่เสร็จ** และผูกกับ gate ที่มันขวางจริงแล้ว
+ข้อจำกัดบังคับ: **ห้าม production customer data จนกว่า legal/PDPA จะผ่าน** รายละเอียดอยู่ในหัวข้อ
+"G0 ทางออกแบบมีเงื่อนไข (D0)" ด้านล่าง และ [disposition 2026-10-08](WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md).
+สถานะเดิม (2026-10-05, `main @ 600b48b`): Specification Baseline Complete / External Verification Pending —
+การตัดสินใจขั้น 2 และตาราง G0-001..024 อยู่ในหัวข้อ "G0 ขั้น 2"
 
 Tracker นี้ทำหน้าที่เป็น index ของหลักฐานตาม
 `docs/sprint-0a/sprint-0a-g0-readiness-report-th.md` เท่านั้น ไม่ใช่แผนใหม่,
@@ -27,12 +30,12 @@ Tracker นี้ทำหน้าที่เป็น index ของหล�
 | Product Owner อนุมัติ DEC-01..16 | `complete for Sprint 0A baseline` | Product Owner | [Product Owner baseline approval](WP-0A-A0-001/product-owner-baseline-approval.md) บันทึกคำยืนยันของ Product Owner เมื่อ 2026-08-31; ไม่ใช่การอนุมัติ G0, production credential, legal/PDPA/accounting หรือ provider readiness |
 | Canonical guide, thin Codex/Claude adapters, protected CI | `complete` — ทั้งสามส่วนมีจริงและตรวจแล้ว | A0 + repository administrator | Product Owner เลือกเปิด repository เป็น **public** เมื่อ 2026-09-02 โดยรับผลที่แก้กลับไม่ได้ว่าอีเมลใน metadata ของคอมมิตทั้ง 301 รายการจะเป็นสาธารณะ. branch protection บน `main` ตั้งแล้ว: required status check `bootstrap` แบบ strict, `enforce_admins: true`, ห้าม force push, ห้ามลบ branch, ต้องปิด conversation ก่อน merge. **ทดสอบว่ากัดจริง ไม่ใช่แค่ตั้งค่า**: push ตรงเข้า `main` ถูกปฏิเสธด้วย `GH006: Protected branch update failed` / `Required status check "bootstrap" is expected` ทั้งที่ผู้ push เป็น admin. ไม่ได้ตั้ง required pull request review เพราะ Product Owner เป็นผู้สร้าง PR เอง GitHub ไม่อนุญาตให้ approve PR ของตนเอง การบังคับจะทำให้ทุก PR ตัน — บันทึกเป็นข้อจำกัดที่รู้ตัว ไม่ใช่การมองข้าม |
 | Capability benchmark และ agent IDs ทุก Ready package | `partial — สิ่งที่ขาดคือ role verdict ไม่ใช่ช่อง product reviewer` | A0 + role owners (C0/A1/Q0/R0) | **แก้ไข 2026-10-05.** ข้อความเดิม (2026-09-02) บอกว่า `product_reviewer_agent_run_id` ที่เป็น null ทำให้ 11 แพ็กเกจค้างที่ `in_review` — กลไกนั้นไม่จริง: `scripts/validate-work-package-role-separation.mjs:16-21,40-44` ตรวจเฉพาะ role id หลักสี่ตัว, `review_and_test_gates` ของ 15 แพ็กเกจไม่มีขั้น product (เช่น `work-packages/WP-0A-A0-002.json:242-248`) และ `WP-0A-A6-001` ถึง `integration_verified` ทั้งที่ช่องนี้เป็น null. Product Owner ยืนยันเมื่อ 2026-10-05 ว่า Product reviewer ไม่ใช้กับแพ็กเกจ tooling/contract ([disposition](WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md) ข้อ 3). **ที่ค้างจริงคือ role verdicts missing**: verdict ของ Reviewer/Tester/Security/Integration ที่หัวปัจจุบันยังไม่มี หรือเป็นลบ (ดูตารางรายแพ็กเกจใน "G0 ขั้น 2"). `.agents/capability-profiles/` มี declaration สำหรับ role run ปัจจุบัน และ CI validator ปฏิเสธ Ready-or-later manifest ที่อ้าง run โดยไม่มี declaration หรืออนุญาต external secret; ยังต้องมี benchmark/reference ที่ตรวจทักษะก่อนใช้เป็น G0 evidence (เงื่อนไข vendor diversity ถูกถอนโดย RFC-2026-024 และขยายไป 15 แพ็กเกจโดย disposition 2026-10-05 ข้อ 1) |
-| Meta app/pages/IG permissions ทดสอบด้วย credentials จริง | `open` | A6 + Security + Product | ต้องใช้ test app/accounts, redacted capability matrix และ external operation evidence; ห้ามเก็บ credentials ใน repository |
+| Meta app/pages/IG permissions ทดสอบด้วย credentials จริง | `open — ผูกกับ G2 (MCN-002 ขึ้นกับ MTA-002) และ G6 (App Review) ตาม D0` | A6 + Security + Product | ต้องใช้ test app/accounts, redacted capability matrix และ external operation evidence; ห้ามเก็บ credentials ใน repository |
 | Stripe Thailand sandbox, products/prices, signed webhook และ Portal | `deferred after G0 by Product Owner decision 2026-10-05` | A6 + Finance + Security | Beta ใช้ manual invoice ตาม DEC-020 ของ register; Stripe หลัง G0 ([disposition](WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md) ข้อ 4). การนับข้อนี้เป็น "approved fallback" ตาม pass rule เป็นการอ่านของ A0 ที่ต้องยืนยันใน G0-024. **คำถามเปิด:** `CONTRIBUTING_AGENTS.md:45` ให้ entitlement มาจาก verified Stripe webhook เท่านั้น — แหล่ง entitlement ของ Beta ที่ใช้ manual invoice ยังไม่มีใครกำหนด (Owner + security owner ผ่าน RFC). เมื่อเปิด Stripe: raw-body signature verification, duplicate/replay/out-of-order tests และ entitlement จาก verified webhook เท่านั้น |
-| Legal/PDPA/accounting: retention, VAT, invoice, refund, grace | `open` | Legal/PDPA specialist + accountant + Product Owner | ต้องเป็น approval จากผู้เชี่ยวชาญ ไม่รับการอนุมานจาก agent |
-| Thai SME non-tech usability อย่างน้อย 5 คน | `open` | Product Owner + A5 | A5 dry run ระบุว่าไม่มี UI/usability evidence ใน REP-00; ต้องมี consent-safe, moderated evidence ของ UX package |
-| Qualified skincare review สำหรับ claim rules/cases | `open` | Qualified skincare reviewer + Product/Brand | ต้องมีผู้เชี่ยวชาญจริงและ evidence ที่ redacted/permissioned ตาม policy |
-| Storage pricing/config, export/purge, restore drill | `open` | A4 + Security + Data/Operations owner | A4 review ยืนยันเฉพาะ guardrail; ต้องมี provider decision, exact-key purge/restore evidence และ lifecycle drill |
+| Legal/PDPA/accounting: retention, VAT, invoice, refund, grace | `open — legal/PDPA ผูกกับ G2; นักบัญชีผูกกับ G6 ตาม D0; ห้าม production customer data จนกว่า legal/PDPA ผ่าน` | Legal/PDPA specialist + accountant + Product Owner | ต้องเป็น approval จากผู้เชี่ยวชาญ ไม่รับการอนุมานจาก agent |
+| Thai SME non-tech usability อย่างน้อย 5 คน | `open — ผูกกับก่อน freeze ของ WP-1A-A5-002/003 ตาม D0` | Product Owner + A5 | A5 dry run ระบุว่าไม่มี UI/usability evidence ใน REP-00; ต้องมี consent-safe, moderated evidence ของ UX package |
+| Qualified skincare review สำหรับ claim rules/cases | `open — ผูกกับก่อน Pack 2 pilot (G3/G4) ตาม D0` | Qualified skincare reviewer + Product/Brand | ต้องมีผู้เชี่ยวชาญจริงและ evidence ที่ redacted/permissioned ตาม policy |
+| Storage pricing/config, export/purge, restore drill | `open — เลือก provider แล้ว (D10: Supabase Storage); pricing/purge/restore drill ผูกกับ G5/G6 ตาม D0` | A4 + Security + Data/Operations owner | A4 review ยืนยันเฉพาะ guardrail; ต้องมี provider decision, exact-key purge/restore evidence และ lifecycle drill |
 
 ## Co-owner review of the four jointly-owned contracts — 2026-09-02
 
@@ -180,7 +183,7 @@ CON-003 #04 (required list ที่ซ้อนใน subschema ยังไม
 | 021 Environment/CI/test strategy | partial (mostly) | `.github/workflows/ci.yml`; branch protection ตรวจสด 2026-10-05 | review env contract + evidence template | agents แล้ว PO |
 | 022 Vendor-neutral protocol | **done** | `WP-0A-A0-001` integration_verified; `CONTRIBUTING_AGENTS.md` | ข้อความล้าสมัย `CONTRIBUTING_AGENTS.md:61-79` (governance) | PO |
 | 023 Cross-agent dry run | **done** (protocol) | แถว Cross-vendor dry run ด้านบน | — | — |
-| 024 Risk acceptance/sign-off | not started | — | ทุกข้อด้านบน; checklist ที่ลงนามพร้อมเจ้าของ deferred risk | PO + A0; Security/QA |
+| 024 Risk acceptance/sign-off | **decided, conditional** (2026-10-08) | Owner ตัดสิน D0: ผ่านแบบ approved fallback ([disposition](WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md) §4) | Owner merge PR นี้เอง (D0); register §7.2 ข้อ 2/6/8 กลายเป็นเงื่อนไขของงาน G1 (การอ่านของ A0, disposition §4.2); รายการภายนอกทั้งหมดยังค้าง | PO; เจ้าของ register ถอดความ |
 
 นับแบบ done = 1, partial = 0.5: 2 done + 18 partial + 4 not started = 11/24 ≈ 46%.
 ตามมาตรฐานหลักฐานเข้ม (acceptance ครบพร้อมหลักฐานอิสระ) = 2/24.
@@ -202,3 +205,65 @@ CON-003 #04 (required list ที่ซ้อนใน subschema ยังไม
 | CON-006 | C0 `changes_requested`; Q0 with conditions; **ไม่มี A1** | A1; A5 ratify NTF; A6 บน USG |
 | CON-007 | C0 `changes_required`; A1, Q0 with conditions | fix, recheck, R0 |
 | CON-008 | คำตอบ author ต่อ review 22 รอบ; ไม่มีไฟล์ verdict แยก | ครบบทบาทที่หัวปัจจุบัน; A1/A6/A5 sign-off |
+
+---
+
+## G0 ทางออกแบบมีเงื่อนไข (D0) — การตัดสินใจของ Product Owner 2026-10-08
+
+บันทึกโดย `/claude/a0_atlas` (A0) ไม่ใช่ลายเซ็นของบทบาทใด. Product Owner ตอบ `รับตามแนะนำทั้งหมด รวม RFC-030 ด้วย ลุยเลย`
+(2026-10-08T06:31:21Z) ต่อข้อความของ A0 ที่ถามว่าจะรับ D0–D14 ตามคำแนะนำในแผน G1/G2 และ RFC-030 หรือไม่.
+ข้อความที่ส่งจริง ตารางตัดสินใจ D0–D14 แบบคำต่อคำ และสิ่งที่แต่ละข้อไม่ได้ตัดสิน อยู่ใน [disposition 2026-10-08](WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md).
+แพ็กเกจที่แผนตั้งชื่อไว้สำหรับบันทึกนี้คือ `WP-0A-A0-010` (`work-packages/WP-0A-A0-010.json`)
+
+### ผลของ D0
+
+- **G0 ผ่านด้วย approved fallback** ตาม pass rule ของ readiness report
+  (`docs/sprint-0a/sprint-0a-g0-readiness-report-th.md:190`: "external blocker ที่กระทบ P0 มีหลักฐานหรือ approved fallback").
+  fallback ของแต่ละรายการภายนอกคือการผูกกับ gate ที่มันขวางจริง (ตารางด้านล่าง) — gate นั้นคือ due gate และ stop condition
+- **ข้อจำกัดบังคับ: ห้าม production customer data จนกว่า legal/PDPA จะผ่าน** (stop condition ของ OPEN-002, register บรรทัด 111) ใช้ synthetic data เท่านั้น
+- **ไม่มีรายการภายนอกใดเสร็จ** บันทึกนี้ไม่อ้างว่าเสร็จ
+- **ที่ D0 ไม่ได้พูดถึง:** pass rule ของ register §7.2 (บรรทัด 360-372) เข้มกว่า — ข้อ 2 (contract ที่ First Slice ใช้ต้อง Frozen v1; ยังไม่มีฉบับใด Frozen),
+  ข้อ 6 (wireframe ทุก core flow; G0-004 partial), ข้อ 8 (PO และ A0 ลง Approved). A0 อ่านว่าข้อ 2 และ 6 กลายเป็นเงื่อนไขของงาน G1 ที่ใช้มัน
+  (`WP-0A-CON-008` ต้อง freeze ก่อน implementation ตาม register บรรทัด 190) — **การอ่านนี้เป็นของ A0** เจ้าของ register ต้องถอดความ หรือ Owner แก้
+- `CONTRIBUTING_AGENTS.md` หัวข้อ "Current gate constraint" ยังเขียนว่า G0 ยังไม่ผ่าน — เป็น governance ต้องแก้ผ่าน PR ที่ Owner merge เอง ไม่แก้ในที่นี้
+
+### รายการภายนอก ผูกกับ gate ที่ขวางจริง (แผน §6)
+
+| รายการภายนอก | ขวาง gate | stop condition ระหว่างรอ | เสร็จ? |
+|---|---|---|---|
+| นิติบุคคล โดเมน DNS (D14) | G1 (email), G2 (Meta, privacy URL) | ห้ามสร้าง email sender, Meta app, privacy URL | ไม่ |
+| Supabase Pro (สิงคโปร์ 2 project), Vercel Pro, 2FA, secret ใน GitHub | G1 | ห้าม provision; agent สร้างบัญชีหรือใส่ credential แทนไม่ได้ | ไม่ |
+| Meta: Business Verification, developer app, test Page + IG Professional, MTA-002/003 ด้วย credential จริง | G2 (MCN-002 ขึ้นกับ MTA-002), G6 (App Review) | ห้าม publishing จริง; fake adapter เท่านั้น | ไม่ |
+| ที่ปรึกษากฎหมาย/PDPA: privacy notice, terms, data-deletion, DPA | **G2** | **ห้าม production customer data** | ไม่ |
+| Email provider + SPF/DKIM/DMARC (D8) | G2 (OTP/invite) | ห้าม production email | ไม่ |
+| Usability SME 5 ราย บน prototype | ก่อน freeze ของ WP-1A-A5-002/003 | token/component ทำแบบแก้กลับได้เท่านั้น | ไม่ |
+| Consent ของ 5 pilot workspace (OPEN-011) | G2 pilot | synthetic fixtures เท่านั้น | ไม่ |
+| นักบัญชี | G6 | ห้ามสรุป tax/refund/retention เป็น final | ไม่ |
+| ผู้ตรวจด้านสกินแคร์ | ก่อน Pack 2 pilot (G3/G4) | ห้ามถือว่า claim rules ผ่านการตรวจ | ไม่ |
+| ราคา storage และ restore drill | G5/G6 (D10 ปิดแค่การเลือก provider) | ห้ามอ้าง storage SLA | ไม่ |
+| Stripe Thailand | เลื่อนหลัง G0 ตามขั้น 2 ข้อ 4; Beta ใช้ manual invoice | ห้ามขาย Paid Beta ผ่าน Stripe | ไม่ (deferred) |
+
+### OPEN-010/018/019/020 — ตัดสินเท่าที่ถ้อยคำของ D ไปถึง (register ยังไม่ได้แก้; `docs/**` read-only)
+
+| OPEN | ตัดสินโดย | ตัดสินแล้ว | ยังเปิด |
+|---|---|---|---|
+| OPEN-010 email provider/sender domain | D8 | เกณฑ์ (SPF/DKIM/DMARC + data processing terms), ไม่ใช้ SMTP ที่มากับ Supabase ใน production, เลือกใน G1 | **ยี่ห้อ provider และ sender domain** (รอ D14) |
+| OPEN-018 language/runtime/package manager | D1 | application tier: Next.js App Router + TypeScript strict + `tsc --noEmit` ใน CI | RFC-2026-029 (dependency allowlist, lockfile, `npm ci --ignore-scripts`) ยังไม่ได้เขียน — ห้ามเพิ่ม dependency จนกว่าจะอนุมัติ |
+| OPEN-019 queue/operational limits | D6 | `app.jobs`/`app.outbox_events` เป็น queue, ไม่ใช้ pgmq, Cron รายนาทีเรียก dispatcher ที่ claim ด้วย lease | **operational limits** (lease, budget, retry/backoff) และการวัด function duration |
+| OPEN-020 Supabase Storage vs R2 | D10 | Supabase Storage หลัง Storage Port ตาม ADR-013 | pricing, export/purge, restore drill (G5/G6) |
+
+เจ้าของ register ต้องถอดความทั้งสี่ข้อลง register §3 (disposition §6)
+
+### การตัดสินใจอื่นของ 2026-10-08 (สรุป; ข้อความที่ผูกพันอยู่ใน disposition §2.1)
+
+D2 Vercel Pro `sin1` · D3 Supabase `staging` + `prod` ใน `ap-southeast-1` ไม่เปิด branching ใน G1 · D4 Email OTP ก่อน, Google เป็น P1 ·
+D5 ตัดตัวเลือก service-role key (request path ใช้ JWT ของ user + command function; worker ใช้ login role ของ RFC-028) — ข้อความใน
+`WP-0A-DB-00.required_human_authorities[0]` ยังต้องให้เจ้าของแพ็กเกจปิด · D7 Supabase Vault แบบมีเงื่อนไขการวัดของ A1 ก่อน MCN-001 ·
+D9 Sentry ปิด default PII · D11 polling ใน G1/G2 · D12 Tailwind + shadcn/ui, A5 เสนอฟอนต์ไทย · D13 ชื่อ WP `WP-1A-*` (G1) และ `WP-1B-*` (G2) ·
+D14 นิติบุคคล/โดเมน/อีเมลต้องมีก่อน Meta app, email sender, privacy URL · **RFC-2026-030** (risk-tiered review) รับข้อเสนอแล้ว แต่ไฟล์ RFC ยังไม่มี
+และเป็น governance ที่ Owner merge เอง — จนกว่าจะ merge กติกาสี่บทบาทเดิมใช้ต่อ
+
+### ผู้ merge
+
+PR ที่บันทึกนี้เป็น governance (แก้ gate) — RFC-2026-025 §5 item 6 และถ้อยคำของ D0 เอง ("gate-record PR ที่ Owner merge เอง")
+ให้ **Owner merge เอง** คำว่า `ให้ A0 กดเอง` (2026-10-08T06:11:04Z) ตอบคำถามเรื่อง PR อื่น (disposition §7)
