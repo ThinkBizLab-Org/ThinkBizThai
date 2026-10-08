@@ -108,7 +108,7 @@
     "tests/db/identity/identity-isolation.test.mjs": "7b6f78a481b41403ef78fe0e2555c3304552dd18dcf040e3c36b5ceaa11bc6f3",
     "tests/db/identity/isolation-cases.mjs": "bac0e46ce5ed241dcbf26e46f56a6e48c4bd3ca554e8c244e91ef1ebe2576fc7",
     "tests/db/identity/run-isolation.mjs": "b7df49228d82af244ba7a5ec14508ed674d11293082014cc265275fbe7823d9b",
-    "work-packages/WP-0A-CON-008.json": "6b01d063136aeaf54f1f629ae1a4d1cbb7c77818762e13902c61c2c0e8302eaa"
+    "work-packages/WP-0A-CON-008.json": "b77afc69b4422b9500abc453f2fd9a5b8a63f249ce382bfff71c5e29a8081329"
   },
   "cross_package_note": "Any package that adds a test file must add it here, because the guard requires every discovered test file to be digested. This is a deliberate coupling: an unprotected suite can be gutted with the manifest byte-identical. It surfaced when WP-0A-CON-002 added three contract suites and CI failed at exit 87 while a local run on the unrebased branch passed - GitHub tests the MERGE of head into base, so a stacked branch that has not been rebased does not see its own integration."
 }
