@@ -5,21 +5,25 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "efc0383cb97ac24eff9b6979ba29e0efe1552116",
-  "head_revision_or_patch_checksum": "7dcf621a4f21bc6f5dca695aab250e4efc813663",
+  "head_revision_or_patch_checksum": "58536ecdb6034774a560e7249deccbe462749a65",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-030-risk-tiered-review.md",
     "evidence/WP-0A-DB-00/a0-batch-rfc-030-risk-tiered-review-closure-2026-10-08.md",
     "evidence/WP-0A-DB-00/a0-batch-rfc-030-risk-tiered-review-plan-2026-10-08.md",
     "evidence/WP-0A-DB-00/a1-recheck-2026-10-07.md",
+    "evidence/WP-0A-DB-00/a1-recheck-2026-10-08-pr213-final.md",
     "evidence/WP-0A-DB-00/a1-review-2026-10-07.md",
     "evidence/WP-0A-DB-00/c0-recheck-2026-10-07.md",
+    "evidence/WP-0A-DB-00/c0-recheck-2026-10-08-pr213-final.md",
     "evidence/WP-0A-DB-00/c0-review-2026-10-07.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-030-answers.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-030.md",
     "evidence/WP-0A-DB-00/q0-recheck-2026-10-07.md",
+    "evidence/WP-0A-DB-00/q0-recheck-2026-10-08-pr213-final.md",
     "evidence/WP-0A-DB-00/q0-review-2026-10-07.md",
     "evidence/WP-0A-DB-00/r0-recheck-2026-10-07.md",
+    "evidence/WP-0A-DB-00/r0-recheck-2026-10-08-pr213-final.md",
     "evidence/WP-0A-DB-00/r0-review-2026-10-07.md",
     "scripts/db/classify-review-tier.mjs"
   ],
@@ -66,9 +70,9 @@
       "evidence": "scripts/db/classify-review-tier.mjs; RFC §2, §4; the review-tier test in test-kits/db/foundation-contract.test.mjs; A1-4 closed (a1-recheck-2026-10-07.md)"
     },
     {
-      "criterion": "the review rounds answered (first and second: C0 F1-F7, N1-N4; A1-1..A1-9, A1-R1..R5; Q0 Q1-Q8, QR1-QR7; R0 R-1..R-13) and the third re-check round at a09fffca read",
+      "criterion": "the review rounds answered (first and second: C0 F1-F7, N1-N4; A1-1..A1-9, A1-R1..R5; Q0 Q1-Q8, QR1-QR7; R0 R-1..R-13), the third re-check round at a09fffca and the final round at 806fe4b3 read",
       "result": "met",
-      "evidence": "closure a0-batch-rfc-030-risk-tiered-review-closure-2026-10-08.md §2, §5, §6; fixes 0eadb203 and 7dccd851; third-round re-checks c0/a1/q0/r0-recheck-2026-10-06.md cherry-picked with -x: no stop-the-line, no open security finding, the only merge holds being the main sync, the refresh and CI"
+      "evidence": "closure a0-batch-rfc-030-risk-tiered-review-closure-2026-10-08.md §2, §5, §6; fixes 0eadb203 and 7dccd851; third-round re-checks c0/a1/q0/r0-recheck-2026-10-06.md and final-round re-checks c0/a1/q0/r0-recheck-2026-10-08-pr213-final.md cherry-picked with -x: C0 review_approved, A1 security_approved, Q0 test_verified, R0 integration-sound with R-15 closed; no stop-the-line, no open security finding"
     },
     {
       "criterion": "the Owner's answers to Q-030-1..6 recorded on the branch before the merge (R0 verdict item 5)",
@@ -128,9 +132,19 @@
       "result": "tier: H (28 paths, a classifier change among the reasons), status move in_progress -> in_review printed, classifier copy: NOT the base's (main has no classifier yet)"
     },
     {
+      "command": "git cherry-pick -x 505794d3 cb31801d 55996bfb dc7dbde7 (final-round C0, A1, Q0, R0 re-checks at 806fe4b3); git fetch origin",
+      "exit_code": 0,
+      "result": "each commit adds only its own role file (752c5a4b, bab1af28, 479aa398, 92fb06d4); origin/main still efc0383c, contained, no merge needed"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (open_blockers[204] append, 58536ecd)",
+      "exit_code": 0,
+      "result": "tests 735, pass 735; the earlier text of [204] is a prefix of the new, every other entry unchanged (parsed JSON); regenerate:manifest and record:verification change no file (108 digests, 735)"
+    },
+    {
       "command": "npm run check, npm run check:handoff, node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00, git show --stat HEAD on the final head",
       "exit_code": 0,
-      "result": "measured on the branch name on this head and reported with the push (PR #213); the previous head 652eea83 (synced with 4b5dac8e) measured check 0 (735/735), check:handoff 0; third-round roles measured the same resolution in throwaway clones"
+      "result": "measured on the branch name on the final head and reported with the push (PR #213); 58536ecd measured check 0 (735/735) through commit-when-clean; the final-round roles measured 806fe4b3 the same"
     }
   ],
   "security_privacy_cost_impact": "No secret, credential, tenant data, provider, migration or database is touched. RFC-2026-030 is process text, inert until §9's conditions hold; the classifier only reads git objects, with argument arrays (no shell), literal pathspecs and no network, and only ever raises a tier. Its denylists (path words, identifiers, sinks) are disclosed in §4.5; L's import allowlist and the empty module allowlist are the fail-closed parts. Cost: once in effect, M and L PRs drop per-PR Integration Owner readings for an end-of-package R0 verdict (at the latest every 10 merged M/L PRs or 7 days). No token or time figure is claimed.",
@@ -143,17 +157,17 @@
     "The handoff guard compares path sets against HEAD^ and can read green before a refresh (A1-R5, Q0 QR6, R0 R-10); 'last and alone' is measured with git show --stat as well."
   ],
   "open_risks_or_blockers": [
-    "Third-round re-checks at a09fffca, cherry-picked with -x: C0 review_approved_with_conditions (N5, N6 Minor owed to the first allowlist-opening PR; N7 answered by this refresh; N8 Info, the PR title); A1 security_approved, no A1 finding open; Q0 test_verified, carried to the merge head on PR-1 (main merged; done in a676039d), QF1, QF2 owed before the first allowlist-opening or L-path PR; R0 integration_verified NOT given at a09fffca, only R-15 (main not contained, no CI), which a676039d and this head answer. None is stop-the-line.",
-    "R0's R-15 one-line check reads two added lines for scripts/verify-test-coverage-floor.mjs against origin/main (RFC-2026-030 and this PR's own classifier entry, both in the diff R0 read at a09fffca); R0 confirms that, or reads again, before integration_verified is recorded. C0 asked that C0, A1 and Q0 read the resolution of the three conflicted files on the final head.",
-    "Before the merge: bootstrap green on this exact head with main (efc0383c) contained; the Owner merges PR #213, pinned with --match-head-commit; if main moves again, sync and re-measure.",
-    "open_blockers[204] items (3)-(7) stay owed: WP-0A-A0-001's CONTRIBUTING edits, WP-0A-A0-004's base-copy CI step, Playwright artifacts and a flag registry, WP-0A-A0-002's and A0-001's acknowledgements on the merged head, and the module allowlist; and R0 R-14 / C0 N5 / Q0 QF1, the // comment and split import/require shapes that still read L."
+    "Final-round re-checks at 806fe4b3, cherry-picked with -x: C0 review_approved (condition 1 / §5 and N7 closed; N9 answered by the presser record in open_blockers[204]; N5, N6, N8 deferred); A1 security_approved, no A1 finding open, A1-G1 answered by the presser record; Q0 test_verified; R0 integration-sound, R-15 closed (the two-line floor diff is the two lines R0 read at a09fffca), R-17 advisory added. None is stop-the-line and none holds the merge.",
+    "integration_verified is NOT recorded: R0 permits it after the merge, without another R0 reading, on the conditions in r0-recheck-2026-10-08-pr213-final.md §4 (final head 806fe4b3 plus only the four role files, the [204] append, generated output and this refresh last and alone; check, check:handoff, scope 0; bootstrap green on that head; main contained; merge pinned --match-head-commit).",
+    "Before the merge: bootstrap green on this exact head with main (efc0383c) contained; A0 (/claude/a0_atlas) presses PR #213 under the Owner-directed exception for PR #213 (product-owner-disposition-2026-10-08-rfc-030-answers.md §2, ให้ A0 กดเอง), pinned with --match-head-commit; if main moves again, sync and re-measure.",
+    "open_blockers[204] items (3)-(7) stay owed: WP-0A-A0-001's CONTRIBUTING edits, WP-0A-A0-004's base-copy CI step, Playwright artifacts and a flag registry, WP-0A-A0-002's and A0-001's acknowledgements on the merged head, and the module allowlist; and R0 R-10/R-12/R-13/R-14/R-17, C0 N5/N6/N8, Q0 QF1-3."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: revert the merge in a reviewed governance PR; every PR is H again at once, which is where every PR is today. The RFC, the classifier and its test are new; the floor, digest, pin, slot and manifest lines return with the revert.",
   "recommended_next_work_packages": [
-    "After bootstrap green on this head and the role readings of the merge resolution: the Owner's merge of PR #213, pinned with --match-head-commit. Then WP-0A-A0-001's three CONTRIBUTING_AGENTS.md replacements (RFC-2026-030 §7) and WP-0A-A0-004's CI step running the base's copy of the classifier (§10 item 2); then, after RFC-2026-029's layout, the first module-allowlist governance PR (§10 item 7), which pins N5/N6/QF1/QF2/R-14."
+    "After bootstrap green on this head: A0 presses PR #213, pinned with --match-head-commit, then records R0's integration_verified wording (r0-recheck-2026-10-08-pr213-final.md §4) if its conditions hold. Then WP-0A-A0-001's three CONTRIBUTING_AGENTS.md replacements (RFC-2026-030 §7) and WP-0A-A0-004's CI step running the base's copy of the classifier (§10 item 2); a records follow-up pinning RFC-2026-025 line 348 to 454f6935 (R-17); then, after RFC-2026-029's layout, the first module-allowlist governance PR (§10 item 7), which pins N5/N6/QF1/QF2/R-14."
   ],
   "reviewer_instructions": [
-    "Read the four third-round re-checks (c0/a1/q0/r0-recheck-2026-10-06.md, latest sections) and open_blockers[204]'s appended third-round text: earlier text unchanged (compare as parsed JSON), A1's, Q0's and R0's wordings verbatim.",
+    "Read the four final-round re-checks (c0/a1/q0/r0-recheck-2026-10-08-pr213-final.md) and open_blockers[204]'s appended final-round text: earlier text unchanged (compare as parsed JSON), R0's, A1's and Q0's wordings verbatim, C0 summarised, the presser record answering A1-G1 and C0 N9.",
     "Read the merge a676039d (origin/main 4b5dac8e) against both parents for the three conflicted files: both RFC lines kept (029 then 030), the manifest the union of keys, regenerated (108 digests); the later merge 7dcf621 of efc0383c was clean.",
     "Check that the commit recording the Owner's answers changes no rule: the classifier and its test are unchanged since 7dccd851.",
     "Run the classifier from the base's copy as RFC §4 says, and check the finish order on the branch name: the last commit is the handoff only (git show --stat)."
