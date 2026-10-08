@@ -4,38 +4,19 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "09fb56302f1884f23a60beb7304ec06cf29b32df",
-  "head_revision_or_patch_checksum": "c569631cfd06e3a43357165b990437c5f5ded143",
+  "base_revision": "56d97d7a07e9e39843cb697cb6af751fc3842955",
+  "head_revision_or_patch_checksum": "3f8674c393cd7ac04eab5512e88b3521ed4e1172",
   "task_ids": [
     "WP-0A-A0-001",
     "WP-0A-A0-010",
     "G0-conditional-exit"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-001/a0-closure-2026-10-08-pr214-reviews.md",
-    "evidence/WP-0A-A0-001/a1-recheck-2026-10-06.md",
-    "evidence/WP-0A-A0-001/a1-recheck-2026-10-07b.md",
-    "evidence/WP-0A-A0-001/a1-recheck-2026-10-08-pr214-final.md",
-    "evidence/WP-0A-A0-001/a1-review-2026-10-07.md",
-    "evidence/WP-0A-A0-001/c0-recheck-2026-10-07.md",
-    "evidence/WP-0A-A0-001/c0-recheck-2026-10-08-pr214-final.md",
-    "evidence/WP-0A-A0-001/c0-review-2026-10-07.md",
-    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md",
-    "evidence/WP-0A-A0-001/q0-recheck-2026-10-07.md",
-    "evidence/WP-0A-A0-001/q0-recheck-2026-10-08-pr214-final.md",
-    "evidence/WP-0A-A0-001/q0-review-2026-10-07.md",
-    "evidence/WP-0A-A0-001/r0-recheck-2026-10-07.md",
-    "evidence/WP-0A-A0-001/r0-recheck-2026-10-08-pr214-final.md",
-    "evidence/WP-0A-A0-001/r0-review-2026-10-07.md",
-    "evidence/WP-0A-A0-001/r0-sync-reading-2026-10-08.md",
-    "work-packages/WP-0A-A0-010.json"
+    "evidence/WP-0A-A0-001/records-transcription-2026-10-08.md"
   ],
   "files_modified": [
-    "evidence/g0-tracker-th.md",
-    "handoffs/WP-0A-A0-001-author-handoff.json",
-    "test-kits/branch-identity.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "work-packages/WP-0A-A0-001.json"
+    "work-packages/WP-0A-A0-001.json",
+    "work-packages/WP-0A-A0-010.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
