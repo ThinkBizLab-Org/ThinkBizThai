@@ -5,14 +5,23 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "bd019c9cde305109aca4088d50f62109e4d9c2a4",
-  "head_revision_or_patch_checksum": "bd019c9cde305109aca4088d50f62109e4d9c2a4",
+  "head_revision_or_patch_checksum": "340da1d2d63823fe392b46cd3a1fd5092f915ba7",
   "task_ids": [
     "WP-0A-A0-001",
     "WP-0A-A0-010",
     "G0-conditional-exit"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md",
+    "work-packages/WP-0A-A0-010.json"
+  ],
+  "files_modified": [
+    "evidence/g0-tracker-th.md",
+    "handoffs/WP-0A-A0-001-author-handoff.json",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-A0-001.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "OPEN-002",
@@ -63,24 +72,34 @@
       "result": "v24.20.0"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message> (runs npm run verify on branch agent/root/WP-0A-A0-001-repository-bootstrap)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (runs npm run verify on branch agent/root/WP-0A-A0-001-repository-bootstrap-2026-10-07)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 691, pass 691, fail 0, skipped 0, todo 0; commit b4c5509 (C0 F1-F4 fix, after cherry-picking C0's review ac9ba9e as bdcd472)"
+      "result": "clean: exit 0 — tests 725, pass 725, fail 0, skipped 0, todo 0; commit 340da1d2"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-001",
       "exit_code": 0,
-      "result": "WP-0A-A0-001: all 8 changed path(s) are declared, and every amendment explains one"
+      "result": "WP-0A-A0-001: all 7 changed path(s) are declared, and every amendment explains one"
     },
     {
-      "command": "node scripts/verify-branch-identity.mjs agent/root/WP-0A-A0-001-repository-bootstrap",
+      "command": "node scripts/verify-branch-identity.mjs agent/root/WP-0A-A0-001-repository-bootstrap-2026-10-07",
       "exit_code": 0,
       "result": "WP-0A-A0-001"
     },
     {
-      "command": "gh api repos/ThinkBizLab-Org/ThinkBizThai/branches/main/protection (read-only)",
+      "command": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A0-010.json",
       "exit_code": 0,
-      "result": "required check bootstrap, strict true, enforce_admins true, force push and deletion disallowed, conversation resolution required, no required pull-request review"
+      "result": "no output; four distinct role ids"
+    },
+    {
+      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD",
+      "exit_code": 0,
+      "result": "not records-only: ownership.branch changed, amends_without_owning widened, a new manifest, a test file changed"
+    },
+    {
+      "command": "shasum -a 256 /Users/bank/ThinkBizThai/.claude/g1-g2-plan-2026-10-08.md",
+      "exit_code": 0,
+      "result": "7cabce388122f4d0497698b87df6c60686d244d88e2eb3d10f33afb1206e73e2 (43,098 bytes; mtime 06:17:51Z, sent 06:17:54Z)"
     }
   ],
   "security_privacy_cost_impact": "None. Records only: no code, schema, migration, contract, CI, credential or customer data. The decisions recorded bind future cost (Supabase Pro x2, Vercel Pro, Sentry, an email provider) but nothing is provisioned.",
