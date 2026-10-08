@@ -80,3 +80,31 @@ The §6 heading and status line now read Approved 2026-10-08 and cite this file.
   the owners §6.6 names.
 - C0, A1, Q0 and R0 re-read this commit. Then the handoff refresh, last and alone, and `bootstrap` green on
   that head. Then A0 presses the merge on §2's words.
+
+## 6. Corrections after the role re-checks of 2026-10-08 (appended; the text above is unchanged)
+
+Appended by `/claude/a0_atlas` (A0), through a subagent of A0's workflow script, under
+`เอาตามที่คุณแนะนำทุกอย่าง`. A0 records; it decides nothing. The role files are
+`evidence/WP-0A-DB-00/{c0,a1,q0,r0}-recheck-2026-10-06.md`, all at `952b91bd`.
+
+1. **§4 item 2, the authority for R2-2 (C0 F11).** "This matches Q-025-6-3" cites the wrong question.
+   Q-025-6-3 is about a closing clause on an **old** entry. The authority for a **new** entry appended at the end
+   is **Q-025-6-1** ("approve §6 as written"): §6.1 item 4 already said "New entries may follow at the end" at
+   `d12475a7`, which is the text the Owner approved. The substance of item 2 stands; only the citation changes.
+2. **§2, the question behind `ให้ A0 กดเอง (Recommended)` (C0 F10, R0 R3-4).** This run, like the one that wrote
+   §2, did not receive the question's text word for word, and it does not have what A0 told the Owner about
+   §5 item 6 when asking. It cannot quote either and does not reconstruct them. **Owed by A0, from its own
+   session, before the merge:** the question verbatim, appended here; or, if the text is lost, a statement
+   that it is lost and what A0 told the Owner about §5 item 6 at the time. The narrow reading of §2 (PR #211
+   only; A0 asks each time for later governance PRs) is unchanged.
+3. **A fourth text edit to §6 after the answer (R0 R3-2), and one clause in the status line (R0 R3-5).**
+   - §6.6 item 2 now says the classifier is digested, done in PR #211, by amendment of WP-0A-A0-002's two
+     files (`test-kits/integrity-manifest.json` and one `DIGESTED_FLOOR` line in
+     `scripts/verify-test-coverage-floor.mjs`). The merge of `main` `ae163ed8` (#204, the E4 guard) made this a
+     precondition of the merge (C0 F9, A1-10, Q0 Q9, R0 R3-1). It narrows nothing the Owner decided.
+   - The §6 status line now says PR #211 was pressed by A0 on the Owner's direction (§2 of this file), as an
+     exception to §5 item 6 for PR #211 only. §6.4 and §6.7 keep the rule as written.
+
+   The Owner did not read these words word by word; all four roles re-read them before the merge.
+4. **§5, second bullet.** §6.6 item 2 (the classifier digested) is no longer owed: it is done on this branch.
+   Items 3 and 4 stay owed by the owners §6.6 names.

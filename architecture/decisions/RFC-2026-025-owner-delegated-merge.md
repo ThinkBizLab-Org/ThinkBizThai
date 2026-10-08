@@ -120,7 +120,10 @@ record-only.**
 (Recommended)`, transcribed in `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-025-s6-answers.md`. Until that approval
 nothing in this section applied and §5 governed: under §5 its item 5 check did not exist, so no PR was treated
 as record-only. The three text edits made after the answer (R0's R2-1 and R2-2, A1-7 with C0's N1) are listed
-in that disposition.
+in that disposition. A fourth, made after the role re-checks of 2026-10-08, restates §6.6 item 2 as done (R0's R3-2);
+it narrows nothing the Owner decided. PR #211, which carries this section, was pressed by A0 on the Owner's direction
+of 2026-10-08 (`ให้ A0 กดเอง (Recommended)`, same disposition §2). That is an exception to §5 item 6 for PR #211
+only; §6.4 and §6.7 below keep the rule as written.
 
 **Origin.** On 2026-10-07, A0 recommended in session "(4) consider fewer review rounds for PRs that are only
 records — several times faster; this needs an RFC-2026-025 change, a governance PR the Owner decides". The
@@ -335,10 +338,13 @@ These were measured with the classifier at this branch's head, run read-only ove
    `.github/workflows/ci.yml`. A step that prints the classifier's verdict on every PR, without gating on
    it, is owed there. That is a CI change, a governance PR of its own. It should exist before the first
    delegated light-path merge, so that the exit code is not only something the reader reports.
-2. **The classifier is not itself digested.** Its test,
+2. **The classifier is digested: done in PR #211.** Its test,
    `test-kits/db/foundation-contract.test.mjs`, is digested, so gutting the classifier turns that test red.
-   The script file is not in `test-kits/integrity-manifest.json`. Adding it means a `DIGESTED_FLOOR` line
-   in `scripts/verify-test-coverage-floor.mjs`, a path this package does not own.
+   After `main` gained the E4 import-closure guard (#204, WP-0A-A0-002), the script itself had to be digested
+   before `main` could be contained green. PR #211 added it to `test-kits/integrity-manifest.json` and one
+   `DIGESTED_FLOOR` line in `scripts/verify-test-coverage-floor.mjs`, both declared as amendments of paths
+   WP-0A-A0-002 owns. That owner's acknowledgement is owed on the merged head; R0 gave it in advance, under
+   the conditions of `evidence/WP-0A-DB-00/r0-recheck-2026-10-06.md` §4 (C0 F9, A1-10, Q0 Q9, R0 R3-1 and R3-2).
 3. **`CONTRIBUTING_AGENTS.md`** ("Temporary manual merge control") should cite §6 once it is approved. That
    file belongs to WP-0A-A0-001.
 4. **The script's home.** It lives in `scripts/db/` because WP-0A-DB-00 owns this RFC and that path. If the

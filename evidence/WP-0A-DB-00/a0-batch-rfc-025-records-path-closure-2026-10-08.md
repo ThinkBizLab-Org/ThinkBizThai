@@ -121,3 +121,45 @@ text at `d12475a7` and did not read the three edits word by word; the dispositio
 
 After the records commit, `origin/main` `ae163ed8` (#204) is merged in with the generated files rebuilt by their
 generators. The commands and exit codes are in the commit messages and the handoff when it is refreshed.
+
+**Correction to the paragraph above (A1-13, R0 R3-6).** When it was written, the merge of `ae163ed8` had been
+attempted and **aborted**, because it was red on E4; it was not on the branch at `952b91bd`. It is on the branch
+from merge commit `eeaf5017` (§6).
+
+## 6. Third round: the merge of `main` `ae163ed8` and the E4 fix (appended 2026-10-08)
+
+Author run `/claude/a0_atlas` (A0), through a subagent of A0's workflow script, under the standing delegation
+`เอาตามที่คุณแนะนำทุกอย่าง`; the Owner directed A0 to press this merge (`ให้ A0 กดเอง (Recommended)`, disposition
+§2). A0 executes; it decides nothing that is the Owner's. Nothing here approves, test-verifies or integrates
+A0's own work.
+
+**Role re-checks at `952b91bd`**, cherry-picked with `-x` from their role branches: C0 `499df6e6`
+(`review_approved` for the records commit; F9 blocks the merge), A1 `7fc6317e`
+(`security_approved_with_conditions`; A1-10), Q0 `e6bd17a5` (`test_verified` for `952b91bd` only; Q9 blocks),
+R0 `5f208bee` (`integration_verified` not given; R3-1 blocks). Files:
+`evidence/WP-0A-DB-00/{c0,a1,q0,r0}-recheck-2026-10-06.md`.
+
+| Condition, as the role worded it | What A0 did |
+|---|---|
+| C0 F9, A1-10, Q0 Q9, R0 R3-1: `main` cannot be contained green until the classifier is digested, through a declared amendment, never by loosening E4 or the test's imports | **Done.** Merge `eeaf5017` (`git merge --no-ff origin/main`; conflicts only in `evidence/VERIFICATION.md` and `test-kits/integrity-manifest.json`, `main`'s side taken, manifest rebuilt by `regenerate:manifest`, 104 digests). Then, in the next commit: `scripts/db/classify-records-only.mjs` added to `test-kits/integrity-manifest.json` (digest `96326b01…`, filled by the regenerator, 105 digests) and one line `'scripts/db/classify-records-only.mjs',` in `DIGESTED_FLOOR` (`scripts/verify-test-coverage-floor.mjs`, alphabetical, after `authz-proofs`). Nothing else in that file changed (no `PROTECTED_KEYS` line); the E4 guard and `test-kits/db/foundation-contract.test.mjs`'s imports are unchanged. |
+| C0 F9 / A1-10 / R3-1: the amendment declared, with the owner's acknowledgement | **Declared**: `scripts/verify-test-coverage-floor.mjs` added to `ownership.amends_without_owning.paths`, the rationale naming WP-0A-A0-002 as the guard's owner. **Owed**: WP-0A-A0-002's acknowledgement on the merged head; R0 gave it in advance under its file's §4 conditions and confirms it there. |
+| R0 R3-1 probe step 3–4: the added paths line shifts the manifest's lines | **Done.** The 34 `"line"` pins in `db/foundation/lint/audit-coverage-map.json` at or after line 119 raised by one. |
+| R0 R3-2, A1-10 (§6.6 item 2 becomes false) | **Done.** §6.6 item 2 restated as done in PR #211, with the acknowledgement owed. Listed as the fourth post-answer edit in the disposition §6 item 3 and the §6 status line. |
+| R0 R3-3 (the amendment rationale contradicts the disposition) | **Done.** The rationale now says §6 is Approved 2026-10-08, that the Owner directed A0 to press PR #211 (disposition §2), and why `scripts/verify-test-coverage-floor.mjs` and `audit-coverage-map.json` are touched. "§6 PROPOSED" and "the Owner merges it personally; A0 does not" are gone. |
+| R0 R3-5 (advisory): `main` must not hold a §6 that contradicts how it landed | **Done.** One clause in the §6 status line: PR #211 was pressed by A0 on the Owner's direction, an exception for PR #211 only; §6.4 and §6.7 keep the rule. |
+| C0 F10, R0 R3-4: the merge-presser question verbatim | **Not done; owed by A0 from its own session.** This run does not have the question's text or what A0 told the Owner about §5 item 6. The disposition §6 item 2 says so and does not reconstruct either. |
+| C0 F11: R2-2's authority is Q-025-6-1, not Q-025-6-3 | **Done** in the disposition §6 item 1. The same correction applies to §5's table above ("as Q-025-6-3 keeps every old entry whole"): the authority for a new entry is Q-025-6-1. |
+| A1-11 (Info): a stale path in A1's own quoted wording | **Done** in `open_blockers[203]`, as A1 suggested. |
+| A1-13, R0 R3-6: the closure note claimed a merge that had not happened | **Done** (the correction paragraph above). |
+| `open_blockers[203]` wordings | C0's, A1's and Q0's wording appended verbatim; a one-sentence R0 status line and A0's closure sentence appended. R0's own wording is appended **after** the merge, with the merged head, merge sha and CI run measured then. Old text whole at the start. |
+| Q0 Q11, R0 order: `record:verification`, then `regenerate:manifest` | **Owed, after the handoff refresh.** On this head `record:verification` refuses ("exit 1, tests 725, pass 723, fail 2"); the two failures are the handoff guards, because the handoff still cites `77dad630`, and the task said not to refresh it yet. `evidence/VERIFICATION.md` is therefore still `main`'s record, and `verify-branch-scope` names it (with the not-yet-committed floor file, measured before the commit) as an amendment that explains nothing until it is recorded. |
+| C0 F8, Q0 Q8/Q10, R0 items 2–4 | **Owed, state.** C0, A1, Q0 and R0 re-read this head; the handoff is refreshed last and alone; `record:verification` and `regenerate:manifest` (`cmp` 0); `bootstrap` green on that exact head with `main` contained; then A0 presses the merge pinned with `--match-head-commit`. |
+
+**Measured on the fix tree before the commit** (Node `v24.20.0` first on `PATH`, worktree on the branch name,
+`npm ci` 0): `npm run verify:coverage-floor` 0; `node scripts/verify-toolchain.mjs` 0; `npm run scan:secrets` 0;
+`npm run validate:protocol` 0; `node scripts/run-test-suite.mjs` exit 1, `tests 725, pass 723, fail 2`, the two
+being "the handoff for this branch describes this branch" and the handoff ratchet that re-runs it;
+`npm run check:handoff` names `RFC-2026-025…md` and `WP-0A-DB-00.json` after cited head `77dad63`;
+`regenerate:manifest` twice, `cmp` 0 (105 digests); `verify-branch-identity` prints `WP-0A-DB-00`. So `npm run
+check` is **not** green on this head, by the handoff guards only, as the task expected. `commit-when-clean`
+refuses for that reason, and the commit is made with plain `git commit` after these checks, as in §3.
