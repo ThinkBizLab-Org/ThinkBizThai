@@ -82,6 +82,105 @@ jobs:
         run: |
           test "$(node --version)" = "v24.20.0"
           test "$(npm --version)" = "11.19.0"
+      # THE RECORDS-ONLY CLASSIFICATION, PRINTED AND NEVER ACTED ON (RFC-2026-025 §6.1 and §6.6 item 1,
+      # approved 2026-10-08; RFC-2026-007 Amendment 2026-10-08). §6 lets a pull request whose diff is
+      # records only take a light path of one independent reading instead of four role runs, and the
+      # judge of "records only" is `scripts/db/classify-records-only.mjs`, not anyone's say-so. Until
+      # this step the exit code existed only where the reader reported it; here CI prints it on every
+      # pull request, in the log and in the job summary.
+      #
+      # IT GATES NOTHING. It writes no step output (the workflow's one GITHUB_OUTPUT writer stays the
+      # negative-control decision, pinned by test), no later step reads it, and it exits 0 on every
+      # path. So it cannot make a pull request pass anything it would otherwise fail, and it cannot
+      # fail one either: the classification is information for the light path's reader, and the
+      # reader still runs the classifier and records its exit code (§6.2 item 1).
+      #
+      # IT FAILS CLOSED. It prints RECORDS-ONLY only when the classifier exited 0 and said so on its
+      # first line. A base that is not exactly `main` (the light path is for pull requests into main),
+      # an empty or missing base commit, a base holding no classifier, a diff or blob git could not
+      # read, a classifier error (exit 2) or any other outcome prints NOT RECORDS-ONLY with the reason.
+      # An exit 1 is reported as the classifier's reasons only when its first line says
+      # `NOT records-only (`; any other exit 1 (a crash before the classifier's own guard) is reported
+      # as not a classification (R0-1 on PR #212).
+      #
+      # ITS OUTPUT IS PRINTED INERT. The classifier's reasons name the pull request's paths, and a path
+      # name may hold a newline and `::`. The runner reads a workflow command after leading spaces, so
+      # the indent alone does not stop one, and an `::add-mask::` would mask the summary heading too.
+      # Every log line of this step is therefore printed between `::stop-commands::<token>` and
+      # `::<token>::`, with a 32-hex-digit token drawn from /dev/urandom at run time; with no such
+      # token the reason and the output are left out of the log (C0 F1, A1-L1, Q0 Q2 on PR #212).
+      # The job summary escapes `&`, `<` and `>` in the reason and the output, and carries at most
+      # 64 KiB of the output, so a huge diff cannot push it past GitHub's 1 MiB summary limit; the log
+      # keeps all of it (A1-L2, C0 F3, R0-3 on PR #212).
+      #
+      # IT RUNS THE BASE'S CLASSIFIER, not the pull request's. The script is read out of the base
+      # commit with `git show`, so a pull request that edits the classifier is judged by the one on
+      # `main` (which refuses the edit: a script is not a record). And it runs BEFORE `npm ci` and
+      # `npm run check`, the first steps that execute the pull request's own code, so that code has
+      # had no chance to put another `git` or `node` on GITHUB_PATH (RFC-2026-007 §E, A1 I1 on #197).
+      - name: Classify the pull request for the records-only light path (informational, gates nothing)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          esc() { awk '{ gsub(/&/, "\\&amp;"); gsub(/</, "\\&lt;"); gsub(/>/, "\\&gt;"); print }'; }
+          report() {
+            token="$(od -An -N16 -tx1 /dev/urandom 2>/dev/null | tr -d ' \n' || true)"
+            if ! printf '%s\n' "${token}" | grep -Eq '^[0-9a-f]{32}$'; then token=""; fi
+            if [ -n "${token}" ]; then
+              echo "::stop-commands::${token}"
+              echo "records-only classifier: $1 -- $2"
+              if [ -n "${3:-}" ] && [ -s "$3" ]; then sed 's/^/  /' "$3"; fi
+              echo "::${token}::"
+            else
+              echo "records-only classifier: $1 -- no random token to print the reason inert, so it is left out of this log; the job summary carries it"
+            fi
+            if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+              {
+                echo "### Records-only classification (RFC-2026-025 §6.1): $1"
+                echo ""
+                printf '%s\n' "$2" | esc
+                echo ""
+                echo "Informational: this classification gates nothing. The light path still needs its one independent reading (§6.2)."
+                if [ -n "${3:-}" ] && [ -s "$3" ]; then
+                  echo ""
+                  echo "<pre>"
+                  head -c 65536 "$3" | esc
+                  echo "</pre>"
+                  if [ "$(wc -c < "$3")" -gt 65536 ]; then
+                    echo ""
+                    echo "The classifier output is cut at 64 KiB here (GitHub drops a job summary over 1 MiB); the log holds all of it."
+                  fi
+                fi
+              } >> "${GITHUB_STEP_SUMMARY}" 2>/dev/null || echo "records-only classifier: the job summary could not be written; the log above is the record"
+            fi
+            exit 0
+          }
+          if [ "${BASE_REF:-}" != main ]; then
+            report "NOT RECORDS-ONLY" "the base branch '${BASE_REF:-}' is not exactly main; the light path is for pull requests into main only"
+          fi
+          if [ -z "${BASE_SHA:-}" ] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            report "NOT RECORDS-ONLY" "the base commit '${BASE_SHA:-}' is not in this clone, so no diff was classified (fail closed)"
+          fi
+          if ! work="$(mktemp -d)"; then
+            report "NOT RECORDS-ONLY" "no scratch directory for the classifier (fail closed)"
+          fi
+          if ! git show "${BASE_SHA}:scripts/db/classify-records-only.mjs" > "${work}/classify-records-only.mjs" 2>/dev/null; then
+            report "NOT RECORDS-ONLY" "the base ${BASE_SHA} holds no readable scripts/db/classify-records-only.mjs (fail closed)"
+          fi
+          set +e
+          node "${work}/classify-records-only.mjs" "${BASE_SHA}" HEAD > "${work}/out" 2>&1
+          code=$?
+          set -e
+          first="$(head -n 1 "${work}/out" 2>/dev/null || true)"
+          if [ "${code}" -eq 0 ] && [ "${first#records-only: }" != "${first}" ]; then
+            report "RECORDS-ONLY" "the base's classifier exited 0 on ${BASE_SHA}..HEAD; every status move it prints is for the reader to check against its role verdict" "${work}/out"
+          fi
+          if [ "${code}" -eq 1 ] && [ "${first#NOT records-only (}" != "${first}" ]; then
+            report "NOT RECORDS-ONLY" "the base's classifier exited 1 on ${BASE_SHA}..HEAD; its reasons follow" "${work}/out"
+          fi
+          report "NOT RECORDS-ONLY" "the base's classifier exited ${code} on ${BASE_SHA}..HEAD, which is not a classification (fail closed)" "${work}/out"
       - name: Clean install
         run: npm ci --ignore-scripts
       # Invoked BY THE WORKFLOW, not by the script it audits. `npm run check` can be
