@@ -93,8 +93,10 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // Batch 174 (2026-10-05, migration 174, RFC-2026-028 §3.4, Q-028-5): one test -- app.jobs' tenant-context columns, every
 // writer naming them, and the job-context proof driven by a fake: 85 to 86. Batch rfc-025-records-path (2026-10-07, no
 // migration, RFC-2026-025 §6 proposed): one test -- the records-only classifier and the mechanical sync check, every rule
-// biting in pure form and through the CLI on a throwaway git repository: 86 to 87.
-  'test-kits/db/foundation-contract.test.mjs': 87,
+// biting in pure form and through the CLI on a throwaway git repository: 86 to 87. Batch rfc-030-risk-tiered-review
+// (2026-10-08, no migration, RFC-2026-030 approved in principle): one test -- the review-tier classifier, every rule
+// biting in pure form and through the CLI on a throwaway git repository: 87 to 88.
+  'test-kits/db/foundation-contract.test.mjs': 88,
   'test-kits/db/rls-assertions.test.mjs': 20,
 // Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
 // -- 296 to 301 tests and 2101 to 2130 assertions -- and the assertion half moved only
@@ -277,7 +279,9 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // 1320 to 1329 with that batch's first review round (2026-10-08, C0 F4, Q2, R-4, A1-1, C0 F2): the classifier test
 // pins the merged-commit-on-main and old-mode rules and the narrowed record, status and authorities rules; the
 // guard's own count, no test added or renamed.
-  'test-kits/db/foundation-contract.test.mjs': 1329,
+// 1329 to 1362 with batch rfc-030-risk-tiered-review (2026-10-08, RFC-2026-030 approved in principle): the review-tier
+// classifier's test adds its assertions; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 1362,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.
@@ -321,7 +325,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
-  'test-kits/db/foundation-contract.test.mjs': 'd01d2282e32ea079',
+  'test-kits/db/foundation-contract.test.mjs': '5b1b88991c47c327',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
   'tests/db/identity/identity-isolation.test.mjs': '25aa50b576c0925b',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',

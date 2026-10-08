@@ -6333,3 +6333,152 @@ test('the records-only classifier and the mechanical sync check fail closed, eac
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+// RFC-2026-030 (APPROVED IN PRINCIPLE 2026-10-08 by the Owner's `รับตามแนะนำทั้งหมด รวม RFC-030 ด้วย ลุยเลย`; final
+// text approved at merge): the review-tier classifier. Each rule is shown to bite in pure form, and the CLI on a
+// throwaway git repository returns each tier and exits 2 (= H) on an error. It only ever raises: nothing below proves
+// a lighter tier for a path the rules do not name.
+import {
+  DATA_LINE_SIGNALS, H_LINE_SIGNALS, H_PATH_WORDS, L_PATHS, TIERS, addedLines, classifyPath, classifyTier, lineSignals, manifestNeutral,
+  maxTier, pathWords,
+} from '../../scripts/db/classify-review-tier.mjs';
+
+test('the review-tier classifier fails closed to H and only ever raises, each rule biting (RFC-2026-030, approved in principle)', async () => {
+  assert.deepEqual(TIERS, ['records', 'L', 'M', 'H']);
+  assert.equal(maxTier('L', 'H', 'M'), 'H');
+  assert.equal(maxTier('records', 'L'), 'L');
+  assert.deepEqual(pathWords('src/modules/billing/ui/PlanCard.tsx'), ['src', 'modules', 'billing', 'ui', 'plan', 'card', 'tsx']);
+  assert.ok(H_PATH_WORDS.length >= 50 && L_PATHS.length === 5 && H_LINE_SIGNALS.length === 8 && DATA_LINE_SIGNALS.length === 5);
+
+  const blobs = {
+    mBase: JSON.stringify({ status: 'in_progress', open_blockers: ['a'], ownership: { branch: 'x', writable_paths: ['p'] } }),
+    mBranch: JSON.stringify({ status: 'in_review', open_blockers: ['a', 'b'], ownership: { branch: 'y', writable_paths: ['p'] } }),
+    mScope: JSON.stringify({ status: 'in_review', open_blockers: ['a'], ownership: { branch: 'y', writable_paths: ['p', 'q'] } }),
+  };
+  const text = (id) => { if (!(id in blobs)) throw new Error(`no blob ${id}`); return blobs[id]; };
+  const ch = (status, path, oldMode = '100644', newMode = '100644', oldBlob = 'o', newBlob = 'n') => ({ status, path, oldMode, newMode, oldBlob, newBlob });
+  const tierOf = (changes, added = {}) => classifyTier(changes, (c) => added[c.path] ?? [], text);
+  const ui = 'src/modules/drafts/ui/DraftCard.tsx';
+  const logic = 'src/modules/drafts/domain/score.ts';
+  const logicTest = 'src/modules/drafts/domain/score.test.ts';
+
+  // L: presentational paths with no data path and no H signal.
+  for (const p of [ui, 'src/modules/drafts/components/Badge.jsx', 'apps/web/components/Hero.tsx', 'apps/web/src/components/a/b.css',
+    'apps/web/messages/th.json', 'apps/web/styles/theme.scss', 'apps/web/public/img/logo.png']) {
+    const r = tierOf([ch('A', p, '000000')], { [p]: ['export const X = () => <div className="x">สวัสดี</div>;'] });
+    assert.equal(r.tier, 'L', `${p}: ${r.reasons.join('; ')}`);
+  }
+  // M: one module's logic with its test.
+  let r = tierOf([ch('M', logic), ch('A', logicTest, '000000')], { [logic]: ['export const score = (n) => n * 2;'] });
+  assert.equal(r.tier, 'M', r.reasons.join('; '));
+  assert.equal(r.module, 'drafts');
+  // Neutral paths ride along without raising: evidence, handoff, VERIFICATION, a records-shaped manifest + branch slot.
+  r = tierOf([ch('A', ui, '000000'), ch('A', 'evidence/WP-X/c0-review.md', '000000'), ch('M', 'handoffs/WP-X-author-handoff.json'),
+    ch('M', 'evidence/VERIFICATION.md'), ch('M', 'work-packages/WP-X.json', '100644', '100644', 'mBase', 'mBranch')]);
+  assert.equal(r.tier, 'L', r.reasons.join('; '));
+  assert.deepEqual(manifestNeutral(text('mBase'), text('mBranch')), []);
+  assert.ok(manifestNeutral(text('mBase'), text('mScope')).some((x) => /writable_paths: changed/.test(x)));
+  assert.deepEqual(manifestNeutral('{', '{}'), ['the manifest does not parse as JSON on both sides']);
+
+  // H, each rule alone.
+  const H = (changes, added, why) => {
+    const got = tierOf(changes, added);
+    assert.equal(got.tier, 'H', `expected H for ${why}, got ${got.tier}`);
+    assert.ok(got.reasons.some((x) => why.test(x)), `${why}: ${JSON.stringify(got.reasons)}`);
+  };
+  H([ch('M', logic)], { [logic]: ['x'] }, /no test file of that module/);
+  H([ch('M', logic), ch('D', logicTest, '100644', '000000')], { [logic]: ['x'] }, /no test file of that module/);
+  H([ch('A', ui, '000000'), ch('A', 'src/modules/inbox/ui/List.tsx', '000000')], {}, /more than one module \(drafts, inbox\)/);
+  H([ch('M', 'work-packages/WP-X.json', '100644', '100644', 'mBase', 'mScope'), ch('A', ui, '000000')], {}, /writable_paths: changed/);
+  H([ch('A', 'evidence/WP-X/product-owner-disposition-x.md', '000000')], {}, /not records-only under RFC-2026-025/);
+  H([], {}, /empty diff/);
+  for (const p of ['db/foundation/migrations/175_x.sql', '.github/workflows/ci.yml', 'scripts/run-test-suite.mjs', 'contract-catalog/x.json',
+    'architecture/decisions/RFC-2026-030-risk-tiered-review.md', 'CONTRIBUTING_AGENTS.md', 'package.json', 'package-lock.json',
+    'test-kits/integrity-manifest.json', 'apps/web/app/page.tsx', 'apps/web/lib/x.ts', 'README.md', 'src/shared/x.ts']) {
+    H([ch('M', p)], {}, /not an L or M path|an H word in the path/);
+  }
+  for (const [p, w] of [['src/modules/billing/ui/Plan.tsx', 'billing'], ['src/modules/iam/domain/x.ts', 'iam'], ['src/modules/drafts/ui/PublishButton.tsx', 'publish'],
+    ['src/modules/drafts/ui/oauthPanel.tsx', 'oauth'], ['apps/web/components/auth/Login.tsx', 'auth'], ['src/modules/meta-connector/ui/x.tsx', 'meta'],
+    ['src/modules/drafts/server/x.ts', 'server'], ['src/modules/drafts/ui/secret-box.css', 'secret'], ['src/modules/drafts/db/x.ts', 'db']]) {
+    H([ch('M', p)], {}, new RegExp(`an H word in the path \\([^)]*${w}`));
+  }
+  for (const [line, why] of [['const k = process.env.KEY;', /environment/], ["const r = 'service_role';", /privileged database credential/],
+    ['const apiKey = 1;', /names a secret/], ['create policy p on t', /changes schema/], ['grant select on t to x', /changes a grant/],
+    ['alter table t enable row level security', /schema|RLS/], ['stripe.charges.create()', /payment, webhook or OAuth/],
+    ['<div dangerouslySetInnerHTML={x} />', /code-injection/], ['eval("1")', /code-injection/]]) {
+    H([ch('M', ui)], { [ui]: [line] }, why);
+    H([ch('M', logic), ch('M', logicTest)], { [logic]: [line] }, why);
+  }
+  H([ch('M', 'apps/web/components/Feed.tsx')], { 'apps/web/components/Feed.tsx': ['fetch("/x")'] }, /data path outside a module/);
+  H([ch('R', `${ui} -> ${ui}x`)], {}, /status R/);
+  H([ch('M', ui, '100644', '100755')], {}, /mode 100644 -> 100755/);
+  H([ch('A', ui, '000000', '120000')], {}, /mode 000000 -> 120000/);
+  H([ch('D', 'apps/web/components/Old.tsx', '100644', '000000')], {}, /deletion outside a module/);
+  H([ch('D', 'evidence/WP-X/session-x.md', '100644', '000000'), ch('A', ui, '000000')], {}, /deleted record/);
+  H([ch('A', 'work-packages/WP-Z.json', '000000')], {}, /manifest added or removed/);
+
+  // A data path in a module's UI is not L: it is M, and then M's test rule applies.
+  for (const [line, why] of [['await fetch(url)', /network call/], ["'use server'", /server code/], ["import { x } from '@supabase/supabase-js'", /database client/],
+    ["const u = '/api/drafts'", /API route/], ['localStorage.setItem(a, b)', /browser storage/]]) {
+    r = tierOf([ch('M', ui), ch('M', logicTest)], { [ui]: [line] });
+    assert.equal(r.tier, 'M', `${line}: ${r.reasons.join('; ')}`);
+    assert.ok(r.reasons.some((x) => why.test(x)), `${line}: ${JSON.stringify(r.reasons)}`);
+    H([ch('M', ui)], { [ui]: [line] }, /no test file of that module/);
+  }
+  // Records-only keeps RFC-2026-025 §6, unchanged.
+  r = tierOf([ch('A', 'evidence/WP-X/session-2026-10-08.md', '000000')]);
+  assert.equal(r.tier, 'records');
+  // A deletion inside a module is M at least, never L.
+  r = tierOf([ch('D', ui, '100644', '000000'), ch('M', logicTest)]);
+  assert.equal(r.tier, 'M', r.reasons.join('; '));
+  // Signals only read text files: a PNG's bytes are not scanned, and its path still has to be L.
+  assert.equal(classifyPath(ch('A', 'apps/web/public/a.png', '000000'), ['process.env'], text).tier, 'L');
+  assert.deepEqual(lineSignals(['fine'], H_LINE_SIGNALS), []);
+  assert.deepEqual(addedLines('+++ b/x\n+one\n-two\n+three\n'), ['one', 'three']);
+  assert.throws(() => classifyTier([ch('M', 'work-packages/WP-X.json', '100644', '100644', 'missing', 'mBase')], () => [], text), /no blob/,
+    'an unreadable blob throws, which the CLI turns into exit 2 (= H)');
+
+  // The CLI, end to end, on a throwaway repository.
+  const cli = join(process.cwd(), 'scripts/db/classify-review-tier.mjs');
+  const dir = await mkdtemp(join(tmpdir(), 'review-tier-'));
+  try {
+    const env = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 'review-tier-test', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 'review-tier-test', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' };
+    delete env.GIT_DIR;
+    delete env.GIT_WORK_TREE;
+    delete env.GIT_INDEX_FILE;
+    const g = (...a) => run('git', ['-c', 'commit.gpgsign=false', '-c', 'init.defaultBranch=main', ...a], { cwd: dir, env });
+    const put = (p, c) => mkdir(join(dir, p, '..'), { recursive: true }).then(() => writeFile(join(dir, p), c));
+    const commit = async (m) => { await g('add', '-A'); await g('commit', '-q', '-m', m); return (await g('rev-parse', 'HEAD')).stdout.trim(); };
+    const out = async (...a) => { try { const x = await run(process.execPath, [cli, ...a], { cwd: dir, env }); return [0, x.stdout]; } catch (e) { return [e.code, e.stdout + e.stderr]; } };
+    await g('init', '-q');
+    await put(logic, 'export const score = (n) => n;\n');
+    await put(logicTest, 'test\n');
+    const root = await commit('base');
+    await g('checkout', '-q', '-b', 'l');
+    await put(ui, 'export const Card = () => <div>ok</div>;\n');
+    await commit('ui');
+    let [code, o] = await out('main', 'l');
+    assert.equal(code, 0, o);
+    assert.match(o, /^tier: L \(1 path\(s\).*module drafts\)/);
+    assert.match(o, /behind a feature flag: the Reviewer confirms it/);
+    await put(logic, 'export const score = (n) => n * 2;\n');
+    await put(logicTest, 'test 2\n');
+    await commit('logic');
+    [code, o] = await out('main', 'l');
+    assert.equal(code, 0, o);
+    assert.match(o, /^tier: M /, o);
+    await put(logic, 'export const score = () => process.env.X;\n');
+    await commit('env');
+    [code, o] = await out('main', 'l');
+    assert.equal(code, 0, o);
+    assert.match(o, /^tier: H /, o);
+    assert.match(o, /reads the environment/);
+    [code, o] = await out('main', 'no-such-ref');
+    assert.equal(code, 2, `an unknown ref is not classified, which is H: ${o}`);
+    assert.match(o, /not classified, which is H \(fail closed\)/);
+    [code, o] = await out('--sync', root);
+    assert.equal(code, 2, o);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
