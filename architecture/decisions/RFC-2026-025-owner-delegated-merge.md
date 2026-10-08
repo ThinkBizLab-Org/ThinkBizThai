@@ -113,10 +113,14 @@ record-only.**
    - **A PR that changes governance (an RFC, `CONTRIBUTING_AGENTS.md`, CI or a gate) is merged by the
      Owner personally**, never by delegation.
 
-## 6. Amendment, PROPOSED 2026-10-07: a light path for records-only PRs, and mechanical syncs
+## 6. Amendment, APPROVED 2026-10-08 by the Product Owner (proposed 2026-10-07): a light path for records-only PRs, and mechanical syncs
 
-**Status: Proposed. Not approved.** Nothing in this section applies until the Owner approves it. Until then
-§5 governs: under §5 its item 5 check did not exist, so no PR is treated as record-only.
+**Status: Approved 2026-10-08 by the Product Owner.** To A0's question `รับตามที่ A0 แนะนำทั้ง 5 ข้อไหม?`
+(Q-025-6-1 to Q-025-6-5 of §6.7, each with A0's recommendation) the Owner chose `รับตามแนะนำทั้ง 5 ข้อ
+(Recommended)`, transcribed in `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-025-s6-answers.md`. Until that approval
+nothing in this section applied and §5 governed: under §5 its item 5 check did not exist, so no PR was treated
+as record-only. The three text edits made after the answer (R0's R2-1 and R2-2, A1-7 with C0's N1) are listed
+in that disposition.
 
 **Origin.** On 2026-10-07, A0 recommended in session "(4) consider fewer review rounds for PRs that are only
 records — several times faster; this needs an RFC-2026-025 change, a governance PR the Owner decides". The
@@ -135,8 +139,8 @@ renames off. Every changed path must pass all of the following rules:
 1. **Added or modified only.** A deletion, rename, copy or type change is not a record. The file must be a
    regular file with mode `100644`, so a symlink or an executable is not a record.
 2. **`evidence/<package>/<name>.md`, for three names only.** The file sits directly under
-   `evidence/<package>/` and its name is `records-transcription-*.md` (words already written elsewhere,
-   transcribed), `session-*.md` (a session record) or `light-path-reading-*.md` (the one reader's verdict,
+   `evidence/<package>/` and its name is `records-transcription-*.md` (words already on `main`,
+   transcribed; §6.2 item 1), `session-*.md` (a session record) or `light-path-reading-*.md` (the one reader's verdict,
    §6.2). Any other name or type under `evidence/` is not a record: an Owner disposition, a role's review,
    re-check or verdict file, a script, SQL, JSON, a dotfile such as `.gitattributes`, or a file in a
    subdirectory. A new file of the three names is a record. An existing one is a record only if it is
@@ -177,7 +181,8 @@ field".
   the full path.
 - **Kept as §5 had it.** Owner dispositions and role-review files stay off the light path: item 2 admits
   three file names only, so a new or appended `product-owner-disposition-*` or role file takes the full
-  path.
+  path. The same holds for their words: Owner words or a role verdict with no source on `main` take the full
+  path under any file name (§6.2 item 1).
 - **Wider in four places, each a reversal or an addition the Owner is asked about in §6.7.**
   1. Two more evidence file names: `records-transcription-*.md` and the reader's
      `light-path-reading-*.md`.
@@ -186,7 +191,8 @@ field".
   3. **Status moves**, forward only and short of `done` (Q-025-6-4).
   4. The acknowledgement keys of `ownership.amended_by`, a narrowing of
      `ownership.amends_without_owning` and a restated `rationale`, and new entries at the end of
-     `required_human_authorities`.
+     `open_blockers` and of `required_human_authorities`. A new `open_blockers` entry appended at the end
+     is records-only; §5 item 1 had excluded it as "any other manifest field".
 
 The classifier enforces the shape mechanically. Only the reader of §6.2 can judge whether a transcription
 is accurate and whether a status move is earned. The classifier does not check that
@@ -212,14 +218,20 @@ runs on every PR, does that, and §6 relies on it.
    - reads every added or appended line against its source. A transcription is checked against the role
      file it cites, and a merge fact against `gh`/`git`. A clause that closes a blocker raised by a
      Security/Privacy run must cite that role's own file;
+   - checks every quoted Owner word and every role verdict against its source on `main`: the role's own
+     file, or an Owner disposition file (the cited transcription of the chat) already merged through the
+     full path. Owner words or a role verdict with no such source on `main` make the record a disposition or
+     a role file under another name: it takes the full path, and the reader treats it as a blocking finding;
    - checks **every status move** against the role verdict file that authorises the target status. That
      file must be on `main` and name the package and the status. A move with no such verdict is a
      blocking finding, and so is any move by the Author beyond `in_review`;
    - checks that the added lines carry no personal data, private URL, credential or customer content.
      `evidence/` and `handoffs/` are where the repository's e-mail scan is relaxed, so no scan stands in
      for this. A record that quotes anything from outside the repository (a chat, a log, provider output)
-     other than a role's or the Owner's words leaves the light path;
-   - records one verdict file, `evidence/<package>/light-path-reading-<date>.md`.
+     other than a role's or the Owner's words already on `main` leaves the light path;
+   - records one verdict file, `evidence/<package>/light-path-reading-<date>.md`. The reading names the head
+     commit it read. Any later commit other than the handoff refresh, last and alone, voids it and needs a
+     new reading, and a `light-path-reading-*` file not committed by the reader run is a blocking finding.
 
    That verdict file is itself a record, so committing it keeps the PR records-only.
 2. **No re-check round** unless the reader raises a **blocking** finding. A fix for a blocking finding is

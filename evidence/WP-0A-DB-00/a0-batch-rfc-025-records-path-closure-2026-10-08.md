@@ -91,3 +91,33 @@ before the role re-checks.
 - **R0**: the merge of `389f3845` (the generated files), R-3 to R-7, and the acknowledgements carried for
   `scripts/test-suite-contract.mjs`, `test-kits/integrity-manifest.json`, `test-kits/branch-identity.test.mjs`
   and `evidence/VERIFICATION.md` on the new head.
+
+## 5. Second round, and the Owner's answers (appended 2026-10-08)
+
+Author run `/claude/a0_atlas` (A0), through a subagent of A0's workflow script, under the standing delegation
+`เอาตามที่คุณแนะนำทุกอย่าง`. A0 executes; it decides nothing that is the Owner's.
+
+**Re-checks at `d12475a7`** (filed at `134b99ae`, `evidence/WP-0A-DB-00/{c0,a1,q0,r0}-batch-rfc-025-records-path-recheck-2026-10-07.md`):
+C0 `review_approved` with N1 (Minor) owed; A1 `security_approved_with_conditions`, condition A1-7 (Low); Q0
+`test_verified` with condition Q8; R0 `integration_verified` NOT given at `d12475a7`, content correct, with R2-1
+and R2-2 advisory.
+
+**The Owner's answers** are transcribed verbatim, each with its question, in
+`evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-025-s6-answers.md`: `รับตามแนะนำทั้ง 5 ข้อ
+(Recommended)` to `รับตามที่ A0 แนะนำทั้ง 5 ข้อไหม?`, and `ให้ A0 กดเอง (Recommended)` on who presses the merge.
+The second is an Owner-directed exception to §5 item 6 for PR #211. The Owner directed A0 to press this merge.
+
+| Condition, as the role worded it | What A0 did in the records commit |
+|---|---|
+| R0 R-5: the Owner's answers recorded on this branch before the merge | **Done.** The disposition above; the §6 heading and status line now read Approved 2026-10-08 and cite it; `open_blockers[203]` appended (old text whole at the start). |
+| R0 R2-1: the reading names the exact head it read; a later commit other than the refresh needs a new reading | **Fixed in text**, §6.2 item 1, last bullet, in R0's suggested words. |
+| R0 R2-2: §6.1's "wider in four places" omits new `open_blockers` entries | **Fixed in text**, item 4 of that list. A new entry appended at the end is records-only, as A0 recommends and as Q-025-6-3 keeps every old entry whole. |
+| A1-7 and C0 N1: Owner words or a role verdict not on `main` can ride the light path under an admitted name | **Fixed in text.** A new §6.2 item 1 bullet: the reader checks every quoted Owner word and role verdict against its source on `main`; without one the record takes the full path and is a blocking finding. The privacy bullet now says "already on `main`", §6.1 item 2 says "words already on `main`", and the "Kept as §5 had it" bullet holds for the words too. |
+| A1-6: the classifier as a CI step before the first delegated light-path merge | **Owed by WP-0A-A0-004**, a governance PR of its own (§6.6 item 1). Recorded in the disposition §5 and in `open_blockers[203]`. |
+| C0 F8, Q0 Q8, R0 items 1 and 4: refresh last and alone, `bootstrap` green on that head | **Owed, state.** Not done in this run, as instructed. |
+
+These are edits to §6 itself, so C0, A1, Q0 and R0 all re-read the records commit. The Owner answered on the
+text at `d12475a7` and did not read the three edits word by word; the disposition §4 says so.
+
+After the records commit, `origin/main` `ae163ed8` (#204) is merged in with the generated files rebuilt by their
+generators. The commands and exit codes are in the commit messages and the handoff when it is refreshed.
