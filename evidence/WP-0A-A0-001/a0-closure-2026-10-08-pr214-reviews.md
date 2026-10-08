@@ -74,3 +74,32 @@ This run checked each one against the session transcript.
 | `WP-0A-CON-008` `open_blockers[6]` | gate-rule question, "Product Owner + A0" | Owner, `10:16:36Z`: `นับเป็นเหตุการณ์เดียว (Recommended)`. **Still owed:** an RFC recording the reading (A0, governance), and the blocker's citation of D §10.1 on PR #216 (WP-0A-CON-008's author). | D §6, §10.1; T |
 | Q0 re-check R1 | "add OPEN-011's due-gate move (G0 → G2 pilot, per plan §6; stop condition unchanged) to §6's register row" | Added as its own row in D §6. | D §6 |
 | A1-R1 / R0 R2-1 / R0 §5 items 4-6 | handoff refreshed last and alone; bootstrap green on a head containing current `main`; R0 note on the final head | **Not by this commit.** The orchestrator refreshes the handoff after the A1 and R0 re-checks. | — |
+
+## Closure of R0's sync-reading conditions, 2026-10-08 (after `r0-sync-reading-2026-10-08.md` at `15e7fd9c`)
+
+A subagent run of `/claude/a0_atlas` wrote this. It is not a role verdict and it moves no status. A0 carried out the
+orchestrator's instruction under the Owner's standing words `เอาตามที่คุณแนะนำทุกอย่าง`, and decided nothing. PR #214
+is tier H under RFC-2026-030, so all four roles re-check this fix commit. The record says **G0 exit: decided,
+conditional**.
+
+| Condition | Role's words | Closed by | Where |
+|---|---|---|---|
+| R0 R3-1 (a) | disposition §10.2 names no run id for the presser | A dated clarification appended after §10.2's last paragraph: the presser is A0 (`/claude/a0_atlas`); the Owner may still press it. The Owner's quoted words are not altered, and the bold sentence is left as written. | D §10.2 |
+| R0 R3-1 (b) | `WP-0A-A0-010.json` :47 "should now cite §10.2" | The existing sentence is kept; appended: the direction was given at `10:21:21Z` (`ให้ A0 กดทุกตัวในแผน (Recommended)`, to a question naming `#214 G0 exit`), recorded in D §10.2, so A0 (`/claude/a0_atlas`) or the Owner may press PR #214. | `WP-0A-A0-010.json` `required_human_authorities[0]` |
+| R0 R3-1 (c) | `WP-0A-A0-010.json` :150 "Which one is the Owner's scope, not A0's" | **A0 does not decide the scope.** The existing sentence is kept; appended: whether that governance PR falls under D §10.2's in-plan direction is for the Owner when it is opened; until then it is merged by the Owner. | `WP-0A-A0-010.json` `open_blockers[1]` |
+| R0 R3-1 (d) | `WP-0A-A0-001.json` increment `rationale`: "no presser" | Appended: the presser of PR #214 is A0 (`/claude/a0_atlas`) under D §10.2, or the Owner. | `WP-0A-A0-001.json` increment `rationale` |
+| R0 R3-3 (advisory) | "`39ccaee6`'s message calls a non-mechanical sync mechanical" | **Noted.** `39ccaee6`'s commit message says "Mechanical sync under RFC-2026-025 §6.3"; that is wrong by the classifier's own output (`classify-records-only.mjs --sync` exit 1 on both syncs). Commits are not rewritten. The handoff refresh will not repeat it and will cite `r0-sync-reading-2026-10-08.md`. | this note |
+| R0 R2-1 (carried) / §5 items 4-6 | handoff last and alone; `bootstrap` green; R0 final-head note | **Not by this commit.** The orchestrator refreshes the handoff after the re-checks. | — |
+
+All edits are appends: no JSON line count moved (the manifests' strings grew in place), and the disposition gained
+five lines after §10.2, which no pin cites by line.
+
+### Re-checks owed on this commit
+
+- **C0**: reviews this text-fix commit and the final handoff.
+- **A1**: re-verifies `98d745d4` and this R3-1 commit, and states whether A1-R2 is lifted.
+- **Q0**: confirms the R1 row (D §6, OPEN-011) and the counts.
+- **R0**: the short final-head note, confirming the `integration_verified` wording of `r0-sync-reading-2026-10-08.md`
+  §5 with the presser filled.
+
+After that, and the refresh and green CI, A0 (`/claude/a0_atlas`) presses under D §10.2, or the Owner presses.

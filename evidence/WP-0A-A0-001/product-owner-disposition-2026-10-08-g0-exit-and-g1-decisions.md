@@ -454,6 +454,11 @@ statements of `06:31:57Z` and `06:32:49Z` (§7.1) were not retracted word for wo
 asked directly, with PR #214 named, and he chose. Whether that discharges R2-2 as worded is for A1 and R0 on their
 re-check.
 
+**Clarification, added 2026-10-08 (A0, answering R0 R3-1, `r0-sync-reading-2026-10-08.md` §4).** In the bold
+sentence above, "A0" is the run `/claude/a0_atlas`, and "the orchestrator that runs A0" is `/claude/a0_atlas`'s
+workflow. So the presser of PR #214 under this direction is **A0 (`/claude/a0_atlas`)**, once the conditions above
+hold; the Owner may still press it himself. The Owner's quoted question, option and answer above are unchanged.
+
 ### 10.3 A0's correction of "G0 passed", and the interim rule
 
 Asked `2026-10-08T10:22:05Z`, answered `11:02:53Z`. Question:
