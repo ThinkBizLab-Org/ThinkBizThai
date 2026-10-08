@@ -678,3 +678,283 @@ test('a base that is not exactly main runs the negative control, whatever its ca
   assert.equal(main.output.trim(), 'skip=true', main.out);
   assert.match(main.out, /the control is SKIPPED/);
 });
+
+// THE RECORDS-ONLY CLASSIFICATION STEP (RFC-2026-025 §6.6 item 1; RFC-2026-007 Amendment 2026-10-08). Pinned the way
+// the decision step above is: its body is cut out of ci.yml and run with `bash -e` against throwaway repositories
+// that hold a copy of the real classifier in their base commit. What is pinned: it gates nothing (exit 0 on every
+// path, no step output, nothing reads it), it fails closed (RECORDS-ONLY only on the classifier's exit 0), and it
+// runs the BASE's classifier before any of the pull request's own code runs.
+const CLASSIFY_STEP = 'Classify the pull request for the records-only light path (informational, gates nothing)';
+const CLASSIFIER = 'scripts/db/classify-records-only.mjs';
+
+async function recordsRepo() {
+  const { readFile } = await import('node:fs/promises');
+  const scratch = await scratchRepo();
+  await scratch.put(CLASSIFIER, await readFile(CLASSIFIER, 'utf8'));
+  await scratch.put('evidence/WP-X/session-2026-10-01.md', 'first\n');
+  scratch.git('add', '-A');
+  scratch.git('commit', '-q', '-m', 'base with the classifier');
+  return { ...scratch, base: scratch.git('rev-parse', 'HEAD') };
+}
+
+function commitHead(git) {
+  git('add', '-A');
+  git('commit', '-q', '--allow-empty', '-m', 'head');
+}
+
+async function classify(env, cwd) {
+  const { readFile, mkdtemp } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const block = stepBlock(await readFile(CI_WORKFLOW_PATH, 'utf8'), CLASSIFY_STEP);
+  const summary = join(await mkdtemp(join(tmpdir(), 'ci-summary-')), 'summary.md');
+  const result = await runStep(runBody(block), { GITHUB_STEP_SUMMARY: summary, ...env }, cwd);
+  let text = '';
+  try { text = await readFile(summary, 'utf8'); } catch { text = ''; }
+  return { ...result, summary: text };
+}
+
+function assertVerdict(result, verdict, what) {
+  assert.equal(result.code, 0, `${what}: the step must never fail the job -- ${result.out}`);
+  assert.equal(result.output, '', `${what}: the step must write no step output -- ${result.out}`);
+  assert.match(result.out, new RegExp(`^records-only classifier: ${verdict} -- `, 'm'), `${what}: ${result.out}`);
+  assert.ok(result.summary.includes(`(RFC-2026-025 §6.1): ${verdict}\n`), `${what}: the job summary does not carry ${verdict}: ${result.summary}`);
+  assert.match(result.summary, /gates nothing/, what);
+}
+
+test('the records-only classification step gates nothing and runs the base classifier before the pull request code', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const workflow = await readFile(CI_WORKFLOW_PATH, 'utf8');
+  const step = stepBlock(workflow, CLASSIFY_STEP);
+  const text = step.lines.join('\n');
+  assert.deepEqual(step.lines.filter((l) => /^\s*if: /.test(l)).map((l) => l.trim()), ["if: github.event_name == 'pull_request'"]);
+  assert.doesNotMatch(text, /^\s*id: /m, 'no id: nothing may read this step');
+  assert.doesNotMatch(text, /continue-on-error/);
+  assert.equal(envValue(step, 'BASE_REF'), '${{ github.event.pull_request.base.ref }}');
+  assert.equal(envValue(step, 'BASE_SHA'), '${{ github.event.pull_request.base.sha }}');
+
+  const body = runBody(step);
+  assert.doesNotMatch(body, /GITHUB_OUTPUT|GITHUB_ENV|GITHUB_PATH/, 'it may write the log and the job summary, nothing a later step reads');
+  assert.deepEqual([...body.matchAll(/\bexit\b\s*(\S*)/g)].map((m) => m[1]), ['0'], 'its one exit is exit 0');
+  assert.equal([...body.matchAll(/report "RECORDS-ONLY"/g)].length, 1, 'one path prints RECORDS-ONLY');
+  assert.match(body, /node "\$\{work\}\/classify-records-only\.mjs" "\$\{BASE_SHA\}" HEAD/);
+  assert.match(body, /git show "\$\{BASE_SHA\}:scripts\/db\/classify-records-only\.mjs"/);
+  assert.doesNotMatch(body, /node scripts\/db\/classify-records-only\.mjs/, "the pull request's own classifier must not be its judge");
+
+  // Before the first step that executes the pull request's own code, after the checkout assertion and the toolchain.
+  const at = workflow.indexOf(`- name: ${CLASSIFY_STEP}`);
+  assert.ok(workflow.indexOf(`- name: ${CHECKOUT_STEP}`) < at);
+  assert.ok(workflow.indexOf('- name: Verify pinned toolchain') < at);
+  assert.ok(at < workflow.indexOf('run: npm ci --ignore-scripts'), 'it must run before npm ci');
+  assert.ok(at < workflow.indexOf('run: npm run check'), 'it must run before npm run check');
+});
+
+test('a records-only pull request is classified RECORDS-ONLY, with the classifier output for the reader', async () => {
+  const { repo, base, git, put } = await recordsRepo();
+  await put('evidence/WP-X/session-2026-10-08.md', 'a session record\n');
+  await put('evidence/WP-X/session-2026-10-01.md', 'first\nappended\n');
+  await put('handoffs/WP-X-author-handoff.json', '{}\n');
+  commitHead(git);
+  const result = await classify({ BASE_REF: 'main', BASE_SHA: base }, repo);
+  assertVerdict(result, 'RECORDS-ONLY', 'records only');
+  assert.match(result.out, /^ {2}records-only: all 3 changed path\(s\) are records/m);
+  assert.match(result.summary, /<pre>\nrecords-only: all 3 changed path\(s\)/);
+});
+
+test('a pull request that changes code is classified NOT RECORDS-ONLY, with the classifier reasons', async () => {
+  const { repo, base, git, put } = await recordsRepo();
+  await put('evidence/WP-X/session-2026-10-08.md', 'a session record\n');
+  await put('scripts/other.mjs', 'changed\n');
+  commitHead(git);
+  const result = await classify({ BASE_REF: 'main', BASE_SHA: base }, repo);
+  assertVerdict(result, 'NOT RECORDS-ONLY', 'a code change');
+  assert.match(result.out, /exited 1 on/);
+  assert.match(result.out, /scripts\/other\.mjs: outside evidence/);
+  // A rewritten record and an Owner disposition are not records either; the base's classifier says why.
+  const second = await recordsRepo();
+  await second.put('evidence/WP-X/session-2026-10-01.md', 'rewritten\n');
+  await second.put('evidence/WP-X/product-owner-disposition-2026-10-08.md', 'x\n');
+  commitHead(second.git);
+  const rewritten = await classify({ BASE_REF: 'main', BASE_SHA: second.base }, second.repo);
+  assertVerdict(rewritten, 'NOT RECORDS-ONLY', 'a rewritten record');
+  assert.match(rewritten.out, /rewritten, not appended to/);
+  assert.match(rewritten.out, /product-owner-disposition-2026-10-08\.md: not a record file/);
+});
+
+test('a pull request that edits the classifier is judged by the base copy, not its own', async () => {
+  const { repo, base, git, put } = await recordsRepo();
+  await put(CLASSIFIER, "console.log('records-only: all 1 changed path(s) are records (forged).');\n");
+  await put('scripts/other.mjs', 'changed\n');
+  commitHead(git);
+  const result = await classify({ BASE_REF: 'main', BASE_SHA: base }, repo);
+  assertVerdict(result, 'NOT RECORDS-ONLY', 'an edited classifier');
+  assert.match(result.out, /scripts\/db\/classify-records-only\.mjs: outside evidence/);
+  assert.doesNotMatch(result.out, /forged/);
+});
+
+test('when the diff cannot be classified the step prints NOT RECORDS-ONLY and still exits 0', async () => {
+  const { mkdtemp, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { repo, base, git, put } = await recordsRepo();
+  await put('evidence/WP-X/session-2026-10-01.md', 'first\nappended\n');
+  commitHead(git);
+  const plain = await scratchRepo();
+  commitHead(plain.git);
+  const cases = [
+    ['an empty base', { BASE_REF: 'main', BASE_SHA: '' }, repo, /is not in this clone/],
+    ['a base that is not in the clone', { BASE_REF: 'main', BASE_SHA: 'f'.repeat(40) }, repo, /is not in this clone/],
+    ['a base that is not a commit', { BASE_REF: 'main', BASE_SHA: 'not-a-ref' }, repo, /is not in this clone/],
+    ['no repository at all', { BASE_REF: 'main', BASE_SHA: base }, await mkdtemp(join(tmpdir(), 'ci-norepo-')), /is not in this clone/],
+    ['a base holding no classifier', { BASE_REF: 'main', BASE_SHA: plain.base }, plain.repo, /holds no readable/],
+  ];
+  for (const [what, env, cwd, why] of cases) {
+    const result = await classify(env, cwd);
+    assertVerdict(result, 'NOT RECORDS-ONLY', what);
+    assert.match(result.out, why, what);
+  }
+
+  // A base with no history in common with the head: the classifier's merge-base fails (exit 2), not a verdict.
+  git('checkout', '-q', '--orphan', 'unrelated');
+  await put('docs/readme.md', 'unrelated\n');
+  git('add', '-A');
+  git('commit', '-q', '-m', 'unrelated');
+  const unrelated = git('rev-parse', 'HEAD');
+  git('checkout', '-q', 'main');
+  const noBase = await classify({ BASE_REF: 'main', BASE_SHA: unrelated }, repo);
+  assertVerdict(noBase, 'NOT RECORDS-ONLY', 'no merge base');
+  assert.match(noBase.out, /exited 2 on .*which is not a classification/);
+
+  // A blob the classifier must read is gone: the appended record cannot be compared with its base (exit 2).
+  const blob = git('rev-parse', 'HEAD:evidence/WP-X/session-2026-10-01.md');
+  await rm(join(repo, '.git', 'objects', blob.slice(0, 2), blob.slice(2)));
+  const noBlob = await classify({ BASE_REF: 'main', BASE_SHA: base }, repo);
+  assertVerdict(noBlob, 'NOT RECORDS-ONLY', 'a missing blob');
+  assert.match(noBlob.out, /exited 2 on .*which is not a classification/);
+});
+
+test('a records-only pull request into a base that is not exactly main is NOT RECORDS-ONLY', async () => {
+  const { repo, base, git, put } = await recordsRepo();
+  await put('evidence/WP-X/session-2026-10-08.md', 'a session record\n');
+  commitHead(git);
+  for (const ref of ['MAIN', 'Main', 'main2', 'main ', 'refs/heads/main', 'release', '']) {
+    const result = await classify({ BASE_REF: ref, BASE_SHA: base }, repo);
+    assertVerdict(result, 'NOT RECORDS-ONLY', JSON.stringify(ref));
+    assert.match(result.out, /is not exactly main/, JSON.stringify(ref));
+  }
+  const unset = await classify({ BASE_SHA: base }, repo);
+  assertVerdict(unset, 'NOT RECORDS-ONLY', 'an unset base branch');
+  // And the same diff into main is records-only: the guard must not make every pull request NOT.
+  assertVerdict(await classify({ BASE_REF: 'main', BASE_SHA: base }, repo), 'RECORDS-ONLY', 'main');
+  // With no job summary at all, the log still carries the verdict and the step still exits 0.
+  const { readFile } = await import('node:fs/promises');
+  const block = stepBlock(await readFile(CI_WORKFLOW_PATH, 'utf8'), CLASSIFY_STEP);
+  const bare = await runStep(runBody(block), { BASE_REF: 'main', BASE_SHA: base }, repo);
+  assert.equal(bare.code, 0, bare.out);
+  assert.match(bare.out, /^records-only classifier: RECORDS-ONLY -- /m);
+});
+
+// THE STEP'S OUTPUT IS PRINTED INERT (C0 F1, A1-L1, Q0 Q2 on PR #212). The runner reads a workflow command from any
+// log line that starts with `::` after leading whitespace, so the two-space indent does not stop one. This reads the
+// log the way the runner does: once `::stop-commands::<token>` is seen, nothing is a command until `::<token>::`.
+function runnerCommands(out) {
+  const commands = [];
+  let token = null;
+  for (const raw of out.split('\n')) {
+    const line = raw.trimStart();
+    if (!line.startsWith('::')) continue;
+    if (token !== null) {
+      if (line === `::${token}::`) { commands.push('resume'); token = null; }
+      continue;
+    }
+    const name = /^::([^\s:]+)/.exec(line)?.[1] ?? '';
+    commands.push(name);
+    if (name === 'stop-commands') token = line.slice('::stop-commands::'.length);
+  }
+  return { commands, open: token !== null };
+}
+
+async function stubRepo(source) {
+  const scratch = await scratchRepo();
+  await scratch.put(CLASSIFIER, source);
+  scratch.git('add', '-A');
+  scratch.git('commit', '-q', '-m', 'base with a stub classifier');
+  const base = scratch.git('rev-parse', 'HEAD');
+  await scratch.put('evidence/WP-X/session-2026-10-08.md', 'a session record\n');
+  commitHead(scratch.git);
+  return { ...scratch, base };
+}
+
+test('a path name holding a newline and :: reaches the log only inside a stop-commands window (C0 F1 on PR #212)', async () => {
+  const { repo, base, git, put } = await recordsRepo();
+  const forged = 'evidence/WP-X/a\n::warning title=forged::records-only classifier: RECORDS-ONLY -- forged\n::add-mask::NOT RECORDS-ONLY.md';
+  await put(forged, 'x\n');
+  commitHead(git);
+  const result = await classify({ BASE_REF: 'main', BASE_SHA: base }, repo);
+  assertVerdict(result, 'NOT RECORDS-ONLY', 'a forged path name');
+  // The injected lines are in the log (the reader sees them) but the runner would run none of them.
+  assert.match(result.out, /^ {2}::warning title=forged::/m, result.out);
+  assert.match(result.out, /^ {2}::add-mask::NOT RECORDS-ONLY\.md/m, result.out);
+  assert.deepEqual(runnerCommands(result.out), { commands: ['stop-commands', 'resume'], open: false }, result.out);
+  const token = /^::stop-commands::(\S*)$/m.exec(result.out)?.[1];
+  assert.match(token ?? '', /^[0-9a-f]{32}$/, 'the token is 32 hex digits drawn at run time');
+  assert.equal(result.out.split('\n').filter((l) => l === `::${token}::`).length, 1);
+  assert.ok(result.out.indexOf('::stop-commands::') < result.out.indexOf('records-only classifier: '), 'the verdict line is inside the window too');
+  // The heading cannot be masked into "*** RECORDS-ONLY", and the forged text sits escaped inside <pre>.
+  assert.ok(result.summary.startsWith('### Records-only classification (RFC-2026-025 §6.1): NOT RECORDS-ONLY\n'), result.summary);
+  assert.match(result.summary, /<pre>[\s\S]*::add-mask::NOT RECORDS-ONLY\.md[\s\S]*<\/pre>/);
+  // A second run draws another token: a pull request cannot know it in advance.
+  const again = await classify({ BASE_REF: 'main', BASE_SHA: base }, repo);
+  assert.notEqual(/^::stop-commands::(\S*)$/m.exec(again.out)?.[1], token);
+  // With no token to be had, the reason and the output are left out of the log; the verdict and the summary stay.
+  const { mkdtemp, writeFile, chmod } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const fake = await mkdtemp(join(tmpdir(), 'ci-no-od-'));
+  await writeFile(join(fake, 'od'), '#!/bin/sh\necho "not hex"\n');
+  await chmod(join(fake, 'od'), 0o755);
+  const noToken = await classify({ BASE_REF: 'main', BASE_SHA: base, PATH: `${fake}:${process.env.PATH}` }, repo);
+  assertVerdict(noToken, 'NOT RECORDS-ONLY', 'no token');
+  assert.doesNotMatch(noToken.out, /::warning|::add-mask|::stop-commands/, noToken.out);
+  assert.match(noToken.out, /no random token/);
+  assert.match(noToken.summary, /::add-mask::NOT RECORDS-ONLY\.md/);
+});
+
+test('only the classifier exit 0 with a first line "records-only: " is RECORDS-ONLY (C0 F2, Q0 Q1, R0-4, R0-1 on PR #212)', async () => {
+  const cases = [
+    ['exit 0 without the records-only first line', "console.log('all clear');\n", 'NOT RECORDS-ONLY', /exited 0 on .*which is not a classification/],
+    ['exit 0 with records-only on a later line', "console.log('note');\nconsole.log('records-only: all 1 changed path(s) are records.');\n", 'NOT RECORDS-ONLY', /exited 0 on .*which is not a classification/],
+    ['exit 1 without the classifier first line (a crash)', "console.log('Error: cannot find module');\nprocess.exitCode = 1;\n", 'NOT RECORDS-ONLY', /exited 1 on .*which is not a classification/],
+    ['exit 1 with the classifier first line', "console.log('NOT records-only (1 path(s), a..b):\\n  x: reason');\nprocess.exitCode = 1;\n", 'NOT RECORDS-ONLY', /exited 1 on .*its reasons follow/],
+    ['exit 0 with the records-only first line', "console.log('records-only: all 1 changed path(s) are records (a..b).');\n", 'RECORDS-ONLY', /exited 0 on .*every status move/],
+  ];
+  for (const [what, source, verdict, why] of cases) {
+    const { repo, base } = await stubRepo(source);
+    const result = await classify({ BASE_REF: 'main', BASE_SHA: base }, repo);
+    assertVerdict(result, verdict, what);
+    assert.match(result.out, why, what);
+  }
+});
+
+test('the job summary carries at most 64 KiB of classifier output; the log keeps all of it (A1-L2, C0 F3, R0-3 on PR #212)', async () => {
+  const line = `  ${'<&>'.repeat(60)}`;
+  const source = `console.log('NOT records-only (5000 path(s), a..b):');\nfor (let i = 0; i < 5000; i += 1) console.log(${JSON.stringify(line)} + i);\nprocess.exitCode = 1;\n`;
+  const { repo, base } = await stubRepo(source);
+  const result = await classify({ BASE_REF: 'main', BASE_SHA: base }, repo);
+  assertVerdict(result, 'NOT RECORDS-ONLY', 'a huge output');
+  assert.match(result.out, /<&><&>[^\n]*4999$/m, 'the log keeps the last line');
+  const bytes = Buffer.byteLength(result.summary);
+  assert.ok(bytes < 512 * 1024, `the summary is ${bytes} bytes`);
+  assert.match(result.summary, /cut at 64 KiB here/);
+  assert.doesNotMatch(result.summary.split('<pre>')[1], /<&>/, 'the output is escaped in the summary');
+  // The reason is escaped too: a base branch name may hold < and >.
+  const odd = await classify({ BASE_REF: '<b>main</b>', BASE_SHA: base }, repo);
+  assertVerdict(odd, 'NOT RECORDS-ONLY', 'a base ref with markup');
+  assert.match(odd.summary, /'&lt;b&gt;main&lt;\/b&gt;' is not exactly main/);
+  // A short output is not marked as cut.
+  const short = await stubRepo("console.log('NOT records-only (1 path(s), a..b):\\n  x');\nprocess.exitCode = 1;\n");
+  const small = await classify({ BASE_REF: 'main', BASE_SHA: short.base }, short.repo);
+  assertVerdict(small, 'NOT RECORDS-ONLY', 'a short output');
+  assert.match(small.summary, /<pre>\nNOT records-only \(1 path\(s\), a\.\.b\):\n {2}x\n<\/pre>/);
+  assert.doesNotMatch(small.summary, /cut at 64 KiB/);
+});
