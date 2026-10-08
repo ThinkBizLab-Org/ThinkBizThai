@@ -5,10 +5,21 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "bd019c9cde305109aca4088d50f62109e4d9c2a4",
-  "head_revision_or_patch_checksum": "bd019c9cde305109aca4088d50f62109e4d9c2a4",
+  "head_revision_or_patch_checksum": "0f37aa378a68df0b13298c2e7bbf170d3c84e21a",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-A0-004/author-records-classifier-ci-2026-10-08.md"
+  ],
+  "files_modified": [
+    ".github/workflows/ci.yml",
+    "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-A0-004-author-handoff.json",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/branch-scope.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-A0-004.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
