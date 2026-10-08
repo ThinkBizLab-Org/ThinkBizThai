@@ -5,7 +5,7 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "09fb56302f1884f23a60beb7304ec06cf29b32df",
-  "head_revision_or_patch_checksum": "81bf884d86c0943d91122762273f33e7c09d96fd",
+  "head_revision_or_patch_checksum": "c569631cfd06e3a43357165b990437c5f5ded143",
   "task_ids": [
     "WP-0A-A0-001",
     "WP-0A-A0-010",
@@ -15,13 +15,17 @@
     "evidence/WP-0A-A0-001/a0-closure-2026-10-08-pr214-reviews.md",
     "evidence/WP-0A-A0-001/a1-recheck-2026-10-06.md",
     "evidence/WP-0A-A0-001/a1-recheck-2026-10-07b.md",
+    "evidence/WP-0A-A0-001/a1-recheck-2026-10-08-pr214-final.md",
     "evidence/WP-0A-A0-001/a1-review-2026-10-07.md",
     "evidence/WP-0A-A0-001/c0-recheck-2026-10-07.md",
+    "evidence/WP-0A-A0-001/c0-recheck-2026-10-08-pr214-final.md",
     "evidence/WP-0A-A0-001/c0-review-2026-10-07.md",
     "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md",
     "evidence/WP-0A-A0-001/q0-recheck-2026-10-07.md",
+    "evidence/WP-0A-A0-001/q0-recheck-2026-10-08-pr214-final.md",
     "evidence/WP-0A-A0-001/q0-review-2026-10-07.md",
     "evidence/WP-0A-A0-001/r0-recheck-2026-10-07.md",
+    "evidence/WP-0A-A0-001/r0-recheck-2026-10-08-pr214-final.md",
     "evidence/WP-0A-A0-001/r0-review-2026-10-07.md",
     "evidence/WP-0A-A0-001/r0-sync-reading-2026-10-08.md",
     "work-packages/WP-0A-A0-010.json"
@@ -92,7 +96,7 @@
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-001",
       "exit_code": 0,
-      "result": "WP-0A-A0-001: all 18 changed path(s) are declared, and every amendment explains one"
+      "result": "WP-0A-A0-001: all 22 changed path(s) are declared, and every amendment explains one (measured on the branch name with this refresh in the working tree)"
     },
     {
       "command": "node scripts/verify-branch-identity.mjs agent/root/WP-0A-A0-001-repository-bootstrap-2026-10-07",
@@ -112,7 +116,7 @@
     {
       "command": "node scripts/db/classify-records-only.mjs origin/main HEAD",
       "exit_code": 1,
-      "result": "NOT records-only (18 paths, 09fb563..81bf884): ownership.branch changed, amends_without_owning widened, a new manifest, a test file and the generated manifest changed, role files and the Owner disposition take the full path. Exit 1 is the expected result."
+      "result": "NOT records-only (22 paths, 09fb563..c569631): ownership.branch changed, amends_without_owning widened, a new manifest, a test file and the generated manifest changed, role files and the Owner disposition take the full path. Exit 1 is the expected result."
     },
     {
       "command": "shasum -a 256 /Users/bank/ThinkBizThai/.claude/g1-g2-plan-2026-10-08.md",
@@ -130,9 +134,14 @@
       "result": "NOT a mechanical sync, same reason (measured by R0, r0-sync-reading-2026-10-08.md §1)"
     },
     {
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD",
+      "exit_code": 0,
+      "result": "tier: H (22 paths, 09fb563..c569631)"
+    },
+    {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "tests 735, pass 735, fail 0 at 81bf884 with this refresh in the working tree"
+      "result": "tests 735, pass 735, fail 0 at c569631 with this refresh in the working tree"
     }
   ],
   "security_privacy_cost_impact": "None. Governance records plus two pinned rows in test-kits/branch-identity.test.mjs and the regenerated test-kits/integrity-manifest.json, so the PR is not records-only and takes the full path; no application code, schema, migration, contract, CI workflow, credential or customer data. The decisions recorded bind future cost (Supabase Pro x2, Vercel Pro, Sentry, an email provider) but nothing is provisioned.",
@@ -146,15 +155,15 @@
     "Placing WP-0A-A0-010's record under WP-0A-A0-001 is A0's reading of the guide (disposition §8); a reviewer may require the manifest to move to its own branch."
   ],
   "open_risks_or_blockers": [
-    "This is a GOVERNANCE PR (a gate record). Presser: A0 (/claude/a0_atlas), or the orchestrator that runs A0, under the Owner's direction of 2026-10-08T10:21:21Z `ให้ A0 กดทุกตัวในแผน (Recommended)` to a question naming `#214 G0 exit` (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md §10.2), an exception to RFC-2026-025 §5 item 6 that does not amend it; or the Owner himself. A1 withdrew its 'Owner only' statement for this PR (a1-recheck-2026-10-06.md §1); R0 discharged R2-2 (r0-sync-reading-2026-10-08.md §3).",
-    "Before an A0 press, R0's conditions in r0-sync-reading-2026-10-08.md §5 are still open: R3-1 (name /claude/a0_atlas as presser in disposition §10.2, WP-0A-A0-010.json :47/:150 and WP-0A-A0-001.json rationale; :150's wording is the Owner's scope), A1 and Q0 re-verify 98d745d4 and the R3-1 commit (R3-2), and an R0 note on the final head. This handoff refresh does not do R3-1.",
+    "This is a GOVERNANCE PR (a gate record). Presser: the Owner himself, or A0 (/claude/a0_atlas) under the Owner's direction of 2026-10-08T10:21:21Z `ให้ A0 กดทุกตัวในแผน (Recommended)` to a question naming `#214 G0 exit` (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md §10.2), an exception to RFC-2026-025 §5 item 6 that does not amend it. The orchestrator run that wrote this refresh marks the PR ready and does not merge it; it leaves the press to the Owner. A1 lifted A1-R2 at b65d4fe1 (a1-recheck-2026-10-08-pr214-final.md); R0 discharged R2-2 (r0-sync-reading-2026-10-08.md §3).",
+    "R3-1 is closed by b65d4fe1 (r0-recheck-2026-10-08-pr214-final.md §2), and R3-3 with it. R3-2 is closed by the four role notes on b65d4fe1, cherry-picked with -x: c0-recheck-2026-10-08-pr214-final.md (approved), a1-recheck-2026-10-08-pr214-final.md (security_approved_with_conditions, A1-R2 lifted, A1-R1 = this refresh last and alone plus CI green on a head containing main), q0-recheck-2026-10-08-pr214-final.md (test_verified) and r0-recheck-2026-10-08-pr214-final.md (integration_verified not given at b65d4fe1; given on its §5 conditions). R2-1 is this refresh, last and alone. What remains before a press is `bootstrap` green on the head this refresh creates; origin/main 09fb5630 is in its history. R0 R4-1 (advisory, WP-0A-CON-008's owner, a later package): check:handoff excuses the newest commit as if it were the handoff commit, so measure with a throwaway commit on top.",
     "The register §7.2 G0 pass rule is stricter than the rule D0 invoked. The Owner answered the gate-rule cycle (§10.1, `นับเป็นเหตุการณ์เดียว (Recommended)`): the First-Slice contract freeze is part of the G0 exit and §7.2 (2) is not waived; an RFC recording that reading is owed.",
     "Interim rule confirmed by the Owner at 11:02:53Z (`ยืนยัน ยังผูกพัน (Recommended)`, §10.3): CONTRIBUTING_AGENTS.md \"Current gate constraint\" and register line 373 bind until the First-Slice contracts are frozen and a PR amending CONTRIBUTING_AGENTS.md exists (A0 reads: is merged). A0's 06:31:57Z and 06:32:49Z statements are overtaken by §10.2, not retracted word for word (A1 §2.2)."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores the previous records; no persisted data or external state is involved.",
   "recommended_next_work_packages": [
-    "Role files on this branch, cherry-picked with -x: C0, Q0, A1, R0 re-checks at fde49f2c (c0-recheck-2026-10-07.md, q0-recheck-2026-10-07.md, a1-recheck-2026-10-07b.md, r0-recheck-2026-10-07.md); A1's re-check at 39ccaee6 (a1-recheck-2026-10-06.md: security_approved_with_conditions, A1-R1 open until this refresh lands last and alone and CI is green); R0's sync reading at 654ecd84 (r0-sync-reading-2026-10-08.md: verdict stands, integration_verified not yet given). Each role's verdict is in its own file, not here.",
-    "After R0's §5 conditions hold, A0 (/claude/a0_atlas) presses this PR under disposition §10.2, or the Owner presses it himself. After merge the increment may be recorded as integration_verified in R0's words (r0-sync-reading-2026-10-08.md §5): 'G0 exit: decided, conditional', naming the presser and §10.2, with no external item done, no production customer data until legal/PDPA passes, and the Current gate constraint binding per §10.3. Never 'G0 passed'. WP-0A-A0-010 moves status in a follow-up commit.",
+    "Role files on this branch, cherry-picked with -x: C0, Q0, A1, R0 re-checks at fde49f2c (c0-recheck-2026-10-07.md, q0-recheck-2026-10-07.md, a1-recheck-2026-10-07b.md, r0-recheck-2026-10-07.md); A1's re-check at 39ccaee6 (a1-recheck-2026-10-06.md: security_approved_with_conditions, A1-R1 open until this refresh lands last and alone and CI is green); R0's sync reading at 654ecd84 (r0-sync-reading-2026-10-08.md: verdict stands, integration_verified not yet given). Final re-checks on b65d4fe1, cherry-picked with -x: c0-recheck-2026-10-08-pr214-final.md (d66ec13b), a1-recheck-2026-10-08-pr214-final.md (357f4c71), q0-recheck-2026-10-08-pr214-final.md (06dbbbd3), r0-recheck-2026-10-08-pr214-final.md (d567250e). Each role's verdict is in its own file, not here.",
+    "R0's §5 conditions (r0-recheck-2026-10-08-pr214-final.md) hold on this refresh once `bootstrap` is green on its head. The Owner presses this PR, or A0 (/claude/a0_atlas) under disposition §10.2. After merge, and not before (R0: 'once this file is carried, conditions 1-3 hold, and the PR is merged'), the increment is recorded integration_verified in R0's exact words in r0-recheck-2026-10-08-pr214-final.md §5, with the final head, merge sha and presser filled in: 'G0 exit: decided, conditional', no external item done, no production customer data until legal/PDPA passes, the Current gate constraint binding per §10.3. Never 'G0 passed'. WP-0A-A0-010 moves from in_review to integration_verified in a follow-up status commit citing the C0, Q0, A1 and R0 files.",
     "WP-1A-A0-001: an RFC recording the Owner's §10.1 gate-rule reading; a governance PR updating CONTRIBUTING_AGENTS.md \"Current gate constraint\"; a status-line note on RFC-2026-025 §5 item 6 for the §10.2 exception (A1 INFO-6).",
     "WP-0A-CON-008: freeze CTR-TEN/ERR/API/IDM/EVT/JOB/MOD/FLG to Frozen v1; WP-0A-DB-00: triage open_blockers and close required_human_authorities[0] per D5."
   ],
@@ -162,6 +171,6 @@
     "Read evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md first, then the section \"G0 ทางออกแบบมีเงื่อนไข (D0)\" of evidence/g0-tracker-th.md.",
     "Compare §2.1-§2.3 byte for byte with /Users/bank/ThinkBizThai/.claude/g1-g2-plan-2026-10-08.md (sha256 7cabce388122f4d0497698b87df6c60686d244d88e2eb3d10f33afb1206e73e2), and §1.1/§2 with session 27edf3de at 06:18:11Z and 06:31:21Z.",
     "Check that no row anywhere represents an external item as done, and that each OPEN closure goes no further than its D-item's words.",
-    "Role files for PR #214: evidence/WP-0A-A0-001/{c0,q0,r0}-recheck-2026-10-07.md and a1-recheck-2026-10-07b.md (at fde49f2c), a1-recheck-2026-10-06.md (at 39ccaee6) and r0-sync-reading-2026-10-08.md (at 654ecd84), all cherry-picked with -x."
+    "Role files for PR #214: evidence/WP-0A-A0-001/{c0,q0,r0}-recheck-2026-10-07.md and a1-recheck-2026-10-07b.md (at fde49f2c), a1-recheck-2026-10-06.md (at 39ccaee6) and r0-sync-reading-2026-10-08.md (at 654ecd84), and the final re-checks on b65d4fe1: {c0,a1,q0,r0}-recheck-2026-10-08-pr214-final.md, all cherry-picked with -x."
   ]
 }
