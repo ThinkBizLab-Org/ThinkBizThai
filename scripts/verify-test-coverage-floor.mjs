@@ -557,6 +557,7 @@ export const DIGESTED_FLOOR = [
   'db/foundation/test-helpers/rls-assertions.mjs',
   'scripts/db/audit-producer-rule.mjs',
   'scripts/db/authz-proofs.mjs',
+  'scripts/db/classify-records-only.mjs',
   'scripts/db/explain-harness.mjs',
   'scripts/db/generate-pinned-grants.mjs',
   'scripts/db/psql-driver.mjs',

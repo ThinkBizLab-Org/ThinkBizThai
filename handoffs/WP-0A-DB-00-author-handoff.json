@@ -4,254 +4,150 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "e1fa28ec0232ccbb4dadb5faa079df5b1579b469",
-  "head_revision_or_patch_checksum": "f787198b39e22a25eceff46f224027ad8ca86ea5",
+  "base_revision": "ae163ed8bb2473228b6d68dd8e764d55048857db",
+  "head_revision_or_patch_checksum": "4cbc3087cbd49168c6e4c9425451a877c4021404",
   "task_ids": [],
   "files_added": [
-    "db/foundation/migrations/174_job_tenant_context.sql",
-    "evidence/WP-0A-DB-00/a0-batch-174-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-174-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-174-security-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-174-contract-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-174-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-174.md",
-    "evidence/WP-0A-DB-00/q0-batch-174-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/q0-batch-174-test-review-2026-10-03.md"
+    "evidence/WP-0A-DB-00/a0-batch-rfc-025-records-path-closure-2026-10-08.md",
+    "evidence/WP-0A-DB-00/a0-batch-rfc-025-records-path-plan-2026-10-07.md",
+    "evidence/WP-0A-DB-00/a1-batch-rfc-025-records-path-recheck-2026-10-07.md",
+    "evidence/WP-0A-DB-00/a1-batch-rfc-025-records-path-review-2026-10-07.md",
+    "evidence/WP-0A-DB-00/a1-recheck-2026-10-06.md",
+    "evidence/WP-0A-DB-00/c0-batch-rfc-025-records-path-recheck-2026-10-07.md",
+    "evidence/WP-0A-DB-00/c0-batch-rfc-025-records-path-review-2026-10-07.md",
+    "evidence/WP-0A-DB-00/c0-recheck-2026-10-06.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-07-rfc-025-s6.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-025-s6-answers.md",
+    "evidence/WP-0A-DB-00/q0-batch-rfc-025-records-path-recheck-2026-10-07.md",
+    "evidence/WP-0A-DB-00/q0-batch-rfc-025-records-path-review-2026-10-07.md",
+    "evidence/WP-0A-DB-00/q0-recheck-2026-10-06.md",
+    "evidence/WP-0A-DB-00/r0-batch-rfc-025-records-path-recheck-2026-10-07.md",
+    "evidence/WP-0A-DB-00/r0-batch-rfc-025-records-path-review-2026-10-07.md",
+    "evidence/WP-0A-DB-00/r0-recheck-2026-10-06.md",
+    "scripts/db/classify-records-only.mjs"
   ],
   "files_modified": [
-    "architecture/decisions/RFC-2026-028-worker-identity.md",
-    "db/foundation/lint/catalog-snapshot.json",
-    "db/foundation/lint/pinned-grants.json",
-    "db/foundation/lint/read-allowlist-known-exceptions.json",
-    "db/foundation/lint/vocabulary-checks.json",
+    "architecture/decisions/RFC-2026-025-owner-delegated-merge.md",
+    "db/foundation/lint/audit-coverage-map.json",
     "evidence/VERIFICATION.md",
     "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/db/authz-proofs.mjs",
-    "scripts/db/run.mjs",
     "scripts/test-suite-contract.mjs",
+    "scripts/verify-test-coverage-floor.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/db/foundation-contract.test.mjs",
-    "test-kits/db/ws905-fixture.mjs",
     "test-kits/integrity-manifest.json",
-    "tests/db/identity/fixtures/050-async-kernel-fixture.sql",
-    "tests/db/identity/isolation-cases.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "RFC-2026-028 (in effect since 2026-10-05 through the Owner's delegation, product-owner-disposition-2026-10-03-batch-rfc-023-028.md §6): Q-028-5's answer -- \"Columns, not null with CTR-TEN-001's bounds, in a forward migration of A0's kernel range; CTR-JOB-001's reading of tenant_context restated to match\" -- implemented as one forward migration, 174_job_tenant_context.sql, numbered after 173 (disposition D1); §3.4's table (the enqueuing request's id on the job, the correlation carried unchanged, the database minting none); Q-028-6.",
-    "RFC-2026-026 §3.5 (in effect): the worker producer reads actor, request_id and correlation_id from the job's tenant_context; read, not implemented (its worker half is a later batch).",
-    "Batch 141's D9 (product-owner-disposition-2026-10-03-batch-141.md): the identifier shape ^[A-Za-z0-9._:-]{1,128}$, reused for the three ids (disposition D3).",
-    "A1-173-3 (a1-batch-173-worker-security-review-2026-10-03.md, open_blockers[201] (10)) and C0 R3 / A1 R1 / Q0-171R-1 on batch 171 (open_blockers[198]): pinned (rules 10 and 11) and resolved through pg_auth_members (174's block), as the findings asked.",
-    "The Owner's standing delegation to merge (product-owner-disposition-2026-10-03-batch-127.md §6), executed by A0 in merging #184; the delegation `เอาตามที่คุณแนะนำทุกอย่าง` and the words relayed for 2026-10-05, `พร้อมแล้วลุยเลยนะ ไม่ต้องรอผม`, under which D1-D10 are answered as A0 recommends (disposition §4)."
+    "RFC-2026-025 §1-§5 (approved 2026-09-28): §5 item 1's record-only scope, item 5's demand for a mechanical check, item 6's rule that a governance PR is merged by the Owner personally. §1-§5 are byte-identical to main; this PR only appends line 8 and §6.",
+    "RFC-2026-025 §6, whose status line records it as Approved 2026-10-08 by the Owner. The Owner's words were `รับตามแนะนำทั้ง 5 ข้อ (Recommended)`, on Q-025-6-1..5 (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-025-s6-answers.md §2).",
+    "The Owner's direction of 2026-10-08 on who presses PR #211: `ให้ A0 กดเอง (Recommended)` (disposition 2026-10-08 §2 and §6 item 5, which quotes the question and A0's 2026-10-06 statement of §5 item 6 verbatim, as A0 relayed them). For PR #211 only; it is not an Owner-pressed merge.",
+    "The Owner's words of 2026-10-07, `ข้อ 4 mw`, read by A0 as 'item 4: do it' (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-07-rfc-025-s6.md); the reading was A0's and directed writing the proposal. The Owner decided on §6 itself on 2026-10-08 (above)."
   ],
-  "contracts_consumed": [
-    "CTR-TEN-001",
-    "CTR-JOB-001",
-    "CTR-AUD-001"
-  ],
+  "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THE RE-CHECKS ARE DONE (2026-10-06, plan §8): C0 1b8527f, A1 14896f3, Q0 6b89d9f, carried as b68992e, 2649a09, c46d5a2; no stop-the-line, none holds the merge. The branch merged main e1fa28e (PR #186) before this refresh; A0 presses the merge under the Owner's standing delegation once CI is green on this head.",
-    "THIS INCREMENT IS BATCH 174 (code commit 6bc9fc2; its review round is code commit fb62e17: the C0, A1 and Q0 reviews cherry-picked with -x, every finding mapped to a change and a measurement in plan §7, D11-D14 in the disposition §6): one forward migration, db/foundation/migrations/174_job_tenant_context.sql, giving app.jobs its tenant context (RFC-2026-028 Q-028-5) and completing 171 (6) through role inheritance; plus rules 10 and 11 of the pinned grant probe (A1-173-3). Plan evidence/WP-0A-DB-00/a0-batch-174-plan-2026-10-03.md, disposition product-owner-disposition-2026-10-03-batch-174.md.",
-    "RESUMED FROM A PARTIAL PATCH: an earlier author run was cut off by a network failure before it committed anything; its unverified 11-file patch was applied to a branch from origin/main 600b48b, every hunk read against its inputs and re-measured on this run's cluster, and what was missing written (plan §1). None of the earlier run's results is cited.",
-    "The Owner's words of 2026-10-05, `พร้อมแล้วลุยเลยนะ ไม่ต้องรอผม`, reached this subagent in the A0 run's task text, quoted as the Owner's; they are transcribed in the disposition §1 as relayed, and the Owner may correct the transcription.",
-    "app.jobs holds no row wherever 174 applies (050 is applied to no provisioned instance; a migrate-clean cluster has none when 174 runs), so NOT NULL needs no default and no backfill; on a populated table the ADD fails closed (23502, measured).",
-    "CTR-JOB-001 and CTR-TEN-001 are read, not changed: contract-catalog/ is read-only to WP-0A-DB-00; the restatement and the narrowing are owed to the contract's owner (open_blockers[202] (2))."
+    "The disposition files quote the Owner's chat as A0 relayed it; the roles checked the quotes against the task text (grep -F), not against the chat itself.",
+    "An approved RFC is amended in its own text, as §5 was; the repository has no rule requiring a new RFC number for an amendment.",
+    "WP-0A-DB-00 owns RFC-2026-025 and scripts/db/**, so the classifier lives in scripts/db/; scripts/verify-test-coverage-floor.mjs (one DIGESTED_FLOOR line) is amended without owning it, declared in the manifest and acknowledged by its Integration Owner R0 (r0-recheck-2026-10-06.md §4).",
+    "The CI checkout keeps full history (fetch-depth: 0); the classifier test builds its own throwaway git repository and does not depend on this tree's history."
   ],
   "acceptance_results": [
     {
-      "criterion": "(1) Q-028-5 / §3.4: app.jobs gains actor_kind, actor_id, request_id, correlation_id, text NOT NULL with no default; actor_kind CTR-TEN-001's enum; the three ids bounded by 172's shape",
+      "criterion": "(a) records-only defined mechanically, with a fail-closed guard",
       "result": "met",
-      "evidence": "174; plan §2 rows 1-2; the proof job-names-its-tenant-context (both final rounds); PINNED_CHECKS and PINNED_NOT_NULL self-tests; drifts D4, D7"
+      "evidence": "RFC-2026-025 §6.1; scripts/db/classify-records-only.mjs; the foundation-contract classifier test; plan §3 (5 of 26 PRs records-only); closure a0-batch-rfc-025-records-path-closure-2026-10-08.md §3 (the narrowed rules, each killed by a mutant)"
     },
     {
-      "criterion": "(2) §3.4: app_worker may SELECT and INSERT the four, no role may UPDATE them, no client role holds anything on them",
+      "criterion": "(b) one independent reading, no re-check unless blocking, A0 may merge under the delegation",
       "result": "met",
-      "evidence": "174's block (3); pinned-grants.json; drifts D5, D6, D8 refused by name; the proof's grant cases and controls"
+      "evidence": "RFC-2026-025 §6.2"
     },
     {
-      "criterion": "(3) every writer of app.jobs names the four",
+      "criterion": "(c) mechanical sync voids no verdict and needs no carry reading; handoff last and alone and CI green still apply",
       "result": "met",
-      "evidence": "the 050 fixture, the isolation enqueue, the WS:905 fixture; new foundation-contract test; drift D9 (main's fixture: rls-smoke fails, 23502); WS:905 loaded through the explain harness"
+      "evidence": "RFC-2026-025 §6.3 (mechanical = script exit 0 and generators cmp-clean); --sync; plan §3 and closure §3 (48 of 50 syncs pass the script, an upper bound; the two others, 31879073 and f6652ee0, drew readings of substance)"
     },
     {
-      "criterion": "(4) A1-173-3: app_worker's database CREATE and per-function EXECUTE pinned, with drifts",
+      "criterion": "(d) what stays unchanged",
       "result": "met",
-      "evidence": "rules 10 and 11 of the pinned grant probe, each with a self-test; A1's own drift D1 and D2c refused by name (plan §3)"
+      "evidence": "RFC-2026-025 §6.4"
     },
     {
-      "criterion": "(5) 171 (6) by role inheritance (C0 R3, A1 R1, Q0-171R-1): resolve through pg_auth_members recursively, with a drift",
-      "result": "met",
-      "evidence": "174's block (4); drifts D3 and D3b refused by 174's block by name"
-    },
-    {
-      "criterion": "(6) try-it's demo still passes",
-      "result": "met",
-      "evidence": "try-it up/demo/down on 127.0.0.1:55479 (the tool refuses 5507 by design): All 17 steps behaved as expected"
-    },
-    {
-      "criterion": "(7) CTR-JOB-001 restated to match (Q-028-5's second half)",
+      "criterion": "the guard wired into CI",
       "result": "not_met",
-      "evidence": "contract-catalog/ is read-only to this package; owed to the contract's owner, open_blockers[202] (2), the narrowing stated exactly there"
-    },
-    {
-      "criterion": "(8) the review round: every C0, A1 and Q0 finding on d111326 acted on, owed with an owner, or answered by name",
-      "result": "met",
-      "evidence": "plan §7 (finding → change → measured); disposition §6 D11-D14; open_blockers[202] appended (REVIEW ROUND). C0-174-1 ordering on [202] (2), with A1's acceptance of the narrowing owed at its re-check; C0-174-2 held by probeJobScript's search_path pin (measured); A1-174-1 owed to the first enqueue path; A1-174-2 and Q0 F1 wording corrected; C0-174-4 and Q0 F3 done"
+      "evidence": "owed to WP-0A-A0-004 (RFC §6.6 item 1; open_blockers[203] (3))"
     }
   ],
   "tests": [
     {
-      "command": "node -v before every measured run",
+      "command": "node -v",
       "exit_code": 0,
       "result": "v24.20.0"
     },
     {
-      "command": "DB_TEST_URL=postgresql://postgres@127.0.0.1:5507/postgres make db-migrate-clean (final round 1, re-initdb, shim first)",
+      "command": "git branch --show-current; git merge-base --is-ancestor origin/main HEAD",
       "exit_code": 0,
-      "result": "post-migrate pass 55 / 39 / 16; pinned grant probe refused each of its 12 drifts, pinned check probe each of its 2; every probe clean"
+      "result": "agent/claude/WP-0A-DB-00-batch-rfc-025-records-path; origin/main ae163ed8 contained"
     },
     {
-      "command": "DB_TEST_URL=postgresql://postgres@127.0.0.1:5507/postgres make db-rls-smoke (final round 1)",
+      "command": "node scripts/verify-branch-identity.mjs agent/claude/WP-0A-DB-00-batch-rfc-025-records-path",
       "exit_code": 0,
-      "result": "1200 isolation cases passed; db-authz-proofs: ok — 14 claim(s) discharged by execution; 1 not run on this cluster (worker-login-authentication)"
+      "result": "WP-0A-DB-00"
     },
     {
-      "command": "make db-migrate-clean (final round 2, re-initdb)",
+      "command": "npm run check at 454f6935 with the first refresh in the tree (before the record commit)",
+      "exit_code": 89,
+      "result": "tests 725, pass 725, fail 0; refused only because evidence/VERIFICATION.md was still main's record"
+    },
+    {
+      "command": "npm run record:verification; npm run regenerate:manifest (twice)",
       "exit_code": 0,
-      "result": "as round 1"
+      "result": "recorded 725 passing, 0 skipped, 0 todo; rebuilt 105 digest(s); the only manifest change is evidence/VERIFICATION.md's digest"
     },
     {
-      "command": "make db-rls-smoke (final round 2)",
+      "command": "node scripts/commit-when-clean.mjs (the record commit 4cbc3087)",
       "exit_code": 0,
-      "result": "as round 1"
+      "result": "clean: exit 0, tests 725, pass 725, fail 0, skipped 0, todo 0"
     },
     {
-      "command": "drifts D1, D2, D2c, D3, D3b appended to 140_audit.sql; D4-D8 appended to 174 (D9 of the disposition), a fresh cluster each, the file restored byte for byte (cmp)",
-      "exit_code": 2,
-      "result": "each migrate-clean refused, the object named (plan §3)"
-    },
-    {
-      "command": "drift D9: tests/db/identity/fixtures/050-async-kernel-fixture.sql as origin/main holds it, then migrate-clean and rls-smoke; restored byte for byte",
-      "exit_code": 2,
-      "result": "migrate-clean 0; rls-smoke 2: the fixture did not load, null value in column \"actor_kind\""
-    },
-    {
-      "command": "CI's negative control for app.jobs, locally: alter table app.jobs disable row level security; make db-rls-smoke",
-      "exit_code": 2,
-      "result": "db-rls-smoke: FAILED; service-sees-zero-job-rows and service-cannot-enqueue-a-job-row failed (the *job-row pattern), and job-names-its-tenant-context"
-    },
-    {
-      "command": "psql: in a rolled-back transaction on a migrated cluster holding 2 jobs, drop the four columns and re-run 174's ADD (psql -f without ON_ERROR_STOP, so its exit is 0 and the ERROR is printed)",
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00 (at 4cbc3087)",
       "exit_code": 0,
-      "result": "ERROR: 23502: column \"actor_kind\" of relation \"jobs\" contains null values; 2 rows after rollback, each with its actor"
+      "result": "all 27 changed path(s) are declared, and every amendment explains one"
     },
     {
-      "command": "DB_TEST_URL=... node scripts/db/explain-harness.mjs --scale small (fresh migrate-clean)",
-      "exit_code": 0,
-      "result": "the WS:905 fixture loads with the four columns; rolled back"
-    },
-    {
-      "command": "node scripts/db/try-it.mjs up --port 55479 / demo / down",
-      "exit_code": 0,
-      "result": "All 17 steps behaved as expected."
-    },
-    {
-      "command": "npm run check (the uncommitted tree, before the code commit)",
+      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD (this PR, at 4cbc3087)",
       "exit_code": 1,
-      "result": "tests 692, pass 690, fail 2: only the two handoff-guard tests (the handoff still cited 838ca31); so the code commit is a plain commit, not commit-when-clean"
-    },
-    {
-      "command": "npm run check (on the code commit, amended once before any push to regenerate test-kits/integrity-manifest.json after evidence/VERIFICATION.md was written)",
-      "exit_code": 0,
-      "result": "tests 692, pass 692, fail 0"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs 600b48b WP-0A-DB-00 (after 6bc9fc2, on the branch name)",
-      "exit_code": 0,
-      "result": "all 19 changed path(s) are declared, and every amendment explains one"
-    },
-    {
-      "command": "npm run refresh:handoff, then node scripts/commit-when-clean.mjs (this handoff commit)",
-      "exit_code": 0,
-      "result": "recorded in the commit; npm run check:handoff and npm run verify on the branch name follow it"
-    },
-    {
-      "command": "review round: node -v before every measured run",
-      "exit_code": 0,
-      "result": "v24.20.0"
-    },
-    {
-      "command": "review round r1 and r2 (fresh clusters on 127.0.0.1:5507, re-initdb, shim first): make db-migrate-clean",
-      "exit_code": 0,
-      "result": "both rounds: post-migrate pass 55 / 39 / 16; pinned grant probe refused each of its 12 drifts; pinned check probe refused each of its 2 (its correlation drift now {1,255})"
-    },
-    {
-      "command": "review round r1 and r2: make db-rls-smoke",
-      "exit_code": 0,
-      "result": "both rounds: 1200 isolation cases passed; job-names-its-tenant-context ok; db-authz-proofs: ok — 14 claim(s) discharged by execution; 1 not run on this cluster (worker-login-authentication)"
-    },
-    {
-      "command": "review round (D13): the pinned grant probe under a connection default search_path = app,public, after set local search_path = pg_catalog as probeJobScript sets it (psql -f, ON_ERROR_STOP)",
-      "exit_code": 0,
-      "result": "silent: the 31 PINNED_FUNCTION_EXECUTE rows hold"
-    },
-    {
-      "command": "review round (D13): the same probe without the set local line (C0-174-2's scenario)",
-      "exit_code": 3,
-      "result": "raised: 31 missing and 31 unlisted, the app. names unqualified; so the executor's pin is what holds the names"
-    },
-    {
-      "command": "review round: npm run check (the uncommitted round tree)",
-      "exit_code": 0,
-      "result": "tests 692, pass 692, fail 0"
-    },
-    {
-      "command": "review round: node scripts/verify-branch-scope.mjs 600b48b WP-0A-DB-00 (on the branch name)",
-      "exit_code": 0,
-      "result": "all 23 changed path(s) are declared, and every amendment explains one"
-    },
-    {
-      "command": "review round: node scripts/commit-when-clean.mjs (code commit fb62e17)",
-      "exit_code": 0,
-      "result": "clean: exit 0 — tests 692, pass 692, fail 0, skipped 0, todo 0"
+      "result": "NOT records-only (27 paths): it changes an RFC, scripts, tests and generated files, as it should"
     }
   ],
-  "security_privacy_cost_impact": "No new role, credential, policy or client grant. app.jobs gains four columns that hold identifiers (a user id or a system actor's name, a request id, a correlation id), each bounded to 1-128 characters of [A-Za-z0-9._:-], so an e-mail address, a phone number with spaces or free text cannot be stored there; the shape is NOT a PII control, since a digits-only phone number, a 13-digit citizen-ID shape and a dotted personal name fit it (A1-174-2, measured by A1; open_blockers[202] (5)); and the actor is bound by shape alone, not to a user or a member of the workspace, which the first enqueue path must add before the worker's audit actor is trusted (A1-174-1, D14); no client role can read them (050: no client grant on app.jobs), and app_worker may SELECT and INSERT them but no role may UPDATE them. Rules 10 and 11 close two reaches A1 measured open since 173 gave app_worker a login (CREATE on the database; EXECUTE beyond PUBLIC's, which also caught an anon EXECUTE in app no other probe saw). No secret or customer data in any file; fixture ids are synthetic. Cost: two more catalog reads per migrate-clean (about 1 s).",
-  "migration_and_data_impact": "One forward migration, 174_job_tenant_context.sql: four NOT NULL columns and four CHECKs on app.jobs, two column grants to app_worker, four comments, one apply-time block. No data change: app.jobs holds no row wherever 174 applies, and on a populated table the ADD fails closed (23502, measured). No earlier apply-time block superseded (post-migrate 55/39/16). The snapshot declares 174 not applied to the provisioned instance (it alters 050's table, which the instance has never received).",
-  "compatibility_impact": "Tests 691 -> 692 (one in foundation-contract): floor 85 -> 86 and name digest moved in scripts/test-suite-contract.mjs, evidence/VERIFICATION.md written by the record script. Three probe digests move (pinned check, pinned grant, vocabulary check), each with its reason. rls-smoke cases unchanged (1200); authz proofs 13 -> 14 discharged (one NOT RUN on a trust cluster, unchanged). Every writer of app.jobs must now name the four columns; the three in the repository do. RFC-2026-026's worker half must read them. Review round (fb62e17): tests unchanged (692); the pinned check probe digest moves again, 3ba8cd283ac50444 to 792a2204f6d7a5da (its correlation drift re-bounded to {1,255}, Q0 F3), with its reason; the static writer test reads any spelling of insert into app.jobs (C0-174-4); 174's statements unchanged (a header comment added, A1-174-2).",
+  "security_privacy_cost_impact": "No secret, credential, tenant data, provider or database is touched. The classifier reads git objects only, with argument arrays (no shell), literal pathspecs and no network. The test builds a throwaway repository under the OS temp directory with a synthetic author that is not an e-mail address, and removes it. Cost: §6 (approved) replaces four role runs with one reading on records-only PRs and removes carry readings on mechanical syncs. No token or time figure is claimed.",
+  "migration_and_data_impact": "None. No migration, policy, grant, probe or catalog change.",
+  "compatibility_impact": "Tests on main ae163ed8: 724; this branch: 725 (one classifier test in foundation-contract): floor 86 -> 87, name digest and assertion floor (1329) in scripts/test-suite-contract.mjs; scripts/db/classify-records-only.mjs digested in test-kits/integrity-manifest.json and on DIGESTED_FLOOR (#204's E4 import-closure guard); 34 line pins in db/foundation/lint/audit-coverage-map.json raised by one; evidence/VERIFICATION.md written by npm run record:verification (725). No existing guard changes behaviour: §6 is process text, and the classifier is run by hand, not by CI.",
   "known_limitations": [
-    "CTR-JOB-001's reading of tenant_context is not restated and the narrowing of CTR-TEN-001's three ids is not in the contract: contract-catalog/ is read-only here (open_blockers[202] (2)).",
-    "174 is declared not applied to the provisioned instance (open_blockers[202] (3)); rules 10 and 11, like rules 2-4 and 7-9, fail by design there until Q170-c.",
-    "Rule 10 does not read TEMPORARY or CONNECT without grant option (PUBLIC's defaults); rule 11 reads EXECUTE beyond what PUBLIC holds only; a pg_catalog EXECUTE grant is refused first by the system object fingerprint (measured), so rule 11's pg_catalog reach is a second line.",
-    "174's block reads 171 (6)'s predicate, so it shares what open_blockers[198] (6) says that predicate does not see.",
-    "The proof's UPDATE control updates zero rows (no policy admits app_worker), so the UPDATE rule is held by 174's block and the pinned grant probe's column rule, not by a row moved.",
-    "try-it's demo ran on 55479, not 5507, because the tool refuses 5507 by design (disposition D10).",
-    "The job's actor is bound by shape alone: actor_kind and actor_id are checked independently, and a uuid that is no user is admitted (A1-174-1); owed to the batch that writes the first enqueue path (D14, open_blockers[202] (5)).",
-    "The identifier shape is not a PII control: digits-only phone numbers, 13-digit citizen-ID shapes and dotted personal names fit it (A1-174-2).",
-    "That the isolation enqueue names the four columns is held by the static writer test alone: with RLS on, row level security refuses before NOT NULL, and CI's negative control for app.jobs is satisfied by service-sees-zero-job-rows either way (Q0 F1, D12; the CI change is offered to the Integration Owner).",
-    "Rule 11's names are regprocedure text; they are stable because the probe's one executor pins search_path = pg_catalog (D13, measured); a second executor would have to pin it too.",
-    "INFO limits stated on open_blockers[202] (5): the proof compares SQLSTATE only (C0-174-3); NULL is set on correlation_id alone and a one-column default is read by 174's block alone (Q0 F2); the WS:905 writer is held statically and by a harness CI does not run (Q0 F4).",
-    "The inheritance arm's helper test is textual, as 171 (6)'s (A1-174-3); PUBLIC EXECUTE outside app and private is held by the system object fingerprint, not rule 11 (A1-174-4).",
-    "The static writer test does not read MERGE ... INSERT, COPY, an unqualified jobs or insert/**/into; a writer omitting the four columns is still refused at run time with 23502 (C0-174R-1, A1-174R-2, Q0R-174-1)."
+    "The classifier decides the SHAPE of a diff by file name, not its content; §6.2 makes the reader check every quoted Owner word and role verdict against its source on main (A1-7 / C0 N1 closed in text). Only the reader enforces that.",
+    "A light-path reading names its head and is voided by a later commit other than the refresh (§6.2, R0 R2-1), but no script refuses such a commit.",
+    "A mechanical sync can still interact semantically with main (a validator the PR's records are judged by); §6.3 leaves that to CI on the final head.",
+    "CI does not run the classifier (RFC §6.6 item 1, owed to WP-0A-A0-004, A1-6).",
+    "C0 F13 / R0 R4-2 (Info): two dated '§6 proposed' comments remain in scripts/test-suite-contract.mjs; both roles asked for no change.",
+    "R0 R5-2 (Info): the RFC §6 status line says in the past tense that PR #211 was pressed by A0; it is true only once A0 presses it."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[202]: the number's acceptance (Integration Owner); CTR-JOB-001's restatement and the narrowing (the contract's owner, with A1); 174 on the provisioned instance (A0 with the Integration Owner); rules 10 and 11 read off this branch's first CI run (Integration Owner); the stated limits; this batch's independent review (C0, A1, Q0). Review round (appended to [202]): the contract restatement lands before any producer enqueues into app.jobs, and A1 accepts or rejects the narrowing explicitly at its re-check (D11); the first enqueue path binds the actor (D14).",
-    "Appended, not duplicated: [113] (the job now carries its tenant context; the worker still has no policy), [198] (171 (6) by inheritance done), [199] (Q-028-5 done), [200] (the number constraint, D9's narrowing reaching the job), [201] ((3) and (10) done).",
-    "No stop-the-line."
+    "Re-checks at 3a7b44c5, cherry-picked with -x before this refresh: C0 68082bfa review_approved (F14 Minor met by refreshing again after the record commit, last and alone; F13 Info); R0 6d11fadb integration_verified NOT given at 3a7b44c5 (CI red on the unrefreshed handoff, VERIFICATION.md stale; R5-1, R5-2 Info). None is stop-the-line.",
+    "R0 §5 blocks the merge until: this refresh last and alone, the record commit, check 0, check:handoff 0, verify-branch-scope 0, bootstrap green on the exact head with main ae163ed8 contained, and the merge pressed with --match-head-commit. R0 §4 carries its A0-002/CON-008 acknowledgements only if the final head differs from 3a7b44c5 by R0's file, the handoff, evidence/VERIFICATION.md and its digest; this head also carries C0's re-check file (evidence only, not digested), which R0 must accept or re-read.",
+    "A1 (f11b51a8, at da6b4585) and Q0 (ea1ecd26, at da6b4585) have not re-read 3a7b44c5 or this head; A1 §6.5 item 1 limited the next diff to the handoff and the generated record, and 3a7b44c5 exceeds it.",
+    "open_blockers[203]: the C0 and R0 wordings (their files' §5) are appended after the merge with the measured final head, merge sha and CI run; the CI step of §6.6 item 1 stays owed to WP-0A-A0-004 (A1-6)."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a forward migration, after RFC-2026-026's worker half (which reads the columns) is reverted, dropping the four constraints and columns, with superseded.json listing 174's block and a final-state replacement keeping its 171 (6) part; PINNED_CHECKS' and PINNED_NOT_NULL's entries, pinned-grants.json, vocabulary-checks.json and the fixtures reverted in the same diff. Rules 10 and 11 are independent and stay. Never an edit of 174, never a force-push.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: revert the merge in a reviewed PR; §6 and line 8 are additive, the classifier and its test are new, and the floor, digest, pin and manifest lines return with the revert. If anyone other than A0 presses the merge, the §6 status line needs a forward fix (R0 R5-2).",
   "recommended_next_work_packages": [
-    "Merge batch 174 under the standing delegation once CI is green on this head (the re-checks are done, plan §8). Then: A1's acceptance of CTR-TEN-001's narrowing as co-owner, taken by the Integration Owner (open_blockers[202] (2)); CTR-JOB-001's restatement before any producer enqueues into app.jobs.",
-    "CTR-JOB-001's restatement of tenant_context through the contract catalog's own package (open_blockers[202] (2)).",
-    "RFC-2026-026's worker half (§8.4 Audit/security INSERT for the worker), which reads these columns, with A1R-2 and A1-173-1 in its runner (open_blockers[201] (5))."
+    "After bootstrap is green on this head: the remaining role readings (R0 of the final head; A1 and Q0 if they re-read), then A0 presses PR #211 with --match-head-commit on the Owner's direction; then a DB-00 records PR appends C0's and R0's wordings to open_blockers[203]. Then WP-0A-A0-004's non-gating CI step for the classifier, and WP-0A-A0-001's CONTRIBUTING_AGENTS.md citation of §6."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-DB-00/a0-batch-174-plan-2026-10-03.md first (§1 is how the partial patch was verified), then evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-174.md. For the review round, plan §7 and disposition §6 (D11-D14).",
-    "Diff 600b48b..fb62e17 (the round alone: d111326..fb62e17): db/foundation/migrations/174_job_tenant_context.sql; scripts/db/run.mjs (PINNED_CHECKS, PINNED_NOT_NULL, rules 10 and 11, PINNED_FUNCTION_EXECUTE, their self-tests); scripts/db/authz-proofs.mjs (proveTheJobTenantContext); the three writers; the lint data; test-kits/db/foundation-contract.test.mjs (the batch 174 test and the digests).",
-    "Measure on your own cluster: migrate-clean and rls-smoke; the drifts of plan §3 (D1-D9) and CI's negative control for app.jobs; try-it's demo on a port of its own range.",
-    "Check the narrowing statement of open_blockers[202] (2) against contract-catalog/shared-kernel/ctr-ten-001/schema.json and ctr-job-001/schema.json."
+    "Read evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-025-s6-answers.md (§2, §6 items 5-6), then evidence/WP-0A-DB-00/a0-batch-rfc-025-records-path-closure-2026-10-08.md §7, then RFC-2026-025 line 8 and §6.",
+    "Check that §1-§5 are byte-identical to main: git diff origin/main HEAD -- architecture/decisions/RFC-2026-025-owner-delegated-merge.md shows additions only.",
+    "Check the finish order on the branch name: after 3a7b44c5 only the C0 and R0 re-check cherry-picks, a refresh commit (handoff only), the record commit (evidence/VERIFICATION.md and its digest in test-kits/integrity-manifest.json), and this refresh, last and alone.",
+    "Each cherry-pick names its source with -x; git show <commit> --stat touches only its role file."
   ],
   "superseded_by": null
 }
