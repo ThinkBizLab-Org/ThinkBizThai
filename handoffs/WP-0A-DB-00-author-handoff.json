@@ -4,14 +4,19 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "56d97d7a07e9e39843cb697cb6af751fc3842955",
-  "head_revision_or_patch_checksum": "33e02ab00ea8e5b24740e16b7eddce9720d0f055",
+  "base_revision": "40ec26d190addc191b83ac10ac553fe187632292",
+  "head_revision_or_patch_checksum": "d509e648ead99ee255e9663ab55a764cdc115611",
   "task_ids": [],
   "files_added": [
+    "evidence/WP-0A-DB-00/a1-review-2026-10-08-pr218.md",
+    "evidence/WP-0A-DB-00/c0-review-2026-10-08-pr218.md",
+    "evidence/WP-0A-DB-00/q0-test-2026-10-08-pr218.md",
+    "evidence/WP-0A-DB-00/r0-review-2026-10-08-pr218.md",
     "evidence/WP-0A-DB-00/records-transcription-2026-10-08.md"
   ],
   "files_modified": [
     "db/foundation/lint/audit-coverage-map.json",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
@@ -45,9 +50,19 @@
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (on branch agent/claude/WP-0A-DB-00-batch-rfc-030-risk-tiered-review)",
+      "command": "npm run check (Q0, on the branch name at a8dfdfa7)",
       "exit_code": 0,
-      "result": "see commit; full suite"
+      "result": "735 tests, 735 pass, 0 fail (evidence/WP-0A-DB-00/q0-test-2026-10-08-pr218.md)"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs <message-file> (on branch agent/claude/WP-0A-DB-00-batch-rfc-030-risk-tiered-review, this refresh)",
+      "exit_code": 0,
+      "result": "see this commit; the count is restated by Q0 on the final head"
+    },
+    {
+      "command": "node scripts/db/classify-records-only.mjs --sync 69b84340 1721614d origin/main",
+      "exit_code": 0,
+      "result": "mechanical sync of main 40ec26d1 (PR #217); regenerate:manifest clean"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
@@ -60,10 +75,12 @@
   "compatibility_impact": "None. Test count unchanged (735). The map change only re-points line numbers; indexes and quotes are unchanged.",
   "known_limitations": [
     "open_blockers[203] (PR #211) is not appended: R0 wording says the Owner pressed it, RFC-2026-025 §6 records A0; R0 must restate it.",
-    "R-17 (pin RFC-2026-025 line 348 citation to 454f6935) is an RFC edit, not made here."
+    "R-17 (pin RFC-2026-025 line 348 citation to 454f6935) is an RFC edit, not made here.",
+    "C0-218-3 (advisory, not fixed: outside R0’s carry rule): the rationale cites WP-0A-CON-003 as a records-branch precedent; its narrowing was on 9931f91c, a branch that also changed a contract fixture.",
+    "R0 gave corrected [203] (#211) wording in r0-review-2026-10-08-pr218.md §5; it is transcribed in a later records PR once that file is on main. WP-0A-A0-005 needs a separate R0 ruling (§6)."
   ],
   "open_risks_or_blockers": [
-    "Full path: C0, A1, Q0 and R0 read this head; then handoff refresh last and alone, bootstrap green, and A0 presses under the standing delegation, pinned with --match-head-commit."
+    "Full path, tier H. Round one at a8dfdfa7 carried with -x: C0 changes_requested (C0-218-1 blocking: the [204] clause named the light path; fixed by R0 R-18 replacements in 69b84340), A1 security_approved (N1, N2), Q0 test_verified 735/735, R0 integration-sound with the carry rule of r0-review-2026-10-08-pr218.md §4. Owed: C0, A1 and Q0 re-read this head; handoff refresh last and alone; bootstrap green; then A0 presses under the Owner’s standing delegation for finished non-governance batches (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: revert; records and line pins only.",
   "recommended_next_work_packages": [
