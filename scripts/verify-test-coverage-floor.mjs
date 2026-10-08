@@ -198,7 +198,25 @@ function regexCanFollow(previous) {
   return previous === '' || '(,=:[!&|?{};+-*%~^<>'.includes(previous);
 }
 
-export function stripNonCode(source) {
+// open_blockers[11] (C0 F2, C0 R1). After a word, `/` is division -- unless the word is a keyword
+// that ends no expression, where it starts a regex literal. `return /^(?:import\.meta)/` was read as
+// division, the regex body became code, and `import` inside it was an import with no specifier:
+// the merge of main's scripts/scan-repository-secrets.mjs (PR #203) refused the clean tree.
+// Only words that are reserved in a module belong here (C0 N1, A1 N3, Q0-E8, R0 R11): `of` is an
+// ordinary identifier (`const of = 4; of / 2` divides), so it is left out, and a regex after
+// `for (x of` is read as division -- the body becomes code, and that is an OPEN misread like a
+// regex after `)`: a quote in that body opens a string that can run over an import (R0 R14,
+// open_blockers[11]). A word after `.` or `#` is a member name (`x.return`, `this.#return`) and
+// never counts as a keyword. A word is every identifier character V8 reads, not only [\w$]: any
+// non-ASCII character that is not whitespace continues it, so `éreturn` and `ไทยin` are whole
+// identifiers, not the keywords `return` and `in` (C0 N3, Q0-E9).
+const KEYWORDS_BEFORE_REGEX = new Set(['return', 'typeof', 'case', 'in', 'instanceof', 'new', 'delete', 'void', 'throw', 'yield', 'await', 'do', 'else']);
+
+// `templates`, when given, collects the [start, end) of every span read as a template literal.
+// Only the import walk asks for it (R0 R2): an `import()` inside `${...}` is blanked here like the
+// rest of the literal, so the walk must look inside those spans itself. Counting never passes it,
+// so what is counted is unchanged.
+export function stripNonCode(source, templates = null) {
   let out = '';
   let i = 0;
   // The last NON-WHITESPACE character appended to `out`, maintained as we go.
@@ -211,11 +229,20 @@ export function stripNonCode(source) {
   // for isolation-cases.mjs (701KB, larger) -- the difference being how many slashes sit in code
   // positions rather than inside string literals.
   //
-  // Only four things are ever appended, and all four are whitespace: keepNewlines() output for a
-  // comment, a regex literal or a string literal. The single-character code append below is the
-  // ONLY one that can change the answer, which is what makes an incremental variable exact rather
-  // than an approximation of the scan it replaces.
+  // Besides the single-character code append, only keepNewlines() output is ever appended -- for a
+  // comment, a regex literal or a string/template literal -- and it is all whitespace. A comment
+  // changes nothing, so it leaves lastSignificant alone. A string, template or regex literal is
+  // different: it ENDS an expression, so a `/` after it divides. Leaving lastSignificant at the
+  // character before the literal (`=` in `'a' / 2`) read that `/` as a regex start that blanked
+  // the code to the next slash, an import included (R0 R15, A1 N4, Q0-N2). Those two branches set
+  // lastSignificant to '/', which regexCanFollow does not list, so division follows. With that,
+  // the incremental variable is exact rather than an approximation of the scan it replaces.
   let lastSignificant = '';
+  // The last word appended as code, and whether the last character appended continued it. Kept the
+  // same way as lastSignificant: updated on append, never recovered by scanning `out`.
+  let lastWord = '';
+  let inWord = false;
+  let wordIsMember = false; // `x.return / 2` and `this.#return / 2` divide: a member name is not a keyword
   const keepNewlines = (text) => text.replace(/[^\n]/g, ' ');
   while (i < source.length) {
     const two = source.slice(i, i + 2);
@@ -223,6 +250,7 @@ export function stripNonCode(source) {
       const end = source.indexOf('*/', i + 2);
       const stop = end === -1 ? source.length : end + 2;
       out += keepNewlines(source.slice(i, stop));
+      inWord = false;
       i = stop;
       continue;
     }
@@ -230,13 +258,14 @@ export function stripNonCode(source) {
       const end = source.indexOf('\n', i);
       const stop = end === -1 ? source.length : end;
       out += keepNewlines(source.slice(i, stop));
+      inWord = false;
       i = stop;
       continue;
     }
     // A regex literal may contain quotes, slashes and `/*`. Without tracking it, `/[/*]/`
     // opened a phantom block comment running to end of file. Distinguish it from division
     // by the last significant character before it.
-    if (source[i] === '/' && regexCanFollow(lastSignificant)) {
+    if (source[i] === '/' && (regexCanFollow(lastSignificant) || (!wordIsMember && KEYWORDS_BEFORE_REGEX.has(lastWord)))) {
       let j = i + 1;
       let inClass = false;
       while (j < source.length) {
@@ -249,6 +278,9 @@ export function stripNonCode(source) {
       }
       const stop = Math.min(j + 1, source.length);
       out += keepNewlines(source.slice(i, stop));
+      inWord = false;
+      lastWord = '';
+      lastSignificant = '/'; // R0 R15: a regex literal ends an expression; a `/` after it divides
       i = stop;
       continue;
     }
@@ -264,11 +296,24 @@ export function stripNonCode(source) {
         j += 1;
       }
       const stop = Math.min(j + 1, source.length);
+      if (quote === '`' && templates) templates.push([i, stop]);
       out += keepNewlines(source.slice(i, stop));
+      inWord = false;
+      lastWord = '';
+      lastSignificant = '/'; // R0 R15: a string or template ends an expression; a `/` after it divides
       i = stop;
       continue;
     }
     out += source[i];
+    // C0 N3: a non-ASCII character that is not whitespace continues a word, as it does for V8.
+    if (/[\w$]/.test(source[i]) || (source[i] > '\x7f' && source[i].trim() !== '')) {
+      if (!inWord) wordIsMember = lastSignificant === '.' || lastSignificant === '#';
+      lastWord = inWord ? lastWord + source[i] : source[i];
+      inWord = true;
+    } else {
+      inWord = false;
+      if (source[i].trim() !== '') lastWord = '';
+    }
     if (source[i].trim() !== '') lastSignificant = source[i];
     i += 1;
   }
@@ -507,6 +552,21 @@ export const DIGESTED_FLOOR = [
   'test-kits/work-package-discovery.test.mjs',
   'test-kits/work-package-ownership.test.mjs',
   'work-packages/WP-0A-CON-008.json',
+  // E4 (open_blockers[9]): the modules digested tests import. Before this increment none was
+  // digested, and one line in test-kits/db/ws905-fixture.mjs ran outside code under a green check.
+  'db/foundation/test-helpers/rls-assertions.mjs',
+  'scripts/db/audit-producer-rule.mjs',
+  'scripts/db/authz-proofs.mjs',
+  'scripts/db/explain-harness.mjs',
+  'scripts/db/generate-pinned-grants.mjs',
+  'scripts/db/psql-driver.mjs',
+  'scripts/db/rls-smoke.mjs',
+  'scripts/db/run.mjs',
+  'scripts/db/sql-lexer.mjs',
+  'scripts/db/try-it.mjs',
+  'test-kits/db/ws905-fixture.mjs',
+  'tests/db/identity/isolation-cases.mjs',
+  'tests/db/identity/run-isolation.mjs',
 ];
 
 // A file that has ever been digested stays digested. See DIGESTED_FLOOR above for why.
@@ -661,6 +721,364 @@ export async function assertNoPackageManagerConfig(directory = '.') {
   }
 }
 
+// E4 (open_blockers[9]). The guard pinned every discovered test file and never looked at what
+// those files import. Three measured routes ran code from outside the repository during a green
+// `npm run check`: (a) one import line added to test-kits/db/ws905-fixture.mjs, a module a
+// digested suite imports but the manifest did not name -- guard exit 0, manifest unchanged, 23
+// marker files written outside the clone; (b) an escaping import (through a symlink, or a plain
+// `../../..` path) added to an EXISTING digested suite with its digest regenerated -- guard 0;
+// (c) a NEW test file doing the same, which only needed the contract and manifest edited.
+//
+// The closure is therefore walked, statically, from every test file. Every module it reaches
+// must be:
+//   - a `node:` builtin (the repository declares no dependency, so there is no other bare
+//     specifier it may name), or a `./` / `../` specifier made only of letters, digits, `.`, `_`,
+//     `-` and `/` -- an ESM specifier is a URL, and `%2e%2e/` or a tab inside `../` IS `../` to
+//     the loader while it is not to a string check;
+//   - a `.mjs` module, which is walked in turn, or `.json` data, which is a leaf; any other
+//     extension (`.cjs`, `.js`, `.mts`, `.ts`, ...) loads code this walk never reads and is refused;
+//   - lexically inside the repository, reached through no symbolic link at any path component,
+//     and a regular file whose real path is inside the repository root;
+//   - digested in the integrity manifest, so editing it is an edit to a protected file.
+// A dynamic `import()` whose argument is not one string literal, any `require` or `createRequire`
+// spelled plainly (as a name or as a member), any `\u` escape left in code (an escaped identifier
+// names the same binding to V8 and a different word to these regexes), any CR, U+2028 or U+2029 in
+// a walked module (V8 ends a `//` comment there; the scanners here end it at LF only), and any
+// `import`/`require` after the first `${` of a template span AS stripNonCode READS THAT SPAN, is
+// refused outright: those are modules the walk cannot name.
+//
+// Both halves are needed. Containment alone leaves an undigested fixture free to be gutted;
+// digesting alone leaves route (b), which edits a digest anyway. Together they refuse the static
+// forms the walk READS: an import statement, re-export or literal `import()` that escapes is
+// refused, and one that is added to an undigested module is refused because no module in the
+// closure is undigested. What the walk reads is bounded by stripNonCode, which is a scanner, not a
+// parser: a NESTED template ends its span at the first inner backtick, so an import after that
+// backtick, inside a later span with no `${`, is not seen (A1 N2, Q0-E7, R0 R9, C0 R1); a
+// regex literal after `)` or after `of` is read as division, and a quote in its body then opens
+// a string that can run over an import (R0 R14; after a reserved keyword it is read as a regex:
+// KEYWORDS_BEFORE_REGEX, which excludes `of` and any member name, `x.return` or `this.#return`);
+// and a division after `++`/`--` or a `}` is read as a regex start that blanks the code to the
+// next slash (A1 N4, Q0-N2). A division after a string, template or regex literal, and after a
+// non-ASCII identifier whose ASCII tail spells a keyword, is read correctly (R0 R15, C0 N3).
+// All of these are stripNonCode misreads, open_blockers[11], listed below with the other residuals.
+//
+// What this does NOT cover, stated so nobody cites it for more (C0 F2, A1 F2, Q0-E4, R0 R3).
+// Code that loads code at RUN time is not an import this walk can see: `new Function(...)`,
+// direct or indirect `eval`, `node:vm`, `new Worker(...)`, `module.register(...)`, a computed
+// member such as `m['create' + 'Require']` or `process.getBuiltinModule(name)` under a computed
+// name, and a process a test spawns (`spawnSync(process.execPath, [...])`). Neither does it cover
+// files a test reads as data (SQL, JSON via readFile), or an import the scanner fails to see
+// because `stripNonCode` misreads the text around it (open_blockers[11]). Every one of these needs
+// a digested file edited -- every module in the closure is digested -- so they sit inside the
+// disclosed digest class (open_blockers[1]); diff review, not this guard, is what catches them.
+// The bytes this walk parses are read separately from the bytes assertIntegrityManifest hashes and
+// from the bytes the loader later runs (C0 F6, A1 F5): a file swapped between those reads is the
+// T1 race class, recorded with it in open_blockers[10].
+export const ALLOWED_DEPENDENCIES = [];
+
+const IMPORT_SPECIFIER = /^\.\.?\//;
+
+// C0 F1 / A1 F1 / Q0-E2 / R0 R1. What the walk reads is decided by the file's extension, and so is
+// what the loader does with it: a `.cjs` leaf runs `require`, and a `.mts`/`.ts` leaf runs through
+// Node 24's type stripping, and the walk read neither -- guard 0 with outside code run. `.mjs` is
+// the only extension walked; `.js` is not, because package.json declares no "type", so a `.js`
+// file may be CommonJS. `.json` is a leaf: it is data, never code. Everything else is refused.
+const WALKED_EXTENSION = '.mjs';
+const LEAF_EXTENSIONS = ['.json'];
+
+// Q0-E3 (and Q0 T-1's untested `%?#\` refusal). An ESM specifier is a URL: the parser removes a tab
+// or newline anywhere in it, decodes `%2e`, and drops `?` and `#` parts, so `./.<TAB>./x.mjs` names
+// a digested decoy to this walk and `../x.mjs` to the loader. A deny-list of special characters
+// missed the tab; an allowlist cannot miss what it never admits.
+const RELATIVE_SPECIFIER_CHARACTERS = /^\.\.?\/[A-Za-z0-9._/-]+$/;
+const BUILTIN_SPECIFIER_CHARACTERS = /^node:[a-z0-9_/]+$/;
+
+// From `from`, step over whitespace and comments ONLY, and return the string literal that must
+// come next, or null when anything else does.
+//
+// Q0-E1. The previous reader returned the first quote at any position the scanner had blanked --
+// and a comment is blanked exactly like a string, so `import /*'node:fs'*/ '../../outside.mjs'`
+// checked 'node:fs' and loaded the outside file. A string literal used as an import or export
+// NAME (`import { './decoy.mjs' as x } from '../../outside.mjs'`) is the same decoy one token
+// later. The caller therefore points this at the exact place the specifier must stand, and this
+// refuses to look past anything that is not whitespace or a comment.
+function literalAt(raw, from) {
+  let i = from;
+  while (i < raw.length) {
+    if (/\s/.test(raw[i])) { i += 1; continue; }
+    if (raw.startsWith('/*', i)) {
+      const end = raw.indexOf('*/', i + 2);
+      if (end === -1) return null;
+      i = end + 2;
+      continue;
+    }
+    if (raw.startsWith('//', i)) {
+      const end = raw.indexOf('\n', i);
+      if (end === -1) return null;
+      i = end;
+      continue;
+    }
+    break;
+  }
+  const quote = raw[i];
+  if (quote !== "'" && quote !== '"') return null;
+  let j = i + 1;
+  while (j < raw.length && raw[j] !== quote) {
+    if (raw[j] === '\\' || raw[j] === '\n') return null;
+    j += 1;
+  }
+  if (j >= raw.length) return null;
+  return { start: i, end: j + 1, value: raw.slice(i + 1, j) };
+}
+
+// The import clause between `import` and `from`, read on the STRIPPED text so a string used as a
+// binding name (blanked) is skipped as a name: `x`, `x,`, `{ ... }`, `* as ns`, in that order.
+const IMPORT_CLAUSE = /^\s*(?:[\w$]+\s*(?:,\s*)?)?(?:\{[^}]*\}\s*|\*\s*as\s*[\w$]*\s*)?from(?![\w$])/;
+const EXPORT_STAR_CLAUSE = /^\s*\*\s*(?:as\s*[\w$]*\s*)?from(?![\w$])/;
+const EXPORT_BRACE_CLAUSE = /^\s*\{[^}]*\}\s*from(?![\w$])/;
+const LOADER_IN_TEMPLATE = /(?<![\w$])(import|require|createRequire)(?![\w$])/;
+
+// Every import, re-export and dynamic import in one module, with the statement text of each so
+// the caller can see HOW `node:test` was bound. Found on the STRIPPED text, so a keyword inside a
+// string or comment is never mistaken for one; the specifier is then read from the RAW text at
+// the same offset, which works because stripNonCode preserves every offset.
+export function extractImports(raw) {
+  const templates = [];
+  const stripped = stripNonCode(raw, templates);
+  const found = [];
+  const refusals = [];
+  // Q0-E4. `require` and `createRequire` are refused as MEMBERS too: the old lookbehind skipped
+  // `(await import('node:module')).createRequire(...)` and `process.getBuiltinModule('module')
+  // .createRequire`, guard 0. A computed member (`m['create' + 'Require']`) is still not seen;
+  // that is a runtime loader, disclosed with the others in open_blockers[9].
+  for (const match of stripped.matchAll(/(?<![\w$])(require|createRequire)(?![\w$])/g)) {
+    refusals.push(`\`${match[1]}\` at offset ${match.index}: CommonJS loading is outside what the static walk reads`);
+  }
+  // A1 N1 / R0 R8. `create\u0052equire` is `createRequire` to V8, as a named import or as a member,
+  // and no word above matches it. Outside a string, comment, regex or template, a backslash can only
+  // start such an escape, so any `\u` left in the stripped text is refused rather than decoded.
+  for (const match of stripped.matchAll(/\\u/g)) {
+    refusals.push(`a \\u escape at offset ${match.index} outside any literal: an escaped identifier is a name this walk cannot read`);
+  }
+  // Q0-E6 / C0 R1. V8 ends a `//` comment at CR, U+2028 and U+2029 as well as at LF; stripNonCode
+  // and literalAt end it at LF only, so the rest of that line was code to the loader and comment to
+  // the walk, and a decoy could stand there for literalAt. No walked module needs one of them.
+  const lineEnd = raw.search(/[\r\u2028\u2029]/);
+  if (lineEnd !== -1) {
+    refusals.push(`a CR, U+2028 or U+2029 at offset ${lineEnd}: V8 ends a line comment there and this walk does not`);
+  }
+  // R0 R2. stripNonCode blanks a whole template literal, `${...}` included, so
+  // `${await import('../../outside.mjs')}` was invisible to the walk. A loader keyword
+  // after the first `${` of a template span is refused. The interpolation is not parsed: a `}`
+  // inside a nested string, comment or regex would end a parsed extent early and hide what
+  // follows, so everything from the first `${` to the end of the span is checked. The cost is
+  // that literal text after an interpolation may not use those words either (three messages in
+  // this file were reworded for it).
+  for (const [start, end] of templates) {
+    const body = raw.slice(start, end);
+    const open = body.indexOf('${');
+    if (open !== -1 && LOADER_IN_TEMPLATE.test(body.slice(open))) {
+      refusals.push(`a template literal at offset ${start} names a module loader after an interpolation, where the walk cannot read it`);
+    }
+  }
+  // Q0-E5. A `.` before the keyword marks a member (`x.import`), but a spread is three of them:
+  // `{...import('../../outside.mjs')}` was skipped as a member, guard 0. Only a `.` that is not
+  // itself after a `.` is a member access.
+  for (const match of stripped.matchAll(/(?<![\w$])(?<!(?<!\.)\.)(import|export)(?![\w$])/g)) {
+    const keyword = match[1];
+    const at = match.index;
+    const after = at + keyword.length;
+    let k = after;
+    while (k < stripped.length && /\s/.test(stripped[k])) k += 1;
+    const next = stripped[k] ?? '';
+    if (keyword === 'import' && next === '.') continue; // import.meta
+    if (keyword === 'import' && next === '(') {
+      const literal = literalAt(raw, k + 1);
+      let close = literal ? literal.end : -1;
+      // Whitespace and comments may follow the literal; anything but `)` or `,` makes it computed.
+      while (literal && close < raw.length) {
+        if (/\s/.test(raw[close])) { close += 1; continue; }
+        if (raw.startsWith('/*', close)) { const end = raw.indexOf('*/', close + 2); close = end === -1 ? raw.length : end + 2; continue; }
+        break;
+      }
+      if (!literal || (raw[close] !== ')' && raw[close] !== ',')) {
+        refusals.push(`dynamic import() at offset ${at} whose argument is not one string literal`);
+        continue;
+      }
+      found.push({ specifier: literal.value, statement: raw.slice(at, close + 1), dynamic: true });
+      continue;
+    }
+    let from = after; // a side-effect `import 'x'`: the specifier stands right after the keyword
+    if (keyword === 'export') {
+      // Only a re-export loads a module: `export * from`, `export { a } from`.
+      if (next !== '*' && next !== '{') continue;
+      const clause = stripped.slice(after).match(next === '*' ? EXPORT_STAR_CLAUSE : EXPORT_BRACE_CLAUSE);
+      if (!clause) {
+        if (next === '{') continue; // a local `export { a }` loads nothing
+        refusals.push(`\`export *\` at offset ${at} has no \`from\` the walk can read`);
+        continue;
+      }
+      from = after + clause[0].length;
+    } else if (!literalAt(raw, after)) {
+      // R0 R7. A string right after `import` IS the specifier of a side-effect import, and the
+      // clause must not be matched past it: the blanked string is whitespace on the stripped text,
+      // so `import '../evil.mjs'` + newline + `from` + newline + `'./decoy.mjs'` (two statements
+      // by ASI) matched the clause and read the decoy. Only when no string stands there is
+      // there a clause to read.
+      const clause = stripped.slice(after).match(IMPORT_CLAUSE);
+      if (clause) from = after + clause[0].length;
+    }
+    const literal = literalAt(raw, from);
+    if (!literal) {
+      refusals.push(`\`${keyword}\` at offset ${at} has no plain string-literal specifier where one must stand`);
+      continue;
+    }
+    found.push({ specifier: literal.value, statement: raw.slice(at, literal.end).replace(/\s+/g, ' '), dynamic: false });
+  }
+  return { imports: found, refusals, stripped };
+}
+
+// Q0-C1 / Q0-N2. `import realTest from 'node:test'; const test = () => {};` keeps every lexical
+// `test(` line, name and assertion -- so the per-file floor, the name digest and the assertion
+// floor all hold -- while no original test runs. In a test file `test` is bound exactly once, by
+// `import test from 'node:test';`, and in code every other occurrence of the identifier is a
+// call (`test(`) or a member (`t.test`, `test.only`). Anything else rebinds or passes it on.
+export function assertTestBindingIntact(file, raw, imports, strippedSource = undefined) {
+  const problems = [];
+  const fromNodeTest = imports.filter(({ specifier }) => specifier === 'node:test');
+  if (fromNodeTest.length !== 1 || fromNodeTest[0].statement !== "import test from 'node:test'") {
+    problems.push(`binds node:test as ${fromNodeTest.map(({ statement }) => JSON.stringify(statement)).join(', ') || 'nothing'}; exactly ` + "`import test from 'node:test';` is allowed");
+  }
+  const stripped = strippedSource ?? stripNonCode(raw);
+  const importAt = stripped.search(/(?<![\w$.])import\s+test\s+from(?![\w$])/);
+  const importedAt = importAt === -1 ? -1 : stripped.indexOf('test', importAt + 6);
+  // The Q0-E5 spread applies here too: `{ ...test }` passes the binding on, and a `.` lookbehind
+  // skipped it as a member. A `.` after another `.` is a spread, not a member access.
+  for (const match of stripped.matchAll(/(?<![\w$])(?<!(?<!\.)\.)test(?![\w$])/g)) {
+    if (match.index === importedAt) continue;
+    // Bounded scans, not slices: a whole-file `slice().replace(/\s+$/)` per occurrence made this
+    // quadratic on the 600KB isolation suites.
+    let b = match.index - 1;
+    while (b >= 0 && /\s/.test(stripped[b])) b -= 1;
+    let wordStart = b;
+    while (wordStart >= 0 && /[\w$]/.test(stripped[wordStart])) wordStart -= 1;
+    let previousWord = stripped.slice(wordStart + 1, b + 1);
+    const previousChar = stripped[b] ?? '';
+    // C0 F3. `function* test` and `async function* test` rebind it too: the `*` read as an
+    // operator before a call. Step over it to the word that declares.
+    if (previousChar === '*') {
+      let c = b - 1;
+      while (c >= 0 && /\s/.test(stripped[c])) c -= 1;
+      let s0 = c;
+      while (s0 >= 0 && /[\w$]/.test(stripped[s0])) s0 -= 1;
+      if (stripped.slice(s0 + 1, c + 1) === 'function') previousWord = 'function';
+    }
+    let a = match.index + 4;
+    while (a < stripped.length && /\s/.test(stripped[a])) a += 1;
+    const next = stripped[a] ?? '';
+    const isCall = next === '(' || (next === '.' && stripped[a + 1] !== '.');
+    // An object key (`{ test: fn }`) names a property; it binds nothing.
+    const isKey = next === ':' && (previousChar === '{' || previousChar === ',');
+    if ((!isCall && !isKey) || ['function', 'class', 'const', 'let', 'var', 'new'].includes(previousWord)) {
+      const line = raw.slice(0, match.index).split('\n').length;
+      problems.push(`line ${line} uses \`test\` as something other than a call to the binding node:test supplies`);
+    }
+  }
+  if (problems.length > 0) {
+    throw new CoverageFloorError(93, `${file}: the \`test\` binding is not the runner's:\n  ${problems.join('\n  ')}\n`
+      + 'A shadowed or aliased `test` keeps every counted declaration, name and assertion while running none of them.');
+  }
+}
+
+export async function assertImportClosureContained(files, manifestPath = INTEGRITY_MANIFEST, root = process.cwd()) {
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  const digested = new Set(Object.keys(manifest.files ?? {}));
+  const realRoot = await realpath(root);
+  const problems = [];
+  const visited = new Set();
+  const queue = files.map((file) => posix.normalize(file.split('\\').join('/')));
+  const roots = new Set(queue);
+  const { isBuiltin } = await import('node:module');
+  while (queue.length > 0) {
+    const file = queue.shift();
+    if (visited.has(file)) continue;
+    visited.add(file);
+    if (!file.endsWith(WALKED_EXTENSION)) continue; // a leaf: only `.json` is ever queued besides `.mjs`
+    let raw;
+    try {
+      raw = await readFile(join(root, file), 'utf8');
+    } catch (error) {
+      problems.push(`${file} cannot be read: ${error.code ?? error.message}`);
+      continue;
+    }
+    const { imports, refusals, stripped } = extractImports(raw);
+    for (const refusal of refusals) problems.push(`${file}: ${refusal}`);
+    if (roots.has(file)) {
+      try {
+        assertTestBindingIntact(file, raw, imports, stripped);
+      } catch (error) {
+        if (!(error instanceof CoverageFloorError)) throw error;
+        problems.push(error.message);
+      }
+    }
+    for (const { specifier } of imports) {
+      if (specifier.startsWith('node:')) {
+        if (!BUILTIN_SPECIFIER_CHARACTERS.test(specifier) || !isBuiltin(specifier)) problems.push(`${file} imports '${specifier}', which is not a node builtin`);
+        continue;
+      }
+      if (!IMPORT_SPECIFIER.test(specifier)) {
+        if (!ALLOWED_DEPENDENCIES.includes(specifier)) {
+          problems.push(`${file} imports '${specifier}': only node: builtins and ./ or ../ paths are allowed, and the repository declares no dependency`);
+        }
+        continue;
+      }
+      if (!RELATIVE_SPECIFIER_CHARACTERS.test(specifier)) {
+        problems.push(`${file} imports ${JSON.stringify(specifier)}: a specifier is a URL, and only letters, digits, '.', '_', '-' and '/' are admitted, because anything else (%, ?, #, \\, a tab, a newline) can make what loads differ from what this walk reads`);
+        continue;
+      }
+      const extension = posix.extname(specifier);
+      if (extension !== WALKED_EXTENSION && !LEAF_EXTENSIONS.includes(extension)) {
+        problems.push(`${file} imports '${specifier}': only ${WALKED_EXTENSION} modules (walked) and ${LEAF_EXTENSIONS.join(', ')} data (a leaf) are admitted; a ${extension || 'extensionless'} file loads code this walk never reads`);
+        continue;
+      }
+      const target = posix.normalize(posix.join(posix.dirname(file), specifier));
+      if (!isRepositoryRelativePath(target)) {
+        problems.push(`${file} imports '${specifier}', which resolves outside the repository`);
+        continue;
+      }
+      const parts = target.split('/');
+      let contained = true;
+      for (let depth = 1; depth <= parts.length && contained; depth += 1) {
+        const path = parts.slice(0, depth).join('/');
+        try {
+          const stats = await lstat(join(root, path));
+          if (stats.isSymbolicLink()) { problems.push(`${file} imports '${specifier}' through the symbolic link ${path}`); contained = false; }
+          else if (depth === parts.length && !stats.isFile()) { problems.push(`${file} imports '${specifier}', and ${path} is not a regular file`); contained = false; }
+        } catch (error) {
+          problems.push(`${file} imports '${specifier}', and ${path} cannot be inspected: ${error.code ?? error.message}`);
+          contained = false;
+        }
+      }
+      if (!contained) continue;
+      const actual = await realpath(join(root, target));
+      if (!actual.startsWith(`${realRoot}/`)) {
+        problems.push(`${file} imports '${specifier}', whose real path ${actual} is outside the repository`);
+        continue;
+      }
+      if (!digested.has(target)) {
+        problems.push(`${file} imports ${target}, which is not digested in ${manifestPath}`);
+      }
+      queue.push(target);
+    }
+  }
+  if (problems.length > 0) {
+    throw new CoverageFloorError(92, `the import closure of the test files is not contained:\n  ${[...new Set(problems)].join('\n  ')}\n`
+      + 'Every module a test reaches must be a node: builtin or a digested regular file inside this repository, '
+      + 'or code nobody inspected runs during a green check (E4, open_blockers[9]).');
+  }
+  return visited.size;
+}
+
 export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', testDirectory = TEST_ROOT, floor = DEFAULT_FLOOR) {
   await assertNoPackageManagerConfig();
   await assertDigestedFilesAreRegular();
@@ -681,6 +1099,7 @@ export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', 
   await assertDigestedSetNeverShrinks();
   await assertPerFileFloors(files);
   await assertNoEscapingPath(files);
+  await assertImportClosureContained(files);
   const declared = await assertDeclaredTests(files);
   return { pattern, files, declared };
 }

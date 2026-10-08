@@ -2,9 +2,12 @@ import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { MIN_EXECUTED_TESTS, TEST_PATTERN, TEST_ROOTS } from './test-suite-contract.mjs';
+import { createHash } from 'node:crypto';
+
+import { INTEGRITY_MANIFEST, MIN_EXECUTED_TESTS, TEST_PATTERN, TEST_ROOTS } from './test-suite-contract.mjs';
 import {
   assertEveryTestFileProtected,
+  assertImportClosureContained,
   assertIntegrityManifest,
   assertNoEscapingPath,
   countDeclaredTests,
@@ -111,8 +114,22 @@ export async function assertDeclarationsMatchExecution(pass) {
   await assertIntegrityManifest();
   await assertEveryTestFileProtected(files);
   await assertNoEscapingPath(files);
+  await assertImportClosureContained(files);
+  // A1 T1: hashing every file in assertIntegrityManifest() and then reading it AGAIN to count
+  // meant the bytes hashed were not the bytes counted. A writer flipping one suite between its
+  // digested bytes and a gutted copy turned this check green 6 times in 60. Each file is now read
+  // ONCE; that one buffer is digested against the manifest and counted.
+  const digests = JSON.parse(await readFile(INTEGRITY_MANIFEST, 'utf8')).files ?? {};
   let declared = 0;
-  for (const file of files) declared += countDeclaredTests(await readFile(file, 'utf8'));
+  for (const file of files) {
+    const bytes = await readFile(file);
+    if (createHash('sha256').update(bytes).digest('hex') !== digests[file]) {
+      const error = new Error(`${file} does not match its recorded digest at the moment it was counted; the bytes counted must be the bytes digested.`);
+      error.code = 86;
+      throw error;
+    }
+    declared += countDeclaredTests(bytes.toString('utf8'));
+  }
   if (declared !== pass) {
     const error = new Error(`the suite declares ${declared} tests but the runner executed ${pass}. A declaration the runner does not execute, or a test the counter cannot see, means the floors are measuring something other than what runs.`);
     error.code = 88;
