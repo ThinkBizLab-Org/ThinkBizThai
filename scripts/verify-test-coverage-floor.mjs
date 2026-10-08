@@ -502,6 +502,7 @@ export const DIGESTED_FLOOR = [
   'architecture/decisions/RFC-2026-026-audit-row-producer.md',
   'architecture/decisions/RFC-2026-027-lifecycle-visibility.md',
   'architecture/decisions/RFC-2026-028-worker-identity.md',
+  'architecture/decisions/RFC-2026-029-application-tier-stack.md',
   'contract-catalog/README.md',
   'contract-catalog/shared-kernel/index.json',
   'docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md',
