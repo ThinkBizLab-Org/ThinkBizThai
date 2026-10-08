@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "bd019c9cde305109aca4088d50f62109e4d9c2a4",
-  "head_revision_or_patch_checksum": "f771b6a26e20aae5a1eb6bdca872d8a75873617c",
+  "head_revision_or_patch_checksum": "c2e9c8712a25d745dee187aae5ad7c0974da8b4a",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-030-risk-tiered-review.md",
@@ -15,6 +15,8 @@
   ],
   "files_modified": [
     "db/foundation/lint/audit-coverage-map.json",
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/test-suite-contract.mjs",
     "scripts/verify-test-coverage-floor.mjs",
     "test-kits/branch-identity.test.mjs",
