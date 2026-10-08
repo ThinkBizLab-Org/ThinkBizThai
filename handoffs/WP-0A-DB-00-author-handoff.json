@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "4b5dac8ec3e7d62da1b88909b4f2baa187a301e8",
-  "head_revision_or_patch_checksum": "69824e65afb12bc10272dc794c328052fc66d37c",
+  "base_revision": "efc0383cb97ac24eff9b6979ba29e0efe1552116",
+  "head_revision_or_patch_checksum": "7dcf621a4f21bc6f5dca695aab250e4efc813663",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-030-risk-tiered-review.md",
@@ -105,7 +105,12 @@
     {
       "command": "git merge-base --is-ancestor origin/main HEAD",
       "exit_code": 0,
-      "result": "origin/main 4b5dac8e contained"
+      "result": "origin/main efc0383c contained"
+    },
+    {
+      "command": "git merge origin/main (efc0383c, #216, after 4b5dac8e moved on)",
+      "exit_code": 0,
+      "result": "clean: WP-0A-CON-008's evidence, handoff and manifest and its one digest line; regenerate:manifest unchanged; merge commit 7dcf621"
     },
     {
       "command": "git diff origin/main HEAD -- scripts/verify-test-coverage-floor.mjs test-kits/repository-json.test.mjs",
@@ -125,12 +130,12 @@
     {
       "command": "npm run check, npm run check:handoff, node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00, git show --stat HEAD on the final head",
       "exit_code": 0,
-      "result": "measured on the branch name after this commit and reported with the push (PR #213); third-round roles measured the same resolution in throwaway clones: check 735/735, check:handoff 0, scope 0"
+      "result": "measured on the branch name on this head and reported with the push (PR #213); the previous head 652eea83 (synced with 4b5dac8e) measured check 0 (735/735), check:handoff 0; third-round roles measured the same resolution in throwaway clones"
     }
   ],
   "security_privacy_cost_impact": "No secret, credential, tenant data, provider, migration or database is touched. RFC-2026-030 is process text, inert until §9's conditions hold; the classifier only reads git objects, with argument arrays (no shell), literal pathspecs and no network, and only ever raises a tier. Its denylists (path words, identifiers, sinks) are disclosed in §4.5; L's import allowlist and the empty module allowlist are the fail-closed parts. Cost: once in effect, M and L PRs drop per-PR Integration Owner readings for an end-of-package R0 verdict (at the latest every 10 merged M/L PRs or 7 days). No token or time figure is claimed.",
   "migration_and_data_impact": "None. No migration, policy, grant, probe or catalog change.",
-  "compatibility_impact": "Tests on main 4b5dac8e: 734; this branch: 735 (one review-tier test in foundation-contract): the foundation-contract floor, name digest and assertion floor in scripts/test-suite-contract.mjs; RFC-2026-030 and the classifier on DIGESTED_FLOOR (after RFC-2026-029's line from main) and in test-kits/integrity-manifest.json (108 digests, the union with main's); RFC-2026-030 on DECISION_RECORDS in test-kits/repository-json.test.mjs (after RFC-2026-029's); the branch slot in test-kits/branch-identity.test.mjs; line pins in db/foundation/lint/audit-coverage-map.json; evidence/VERIFICATION.md by record:verification (735). No existing guard changes behaviour; nothing runs the classifier in CI yet.",
+  "compatibility_impact": "Tests on main efc0383c: 734; this branch: 735 (one review-tier test in foundation-contract): the foundation-contract floor, name digest and assertion floor in scripts/test-suite-contract.mjs; RFC-2026-030 and the classifier on DIGESTED_FLOOR (after RFC-2026-029's line from main) and in test-kits/integrity-manifest.json (108 digests, the union with main's); RFC-2026-030 on DECISION_RECORDS in test-kits/repository-json.test.mjs (after RFC-2026-029's); the branch slot in test-kits/branch-identity.test.mjs; line pins in db/foundation/lint/audit-coverage-map.json; evidence/VERIFICATION.md by record:verification (735). No existing guard changes behaviour; nothing runs the classifier in CI yet.",
   "known_limitations": [
     "The path-word, identifier and sink lists are denylists (RFC §4.5): C0 N3, A1-R3, Q0 QR2, QR5, R0 R-12 misses are disclosed, for the first allowlist-opening PR to pin.",
     "Neutral evidence admits an append to another role's verdict or one other package's record, and an evidence/VERIFICATION.md rewrite (Q0 QR4, A1-R4, R0 R-13); with every module path H and no L path these decide no PR today.",
@@ -140,7 +145,7 @@
   "open_risks_or_blockers": [
     "Third-round re-checks at a09fffca, cherry-picked with -x: C0 review_approved_with_conditions (N5, N6 Minor owed to the first allowlist-opening PR; N7 answered by this refresh; N8 Info, the PR title); A1 security_approved, no A1 finding open; Q0 test_verified, carried to the merge head on PR-1 (main merged; done in a676039d), QF1, QF2 owed before the first allowlist-opening or L-path PR; R0 integration_verified NOT given at a09fffca, only R-15 (main not contained, no CI), which a676039d and this head answer. None is stop-the-line.",
     "R0's R-15 one-line check reads two added lines for scripts/verify-test-coverage-floor.mjs against origin/main (RFC-2026-030 and this PR's own classifier entry, both in the diff R0 read at a09fffca); R0 confirms that, or reads again, before integration_verified is recorded. C0 asked that C0, A1 and Q0 read the resolution of the three conflicted files on the final head.",
-    "Before the merge: bootstrap green on this exact head with main contained; the Owner merges PR #213, pinned with --match-head-commit; if main moves again, sync and re-measure.",
+    "Before the merge: bootstrap green on this exact head with main (efc0383c) contained; the Owner merges PR #213, pinned with --match-head-commit; if main moves again, sync and re-measure.",
     "open_blockers[204] items (3)-(7) stay owed: WP-0A-A0-001's CONTRIBUTING edits, WP-0A-A0-004's base-copy CI step, Playwright artifacts and a flag registry, WP-0A-A0-002's and A0-001's acknowledgements on the merged head, and the module allowlist; and R0 R-14 / C0 N5 / Q0 QF1, the // comment and split import/require shapes that still read L."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: revert the merge in a reviewed governance PR; every PR is H again at once, which is where every PR is today. The RFC, the classifier and its test are new; the floor, digest, pin, slot and manifest lines return with the revert.",
@@ -149,7 +154,7 @@
   ],
   "reviewer_instructions": [
     "Read the four third-round re-checks (c0/a1/q0/r0-recheck-2026-10-06.md, latest sections) and open_blockers[204]'s appended third-round text: earlier text unchanged (compare as parsed JSON), A1's, Q0's and R0's wordings verbatim.",
-    "Read the merge a676039d against both parents for the three conflicted files: both RFC lines kept (029 then 030), the manifest the union of keys, regenerated (108 digests).",
+    "Read the merge a676039d (origin/main 4b5dac8e) against both parents for the three conflicted files: both RFC lines kept (029 then 030), the manifest the union of keys, regenerated (108 digests); the later merge 7dcf621 of efc0383c was clean.",
     "Check that the commit recording the Owner's answers changes no rule: the classifier and its test are unchanged since 7dccd851.",
     "Run the classifier from the base's copy as RFC §4 says, and check the finish order on the branch name: the last commit is the handoff only (git show --stat)."
   ],
