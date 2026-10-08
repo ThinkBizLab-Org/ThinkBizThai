@@ -1,11 +1,15 @@
 # RFC-2026-030: risk-tiered review -- the same separation of duties, a depth that follows the risk
 
-Status: **Approved in principle 2026-10-08 by the Product Owner; the final text is approved at merge.** The Owner's words,
-in chat on 2026-10-08, were `รับตามแนะนำทั้งหมด รวม RFC-030 ด้วย ลุยเลย` ("accept everything as recommended, RFC-030 included;
-go ahead"), answering A0's G1-G2 plan, which proposed this RFC (§1). They are transcribed in
-`evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-030.md`. Approval in principle is not approval of this text:
-**nothing here applies until the Owner merges it**, and the Owner may narrow or refuse any part at merge. This is a
-governance PR, so under RFC-2026-025 §5 item 6 the Owner merges it personally, never A0 by delegation.
+Status: **Approved 2026-10-08 by the Product Owner.** Asked in chat on 2026-10-08, as a multiple-choice question listing
+A0's recommendation on each of Q-030-1 to Q-030-6 (§11), the Owner chose `รับตามแนะนำทั้ง 6 ข้อ (Recommended)`: this text
+is the final text (Q-030-1), and Q-030-2 to Q-030-6 are answered as §11 records. Earlier the same day the Owner approved
+it in principle with `รับตามแนะนำทั้งหมด รวม RFC-030 ด้วย ลุยเลย` ("accept everything as recommended, RFC-030 included;
+go ahead"), answering A0's G1-G2 plan (§1). Both are transcribed, with the question, in
+`evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-030-answers.md` (and the first in
+`product-owner-disposition-2026-10-08-rfc-030.md`). The approved text is this file as merged by PR #213. **Any change to it,
+narrowing or widening, needs the Owner.** It applies only as §9 says. This is a governance PR, so under RFC-2026-025 §5
+item 6 the Owner merges it personally; the direction relayed to A0 on who presses this merge was `ให้ A0 กดเอง`, recorded in
+that disposition as an Owner-directed exception for PR #213 only, as for PR #211. §2 keeps the rule as written.
 Date: 2026-10-08
 Author: `/claude/a0_atlas` (A0 Integration / DB-00)
 Amends, once merged: the three passages of `CONTRIBUTING_AGENTS.md` quoted in §7 -- the "Separation of duties" sentence, the
@@ -16,7 +20,8 @@ Integration Owner evidence that RFC-2026-002 and RFC-2026-025 §5 item 3 require
 RFC-2026-025 changes.
 Classifier: `scripts/db/classify-review-tier.mjs` (§4), with its test in `test-kits/db/foundation-contract.test.mjs`.
 First review round: C0, A1, Q0 and R0 at `95f2d115`; what changed in answer is recorded finding by finding in
-`evidence/WP-0A-DB-00/a0-batch-rfc-030-risk-tiered-review-closure-2026-10-08.md`.
+`evidence/WP-0A-DB-00/a0-batch-rfc-030-risk-tiered-review-closure-2026-10-08.md`; the second round, at `0eadb203`, in §5
+of the same note.
 
 ---
 
@@ -367,7 +372,17 @@ head: C0 N1, A1-R1, Q0 QR1, R0 R-9); they are not further conditions here. What 
 7. **The module allowlist** (A1-1): a governance PR to `scripts/db/classify-review-tier.mjs` (WP-0A-DB-00, which owns the
    classifier) naming each M-eligible module with a test per module class, after RFC-2026-029's layout lands.
 
-## 11. Questions for the Owner, at merge
+## 11. Questions for the Owner, and the Owner's answers
+
+**Answered 2026-10-08.** The Owner chose `รับตามแนะนำทั้ง 6 ข้อ (Recommended)` to a multiple-choice question listing A0's
+recommendation on each item below; each answer is that recommendation, nothing more
+(`evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-030-answers.md`):
+Q-030-1 yes, this is the final text; Q-030-2 yes, R0's end-of-package verdict at the latest every 10 merged M/L PRs or 7
+days; Q-030-3 yes, L only behind a flag and with no data path; Q-030-4 yes, the module allowlist starting empty, each module
+opened by a governance PR, plus the wide word denylist raising to H; Q-030-5 (a), the presser of an M/L merge is not that
+PR's Author; Q-030-6 yes, an L file is additions only, and any removed line makes it M or H.
+
+The questions as put:
 
 - **Q-030-1.** Approve this text as the final text: yes or no. A0 recommends yes.
 - **Q-030-2.** R0's end-of-package verdict for M and L: is "at the latest every 10 merged M/L PRs or 7 days" (§3.2) the right

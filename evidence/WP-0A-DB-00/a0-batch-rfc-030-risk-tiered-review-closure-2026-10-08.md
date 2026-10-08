@@ -116,3 +116,36 @@ Measured on the fix tree (Node `v24.20.0`, worktree on the branch name): the rev
 classifier over the same 29 first-parent merges (`<m>^1 <m>^2`, base `bd019c9c`): `H 24, records 5`, unchanged. The
 integrity manifest was regenerated for the RFC and the classifier; `npm run check` is run by `commit-when-clean` on the
 fix commit.
+
+## 6. The second round's records, the Owner's answers, and the handoff (2026-10-08)
+
+A0 executes here under the Owner's delegation `เอาตามที่คุณแนะนำทุกอย่าง`; it decides nothing that is the Owner's.
+
+- **The four second-round re-checks** of `0eadb203` are on this branch, each cherry-picked with `-x`, each touching only
+  its own file: C0 `5ed8a345`, A1 `d09b6bf8`, Q0 `4264f814`, R0 `69646f59`
+  (`evidence/WP-0A-DB-00/{c0,a1,q0,r0}-recheck-2026-10-07.md`).
+- **The Owner's answers.** To A0's multiple-choice question listing its recommendation on Q-030-1 to Q-030-6, the Owner
+  chose `รับตามแนะนำทั้ง 6 ข้อ (Recommended)`. The question and the answer are transcribed verbatim in
+  `product-owner-disposition-2026-10-08-rfc-030-answers.md`. RFC-2026-030's status line now records it as approved
+  by the Owner on 2026-10-08, the header names the second round, and §11 records each answer as the recommendation listed.
+  No rule, no classifier line and no test changed. This closes R0's verdict item 5 (the answers on the branch before the merge) and
+  `open_blockers[204]` item (1)'s recording part.
+- **Who presses the merge.** The direction relayed to A0 was `ให้ A0 กดเอง`; the disposition records it as an
+  Owner-directed exception for PR #213 only, as for PR #211, and says the Owner presses it if those words were not
+  given for this PR. RFC-2026-025 §5 item 6 and RFC-2026-030 §2 are unchanged.
+- **The role wordings.** A1's and R0's second-round wordings are appended verbatim to `open_blockers[204]`, with C0's
+  and Q0's verdicts, A0's answer, and the Owner's answers; the manifest's `amends_without_owning.rationale` gains one
+  sentence saying so. No earlier text of either string changed, and the manifest keeps its line count (the
+  `audit-coverage-map.json` pins do not move).
+- **C0 N2.** Every narrative field of `handoffs/WP-0A-DB-00-author-handoff.json` (`decisions_consumed`, `assumptions`,
+  `acceptance_results`, `tests`, `security_privacy_cost_impact`, `compatibility_impact`, `known_limitations`,
+  `open_risks_or_blockers`, `rollback_or_forward_fix`, `recommended_next_work_packages`, `reviewer_instructions`) is
+  rewritten for this PR in this run, in `75f57a4c`, a handoff-only commit that also carries an **interim**
+  `refresh:handoff` (it cites `bd019c9..f0754dd`). The interim refresh was needed to commit at all: the handoff guard
+  compares the cited head with `HEAD^`, which already held `7dccd851`, so `commit-when-clean` refused (726 tests, 724
+  pass, both failures that guard). It is not the final refresh: the final one, last and alone, is still owed after
+  the roles re-read the final head, and C0 measures it with `git show --stat`.
+- **Still owed before the merge**, in this order: the role re-reads of the final head (C0, A1, Q0, then R0); then
+  `refresh:handoff` last and alone, then `record:verification` and `regenerate:manifest` committed, then the refresh
+  again last and alone if `files_modified` must list them; `npm run check` 0; `verify-branch-scope` 0; push; `bootstrap`
+  green on that exact head; `gh pr ready`; the merge pinned with `--match-head-commit`.
