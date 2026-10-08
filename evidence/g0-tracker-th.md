@@ -1,7 +1,7 @@
 # G0 Evidence Tracker — ThinkBizThai
 
-สถานะ ณ วันที่ 2026-10-08 (ตรวจกับ `main @ bd019c9c`): **G0 ผ่านแบบมีเงื่อนไขด้วย approved fallback
-(Product Owner ตัดสิน D0, 2026-10-08)** — รายการภายนอกทุกข้อยัง **ไม่เสร็จ** และผูกกับ gate ที่มันขวางจริงแล้ว
+สถานะ ณ วันที่ 2026-10-08 (ตรวจกับ `main @ bd019c9c`): **G0 exit: ตัดสินแล้ว แบบมีเงื่อนไข (decided, conditional) ด้วย approved fallback
+(Product Owner ตัดสิน D0, 2026-10-08)** — ยังไม่ใช่ "G0 ผ่าน"; exit ปิดเมื่อ contract ชุด First Slice freeze ครบ (Owner ตอบ 2026-10-08, disposition §10.1) — รายการภายนอกทุกข้อยัง **ไม่เสร็จ** และผูกกับ gate ที่มันขวางจริงแล้ว
 ข้อจำกัดบังคับ: **ห้าม production customer data จนกว่า legal/PDPA จะผ่าน** รายละเอียดอยู่ในหัวข้อ
 "G0 ทางออกแบบมีเงื่อนไข (D0)" ด้านล่าง และ [disposition 2026-10-08](WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md).
 สถานะเดิม (2026-10-05, `main @ 600b48b`): Specification Baseline Complete / External Verification Pending —
@@ -183,7 +183,7 @@ CON-003 #04 (required list ที่ซ้อนใน subschema ยังไม
 | 021 Environment/CI/test strategy | partial (mostly) | `.github/workflows/ci.yml`; branch protection ตรวจสด 2026-10-05 | review env contract + evidence template | agents แล้ว PO |
 | 022 Vendor-neutral protocol | **done** | `WP-0A-A0-001` integration_verified; `CONTRIBUTING_AGENTS.md` | ข้อความล้าสมัย `CONTRIBUTING_AGENTS.md:61-79` (governance) | PO |
 | 023 Cross-agent dry run | **done** (protocol) | แถว Cross-vendor dry run ด้านบน | — | — |
-| 024 Risk acceptance/sign-off | **decided, conditional** (2026-10-08) | Owner ตัดสิน D0: ผ่านแบบ approved fallback ([disposition](WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md) §4) | Owner merge PR นี้เอง (D0); register §7.2 ข้อ 2/6/8 กลายเป็นเงื่อนไขของงาน G1 (การอ่านของ A0, disposition §4.2); รายการภายนอกทั้งหมดยังค้าง | PO; เจ้าของ register ถอดความ |
+| 024 Risk acceptance/sign-off | **decided, conditional** (2026-10-08) | Owner ตัดสิน D0: G0 exit แบบมีเงื่อนไขด้วย approved fallback ([disposition](WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md) §4) | Owner สั่งให้ A0 กด PR นี้ได้ โดยระบุ #214 (disposition §10.2); register §7.2 ข้อ 2: freeze review ของ First Slice เป็นส่วนของ G0 exit (Owner, §10.1); ข้อ 6/8 ยังเป็นการอ่านของ A0 (§4.2); รายการภายนอกทั้งหมดยังค้าง | PO; เจ้าของ register ถอดความ |
 
 นับแบบ done = 1, partial = 0.5: 2 done + 18 partial + 3 not started (002, 005, 016) + 1 decided, conditional (024) = 11/24 ≈ 46%.
 แถว 024 "decided, conditional" นับเป็น 0 (การนับของ A0): D0 เป็นคำตัดสินของ Owner แต่ checklist ที่ลงนามและเจ้าของ deferred risk ตาม acceptance ของแถวนี้ยังไม่มี (แก้ 2026-10-08 ตาม C0 F3, Q0 F3, R0 R-3)
@@ -218,7 +218,7 @@ CON-003 #04 (required list ที่ซ้อนใน subschema ยังไม
 
 ### ผลของ D0
 
-- **G0 ผ่านด้วย approved fallback** ตาม pass rule ของ readiness report
+- **G0 exit: ตัดสินแล้ว แบบมีเงื่อนไข** ด้วย approved fallback (ไม่ใช่ "G0 ผ่าน"; แก้ถ้อยคำ 2026-10-08 ตามกติกาของ R0 และคำตอบ Owner, disposition §10.3) ตาม pass rule ของ readiness report
   (`docs/sprint-0a/sprint-0a-g0-readiness-report-th.md:190`: "external blocker ที่กระทบ P0 มีหลักฐานหรือ approved fallback").
   fallback ของแต่ละรายการภายนอกคือการผูกกับ gate ที่มันขวางจริง (ตารางด้านล่าง) — gate นั้นคือ due gate.
   stop condition ระหว่างรอคือของเอกสารต้นทาง (readiness report §10 และ register §3) ตามคำต่อคำ D0 ไม่ได้เปลี่ยนข้อใด
@@ -227,6 +227,8 @@ CON-003 #04 (required list ที่ซ้อนใน subschema ยังไม
 - **ที่ D0 ไม่ได้พูดถึง:** pass rule ของ register §7.2 (บรรทัด 360-372) เข้มกว่า — ข้อ 2 (contract ที่ First Slice ใช้ต้อง Frozen v1; ยังไม่มีฉบับใด Frozen),
   ข้อ 6 (wireframe ทุก core flow; G0-004 partial), ข้อ 8 (PO และ A0 ลง Approved). A0 อ่านว่าข้อ 2 และ 6 กลายเป็นเงื่อนไขของงาน G1 ที่ใช้มัน
   (`WP-0A-CON-008` ต้อง freeze ก่อน implementation ตาม register บรรทัด 190) — **การอ่านนี้เป็นของ A0** เจ้าของ register ต้องถอดความ หรือ Owner แก้.
+  **Owner ตอบเรื่องข้อ 2 แล้ว (2026-10-08, disposition §10.1): `นับเป็นเหตุการณ์เดียว (Recommended)`** — freeze review ของ contract ที่ First Slice ใช้
+  เป็นส่วนของ G0 exit, ไม่ยกเว้น §7.2(2), exit ปิดเมื่อชุด First Slice freeze ครบ; ยังต้องออก RFC บันทึก gate rule นี้ (A0). ข้อ 6 ไม่ได้ถาม ยังเป็นการอ่านของ A0.
   บันทึกนี้ไม่ได้ตรวจข้อ 1, 3, 4, 5, 7 และวรรคท้ายของข้อ 8 ("Security/QA ไม่มี stop-the-line issue ค้าง") (disposition §4.2)
 - **ที่ D0 ไม่ได้พูดถึงใน pass rule ของ readiness report เอง (`:190`):** D0 ตอบเฉพาะเงื่อนไข approved fallback.
   อีกสามเงื่อนไข — internal specification ไม่ถอยหลัง, PO อนุมัติ scope/contracts (CTR-* ทุกฉบับยังเป็น Candidate/Draft),
@@ -234,9 +236,11 @@ CON-003 #04 (required list ที่ซ้อนใน subschema ยังไม
 - **OPEN-002:** register บรรทัด 111 กำหนด due "G0 policy draft; final ก่อน G6" แต่ D0 ผูก legal/PDPA กับ G2 — A0 อ่านว่าเลื่อน
   policy draft ไป G2; D0 ไม่ได้เอ่ยถึง OPEN-002 และ stop condition ของมันยังอยู่ครบ เจ้าของ register ต้องถอดความ
 - `CONTRIBUTING_AGENTS.md` หัวข้อ "Current gate constraint" ยังเขียนว่า G0 ยังไม่ผ่าน — เป็น governance ต้องแก้ผ่าน PR ที่ Owner merge เอง ไม่แก้ในที่นี้
-- **กติกาช่วงระหว่างนี้ (การอ่านของ A0 รอ Owner ยืนยันหรือแก้):** "Current gate constraint" ของ `CONTRIBUTING_AGENTS.md` และบรรทัด 373
+- **กติกาช่วงระหว่างนี้ (Owner ยืนยันแล้ว 2026-10-08 `ยืนยัน ยังผูกพัน (Recommended)`, disposition §10.3; ข้อความเดิมของ A0 ด้านล่าง):** "Current gate constraint" ของ `CONTRIBUTING_AGENTS.md` และบรรทัด 373
   ของ register ("ถ้าไม่ผ่าน G0 อนุญาตเฉพาะ Spike, …") **ยังผูกพัน agent ทุกตัวเหมือนเดิม** จนกว่า governance PR ที่แก้ข้อความนั้นจะถูก Owner merge —
-  งาน G1 ที่ผูก production schema หรือ external provider ยังไม่เริ่มก่อนนั้น (A1-1, R0 R-4)
+  งาน G1 ที่ผูก production schema หรือ external provider ยังไม่เริ่มก่อนนั้น (A1-1, R0 R-4).
+  คำถามที่ Owner ยืนยันระบุเงื่อนไขสิ้นสุดเข้มกว่า: ผูกพัน "จนกว่า contract ชุด First Slice จะ freeze ครบและมี PR แก้ CONTRIBUTING";
+  ระหว่างนี้ทำ RFC, freeze contract, ตั้ง env/วัด Supabase จริง, spike และ fake ได้ — โค้ดแอปจริงเริ่มหลัง freeze ครบ
 
 ### รายการภายนอก ผูกกับ gate ที่ขวางจริง (แผน §6)
 
@@ -288,3 +292,8 @@ A0 (06:31:57Z) "ทุกตัวผ่านการตรวจ 4 role แ�
 Owner (06:32:20Z) "ลุยต่อเลย"; A0 (06:32:49Z) "ทุกตัวผ่าน 4 role แล้วผมจะ merge ทีละตัว".
 ทั้งสามไม่เปลี่ยนผู้ merge: `ลุยต่อเลย` ไม่ได้ระบุ PR ใด, governance PR "never by delegation" (RFC-2026-025 §5 item 6) และ D0 เองกำหนดให้ Owner merge.
 A0 และ orchestrator ห้ามกด merge PR นี้ จนกว่า Owner จะกดเองหรือสั่งโดยระบุ PR #214. **A0 ค้างการแก้ข้อความทั้งสองในแชตกับ Owner**
+
+**Owner สั่งแล้ว โดยระบุ PR #214 (2026-10-08T10:21:21Z, disposition §10.2):** A0 ถามว่า "ให้ A0 กด merge governance PR ทุกตัวในแผน G0 exit/G1/G2
+ที่คุณอนุมัติแล้วได้เลยไหม เมื่อผ่าน 4 role และ CI เขียว" โดยคำถามระบุ "#214 G0 exit" — Owner เลือก `ให้ A0 กดทุกตัวในแผน (Recommended)`.
+A0 หรือ orchestrator กด PR นี้ได้เมื่อผ่าน 4 role และ CI เขียวบน head ที่มี `main` ปัจจุบัน. เป็นข้อยกเว้นของ RFC-2026-025 §5 item 6
+แบบเดียวกับ PR #211; บันทึกนี้ไม่ได้แก้ RFC นั้น. ข้อความสองข้อของ A0 (06:31:57Z, 06:32:49Z) ไม่ได้ถูกถอนคำต่อคำ แต่ถูกแทนที่ด้วยคำสั่งนี้

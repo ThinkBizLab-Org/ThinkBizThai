@@ -160,9 +160,12 @@ external item is done.** Every account, provider, adviser and credential named b
 
 ## 4. The G0 conditional exit
 
-### 4.1 What passes, and on what rule
+### 4.1 What is decided, and on what rule
 
-Under D0, the Owner's decision is that **G0 passes by approved fallback**. The pass rule invoked is the readiness
+Under D0, the Owner's decision is the **G0 exit: decided, conditional**, by approved fallback. This record does not
+say "G0 passed" (wording corrected 2026-10-08 under R0's rule in `r0-recheck-2026-10-07.md` §5 and the Owner's
+answer of `11:02:53Z`, §10.3). Under the Owner's answer of `10:16:36Z` (§10.1), the exit closes only when the
+First-Slice contracts are frozen. The pass rule invoked is the readiness
 report's (`docs/sprint-0a/sprint-0a-g0-readiness-report-th.md:190`): internal specification items do not regress, the
 Product Owner approves scope/contracts, every external blocker that affects P0 has evidence **or an approved
 fallback**, and no Critical risk lacks an owner and a due gate. D0's words address the third of these four conditions
@@ -215,6 +218,9 @@ stop condition (register line 111), restated by D0 for the whole of the post-G0 
   forbids implementation against a contract below Frozen v1. A0 reads D0 as a conditional exit: G0 is exited, and the
   register's items 2 and 6 become conditions on the G1 work that consumes them. **That reading is A0's**, and the
   register's owner must transcribe it or the Owner must correct it (§6).
+  **Corrected by the Owner for item 2 on 2026-10-08 (§10.1):** the freeze review of the First-Slice contracts is part
+  of the G0 exit, §7.2 (2) is not waived, and the exit closes when the First-Slice set is frozen. Item 6 was not asked
+  and stays A0's reading.
 - **`CONTRIBUTING_AGENTS.md` "Current gate constraint"** still says "Sprint 0A is Specification Baseline Complete /
   External Verification Pending. Until G0 passes, agents may work only on spikes…". It now contradicts D0. It is
   governance text and is not edited here (§6). The register's line after §7.2 (line 373) says the same: "ถ้าไม่ผ่าน G0
@@ -225,6 +231,8 @@ stop condition (register line 111), restated by D0 for the whole of the post-G0 
   gate constraint" and the register's line 373 **continue to bind every agent unchanged** until the governance PR
   that rewrites them is merged by the Owner. G1 implementation that binds production schema or an external provider
   does not start before then. (Added after A1-1 and R0 R-4. The question is owed to the Owner; see the closure note.)
+  **Confirmed by the Owner on 2026-10-08 (§10.3)**, in the form A0 put to him: both texts bind until the First-Slice
+  contracts are frozen **and** a PR amending `CONTRIBUTING_AGENTS.md` exists.
 - **OPEN-002's due gate.** Register line 111 sets OPEN-002 (region, retention per data class, legal basis, DPA) due
   "G0 policy draft; final ก่อน G6". D0, through plan §6, binds the legal/PDPA adviser to **G2**. A0 reads that as
   moving the G0 policy draft to G2, but D0 did not name OPEN-002, and its stop condition ("ห้าม Production customer data ถ้า legal/retention
@@ -272,6 +280,9 @@ the register entries are **not edited here**. Their owner must transcribe them (
 | File | Needs | Owner |
 |---|---|---|
 | `docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md` §3 | Disposition notes citing this file: OPEN-010 (criteria + timing only), OPEN-018 (application tier), OPEN-019 (implementation only, limits open), OPEN-020 (provider only), OPEN-002 (the G0 policy-draft due date against D0's G2 binding of legal/PDPA; stop condition unchanged; §4.2, added after Q0 F4). §7.1 G0-024 and the status column. §7.2: how D0's conditional exit reads against items 1-8 (§4.2). | Register owner (A0/Product), by RFC or an Owner-approved edit |
+| Same register, §3 OPEN-011 (added after Q0 re-check R1) | OPEN-011 (5 pilot workspaces and consent) is due **G0** at register line 120. Plan §6, which the Owner accepted, binds it to **G2 pilot** and names OPEN-011 in that row. The due-gate move is to be transcribed. The stop condition is unchanged. | Register owner (A0/Product), by RFC or an Owner-approved edit |
+| An RFC on the G0 gate rule (register §1.2/§5.1 against §7.2 (2)) | Record the reading the Owner chose on 2026-10-08 (§10.1). `CONTRIBUTING_AGENTS.md` sends a gate-rule change through an RFC, and A0's own question said so ("เป็น gate rule ต้องออก RFC"). The Owner's answer is recorded here; the RFC is still owed. | A0 author, governance |
+| `work-packages/WP-0A-CON-008.json` `open_blockers[6]` (on PR #216, not on `main`) | Cite §10.1 as the Owner's answer to the gate-rule question that blocker records. The blocker belongs to `WP-0A-CON-008`, so it is not edited here. | WP-0A-CON-008's author (A0) |
 | `docs/sprint-0a/sprint-0a-g0-readiness-report-th.md` §9 checklist, §10 | The G0 result (conditional exit, D0) and the gate binding of §4.3 | Readiness report owner |
 | `CONTRIBUTING_AGENTS.md` "Current gate constraint" | No longer true after D0. Replace it with the conditional-exit wording, the no-production-customer-data constraint, and the register-line-190 Frozen-v1 rule. Governance: the Owner merges it. | Owner, by a governance PR |
 | `architecture/decisions/RFC-2026-029-*.md` | To be written (D1) | A0 author, governance |
@@ -347,6 +358,11 @@ gives a direction that names PR #214 and is quoted the way #211's was. **A0 owes
 both statements (`06:31:57Z`, `06:32:49Z`) for every governance PR they covered. The closure note
 `a0-closure-2026-10-08-pr214-reviews.md` records that this is owed.
 
+**Later the same day the Owner gave that direction (§10.2).** A0 asked him, naming PR #214, whether A0 may press
+every governance PR in the approved plan once four roles pass and CI is green, and he chose `ให้ A0 กดทุกตัวในแผน
+(Recommended)`. That is quoted in §10.2 the way PR #211's exception is quoted in RFC-2026-025. The conclusion above
+held until then.
+
 ## 8. Where `WP-0A-A0-010` sits
 
 Plan §2 names `WP-0A-A0-010` as the package for this record. `CONTRIBUTING_AGENTS.md` gives no package the right to
@@ -378,3 +394,88 @@ conditional reviewer and carries a `security_approved` gate, as `WP-0A-A0-004` d
 - Not RFC-2026-029 or RFC-2026-030. Both are owed.
 - Not record-only under RFC-2026-025 §5/§6. It is an Owner disposition and a gate record, and it needs the role runs
   its package gates require.
+
+## 10. The Owner's later answers of 2026-10-08 (added on the PR #214 closure)
+
+Three questions A0 put to the Owner in session `27edf3de` after the role re-checks of this PR. Each question and each
+option is quoted verbatim from the `AskUserQuestion` call; each answer is quoted from the tool result. A0 relayed
+them to this run, and this run checked them against the session transcript. They are listed in the order asked.
+A0 recorded them. It did not decide them.
+
+### 10.1 The gate-rule cycle (answers `WP-0A-CON-008` `open_blockers[6]`)
+
+Asked `2026-10-08T09:51:40Z`, answered `10:16:36Z`. Question:
+
+> เจอกติกาวนกันใน Decision Register: §5.1 บอกว่า contract จะ Frozen ได้ 'หลังผ่าน G0' แต่ §7.2 บอกว่า G0 จะผ่านได้ต้องมี contract ที่ First Slice ใช้ Frozen ก่อน — ต้องตัดสินว่าอ่านแบบไหน (เป็น gate rule ต้องออก RFC)
+
+Options, as shown:
+
+- `นับเป็นเหตุการณ์เดียว (Recommended)`: "การ freeze review ของ contract ที่ First Slice ใช้ เป็นส่วนหนึ่งของ G0 exit เลย — ไม่ยกเว้น §7.2(2) แต่ freeze ทีละ contract เมื่อ owner เซ็นครบ แล้ว G0 exit ปิดเมื่อชุด First Slice ครบ"
+- `ยกเว้นใน conditional exit`: "G0 exit แบบมีเงื่อนไขยกเว้น §7.2(2) ได้ แล้ว freeze ทีหลัง — เร็วกว่า แต่เขียนโค้ดบน contract ที่ยังเปลี่ยนได้"
+
+**The Owner chose `นับเป็นเหตุการณ์เดียว (Recommended)`.**
+
+What it decides, in the option's words: the freeze review of the contracts the First Slice uses is part of the G0
+exit; §7.2 (2) is **not** waived; contracts freeze one at a time as their owners sign; the G0 exit closes when the
+First-Slice set is complete. This is the answer to the question `WP-0A-CON-008` records as `open_blockers[6]` (on PR
+#216). It replaces A0's §4.2 reading for register §7.2 item 2.
+
+What it does not do. It freezes no contract and signs nothing for any contract owner. It does not say which contracts
+make up the First-Slice set. It does not amend the register. The question itself said a gate rule needs an RFC, so
+**an RFC recording this reading is still owed (A0, governance; §6).** Register §7.2 item 6 (wireframes) was not
+asked.
+
+### 10.2 Who presses the governance PRs of the plan, PR #214 included
+
+Asked `2026-10-08T10:16:57Z`, answered `10:21:21Z`. Question:
+
+> ตอนนี้มี governance PR รอ merge หลายตัวต่อเนื่อง (#215 RFC-029 stack พร้อมแล้ว CI เขียว, #213 RFC-030, #214 G0 exit และ RFC เรื่อง freeze ที่จะตามมา) — ให้ A0 กด merge governance PR ทุกตัวในแผน G0 exit/G1/G2 ที่คุณอนุมัติแล้วได้เลยไหม เมื่อผ่าน 4 role และ CI เขียว (บันทึกคำคุณทุกครั้ง) หรือจะให้ถามทีละตัว?
+
+Options, as shown:
+
+- `ให้ A0 กดทุกตัวในแผน (Recommended)`: "เฉพาะ governance PR ที่อยู่ในแผนที่อนุมัติแล้ว เรื่องใหม่นอกแผนยังถามก่อน"
+- `ถามทีละตัว`: "A0 ทำให้ถึง ready แล้วถามก่อนกดทุกครั้ง"
+
+**The Owner chose `ให้ A0 กดทุกตัวในแผน (Recommended)`.**
+
+The question names PR #214 (`#214 G0 exit`). It was asked after PR #214 existed (opened `2026-10-08T07:29:18Z`).
+So it is the direction §7 said was needed: one that names this PR. It reverses §7's conclusion. **PR #214 may be
+pressed by A0, or by the orchestrator that runs A0, once four roles pass and CI is green on the head that contains
+current `main`.** It covers only governance PRs inside the approved G0-exit/G1/G2 plan. Anything outside the plan is
+still asked first.
+
+RFC-2026-025 §5 item 6 says a governance PR is merged by the Owner "personally, never by delegation". This direction
+is therefore an exception to §5 item 6 of the same kind as PR #211's, which that RFC's status line records "for PR
+#211 only". This record quotes the direction. It does not amend RFC-2026-025.
+
+This direction is what closes A1-R2 (`a1-recheck-2026-10-07b.md` §1: "nothing names PR #214") and R0 R2-2
+(`r0-recheck-2026-10-07.md` §4, §5 item 7: "unless the Owner gives a direction that names PR #214"). A0's two
+statements of `06:31:57Z` and `06:32:49Z` (§7.1) were not retracted word for word. They are overtaken: the Owner was
+asked directly, with PR #214 named, and he chose. Whether that discharges R2-2 as worded is for A1 and R0 on their
+re-check.
+
+### 10.3 A0's correction of "G0 passed", and the interim rule
+
+Asked `2026-10-08T10:22:05Z`, answered `11:02:53Z`. Question:
+
+> ขอแก้คำพูดก่อนหน้า: ผมเคยบอกว่า 'G0 ผ่านแบบมี fallback' ที่ถูกคือ 'G0 exit ตัดสินแล้วแบบมีเงื่อนไข' ยังไม่ใช่ 'G0 ผ่าน' — และตามที่คุณตอบว่า freeze นับเป็นส่วนหนึ่งของ G0 exit กติกา 'Current gate constraint' ใน CONTRIBUTING_AGENTS.md และ register บรรทัด 373 (ก่อนผ่าน G0 ทำได้แค่ spike/fixture/fake ห้ามเขียนโค้ดแอปจริง) ยังผูกพันอยู่ จนกว่า contract ชุด First Slice จะ freeze ครบและมี PR แก้ CONTRIBUTING — ยืนยันการอ่านนี้ไหม?
+
+Options, as shown:
+
+- `ยืนยัน ยังผูกพัน (Recommended)`: "ระหว่างนี้ทำ RFC, freeze contract, ตั้ง env/วัด Supabase จริง, spike และ fake ได้ โค้ดแอปจริงเริ่มหลัง freeze ครบ"
+- `ให้เริ่มโค้ดแอปได้เลย`: "ต้องออก RFC แก้ gate rule ก่อน และเสี่ยงเขียนบน contract ที่ยังเปลี่ยนได้"
+
+**The Owner chose `ยืนยัน ยังผูกพัน (Recommended)`.**
+
+- **The correction.** The question opens with A0's correction to the Owner: what A0 had called "G0 ผ่านแบบมี
+  fallback" is "G0 exit ตัดสินแล้วแบบมีเงื่อนไข" and not "G0 ผ่าน". This record and the tracker now use that wording,
+  as R0's rule requires: **G0 exit: decided, conditional**, never "G0 passed" (§4.1).
+- **The interim rule (closes A1-1 and R0 R2-3).** The Owner confirmed that `CONTRIBUTING_AGENTS.md` "Current gate
+  constraint" and register line 373 **still bind** until the First-Slice contracts are frozen and a PR amending
+  `CONTRIBUTING_AGENTS.md` exists. Until then the option's words allow RFCs, contract freezes, environment setup and
+  real Supabase measurement, spikes and fakes. Real application code starts after the freeze is complete. This end
+  condition is stricter than A0's earlier reading in §4.2, which ended at the governance PR's merge. Read with the
+  guide's own "Until G0 passes" wording, A0 reads it this way: the guide binds until **both** the freeze is complete
+  and the amending PR is merged. That is A0's reading.
+- What the answer does not do: it amends neither text. The governance PR that rewrites "Current gate constraint" is
+  still owed (§6).

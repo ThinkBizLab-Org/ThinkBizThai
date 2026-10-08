@@ -58,3 +58,19 @@ This commit changes D, T and M. M is a manifest, so the increment is still not r
   there first.
 
 After that, the Owner merges PR #214 himself.
+
+## Closure of the re-check conditions, 2026-10-08 (after the re-checks at `fde49f2c`)
+
+A subagent run of `/claude/a0_atlas` wrote this. It is not a role verdict and it moves no status. A0 carried out the
+orchestrator's instruction under the Owner's standing words `เอาตามที่คุณแนะนำทุกอย่าง`, and decided nothing. The
+Owner's three later answers are recorded verbatim, with A0's questions and options, in the disposition's new §10.
+This run checked each one against the session transcript.
+
+| Condition | Role's words | Closed by | Where |
+|---|---|---|---|
+| A1-1 / R0 R2-3 | "whether the guide's 'Current gate constraint' and register line 373 keep binding until the governance PR merges" | Owner, `11:02:53Z`: `ยืนยัน ยังผูกพัน (Recommended)`. The end condition he confirmed is "จนกว่า contract ชุด First Slice จะ freeze ครบและมี PR แก้ CONTRIBUTING". | D §4.2, §10.3; T "ผลของ D0" |
+| A1-R2 / R0 R2-2 | "nothing names PR #214"; "unless the Owner gives a direction that names PR #214" | Owner, `10:21:21Z`: `ให้ A0 กดทุกตัวในแผน (Recommended)`, to a question that names "#214 G0 exit". The two A0 statements were overtaken, not retracted word for word. A1 and R0 judge whether that meets R2-2 as worded. | D §7.1, §10.2; T "ผู้ merge" |
+| R0 wording rule | "Do not record the words 'G0 passed' without 'conditional'" | §4.1 and the tracker header, "ผลของ D0" and row 024 now say "G0 exit: decided, conditional". A0 also corrected itself to the Owner (`10:22:05Z`). | D §4.1, §10.3; T |
+| `WP-0A-CON-008` `open_blockers[6]` | gate-rule question, "Product Owner + A0" | Owner, `10:16:36Z`: `นับเป็นเหตุการณ์เดียว (Recommended)`. **Still owed:** an RFC recording the reading (A0, governance), and the blocker's citation of D §10.1 on PR #216 (WP-0A-CON-008's author). | D §6, §10.1; T |
+| Q0 re-check R1 | "add OPEN-011's due-gate move (G0 → G2 pilot, per plan §6; stop condition unchanged) to §6's register row" | Added as its own row in D §6. | D §6 |
+| A1-R1 / R0 R2-1 / R0 §5 items 4-6 | handoff refreshed last and alone; bootstrap green on a head containing current `main`; R0 note on the final head | **Not by this commit.** The orchestrator refreshes the handoff after the A1 and R0 re-checks. | — |
