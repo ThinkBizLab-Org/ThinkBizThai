@@ -1,9 +1,8 @@
 # Records transcription: PR #213 merge record (RFC-2026-030), on R0's behalf
 
-Date: 2026-10-08. Scribe: `/claude/a0_atlas` (WP-0A-DB-00's Author). Path: the records light path of
-RFC-2026-025 §6. The Author decides nothing here. R0's words are on `main` in R0's own file and are transcribed
-with only the placeholders R0 named filled in. The one independent reading (§6.2) is C0's, because the record
-transcribes R0's verdict.
+Date: 2026-10-08. Scribe: `/claude/a0_atlas` (WP-0A-DB-00's Author). Path: the **full path** (§4 says why the
+records light path of RFC-2026-025 §6 does not fit). The Author decides nothing here. R0's words are on `main` in R0's
+own file and are transcribed with only the placeholders R0 named filled in.
 
 ## 1. Facts verified with `gh`/`git` in this run
 
@@ -40,4 +39,18 @@ R0's conditions for recording this without another R0 reading (§4 items 1-4) ar
   Owner's direction, so the wording does not fit the merged PR as written. Changing it is R0's call, not the scribe's.
 - R-17 (pin RFC-2026-025's citation at line 348 to `454f6935`) is an RFC edit, so it is not a record and is not made
   here.
-- No RFC, CI, gate, contract, script, test, lockfile or `ownership.branch` is touched.
+- Apart from the line pins of `db/foundation/lint/audit-coverage-map.json` (§4), no RFC, CI, gate, contract, script, test, lockfile or `ownership.branch` is touched.
+
+## 4. Why the full path
+
+`node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00` names the six `amends_without_owning.paths` that PR #213
+declared as dead amendments on this branch, so they are dropped (`paths: []`). That collapses seven lines above
+`open_blockers`. `test-kits/db/foundation-contract.test.mjs` ("batch 141 prep: the audit coverage map names real
+tables, real §8 rows, live blockers, and no producer") pins each cited blocker to its line in
+`work-packages/WP-0A-DB-00.json` through `db/foundation/lint/audit-coverage-map.json`. With the old pins it failed:
+`role.membership_or_scope_change: open_blockers[21] is not on work-packages/WP-0A-DB-00.json:281`.
+
+The 34 `line` values in the map are re-pinned to where each blocker now stands. Each new value was found by searching
+the manifest for that blocker's own text, not by subtracting seven. No `index`, `quote` or other field changes. The
+map is not a record (RFC-2026-025 §6.1 item 5), so this PR takes the full path: C0, Q0 and R0 read it. A1 also reads,
+because the package's gates name a security reviewer.
