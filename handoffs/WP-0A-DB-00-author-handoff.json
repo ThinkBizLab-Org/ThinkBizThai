@@ -4,68 +4,44 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "40ec26d190addc191b83ac10ac553fe187632292",
-  "head_revision_or_patch_checksum": "7f5979ad1150e107570cd217e72cb8ba5ff6ae24",
+  "base_revision": "f1bb62021d36bc926f39d1973fb983074d5c24cf",
+  "head_revision_or_patch_checksum": "26427333da2b2babdf00b36b378098a2c51d81a4",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/a1-recheck-2026-10-08-pr218.md",
-    "evidence/WP-0A-DB-00/a1-review-2026-10-08-pr218.md",
-    "evidence/WP-0A-DB-00/c0-recheck-2026-10-08-pr218.md",
-    "evidence/WP-0A-DB-00/c0-review-2026-10-08-pr218.md",
-    "evidence/WP-0A-DB-00/q0-recheck-2026-10-08-pr218.md",
-    "evidence/WP-0A-DB-00/q0-test-2026-10-08-pr218.md",
-    "evidence/WP-0A-DB-00/r0-review-2026-10-08-pr218.md",
-    "evidence/WP-0A-DB-00/records-transcription-2026-10-08.md"
+    "evidence/WP-0A-DB-00/light-path-reading-2026-10-08-pr219.md",
+    "evidence/WP-0A-DB-00/records-transcription-2026-10-08-pr211.md"
   ],
   "files_modified": [
-    "db/foundation/lint/audit-coverage-map.json",
     "handoffs/WP-0A-DB-00-author-handoff.json",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "RFC-2026-025 (§6.1 item 5: the map is not a record, so this PR takes the full path)",
-    "RFC-2026-030 (merged in PR #213; this PR records its merge)"
+    "RFC-2026-025 §6 (records light path)"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT is the post-merge record of PR #213 (RFC-2026-030): R0 words from evidence/WP-0A-DB-00/r0-recheck-2026-10-08-pr213-final.md §4 appended to open_blockers[204], old text whole, placeholders filled from gh/git. See evidence/WP-0A-DB-00/records-transcription-2026-10-08.md.",
-    "The presser of PR #213 is A0 by A0’s own account; gh mergedBy shows only the repository account.",
-    "Dropping six dead amendments shifts open_blockers lines; db/foundation/lint/audit-coverage-map.json line pins are re-found by each blocker text (34 values); nothing else in the map changes."
+    "THIS INCREMENT is the post-merge record of PR #211 (RFC-2026-025 §6): R0 wording from evidence/WP-0A-DB-00/r0-review-2026-10-08-pr218.md §5 appended verbatim to open_blockers[203], old text whole. See evidence/WP-0A-DB-00/records-transcription-2026-10-08-pr211.md.",
+    "The presser of PR #211 (A0 on the Owner’s direction) is A0’s record and the RFC-2026-025 §6 status line; gh mergedBy shows only the repository account."
   ],
   "acceptance_results": [
     {
-      "criterion": "R0 merge-record words transcribed verbatim, placeholders from gh/git",
+      "criterion": "R0 [203] wording transcribed verbatim; merge facts match gh/git",
       "result": "met for author self-check",
-      "evidence": "evidence/WP-0A-DB-00/records-transcription-2026-10-08.md §1-§2"
+      "evidence": "evidence/WP-0A-DB-00/records-transcription-2026-10-08-pr211.md §1-§2"
     },
     {
-      "criterion": "status not moved; open_blockers[204] old text kept whole",
+      "criterion": "status not moved; [203] old text whole; no line moves",
       "result": "met for author self-check",
       "evidence": "work-packages/WP-0A-DB-00.json"
-    },
-    {
-      "criterion": "map line pins match the manifest",
-      "result": "met for author self-check",
-      "evidence": "test-kits/db/foundation-contract.test.mjs batch 141 prep"
     }
   ],
   "tests": [
     {
-      "command": "npm run check (Q0, on the branch name at 7dc348d1, after the mechanical sync of main 40ec26d1)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (on branch agent/claude/WP-0A-DB-00-batch-rfc-030-risk-tiered-review)",
       "exit_code": 0,
-      "result": "735 tests, 735 pass, 0 fail (evidence/WP-0A-DB-00/q0-recheck-2026-10-08-pr218.md)"
-    },
-    {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (on branch agent/claude/WP-0A-DB-00-batch-rfc-030-risk-tiered-review, this refresh)",
-      "exit_code": 0,
-      "result": "see this commit; the count is restated by Q0 on the final head"
-    },
-    {
-      "command": "node scripts/db/classify-records-only.mjs --sync 69b84340 1721614d origin/main",
-      "exit_code": 0,
-      "result": "mechanical sync of main 40ec26d1 (PR #217); regenerate:manifest clean"
+      "result": "see this commit"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
@@ -73,27 +49,27 @@
       "result": "all changed paths declared"
     }
   ],
-  "security_privacy_cost_impact": "None. Records plus 34 line numbers in a lint map. No secret, credential, tenant data, migration or database change.",
-  "migration_and_data_impact": "None. No migration, policy, grant, probe or catalog change.",
-  "compatibility_impact": "None. Test count unchanged (735). The map change only re-points line numbers; indexes and quotes are unchanged.",
+  "security_privacy_cost_impact": "None. Records only: one manifest string appended, one transcription, this handoff.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "None. No test, map or generated file changes; open_blockers line count unchanged.",
   "known_limitations": [
-    "open_blockers[203] (PR #211) is not appended: R0 wording says the Owner pressed it, RFC-2026-025 §6 records A0; R0 must restate it.",
+    "C0, A1 and Q0 final-round words for PR #211 are owed; some source paths were rewritten later (R-17) and need commit-pinned sources.",
     "R-17 (pin RFC-2026-025 line 348 citation to 454f6935) is an RFC edit, not made here.",
-    "C0-218-3 (advisory, not fixed: outside R0’s carry rule): the rationale cites WP-0A-CON-003 as a records-branch precedent; its narrowing was on 9931f91c, a branch that also changed a contract fixture.",
-    "R0 gave corrected [203] (#211) wording in r0-review-2026-10-08-pr218.md §5; it is transcribed in a later records PR once that file is on main. WP-0A-A0-005 needs a separate R0 ruling (§6)."
+    "C0-218-3 (advisory) stays recorded in PR #218.",
+    "LP219-1 (C0 advisory, not fixed: a content commit would void the reading): the closing sentence of the [203] append, after R0’s verbatim words, is A0’s, not R0’s (\"C0’s, A1’s and Q0’s final-round words for PR #211 are not transcribed here; each stays owed from its own role file.\"); the next DB-00 records PR may mark it as A0’s."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H. Re-checks at 7dc348d1, carried with -x: C0 review_approved (C0-218-1 closed; C0-218-3 advisory open, recorded below), A1 security_approved (no finding; N1, N2 closed), Q0 test_verified 735/735 measured on the branch name against main 40ec26d1; R0 integration-sound at a8dfdfa7, carried to this head under r0-review-2026-10-08-pr218.md §4 (only the R-18 replacements, the role files, a mechanical sync and this refresh). A0 presses under the Owner’s standing delegation for finished non-governance batches (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once bootstrap is green on this head, pinned with --match-head-commit."
+    "Records light path: C0 read 8b4425f1 (evidence/WP-0A-DB-00/light-path-reading-2026-10-08-pr219.md, carried with -x): no blocking finding. A0 presses under RFC-2026-025 §6.2 item 3 once bootstrap is green on the final head, pinned with --match-head-commit."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: revert; records and line pins only.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: revert; records only.",
   "recommended_next_work_packages": [
-    "R0: restate the open_blockers[203] (#211) wording; then a records PR on this package.",
-    "WP-0A-A0-001: CONTRIBUTING_AGENTS.md passages of RFC-2026-030 §7 (governance, Owner says who presses)."
+    "WP-0A-A0-005: R0 ruling on the presser clause (r0-review-2026-10-08-pr218.md §6).",
+    "Post-merge records for A0-002, A0-004, A0-006..009, CON-004, each on its own package branch."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-DB-00/records-transcription-2026-10-08.md first.",
-    "Compare open_blockers[204] as parsed JSON: the old text is a prefix of the new; the appended R0 words match r0-recheck-2026-10-08-pr213-final.md §4.",
-    "git diff the map: only line values change; run the batch 141 prep test."
+    "Read evidence/WP-0A-DB-00/records-transcription-2026-10-08-pr211.md first.",
+    "Compare open_blockers[203] as parsed JSON: the old text is a prefix of the new; the appended R0 words match r0-review-2026-10-08-pr218.md §5 verbatim (blockquote lines joined by single spaces).",
+    "Run node scripts/db/classify-records-only.mjs origin/main <head>."
   ],
   "superseded_by": null
 }
