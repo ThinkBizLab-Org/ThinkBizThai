@@ -4,28 +4,34 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "389f38454b0c9711fca1e595f71511970e835076",
-  "head_revision_or_patch_checksum": "77dad630b2015ff83bd6a6442ff725019cc10d65",
+  "base_revision": "ae163ed8bb2473228b6d68dd8e764d55048857db",
+  "head_revision_or_patch_checksum": "454f693564793d2292f1b181b0078e94ee6775b6",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/a0-batch-rfc-025-records-path-closure-2026-10-08.md",
     "evidence/WP-0A-DB-00/a0-batch-rfc-025-records-path-plan-2026-10-07.md",
     "evidence/WP-0A-DB-00/a1-batch-rfc-025-records-path-recheck-2026-10-07.md",
     "evidence/WP-0A-DB-00/a1-batch-rfc-025-records-path-review-2026-10-07.md",
+    "evidence/WP-0A-DB-00/a1-recheck-2026-10-06.md",
     "evidence/WP-0A-DB-00/c0-batch-rfc-025-records-path-recheck-2026-10-07.md",
     "evidence/WP-0A-DB-00/c0-batch-rfc-025-records-path-review-2026-10-07.md",
+    "evidence/WP-0A-DB-00/c0-recheck-2026-10-06.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-07-rfc-025-s6.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-025-s6-answers.md",
     "evidence/WP-0A-DB-00/q0-batch-rfc-025-records-path-recheck-2026-10-07.md",
     "evidence/WP-0A-DB-00/q0-batch-rfc-025-records-path-review-2026-10-07.md",
+    "evidence/WP-0A-DB-00/q0-recheck-2026-10-06.md",
     "evidence/WP-0A-DB-00/r0-batch-rfc-025-records-path-recheck-2026-10-07.md",
     "evidence/WP-0A-DB-00/r0-batch-rfc-025-records-path-review-2026-10-07.md",
+    "evidence/WP-0A-DB-00/r0-recheck-2026-10-06.md",
     "scripts/db/classify-records-only.mjs"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-025-owner-delegated-merge.md",
-    "evidence/VERIFICATION.md",
+    "db/foundation/lint/audit-coverage-map.json",
     "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/test-suite-contract.mjs",
+    "scripts/verify-test-coverage-floor.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
@@ -33,16 +39,18 @@
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "RFC-2026-025 §1-§5 (in effect since 2026-09-28): §5 item 1's record-only scope, item 5's demand for a mechanical check, item 6's rule that a governance PR is merged by the Owner personally. This batch appends §6, Proposed, and changes no word of §1-§5.",
-    "The Owner's words of 2026-10-07, `ข้อ 4 mw`, read by A0 as 'item 4: do it' (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-07-rfc-025-s6.md); the reading is A0's (RFC header line). They direct writing the proposal, not its adoption."
+    "RFC-2026-025 §1-§5 (approved 2026-09-28): §5 item 1's record-only scope, item 5's demand for a mechanical check, item 6's rule that a governance PR is merged by the Owner personally. §1-§5 are byte-identical to main; this PR only appends line 8 and §6.",
+    "RFC-2026-025 §6, whose status line records it as Approved 2026-10-08 by the Owner. The Owner's words were `รับตามแนะนำทั้ง 5 ข้อ (Recommended)`, on Q-025-6-1..5 (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-025-s6-answers.md §2).",
+    "The Owner's direction of 2026-10-08 on who presses PR #211: `ให้ A0 กดเอง (Recommended)` (disposition 2026-10-08 §2 and §6 item 5, which quotes the question and A0's 2026-10-06 statement of §5 item 6 verbatim, as A0 relayed them). For PR #211 only; it is not an Owner-pressed merge.",
+    "The Owner's words of 2026-10-07, `ข้อ 4 mw`, read by A0 as 'item 4: do it' (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-07-rfc-025-s6.md); the reading was A0's and directed writing the proposal. The Owner decided on §6 itself on 2026-10-08 (above)."
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "A0's reading of `ข้อ 4 mw` as 'item 4: do it' is right. If it is not, the PR is withdrawn. The Owner's answer to Q-025-6-1 settles it.",
+    "The disposition files quote the Owner's chat as A0 relayed it; the roles checked the quotes against the task text (grep -F), not against the chat itself.",
     "An approved RFC is amended in its own text, as §5 was; the repository has no rule requiring a new RFC number for an amendment.",
-    "WP-0A-DB-00 owns RFC-2026-025 and scripts/db/**, so the classifier lives in scripts/db/ (RFC §6.6 item 4 offers a protocol path if the Owner prefers).",
-    "The CI checkout keeps full history (fetch-depth: 0); the new test builds its own throwaway git repository and does not depend on this tree's history."
+    "WP-0A-DB-00 owns RFC-2026-025 and scripts/db/**, so the classifier lives in scripts/db/; scripts/verify-test-coverage-floor.mjs (one DIGESTED_FLOOR line) is amended without owning it, declared in the manifest and acknowledged by its Integration Owner R0 (r0-recheck-2026-10-06.md §4).",
+    "The CI checkout keeps full history (fetch-depth: 0); the classifier test builds its own throwaway git repository and does not depend on this tree's history."
   ],
   "acceptance_results": [
     {
@@ -78,34 +86,9 @@
       "result": "v24.20.0"
     },
     {
-      "command": "npm run check on origin/main dc7b9684 before any edit",
+      "command": "git branch --show-current; git merge-base --is-ancestor origin/main HEAD",
       "exit_code": 0,
-      "result": "tests 716, pass 716"
-    },
-    {
-      "command": "mutations of scripts/db/classify-records-only.mjs, one rule at a time, each restored (plan §3, closure §3)",
-      "exit_code": 1,
-      "result": "each killed by the classifier test (fail 1); the first depth mutant survived, the rule was moved to the basename and it is killed"
-    },
-    {
-      "command": "node scripts/db/classify-records-only.mjs <m>^1 <m>^2 for the 26 first-parent merges on origin/main 7fb0fc05 since 2026-10-05T12:00 (narrowed classifier, closure §3)",
-      "exit_code": 0,
-      "result": "5 exit 0 (#198, #199, #201, #205, #206), 21 exit 1, no exit 2; 4 printed moves in_review -> integration_verified"
-    },
-    {
-      "command": "node scripts/db/classify-records-only.mjs --sync <s>^1 <s> 7fb0fc05 for the 50 merges of main into those PR branches",
-      "exit_code": 0,
-      "result": "48 exit 0, 2 exit 1 (31879073 on #196, f6652ee0 on #197)"
-    },
-    {
-      "command": "node scripts/commit-when-clean.mjs (the fix commit d12475a7)",
-      "exit_code": 1,
-      "result": "refused: tests 717, pass 715, fail 2 -- the two handoff-guard tests, red until this refresh; committed with git commit (closure §3)"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00 (at 77dad630)",
-      "exit_code": 0,
-      "result": "all 20 changed path(s) are declared, and every amendment explains one"
+      "result": "agent/claude/WP-0A-DB-00-batch-rfc-025-records-path; origin/main ae163ed8 contained"
     },
     {
       "command": "node scripts/verify-branch-identity.mjs agent/claude/WP-0A-DB-00-batch-rfc-025-records-path",
@@ -113,35 +96,42 @@
       "result": "WP-0A-DB-00"
     },
     {
-      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD (this PR, at 77dad630)",
+      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD (this PR, at 454f6935)",
       "exit_code": 1,
-      "result": "NOT records-only (20 paths): it changes an RFC, a script, a test and generated files, as it should"
+      "result": "NOT records-only (26 paths): it changes an RFC, scripts, tests and generated files, as it should"
+    },
+    {
+      "command": "npm run check at 454f6935 with this refresh in the tree (before the record commit)",
+      "exit_code": 89,
+      "result": "tests 725, pass 725, fail 0; refused only because evidence/VERIFICATION.md is still main's record, which the next commit writes"
     }
   ],
-  "security_privacy_cost_impact": "No secret, credential, tenant data, provider or database is touched. The classifier reads git objects only, with argument arrays (no shell), literal pathspecs and no network. The test builds a throwaway repository under the OS temp directory with a synthetic author that is not an e-mail address, and removes it. Cost: §6, if adopted, replaces four role runs with one reading on records-only PRs and removes carry readings on mechanical syncs. No token or time figure is claimed.",
+  "security_privacy_cost_impact": "No secret, credential, tenant data, provider or database is touched. The classifier reads git objects only, with argument arrays (no shell), literal pathspecs and no network. The test builds a throwaway repository under the OS temp directory with a synthetic author that is not an e-mail address, and removes it. Cost: §6 (approved) replaces four role runs with one reading on records-only PRs and removes carry readings on mechanical syncs. No token or time figure is claimed.",
   "migration_and_data_impact": "None. No migration, policy, grant, probe or catalog change.",
-  "compatibility_impact": "Tests 716 -> 717 (one in foundation-contract): floor 86 -> 87, name digest and assertion floor (1121 -> 1320 -> 1329, the guard's own count) moved in scripts/test-suite-contract.mjs; evidence/VERIFICATION.md written by the record script's render() (717). No behaviour of any existing guard changes: §6 is text until the Owner decides, and the classifier is run by hand, not by CI.",
+  "compatibility_impact": "Tests on main ae163ed8: 724; this branch: 725 (one classifier test in foundation-contract): floor 86 -> 87, name digest and assertion floor (1329) in scripts/test-suite-contract.mjs; scripts/db/classify-records-only.mjs digested in test-kits/integrity-manifest.json and on DIGESTED_FLOOR (#204's E4 import-closure guard); 34 line pins in db/foundation/lint/audit-coverage-map.json raised by one; evidence/VERIFICATION.md written by npm run record:verification (725). No existing guard changes behaviour: §6 is process text, and the classifier is run by hand, not by CI.",
   "known_limitations": [
-    "The classifier decides the SHAPE of a diff by file name, not its content: a records-transcription-*.md or session-*.md file can carry Owner words from chat, or a role verdict not yet on main, and exit 0 (A1-7, C0 N1). The reader of §6.2 is the only check; the one-sentence fix in §6.2 or the Owner's acceptance by name is owed.",
-    "A light-path reading is not bound to the head it read; a later commit is not refused by any script (R0 R2-1, advisory). §6.1's 'wider in four places' list does not name a new open_blockers entry (R0 R2-2).",
+    "The classifier decides the SHAPE of a diff by file name, not its content; §6.2 makes the reader check every quoted Owner word and role verdict against its source on main (A1-7 / C0 N1 closed in text). Only the reader enforces that.",
+    "A light-path reading names its head and is voided by a later commit other than the refresh (§6.2, R0 R2-1), but no script refuses such a commit.",
     "A mechanical sync can still interact semantically with main (a validator the PR's records are judged by); §6.3 leaves that to CI on the final head.",
-    "The classifier script is not itself digested in test-kits/integrity-manifest.json; its test is (RFC §6.6 item 2).",
-    "CI does not run the classifier (RFC §6.6 item 1)."
+    "CI does not run the classifier (RFC §6.6 item 1, owed to WP-0A-A0-004, A1-6).",
+    "C0 F13 / R0 R4-2 (Info): two dated '§6 proposed' comments remain in scripts/test-suite-contract.mjs; both roles asked for no change.",
+    "R0 R5-2 (Info): the RFC §6 status line says in the past tense that PR #211 was pressed by A0; it is true only once A0 presses it."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[203]: (a) THE OWNER answers Q-025-6-1..5 (approve §6 or not), A0 records the answers on this branch, and the roles re-read (R0 R-5); (b) the Owner merges this governance PR personally (§5 item 6); (c) the CI step of §6.6 item 1 (WP-0A-A0-004, A1-6).",
-    "Second review round at d12475a7 (files evidence/WP-0A-DB-00/{c0,a1,q0,r0}-batch-rfc-025-records-path-recheck-2026-10-07.md): C0 review_approved; A1 security_approved_with_conditions (A1-7 Low open: close it in §6.2 or the Owner accepts it by name, with the commit that records Q-025-6-1..5); Q0 test_verified with condition Q8 (this refresh only touches the handoff; its blob differs from Q0's throwaway ea7d5bfc because it lists the four re-check files and true prose, so Q0 re-measures M1, M2, M9); R0 integration_verified NOT given, on state not substance (handoff, CI, re-checks on the new head, the Owner's answers). None is stop-the-line.",
-    "R0 R2-1 and R2-2: A0 rewords §6 or puts them to the Owner before Q-025-6-1 is answered."
+    "Re-checks at 3a7b44c5, cherry-picked with -x before this refresh: C0 68082bfa review_approved (F14 Minor met by refreshing again after the record commit, last and alone; F13 Info); R0 6d11fadb integration_verified NOT given at 3a7b44c5 (CI red on the unrefreshed handoff, VERIFICATION.md stale; R5-1, R5-2 Info). None is stop-the-line.",
+    "R0 §5 blocks the merge until: this refresh last and alone, the record commit, check 0, check:handoff 0, verify-branch-scope 0, bootstrap green on the exact head with main ae163ed8 contained, and the merge pressed with --match-head-commit. R0 §4 carries its A0-002/CON-008 acknowledgements only if the final head differs from 3a7b44c5 by R0's file, the handoff, evidence/VERIFICATION.md and its digest; this head also carries C0's re-check file (evidence only, not digested), which R0 must accept or re-read.",
+    "A1 (f11b51a8, at da6b4585) and Q0 (ea1ecd26, at da6b4585) have not re-read 3a7b44c5 or this head; A1 §6.5 item 1 limited the next diff to the handoff and the generated record, and 3a7b44c5 exceeds it.",
+    "open_blockers[203]: the C0 and R0 wordings (their files' §5) are appended after the merge with the measured final head, merge sha and CI run; the CI step of §6.6 item 1 stays owed to WP-0A-A0-004 (A1-6)."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: revert the commit in a reviewed PR; §6 is additive (one header line and an appended section), the script and its test are new, and the floor and digest lines return with the revert.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: revert the merge in a reviewed PR; §6 and line 8 are additive, the classifier and its test are new, and the floor, digest, pin and manifest lines return with the revert. If anyone other than A0 presses the merge, the §6 status line needs a forward fix (R0 R5-2).",
   "recommended_next_work_packages": [
-    "The Owner's answers to Q-025-6-1..5, recorded on this branch with the A1-7/C0 N1 sentence (or the Owner's acceptance by name) and R0 R2-1/R2-2 addressed; then C0, A1, Q0 and R0 re-read, a handoff refresh last and alone, CI green, and the Owner's personal merge. If adopted: WP-0A-A0-004's non-gating CI step for the classifier, WP-0A-A0-001's CONTRIBUTING_AGENTS.md citation."
+    "After bootstrap is green on this head: the remaining role readings (R0 of the final head; A1 and Q0 if they re-read), then A0 presses PR #211 with --match-head-commit on the Owner's direction; then a DB-00 records PR appends C0's and R0's wordings to open_blockers[203]. Then WP-0A-A0-004's non-gating CI step for the classifier, and WP-0A-A0-001's CONTRIBUTING_AGENTS.md citation of §6."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-DB-00/product-owner-disposition-2026-10-07-rfc-025-s6.md, then evidence/WP-0A-DB-00/a0-batch-rfc-025-records-path-plan-2026-10-07.md, then evidence/WP-0A-DB-00/a0-batch-rfc-025-records-path-closure-2026-10-08.md, then RFC-2026-025 §6.",
+    "Read evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-025-s6-answers.md (§2, §6 items 5-6), then evidence/WP-0A-DB-00/a0-batch-rfc-025-records-path-closure-2026-10-08.md §7, then RFC-2026-025 line 8 and §6.",
     "Check that §1-§5 are byte-identical to main: git diff origin/main HEAD -- architecture/decisions/RFC-2026-025-owner-delegated-merge.md shows additions only.",
-    "Re-measure plan §3 and closure §3 with the scratch loops they describe, and try to get a non-record past the classifier (exit 0) or a records diff refused that §6.1 says is a record.",
-    "The eight review files were cherry-picked with -x and moved byte for byte (git rename, 100% similarity) from evidence/WP-0A-A0-001/ (f2610d86, 77dad630): git show -M --stat on each move shows 0 insertions and 0 deletions."
+    "Check the finish order on the branch name: after 3a7b44c5 only the C0 and R0 re-check cherry-picks, a refresh commit (handoff only), the record commit (evidence/VERIFICATION.md and its digest in test-kits/integrity-manifest.json), and this refresh, last and alone.",
+    "Each cherry-pick names its source with -x; git show <commit> --stat touches only its role file."
   ],
   "superseded_by": null
 }
