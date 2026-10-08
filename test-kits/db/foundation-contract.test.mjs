@@ -6341,8 +6341,8 @@ test('the records-only classifier and the mechanical sync check fail closed, eac
 // pinned each probe the reviewers measured as too light; each now classifies at the tier its finding asked for.
 import {
   CLASSIFIERS, DATA_LINE_SIGNALS, H_IDENT_WORDS, H_LINE_SIGNALS, H_PATH_STEMS, H_PATH_WORDS, L_IMPORT_PACKAGES, L_PATHS, M_ELIGIBLE_MODULES, TIERS,
-  addedLines, classifyPath, classifyTier, formatReport, hPathHits, hSignals, lImportProblems, lineSignals, manifestNeutral, maxTier, patchLines,
-  pathWords,
+  addedLines, classifyPath, classifyTier, formatReport, hPathHits, hSignals, importSpecs, lImportProblems, lineSignals, manifestNeutral, maxTier,
+  patchLines, pathWords,
 } from '../../scripts/db/classify-review-tier.mjs';
 
 test('the review-tier classifier fails closed to H and only ever raises, each rule biting (RFC-2026-030, approved in principle)', async () => {
@@ -6515,6 +6515,41 @@ test('the review-tier classifier fails closed to H and only ever raises, each ru
   assert.deepEqual(lImportProblems(ui, ["import x from './Nope';"], files), ["imports ./Nope, which resolves to no file at the head"]);
   assert.deepEqual(lImportProblems(ui, ["import x from './Badge';"], null), ["imports ./Badge, which resolves to no file at the head"]);
   assert.equal(tierOf([ch('M', ui)], { [ui]: ['const a = Array.from(xs);'] }).tier, 'L');
+  // C0 N1, A1-R1, Q0 QR1, R0 R-9: an import split over lines (the formatter's shape), with comments -- even one holding a
+  // quote -- between its braces, is read as a whole; so is the file at the head, where a binding added inside an existing
+  // multi-line import adds no line that names the module.
+  assert.deepEqual(importSpecs(['import {', '  getMe, // the user\'s', '} from', "  '@/lib/data';", "export { a } from /* x */ './A';",
+    "import /* y */ './B.css';"]), ['@/lib/data', './A', './B.css']);
+  for (const lines of [['import {', '  deleteDraft,', "} from '../lib/delete-draft';"], ['import {', '  getMe,', "} from '@/lib/data';"],
+    ['import {', '  getMe, // the user\'s', "} from '@/lib/data';"], ["import { getMe } from /* c */ '@/lib/data';"],
+    ['import {', '  useMutation,', "} from '@tanstack/react-query';"], ['export {', '  save,', "} from '../actions';"]]) {
+    r = tierOf([ch('M', ui), ch('M', logicTest)], { [ui]: lines });
+    assert.equal(r.tier, 'M', `${lines.join(' / ')}: ${r.reasons.join('; ')}`);
+    assert.ok(r.reasons.some((x) => /imports /.test(x)), `${lines.join(' / ')}: ${JSON.stringify(r.reasons)}`);
+    H([ch('M', 'apps/web/components/Hero.tsx')], { 'apps/web/components/Hero.tsx': lines }, /not L outside a module/);
+  }
+  H([ch('M', logic), ch('M', logicTest)], { [logic]: ['import {', '  send,', "} from '../../mailer/domain/send';"] }, /imports module mailer/);
+  H([ch('M', logic), ch('M', logicTest)], { [logic]: ['import {', '  x,', '} from', "  '@/modules/inbox/domain/x';"] }, /imports module inbox/);
+  const withHead = (changes, added, head) => classifyTier(changes, (c) => added[c.path] ?? [], text, { files, mEligible: eligible, headOf: (c) => head[c.path] ?? [] });
+  r = withHead([ch('M', ui), ch('M', logicTest)], { [ui]: ['  getMe,'] }, { [ui]: ['import {', '  getMe,', '  other,', "} from '@/lib/data';", 'export const A = 1;'] });
+  assert.equal(r.tier, 'M', r.reasons.join('; '));
+  assert.ok(r.reasons.some((x) => /imports @\/lib\/data/.test(x)), JSON.stringify(r.reasons));
+  r = withHead([ch('M', logic), ch('M', logicTest)], { [logic]: ['  send,'] }, { [logic]: ['import {', '  send,', "} from '../../mailer/domain/send';"] });
+  assert.equal(r.tier, 'H', r.reasons.join('; '));
+  assert.ok(r.reasons.some((x) => /imports module mailer/.test(x)), JSON.stringify(r.reasons));
+  assert.equal(withHead([ch('M', ui)], { [ui]: ['<p>new</p>'] }, { [ui]: ["import { Badge } from './Badge';", '<p>new</p>'] }).tier, 'L');
+  // Q0 QR3: five fail-open mutants, pinned. (1) every resolved target must be L; (2) packages match exactly; (3) a removed
+  // line carrying an H signal is H in module logic even without a guard shape; (4) the handoff's package counts for the
+  // one-package rule; (5) `process[` alone reads the environment.
+  assert.deepEqual(lImportProblems('apps/web/components/Badge.tsx', ["import { Hero } from './Hero';"],
+    new Set(['apps/web/components/Hero.tsx', 'apps/web/components/Hero.ts'])).length, 1);
+  for (const pkg of ['react-dom/server', 'react-query', 'react/../x']) {
+    r = tierOf([ch('M', ui), ch('M', logicTest)], { [ui]: [`import x from '${pkg}';`] });
+    assert.equal(r.tier, 'M', `${pkg}: ${r.reasons.join('; ')}`);
+  }
+  H([ch('M', logic), ch('M', logicTest)], {}, /removes a guard-shaped line/, { [logic]: ['if (process.env.X) return;'] });
+  H([ch('A', ui, '000000'), ch('A', 'evidence/WP-X/a.md', '000000'), ch('M', 'handoffs/WP-OTHER-author-handoff.json')], {}, /records of more than one package \(WP-OTHER, WP-X\)/);
+  H([ch('M', ui)], { [ui]: ["const v = process['e' + 'nv'].X;"] }, /reads the environment/);
   // Records-only keeps RFC-2026-025 §6, unchanged.
   r = tierOf([ch('A', 'evidence/WP-X/session-2026-10-08.md', '000000')]);
   assert.equal(r.tier, 'records');
@@ -6570,6 +6605,17 @@ test('the review-tier classifier fails closed to H and only ever raises, each ru
     assert.match(o, /^tier: H /, o);
     assert.match(o, /changes a tier classifier/);
     assert.match(o, /classifier copy: NOT the base's/);
+    await g('checkout', '-q', '-b', 'ml', root);
+    await put('apps/web/lib/data.ts', 'export const getMe = () => 1;\n');
+    await commit('lib');
+    await g('checkout', '-q', 'l');
+    await g('merge', '-q', '--no-edit', 'ml');
+    await put('apps/web/components/Me.tsx', "import {\n  getMe,\n} from '../lib/data';\nexport const Me = () => <p>{getMe()}</p>;\n");
+    await commit('multi-line import');
+    [code, o] = await out('ml', 'l');
+    assert.equal(code, 0, o);
+    assert.match(o, /^tier: H /, o);
+    assert.match(o, /imports \.\.\/lib\/data \(apps\/web\/lib\/data\.ts: not an L path\)/, o);
     await put(hero, 'export const Hero = () => <div>new</div>;\n');
     await commit('rewrite');
     [code, o] = await out('main', 'l');

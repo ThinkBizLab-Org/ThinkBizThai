@@ -190,14 +190,20 @@ export function manifestNeutral(beforeText, afterText, moves = []) {
   return reasons;
 }
 
+// Specifiers are read from the lines JOINED, and keyed on the `from` / `import` keyword just before the string, not on a
+// whole statement: an import a formatter splits over several lines, with comments (even ones holding a quote) between
+// its braces, still yields its specifier (C0 N1, A1-R1, Q0 QR1, R0 R-9). Any `from '...'` counts, so copy text that
+// happens to read like one only raises (fail closed).
+const GAP = String.raw`\s*(?:\/\*[\s\S]*?\*\/\s*)*`;
 const IMPORT_SPECS = [
-  /\b(?:import|export)\b[^'"`;]*?\bfrom\s*['"]([^'"]+)['"]/g,
-  /\bimport\s*['"]([^'"]+)['"]/g,
+  new RegExp(String.raw`\bfrom${GAP}['"]([^'"]+)['"]`, 'g'),
+  new RegExp(String.raw`\bimport${GAP}['"]([^'"]+)['"]`, 'g'),
   /@import\s+(?:url\(\s*)?['"]?([^'")\s;]+)/g,
 ];
 export function importSpecs(lines) {
+  const all = lines.join('\n');
   const out = [];
-  for (const l of lines) for (const re of IMPORT_SPECS) for (const m of l.matchAll(re)) out.push(m[1]);
+  for (const re of IMPORT_SPECS) for (const m of all.matchAll(re)) out.push(m[1]);
   return out;
 }
 const LEXT = ['', '.tsx', '.jsx', '.ts', '.js', '.mjs', '.cjs', '.css', '.scss', '.json', '.svg', '/index.tsx', '/index.jsx', '/index.ts', '/index.js'];
@@ -231,10 +237,11 @@ export function crossModuleImports(path, mod, lines) {
 }
 
 // One changed path. `added` / `ctx.removed` are its added / removed lines (for a text file), `text` reads a blob.
-// `ctx.mEligible` is the module allowlist, `ctx.files` the set of paths at the head, `ctx.moves` collects status moves.
+// `ctx.mEligible` is the module allowlist, `ctx.files` the set of paths at the head, `ctx.moves` collects status moves,
+// `ctx.head()` returns the file's lines at the head (its imports are read whole).
 // Returns { tier, reasons, module, test, pkg } where tier is null for a neutral path.
 export function classifyPath(change, added, text, ctx = {}) {
-  const { removed = [], mEligible = M_ELIGIBLE_MODULES, files = null, moves = [] } = ctx;
+  const { removed = [], mEligible = M_ELIGIBLE_MODULES, files = null, moves = [], head = () => [] } = ctx;
   const { status, path, oldMode, newMode, oldBlob, newBlob } = change;
   const H = (why) => ({ tier: 'H', reasons: [`${path}: ${why}`] });
   if (CLASSIFIERS.includes(path)) return H('changes a tier classifier (the base\'s copy decides the tier: RFC-2026-030 §4)');
@@ -279,12 +286,15 @@ export function classifyPath(change, added, text, ctx = {}) {
   const gone = CODE_OR_TEXT.test(path) ? removed : [];
   const hs = hSignals(lines);
   if (hs.length > 0) return H(`an added line ${hs.join('; ')}`);
+  // Imports are read from the added lines AND the whole file at the head: a binding added inside an existing multi-line
+  // import adds no line that names the module (C0 N1, A1-R1, Q0 QR1, R0 R-9).
+  const importLines = CODE_OR_TEXT.test(path) ? [...lines, '', ...head()] : [];
   if (mod) {
-    const other = crossModuleImports(path, mod, lines);
+    const other = crossModuleImports(path, mod, importLines);
     if (other.length > 0) return H(`imports module ${other.join(', ')} (a cross-module change is H)`);
   }
   if (isL && !test) {
-    const ds = [...lineSignals(lines, DATA_LINE_SIGNALS), ...lImportProblems(path, lines, files)];
+    const ds = [...lineSignals(lines, DATA_LINE_SIGNALS), ...new Set(lImportProblems(path, importLines, files))];
     if (gone.length > 0) ds.push('removes lines (a flag guard or an escape could go; an L change only adds)');
     if (ds.length === 0) return { tier: 'L', reasons: [], module: mod, test: false };
     if (!mod) return H(`a presentational file that is not L outside a module (${ds.join('; ')})`);
@@ -296,13 +306,14 @@ export function classifyPath(change, added, text, ctx = {}) {
 }
 
 // The whole diff. `changes` are parsed `git diff --raw` entries; `addedOf(change)` returns its added lines; `text`
-// reads a blob; `opts.removedOf(change)` its removed lines, `opts.mEligible` the module allowlist, `opts.files` the
+// reads a blob; `opts.removedOf(change)` its removed lines, `opts.headOf(change)` its lines at the head (the CLI reads
+// the blob; without it only added lines are read for imports), `opts.mEligible` the module allowlist, `opts.files` the
 // paths at the head. Returns { tier, reasons, recordsOnly, module, paths, statusMoves }.
 export function classifyTier(changes, addedOf, text, opts = {}) {
   if (!Array.isArray(changes) || changes.length === 0) {
     return { tier: 'H', reasons: ['an empty diff is not classified (H)'], recordsOnly: false, module: null, paths: [], statusMoves: [] };
   }
-  const { removedOf = () => [], mEligible = M_ELIGIBLE_MODULES, files = null } = opts;
+  const { removedOf = () => [], mEligible = M_ELIGIBLE_MODULES, files = null, headOf = () => [] } = opts;
   const paths = changes.map((c) => c.path);
   const records = classifyDiff(changes, text);
   if (records.recordsOnly) return { tier: 'records', reasons: [], recordsOnly: true, module: null, paths, statusMoves: records.statusMoves };
@@ -315,7 +326,7 @@ export function classifyTier(changes, addedOf, text, opts = {}) {
   let moduleTest = false;
   let bearing = 0;
   for (const c of changes) {
-    const r = classifyPath(c, addedOf(c), text, { removed: removedOf(c), mEligible, files, moves: statusMoves });
+    const r = classifyPath(c, addedOf(c), text, { removed: removedOf(c), mEligible, files, moves: statusMoves, head: () => headOf(c) });
     reasons.push(...r.reasons);
     if (r.pkg) packages.add(r.pkg);
     if (r.tier === null) continue;
@@ -407,7 +418,8 @@ export function classifyTierRange(base, head) {
     if (!cache.has(c.path)) cache.set(c.path, patchLines(git(['diff', '-U0', '--no-renames', '--no-ext-diff', '--text', mb, h, '--', c.path])));
     return cache.get(c.path);
   };
-  const r = classifyTier(parseRawDiff(raw), (c) => lines(c).added, text, { removedOf: (c) => lines(c).removed, files });
+  const r = classifyTier(parseRawDiff(raw), (c) => lines(c).added, text, { removedOf: (c) => lines(c).removed, files,
+    headOf: (c) => (c.status === 'D' ? [] : text(c.newBlob).split('\n')) });
   return { mergeBase: mb, head: h, copy: copyNote(b), ...r };
 }
 

@@ -85,8 +85,12 @@ words of 2026-10-08 accept it in principle.
   (RFC-2026-025 §2 item 1 and §5 item 6).
 - **Who presses the merge.** The merge of an M or L PR is pressed by a run that is **not** the PR's Author: at M and L no
   Integration Owner reads the PR before it merges, so an Author pressing its own merge would integrate its own work, which §2
-  forbids (A1-5, R0 R-6; put to the Owner as Q-030-5, with the alternative). Under the standing delegation that run may be an
-  A0 run that did not author the PR. A records PR is pressed as RFC-2026-025 §6 says; an H PR as today.
+  forbids (A1-5, R0 R-6; put to the Owner as Q-030-5, with the alternative). "Not the PR's Author" is decided by
+  `agent_run_id`: the pressing run's `agent_run_id` differs from the work package's `author_agent_run_id` and from the
+  `agent_run_id` of the PR's author handoff (A1-R2). An A0 run is therefore never the presser of an M or L PR of a
+  package whose `author_agent_run_id` is that run's -- today `/claude/a0_atlas`, for every PR of WP-0A-DB-00; under the
+  standing delegation the presser may be another run that did not author the PR, or the Owner. A records PR is pressed
+  as RFC-2026-025 §6 says; an H PR as today.
 - The PR records its tier: the command, run **from the base's copy of the classifier** (§4), its exit code and its full
   output, in the Author's evidence for the PR; each reader repeats it on the head it reads and checks the output says
   `classifier copy: the base's`.
@@ -187,8 +191,10 @@ In this order; the first rule that fires decides:
    `document.write`, `javascript:`, `<foreignObject`, `srcdoc`, a timer given a string, and a lower-case HTML event-handler
    attribute such as `onload=` or `onerror=`, which JSX's `onClick={...}` is not) (C0 F3). Any one is **H**. Only lines
    inside a hunk are read, so an added line whose own text starts with `++` is read too (Q0 Q5).
-8. **Cross-module imports** (C0 F5). A module file whose added lines import another module (a relative path into
-   `src/modules/<other>/`, or an alias naming `modules/<other>`) is **H**.
+8. **Cross-module imports** (C0 F5). A module file whose added lines, or whose whole text at the head, import another
+   module (a relative path into `src/modules/<other>/`, or an alias naming `modules/<other>`) is **H**. Imports are read
+   with the lines joined, from each `from` or `import` keyword to the string after it, so an import split over several
+   lines, with comments between its braces, is read whole (C0 N1, A1-R1, Q0 QR1, R0 R-9).
 9. **A deletion** inside a module is M at least; outside one it is **H** (the classifier cannot see who still reads it).
 10. **L, only if every L condition holds** (C0 F1, A1-3, A1-6, Q0 Q2, R0 R-3). An L path is **L** only when (a) its added
     lines carry no data-path signal -- a network call (`fetch(`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `axios`,
@@ -196,10 +202,12 @@ In this order; the first rule that fires decides:
     `createClient(`, `.rpc(`, any `.from(` other than `Array.from(`), an `/api/` route, browser storage, an absolute URL
     other than an XML namespace, a form `action=` or `formAction`, a channel out of the page (`navigator.`, `postMessage`,
     `window.location`, `location.href`/`assign`/`replace`, `window[`, `globalThis[`, `new Image(`, `<iframe`), a dynamic
-    `import(` or `require(`; (b) it imports only `react` and files that exist at the head and are themselves L paths (a
-    relative import is resolved against the head's tree; a package, an alias such as `@/lib/data`, a hook in `ui/useX.ts`
-    or a path that resolves to nothing is a data path); and (c) the diff removes no line from it (a removed line could be
-    a flag guard or an escape: an L change only adds). Otherwise it is **M** inside a module (and M's test rule then
+    `import(` or `require(`; (b) every import in its added lines **and in the whole file at the head** -- read as in
+    item 8, so a multi-line import counts, and a binding added inside an existing one is caught -- is `react` (exactly)
+    or a file that exists at the head and is itself an L path, every file it resolves to included (a relative import is
+    resolved against the head's tree; a package, an alias such as `@/lib/data`, a hook in `ui/useX.ts` or a path that
+    resolves to nothing is a data path); and (c) the diff removes no line from it (a removed line could be a flag guard
+    or an escape: an L change only adds). Otherwise it is **M** inside a module (and M's test rule then
     applies) and **H** outside one. A module's test file under `ui/` counts as the module's test, not as L (Q0 Q7).
 11. **Removed guards in M** (A1-6, C0 F6). A module file whose diff removes a guard-shaped line -- a flag or feature
     check, a permission, role or tenant condition, an `auth*`, `allow*`, `deny*`, `forbid*`, `sanitiz*` or `escape*` word,
@@ -237,10 +245,13 @@ synthetic diffs in the test; their first real PR is their first real measurement
 ### 4.5 What the classifier does not decide
 
 The fail-closed parts are the allowlists: the module allowlist (§4.2 item 6), the L paths (§4.3), and L's imports (§4.2
-item 10 (b)). Everything else -- the path words and stems, the line signals, the guard pattern for removed lines -- is a
-denylist: it raises on what it names and misses what it does not, and an Author can phrase around it. The first review
-round found such misses (C0 F2, F3; A1-2, A1-3; Q0 Q2, Q3, Q5; R0 R-1, R-3), and each is now pinned in the test; the next
-will be found the same way and fixed under §5 item 3. That is why L's two conditions are the Reviewer's to confirm, M's
+item 10 (b), read across lines and over the whole file at the head since the second round: C0 N1, A1-R1, Q0 QR1, R0 R-9).
+Everything else -- the path words and stems, the line signals, the guard pattern for removed lines -- is a denylist: it
+raises on what it names and misses what it does not, and an Author can phrase around it. The first review round found
+such misses (C0 F2, F3; A1-2, A1-3; Q0 Q2, Q3, Q5; R0 R-1, R-3), and each is now pinned in the test. The second round
+named more that stay open as denylist misses for the first PR that opens the module allowlist to pin (C0 N3, A1-R3,
+Q0 QR2, QR5, R0 R-12: for example `window.open(`, `globalThis.fetch` aliased, mixed-case event-handler attributes,
+`signingKey`, `quota`); the next will be found the same way and fixed under §5 item 3. That is why L's two conditions are the Reviewer's to confirm, M's
 test is the Tester's to confirm, and §6 lets any unsure reader raise a PR to H.
 ## 5. Misclassification
 
@@ -335,7 +346,8 @@ With no application paths in the repository, the first M or L PR can only come a
 
 The first round's preconditions A1-2 (secret, payment and OAuth identifiers matched on sub-words), A1-3 (L's import
 allowlist, third-party URLs and the missing injection sinks) and A1-6 (removed lines read) are met by the classifier on this
-PR and pinned in its test; they are not further conditions here. What stays a denylist is named in §4.5.
+PR and pinned in its test, A1-3's import allowlist as amended in the second round (multi-line imports and the file at the
+head: C0 N1, A1-R1, Q0 QR1, R0 R-9); they are not further conditions here. What stays a denylist is named in §4.5.
 
 ## 10. Owed if the Owner approves
 

@@ -86,3 +86,33 @@ of them.
 - **Q0**: M1, M2, M5 (its mutations against the new rules), M6, M7, M8, M9, and the new test's probes.
 - **R0**: R-1 (its blocking condition), R-2 to R-5, R-6's text and Q-030-5, and the amendments: the integrity manifest is
   regenerated on this head and needs R0's acknowledgement again.
+
+## 5. The second review round, on `0eadb203`
+
+All four roles re-read `0eadb203`. Their commits are not yet on this branch: C0 `5ed8a345`
+(`changes_requested`, blocks: N1), A1 `d09b6bf8` (`security_approved_with_conditions`, blocks: A1-R1, A1-R2), Q0
+`4264f814` (`test_verified` with condition QR1, QR3 to go with it; does not block), R0 `69646f59` (`integration_verified`
+not given; blocks: R-9). None is stop-the-line. Each is cherry-picked with `-x` when the roles re-check the head that
+follows.
+
+One defect held the merge in all four: **C0 N1, A1-R1, Q0 QR1, R0 R-9** -- L's import allowlist and the cross-module rule
+read imports one line at a time, so an import a formatter splits over lines escaped both (L instead of M or H; M instead
+of H), while §4.5 called that part fail-closed. A0 took the code fix every role offered first:
+
+| Finding | What changed |
+|---|---|
+| C0 N1, A1-R1, Q0 QR1, R0 R-9 | **Fixed in code, test and text.** `importSpecs` now joins the lines and reads every string after a `from` or `import` keyword (comments allowed between), so a multi-line import, one with a comment holding a quote between its braces, and `export { x } from` are read. The L import allowlist and the cross-module rule now read the added lines **and the whole file at the head** (`headOf`, which the CLI fills from the head blob), so a binding added inside an existing multi-line import is caught too. Pinned: six multi-line shapes (M in a module, H in `apps/web`), multi-line cross-module imports (H), the head-file cases, and one CLI case end to end (a multi-line import of `apps/web/lib/data.ts` from an `apps/web` component: H). RFC §4.2 items 8 and 10 (b), §4.5 and §9 say so. |
+| A1-R2 | **Fixed in text.** §3.1 decides "not the PR's Author" by `agent_run_id`: the presser's differs from the package's `author_agent_run_id` and from the PR handoff's `agent_run_id`, so `/claude/a0_atlas` never presses an M or L PR of WP-0A-DB-00. |
+| Q0 QR3 | **Fixed in test.** One case each for the five fail-open mutants: a specifier resolving to an L and a non-L file; `react-dom/server`, `react-query`, `react/../x`; a removed `if (process.env.X)` in module logic; a handoff of another package; `process['e' + 'nv']`. |
+| C0 N3, A1-R3, Q0 QR2, QR5, R0 R-12 | **Disclosed, not changed.** Denylist misses; §4.5 now names them as the first allowlist-opening PR's to pin. |
+| Q0 QR4, A1-R4, R0 R-13 | **Owed, not changed.** Appending to a role verdict or one other package's record, and a `VERIFICATION.md` rewrite, stay neutral; with every module path H and no L path in the repository they decide no PR today. For the PR that opens the allowlist. |
+| C0 N2 | **Owed by A0, at the refresh.** The handoff's narrative fields are rewritten in the refresh, last and alone, after the roles' re-check. |
+| C0 N4, R0 R-11, Q0 QR6 (part) | **Corrected here.** §3 above says `18 path(s)`; the head `0eadb203` had 19 (this note is the 19th). This fix adds no path: still 19. |
+| A1-R5, Q0 QR6, R0 R-10 | **Recorded.** The handoff guard compares path sets against `HEAD^`, so it reads green before a refresh; "last and alone" is measured with `git show --stat` as well. |
+| C0 F7, Q0 QR7, R0 R-7 | **State.** CI and every role re-check on the new head. |
+
+Measured on the fix tree (Node `v24.20.0`, worktree on the branch name): the review-tier test passes 1/1; with the
+`0eadb203` classifier and the new test, the test is red (the new cases bite). §4.4 re-measured with the amended
+classifier over the same 29 first-parent merges (`<m>^1 <m>^2`, base `bd019c9c`): `H 24, records 5`, unchanged. The
+integrity manifest was regenerated for the RFC and the classifier; `npm run check` is run by `commit-when-clean` on the
+fix commit.
