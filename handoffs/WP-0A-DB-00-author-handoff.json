@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "ae163ed8bb2473228b6d68dd8e764d55048857db",
-  "head_revision_or_patch_checksum": "454f693564793d2292f1b181b0078e94ee6775b6",
+  "head_revision_or_patch_checksum": "4cbc3087cbd49168c6e4c9425451a877c4021404",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/a0-batch-rfc-025-records-path-closure-2026-10-08.md",
@@ -29,6 +29,7 @@
   "files_modified": [
     "architecture/decisions/RFC-2026-025-owner-delegated-merge.md",
     "db/foundation/lint/audit-coverage-map.json",
+    "evidence/VERIFICATION.md",
     "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/test-suite-contract.mjs",
     "scripts/verify-test-coverage-floor.mjs",
@@ -96,14 +97,29 @@
       "result": "WP-0A-DB-00"
     },
     {
-      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD (this PR, at 454f6935)",
-      "exit_code": 1,
-      "result": "NOT records-only (26 paths): it changes an RFC, scripts, tests and generated files, as it should"
+      "command": "npm run check at 454f6935 with the first refresh in the tree (before the record commit)",
+      "exit_code": 89,
+      "result": "tests 725, pass 725, fail 0; refused only because evidence/VERIFICATION.md was still main's record"
     },
     {
-      "command": "npm run check at 454f6935 with this refresh in the tree (before the record commit)",
-      "exit_code": 89,
-      "result": "tests 725, pass 725, fail 0; refused only because evidence/VERIFICATION.md is still main's record, which the next commit writes"
+      "command": "npm run record:verification; npm run regenerate:manifest (twice)",
+      "exit_code": 0,
+      "result": "recorded 725 passing, 0 skipped, 0 todo; rebuilt 105 digest(s); the only manifest change is evidence/VERIFICATION.md's digest"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (the record commit 4cbc3087)",
+      "exit_code": 0,
+      "result": "clean: exit 0, tests 725, pass 725, fail 0, skipped 0, todo 0"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00 (at 4cbc3087)",
+      "exit_code": 0,
+      "result": "all 27 changed path(s) are declared, and every amendment explains one"
+    },
+    {
+      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD (this PR, at 4cbc3087)",
+      "exit_code": 1,
+      "result": "NOT records-only (27 paths): it changes an RFC, scripts, tests and generated files, as it should"
     }
   ],
   "security_privacy_cost_impact": "No secret, credential, tenant data, provider or database is touched. The classifier reads git objects only, with argument arrays (no shell), literal pathspecs and no network. The test builds a throwaway repository under the OS temp directory with a synthetic author that is not an e-mail address, and removes it. Cost: §6 (approved) replaces four role runs with one reading on records-only PRs and removes carry readings on mechanical syncs. No token or time figure is claimed.",
