@@ -116,6 +116,13 @@ decision above stays Approved and unchanged; this section adds two rules to the 
 It changes CI, so under RFC-2026-025 §5 item 6 its pull request is merged by the Owner
 personally, never by delegation.
 
+Record 2026-10-08 (R0-5 on PR #212; the status above is not changed by it). PR #197, which carried
+this amendment, was merged on 2026-10-06 as `3072e85`. A0 reports that the Owner, told of §5 item 6,
+directed that merge with `คุณทำเลย` (`evidence/WP-0A-CON-005/records-transcription-2026-10-06.md`
+line 41). No written Owner disposition of this amendment's content is on record, so it still reads
+Proposed: the merge is recorded as a merge, not read as an approval. The manifest's
+`required_human_authorities[2]` says the same.
+
 Origin. A0 reported that one CI run takes about 22 minutes, of which the step `Negative
 control - each table family must be detectable on its own` took 12.4 and `Validate repository
 bootstrap` 8.4, and recommended option 1: run the negative control only when the pull request
@@ -297,12 +304,25 @@ request only, in the form PR #211 received one.
 1. It prints `RECORDS-ONLY` only when the classifier exits 0 and its first line begins
    `records-only: `. It prints `NOT RECORDS-ONLY`, with the reason, in every other case: a base
    branch that is not exactly `main` (compared in bash, case-sensitively), an empty or missing base
-   commit, a base holding no readable classifier, a classifier exit 1 (its reasons follow), and any
-   other exit, including 2 for a diff or blob git could not read (fail closed).
+   commit, a base holding no readable classifier, a classifier exit 1 whose first line begins
+   `NOT records-only (` (its reasons follow), and any other outcome, including an exit 2 for a diff
+   or blob git could not read, an exit 0 without the `records-only: ` first line, and an exit 1
+   without the classifier's own first line, such as a crash before its guard (fail closed; the last
+   is R0-1 on PR #212).
 2. The verdict and the classifier's own output go to the job log and to the job summary
    (`GITHUB_STEP_SUMMARY`). The step writes no step output, no environment and no path, has no `id`,
    and no later step reads it. Its only `exit` is `exit 0`. It therefore cannot make a pull request
    pass anything it would otherwise fail, and it cannot fail one.
+   The classifier's reasons name the pull request's paths, and a path name may hold a newline and
+   `::`. The runner reads a workflow command after leading whitespace, so an indent does not stop
+   one, and an `::add-mask::` registered mid-step masks the job summary written in the same step.
+   Every log line of the step is therefore printed between `::stop-commands::<token>` and
+   `::<token>::`, the token being 32 hex digits read from `/dev/urandom` at run time; with no such
+   token, the reason and the output are left out of the log and only the verdict is printed. The
+   job summary escapes `&`, `<` and `>` in the reason and in the output, and carries at most the
+   first 64 KiB of the output with a note that it was cut, so a very large diff cannot push the
+   summary past GitHub's 1 MiB limit; the log keeps all of it (C0 F1 and F3, A1-L1 and A1-L2,
+   Q0 Q2, R0-2 and R0-3 on PR #212).
 3. It runs the **base's** classifier: `git show <base.sha>:scripts/db/classify-records-only.mjs`
    into a scratch directory, then `node <copy> <base.sha> HEAD`. A pull request that edits the
    classifier is judged by the copy on `main`, which refuses the edit (a script is not a record).
@@ -313,7 +333,8 @@ request only, in the form PR #211 received one.
 
 ### B. Tests
 
-Six tests in `test-kits/branch-scope.test.mjs` cut the step body out of `ci.yml` and run it with
+Nine tests in `test-kits/branch-scope.test.mjs` (six from the first increment, three added
+2026-10-08 for the role findings on PR #212) cut the step body out of `ci.yml` and run it with
 `bash -e` against throwaway repositories whose base commit holds a copy of the real classifier:
 
 - the step's shape: one `if:` (pull requests), no `id`, no `continue-on-error`, no write to
@@ -329,7 +350,17 @@ Six tests in `test-kits/branch-scope.test.mjs` cut the step body out of `ci.yml`
   base (no merge base) and a missing blob print `NOT RECORDS-ONLY` and exit 0;
 - a records-only diff into `MAIN`, `Main`, `main2`, `main `, `refs/heads/main`, `release`, an empty
   or an unset base branch prints `NOT RECORDS-ONLY`, the same diff into `main` prints
-  `RECORDS-ONLY`, and with no job summary the log still carries the verdict.
+  `RECORDS-ONLY`, and with no job summary the log still carries the verdict;
+- a path name holding newlines, `::warning` and `::add-mask::` reaches the log only inside one
+  `::stop-commands::` window, read the way the runner reads it; the token is 32 hex digits and
+  differs between runs; the summary heading is intact; with no token the injected lines are left out
+  of the log (C0 F1);
+- a stub classifier in the base: exit 0 without the `records-only: ` first line, exit 0 with it on
+  a later line, and exit 1 without the classifier's first line print `NOT RECORDS-ONLY` as not a
+  classification; exit 1 with it prints the reasons; exit 0 with it prints `RECORDS-ONLY`
+  (C0 F2, Q0 Q1, R0-4, R0-1);
+- a classifier output of 5,000 long lines is cut at 64 KiB in the summary, escaped, and kept whole
+  in the log; a base ref holding `<` and `>` is escaped in the summary (A1-L2, R0-3).
 
 ### C. What this does NOT do
 
@@ -339,10 +370,14 @@ Six tests in `test-kits/branch-scope.test.mjs` cut the step body out of `ci.yml`
 - It does not see a merge of `main` into the branch as a sync: `--sync` (§6.3) is not run in CI.
 - Its verdict is for the commit CI tested, which the checkout assertion pins to the head the run
   reports on. A later commit needs a later run.
+- It does not quote the path names the classifier prints. A path name holding a newline still shows
+  in the log as an extra, indented line that may read like a verdict; it is never a command, never
+  at column 0 and never the step's own verdict line. Quoting is the classifier's, owned by
+  WP-0A-DB-00 (Q0 Q2 on PR #212).
 - A base whose own classifier is wrong prints a wrong verdict. That classifier was reviewed and is
   digested on `main` (RFC-2026-025 §6.6 item 2).
 
 ### D. Rollback
 
-A reviewed revert of the one step and its six tests. Nothing reads the step, so removing it changes
+A reviewed revert of the one step and its nine tests. Nothing reads the step, so removing it changes
 no other step's outcome. No data, provider or credential effect.

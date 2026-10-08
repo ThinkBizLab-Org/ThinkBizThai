@@ -99,6 +99,19 @@ jobs:
       # first line. A base that is not exactly `main` (the light path is for pull requests into main),
       # an empty or missing base commit, a base holding no classifier, a diff or blob git could not
       # read, a classifier error (exit 2) or any other outcome prints NOT RECORDS-ONLY with the reason.
+      # An exit 1 is reported as the classifier's reasons only when its first line says
+      # `NOT records-only (`; any other exit 1 (a crash before the classifier's own guard) is reported
+      # as not a classification (R0-1 on PR #212).
+      #
+      # ITS OUTPUT IS PRINTED INERT. The classifier's reasons name the pull request's paths, and a path
+      # name may hold a newline and `::`. The runner reads a workflow command after leading spaces, so
+      # the indent alone does not stop one, and an `::add-mask::` would mask the summary heading too.
+      # Every log line of this step is therefore printed between `::stop-commands::<token>` and
+      # `::<token>::`, with a 32-hex-digit token drawn from /dev/urandom at run time; with no such
+      # token the reason and the output are left out of the log (C0 F1, A1-L1, Q0 Q2 on PR #212).
+      # The job summary escapes `&`, `<` and `>` in the reason and the output, and carries at most
+      # 64 KiB of the output, so a huge diff cannot push it past GitHub's 1 MiB summary limit; the log
+      # keeps all of it (A1-L2, C0 F3, R0-3 on PR #212).
       #
       # IT RUNS THE BASE'S CLASSIFIER, not the pull request's. The script is read out of the base
       # commit with `git show`, so a pull request that edits the classifier is judged by the one on
@@ -111,21 +124,34 @@ jobs:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
+          esc() { awk '{ gsub(/&/, "\\&amp;"); gsub(/</, "\\&lt;"); gsub(/>/, "\\&gt;"); print }'; }
           report() {
-            echo "records-only classifier: $1 -- $2"
-            if [ -n "${3:-}" ] && [ -s "$3" ]; then sed 's/^/  /' "$3"; fi
+            token="$(od -An -N16 -tx1 /dev/urandom 2>/dev/null | tr -d ' \n' || true)"
+            if ! printf '%s\n' "${token}" | grep -Eq '^[0-9a-f]{32}$'; then token=""; fi
+            if [ -n "${token}" ]; then
+              echo "::stop-commands::${token}"
+              echo "records-only classifier: $1 -- $2"
+              if [ -n "${3:-}" ] && [ -s "$3" ]; then sed 's/^/  /' "$3"; fi
+              echo "::${token}::"
+            else
+              echo "records-only classifier: $1 -- no random token to print the reason inert, so it is left out of this log; the job summary carries it"
+            fi
             if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
               {
                 echo "### Records-only classification (RFC-2026-025 §6.1): $1"
                 echo ""
-                echo "$2"
+                printf '%s\n' "$2" | esc
                 echo ""
                 echo "Informational: this classification gates nothing. The light path still needs its one independent reading (§6.2)."
                 if [ -n "${3:-}" ] && [ -s "$3" ]; then
                   echo ""
                   echo "<pre>"
-                  sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' "$3"
+                  head -c 65536 "$3" | esc
                   echo "</pre>"
+                  if [ "$(wc -c < "$3")" -gt 65536 ]; then
+                    echo ""
+                    echo "The classifier output is cut at 64 KiB here (GitHub drops a job summary over 1 MiB); the log holds all of it."
+                  fi
                 fi
               } >> "${GITHUB_STEP_SUMMARY}" 2>/dev/null || echo "records-only classifier: the job summary could not be written; the log above is the record"
             fi
@@ -147,10 +173,11 @@ jobs:
           node "${work}/classify-records-only.mjs" "${BASE_SHA}" HEAD > "${work}/out" 2>&1
           code=$?
           set -e
-          if [ "${code}" -eq 0 ] && head -n 1 "${work}/out" | grep -q '^records-only: '; then
+          first="$(head -n 1 "${work}/out" 2>/dev/null || true)"
+          if [ "${code}" -eq 0 ] && [ "${first#records-only: }" != "${first}" ]; then
             report "RECORDS-ONLY" "the base's classifier exited 0 on ${BASE_SHA}..HEAD; every status move it prints is for the reader to check against its role verdict" "${work}/out"
           fi
-          if [ "${code}" -eq 1 ]; then
+          if [ "${code}" -eq 1 ] && [ "${first#NOT records-only (}" != "${first}" ]; then
             report "NOT RECORDS-ONLY" "the base's classifier exited 1 on ${BASE_SHA}..HEAD; its reasons follow" "${work}/out"
           fi
           report "NOT RECORDS-ONLY" "the base's classifier exited ${code} on ${BASE_SHA}..HEAD, which is not a classification (fail closed)" "${work}/out"
