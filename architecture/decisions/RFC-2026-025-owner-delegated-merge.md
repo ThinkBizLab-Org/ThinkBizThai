@@ -5,7 +5,7 @@ Date: 2026-09-28
 Author: `/claude/a0_atlas` (A0 Integration / DB-00)
 Amends: `RFC-2026-002` (temporary manual merge control), clause "the Product Owner may perform the final manual merge"
 Origin: the one-page decision summary of 2026-09-28, item 4. The records this RFC reconciles are cited in §1.
-Amendment §6: **Proposed 2026-10-07, not approved.** The Owner replied `ข้อ 4 mw` to A0's recommendation (4); A0 reads that as a go-ahead to propose §6, and the reading is A0's. §1–§5 above are unchanged and stay approved. §6 takes effect only if the Owner approves it. It is a governance change, so under §5 item 6 the Owner merges it personally.
+Amendment §6: **Approved 2026-10-08 by the Product Owner** (proposed 2026-10-07), as the §6 status line records (`evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-025-s6-answers.md`). The Owner replied `ข้อ 4 mw` to A0's recommendation (4); A0 read that as a go-ahead to propose §6, and the reading was A0's. §1–§5 above are unchanged and stay approved. §6 is a governance change, so under §5 item 6 the Owner merges it personally; for PR #211 only, the Owner directed A0 to press the merge (`ให้ A0 กดเอง (Recommended)`), an exception the §6 status line records, and §6.4 and §6.7 keep the rule as written.
 
 ---
 
@@ -121,7 +121,8 @@ record-only.**
 nothing in this section applied and §5 governed: under §5 its item 5 check did not exist, so no PR was treated
 as record-only. The three text edits made after the answer (R0's R2-1 and R2-2, A1-7 with C0's N1) are listed
 in that disposition. A fourth, made after the role re-checks of 2026-10-08, restates §6.6 item 2 as done (R0's R3-2);
-it narrows nothing the Owner decided. PR #211, which carries this section, was pressed by A0 on the Owner's direction
+it narrows nothing the Owner decided. A fifth corrects the header line `Amendment §6:` above to match this status line
+(Q0's Q13): status-line consistency only, no rule change. PR #211, which carries this section, was pressed by A0 on the Owner's direction
 of 2026-10-08 (`ให้ A0 กดเอง (Recommended)`, same disposition §2). That is an exception to §5 item 6 for PR #211
 only; §6.4 and §6.7 below keep the rule as written.
 

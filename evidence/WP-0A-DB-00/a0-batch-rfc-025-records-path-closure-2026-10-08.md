@@ -163,3 +163,24 @@ being "the handoff for this branch describes this branch" and the handoff ratche
 `regenerate:manifest` twice, `cmp` 0 (105 digests); `verify-branch-identity` prints `WP-0A-DB-00`. So `npm run
 check` is **not** green on this head, by the handoff guards only, as the task expected. `commit-when-clean`
 refuses for that reason, and the commit is made with plain `git commit` after these checks, as in §3.
+
+## 7. Fourth round: the re-checks at `da6b4585` and the finish order (appended 2026-10-08)
+
+Author run `/claude/a0_atlas` (A0), through a subagent of A0's workflow script, under
+`เอาตามที่คุณแนะนำทุกอย่าง`. A0 executes; it decides nothing. A0 presses this merge on the Owner's direction
+(`ให้ A0 กดเอง (Recommended)`, disposition §2); it is not an Owner-pressed merge.
+
+**Role re-checks at `da6b4585`**, cherry-picked with `-x`: C0 `ea9f8926` (`review_approved`; F10, F12 Minor,
+F13 Info), A1 `f11b51a8` (`security_approved_with_conditions`; A1-14, A1-15 Info), Q0 `ea1ecd26`
+(`test_verified` for `da6b4585`; Q12 merge condition, Q13 to C0/R0), R0 `85327c60` (`integration_verified` not
+given at `da6b4585`; R4-1 order, R4-2 advisory). Files: `evidence/WP-0A-DB-00/{c0,a1,q0,r0}-recheck-2026-10-06.md`.
+
+| Condition, as the role worded it | What A0 did |
+|---|---|
+| C0 F10 / R0 R3-4: the merge-presser question verbatim | **Done** in the disposition §6 item 5: A0's 2026-10-06 statement of §5 item 6 to the Owner, the Owner's `คุณทำเลย`, and the 2026-10-08 multiple-choice question with both options and the Owner's choice, copied as A0 relayed them. |
+| Q0 Q13: RFC-2026-025 line 8 still calls §6 proposed and the Owner the presser | **Done.** Line 8 now says Approved 2026-10-08, keeps the §5 item 6 rule and names the A0-press exception for PR #211 only; the §6 status line lists it as the fifth post-answer edit (status-line consistency only, no rule change); disposition §6 item 6 records it. §1–§5 unchanged. |
+| R0 R4-1 / C0 F12 / Q0 Q12 / A1-15: `record:verification` cannot come after the last refresh; the fix commit message and §6 above say "owed after the refresh" | **Corrected here** (§6's row "Q0 Q11, R0 order" and `da6b4585`'s message stay as written). The finish order, as C0 F12 measured green and the task sets it: (1) `npm run refresh:handoff`, committed last and alone among substantive commits; (2) `npm run record:verification`, then `npm run regenerate:manifest` (`cmp` 0), committed together — both paths are `WRITTEN_AFTERWARDS`, so `check:handoff` stays 0; (3) `npm run check` 0, `verify-branch-scope origin/main WP-0A-DB-00` 0; push without force; `bootstrap` green on that exact head; `gh pr ready`. R0's measured variant adds a second refresh after (2); either satisfies the guard. |
+| Q0's verdict: this role file carried before the refresh | **Done** (all four role files cherry-picked before this commit). |
+| R0 §4, A1 §6.5 item 1: the head's diff from `da6b4585` limited to the handoff and the generated record | **Not met by this commit, by direction.** This records commit (RFC line 8 and status line, disposition §6 items 5–6, this section) is what C0 F10 and Q0 Q13 asked for, so R0 and A1 re-read it; R0's acknowledgements of §4 are voided by its own terms until R0 re-reads. |
+| R0 §5 wording, C0 and Q0 wordings for `open_blockers[203]` | **Owed after the merge**, with the merged head, merge sha and CI run measured then (R0 §5). `WP-0A-DB-00.json` is not touched in this commit. |
+| C0 F13, R0 R4-2: "§6 proposed" comments in `scripts/test-suite-contract.mjs` | No change, as both asked. |

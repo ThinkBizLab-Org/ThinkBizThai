@@ -108,3 +108,29 @@ Appended by `/claude/a0_atlas` (A0), through a subagent of A0's workflow script,
    The Owner did not read these words word by word; all four roles re-read them before the merge.
 4. **§5, second bullet.** §6.6 item 2 (the classifier digested) is no longer owed: it is done on this branch.
    Items 3 and 4 stay owed by the owners §6.6 names.
+
+The items below were appended after the role re-checks at `da6b4585`
+(`evidence/WP-0A-DB-00/{c0,a1,q0,r0}-recheck-2026-10-06.md`, C0 `ea9f8926`, A1 `f11b51a8`, Q0 `ea1ecd26`,
+R0 `85327c60`), by the same scribe under the same standing words. Items 1–4 above are unchanged.
+
+5. **§2, the question behind `ให้ A0 กดเอง (Recommended)`, verbatim (C0 F10, R0 R3-4).** This closes the gap
+   item 2 recorded as owed. The text below is the chat text as A0 relayed it from its own session to this run;
+   the scribe copies it and adds nothing.
+   - On 2026-10-06, A0 told the Owner: `R0 และตัวที่ทำงานแทนผมชี้ว่า RFC-2026-025 §5 ข้อ 6 กำหนดว่า governance PR (PR ที่แก้ RFC, CI หรือ gate) Owner ต้องกด merge เอง และมอบให้คนอื่นกดแทนไม่ได้ ถึงคุณจะสั่งชัดก็ตาม`,
+     offered the merge commands, and the Owner replied `คุณทำเลย`
+     (the answer already transcribed in `evidence/WP-0A-CON-005/records-transcription-2026-10-06.md`).
+   - On 2026-10-08, A0 asked (multiple choice):
+     `Governance PR ที่พร้อม merge (#204 E4 guard และ #211 เมื่อพร้อม) — ให้ผมกด merge เองตามที่คุณสั่งเมื่อคืนต่อไหม หรือคุณจะกดเอง?`
+     with the options `ให้ A0 กดเอง (Recommended)` / `ผมกดเอง`, and the Owner chose
+     `ให้ A0 กดเอง (Recommended)`.
+
+   So the Owner was told the §5 item 6 rule, in those words, before answering. **Who presses PR #211:** A0
+   presses it, on the Owner's direction. It is not recorded as a merge the Owner pressed; the §6 status line of
+   RFC-2026-025 and R0's wording (`r0-recheck-2026-10-06.md` §5) stand as written. The narrow reading of §2
+   (PR #211 only; for later governance PRs A0 states the rule and asks each time) is unchanged.
+6. **A fifth text edit after the answer (Q0 Q13).** The RFC's header line `Amendment §6:` (line 8, added by this
+   PR, not part of the text approved at `5856f0b`) still said "Proposed 2026-10-07, not approved" and "the Owner
+   merges it personally". It now says Approved 2026-10-08, cites this file, keeps the §5 item 6 rule and names
+   the A0-press exception for PR #211 only, matching the §6 status line, which lists it as the fifth
+   post-answer edit. Status-line consistency only: no rule changes, and §1–§5 (from `## 1.` to `## 6.`) are
+   unchanged. The Owner did not read these words word by word; the roles re-read them before the merge.

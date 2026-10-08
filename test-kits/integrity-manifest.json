@@ -33,7 +33,7 @@
     "architecture/decisions/RFC-2026-022-service-policy-shape.md": "b37643b2edd1ac869f00ed108992d57e4593d9d34a2f3bbc62e6445cc71e7d83",
     "architecture/decisions/RFC-2026-023-acting-user-narrowing.md": "683feba2fe9702db9f1d50b4822441de6bd0a653bb3bf1165a383b792951c17a",
     "architecture/decisions/RFC-2026-024-cross-vendor-condition-withdrawn.md": "7b64864cab111a5ddbf6d9c34b4cb71c6241a6e2a6ecb39054455979ac5cb0f6",
-    "architecture/decisions/RFC-2026-025-owner-delegated-merge.md": "0b8ae79166fad597758a5a179976bebc07e04fd4897871d1d635391d8bbfdfb2",
+    "architecture/decisions/RFC-2026-025-owner-delegated-merge.md": "e986d2e77b096f6a48cf56b26029d5bff5493c9aedda1e3742dcd0ed522885f4",
     "architecture/decisions/RFC-2026-026-audit-row-producer.md": "7c60977df514335d4f8b32a506daa744118e4eb2c8e65ef296722489bf206ab3",
     "architecture/decisions/RFC-2026-027-lifecycle-visibility.md": "86c48089aef99689a94c10abd54328060096a1f36b118d7db92be3a4f2da4dc2",
     "architecture/decisions/RFC-2026-028-worker-identity.md": "f65921eddc0ec6531b76872bca226a6a1be5912dc6d5e090467421e10cff6f75",
