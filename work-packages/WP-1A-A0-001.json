@@ -1,0 +1,197 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-1A-A0-001",
+  "title": "RFC-2026-029 — the application tier's stack, dependency allowlist, lockfile policy and repository layout",
+  "gate": "G1",
+  "priority": "P0",
+  "status": "in_review",
+  "required_skill_profiles": {
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy"
+    ]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
+    "tester_agent_run_id": "/claude/q0_sentinel",
+    "integration_owner_agent_run_id": "/claude/r0_steward",
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
+    "product_reviewer_agent_run_id": null,
+    "product_reviewer_note": "Null because no product step is gated here, not because one was waived: the package is a decision record (one RFC, this manifest, one evidence note) with no UX surface, and review_and_test_gates carries no product step. The product choices it writes down (D1-D6, D9, D11, D12) were made by the Product Owner on 2026-10-08 (evidence/WP-1A-A0-001/product-owner-decision-2026-10-08-g1-plan.md), and the Owner's personal merge of this governance PR is the RFC's approval (RFC-2026-025 §5 item 6). A reviewer who reads the Thai typeface or UI library choice as needing an A5 product reading should say so; the slot then needs a run, not a note."
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": false,
+    "cross_vendor_exception": "Every assigned run is Anthropic claude-opus. RFC-2026-024 (approved 2026-09-15) withdrew the cross-vendor condition for WP-0A-DB-00, and the Owner's step 2 item 1 of 2026-10-05 extended it to fifteen G0 packages by A0's mapping (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §1.2, §3 row 1). This G1 package is not among those fifteen. Applying the same withdrawal to it is A0's reading of the Owner's standing delegation (`เอาตามที่คุณแนะนำทุกอย่าง`), not a recorded disposition; a reviewer who reads it otherwise should say so. What remains is all of CONTRIBUTING_AGENTS.md § Separation of duties: four distinct agent_run_ids in the four roles plus the conditional Security reviewer, no run approves its own work, and every role file opens with RFC-2026-024 §3/4's disclosure that it is a subagent of the Author's run."
+  },
+  "accountable_owners": [
+    "A0"
+  ],
+  "required_human_authorities": [
+    "Product Owner merges this governance PR personally (RFC-2026-025 §5 item 6); that merge is the approval of RFC-2026-029, and no delegation covers it.",
+    "A1 security review of RFC-2026-029 §2.7 (request path, worker credential, service-role exclusion) and §3-§4 (dependency supply chain)."
+  ],
+  "purpose": "G1's first code package cannot install its first dependency: RFC-2026-001 and CONTRIBUTING_AGENTS.md withhold every dependency until an approved RFC names it, the register's OPEN-018 forbids a lockfile until the application stack is announced, and RFC-2026-011 left the application tier's language to be decided with the stack at G1. On 2026-10-08 the Owner accepted A0's G1/G2 plan recommendations (D1-D6, D9, D11, D12). This package writes them down as RFC-2026-029: the language and its checking, the framework, hosting, environments, sign-in, the data path, jobs, status updates and error tracking, plus the exact dependency allowlist, the policy for adding a dependency, the lockfile and install policy, the repository layout, and the rule for what stays a spike until its contracts are Frozen v1.",
+  "scope": {
+    "include": [
+      "RFC-2026-029, In review, as a governance PR the Owner merges personally",
+      "The record of the Owner's words of 2026-10-08 and of which plan items this RFC relies on",
+      "Registering the new decision record where the repository's ratchets require it (DECISION_RECORDS, DIGESTED_FLOOR, the integrity manifest) and pinning this package's branch"
+    ],
+    "exclude": [
+      "Installing any package, writing any lockfile entry, adding .npmrc, tsconfig or lint configuration. That is WP-1A-A0-002, after this RFC is merged.",
+      "Creating apps/, src/ or spikes/. No application code.",
+      "Any CI change. RFC-2026-029 §4.6 and §8 name CI steps for WP-1A-A0-002 to add.",
+      "Provisioning Supabase or Vercel, or any credential. That is WP-1A-A6-001 after the G0 exit record.",
+      "Editing the Decision Register to close OPEN-018, or WP-0A-DB-00's required_human_authorities text. Those documents belong to WP-0A-A0-010 and WP-0A-DB-00.",
+      "Approving RFC-2026-029. That is the Owner's merge."
+    ]
+  },
+  "decisions_consumed": [
+    "OPEN-018",
+    "DEC-021",
+    "DEC-022",
+    "DATA-DEC-02",
+    "DATA-DEC-03"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced": [],
+  "dependencies": {
+    "required_work_packages": [],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "branch": "agent/claude/WP-1A-A0-001-stack-rfc",
+    "writable_paths": [
+      "architecture/decisions/RFC-2026-029-application-tier-stack.md",
+      "evidence/WP-1A-A0-001/**",
+      "handoffs/WP-1A-A0-001-*.json",
+      "work-packages/WP-1A-A0-001.json"
+    ],
+    "read_only_paths": [
+      "README.md",
+      "docs/**",
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "contract-catalog/**",
+      "package.json",
+      "package-lock.json",
+      ".github/**"
+    ],
+    "forbidden_paths": [
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx",
+      ".npmrc",
+      "apps/**",
+      "src/**",
+      "spikes/**",
+      "supabase/**",
+      "db/**",
+      "migrations/**"
+    ],
+    "amends_without_owning": {
+      "paths": [
+        "test-kits/repository-json.test.mjs",
+        "scripts/verify-test-coverage-floor.mjs",
+        "test-kits/branch-identity.test.mjs",
+        "test-kits/integrity-manifest.json"
+      ],
+      "rationale": "A new decision record cannot land without these four, and each change is one line of registration, as RFC-2026-018 (8701555f) and RFC-2026-028 (1da0b1c3) did. test-kits/repository-json.test.mjs: RFC-2026-029-application-tier-stack.md appended to DECISION_RECORDS, which names every file under architecture/decisions so an undeclared RFC fails. scripts/verify-test-coverage-floor.mjs: the RFC appended to DIGESTED_FLOOR, so its digest cannot be dropped from the manifest. test-kits/branch-identity.test.mjs: this package's branch added to BRANCH_OWNERSHIP, which pins the whole branch-to-package mapping. test-kits/integrity-manifest.json: regenerated by npm run regenerate:manifest for the new digest and the three changed files. No rule, threshold or assertion changes in any of them. evidence/VERIFICATION.md is not amended: the change adds no test, so the recorded counts are unchanged."
+    }
+  },
+  "inputs": {
+    "files": [
+      "CONTRIBUTING_AGENTS.md",
+      "architecture/decisions/RFC-2026-001-bootstrap-tooling-contract.md",
+      "architecture/decisions/RFC-2026-011-repository-language.md",
+      "architecture/decisions/RFC-2026-012-client-database-boundary.md",
+      "architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md",
+      "architecture/decisions/RFC-2026-017-service-path-identity.md",
+      "architecture/decisions/RFC-2026-019-service-path-connection-corrected.md",
+      "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
+      "architecture/decisions/RFC-2026-025-owner-delegated-merge.md",
+      "architecture/decisions/RFC-2026-028-worker-identity.md",
+      "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
+      "docs/plans/technical-architecture-meta-content-os-th.md",
+      "contract-catalog/shared-kernel/index.json",
+      "db/foundation/migrations/050_async_kernel.sql",
+      ".github/workflows/ci.yml",
+      "package.json",
+      "package-lock.json",
+      "scripts/verify-test-coverage-floor.mjs"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [
+      "architecture/decisions/RFC-2026-029-application-tier-stack.md",
+      "evidence/WP-1A-A0-001/product-owner-decision-2026-10-08-g1-plan.md",
+      "work-packages/WP-1A-A0-001.json"
+    ],
+    "contracts": []
+  },
+  "acceptance_criteria": [
+    "The RFC states the application tier's language and that a type error fails CI through tsc --noEmit, with the compiler flags named, and keeps the tooling tier JavaScript ESM on the standard library with npm run check dependency-free (RFC-2026-011).",
+    "It names every allowed direct dependency exactly, split into runtime and development, with the decision each serves and where it may be imported, and names the refused alternatives.",
+    "It states the policy for adding a dependency so that no direct dependency arrives without an approved RFC (RFC-2026-001, CONTRIBUTING_AGENTS.md), and separates version changes of an allowlisted name from new dependencies.",
+    "It states the lockfile and install policy: one npm 11.19.0 lockfile, exact versions, registry-only resolution with integrity, npm ci --ignore-scripts, and how a lockfile change is reviewed; and it does not contradict the existing exit-90 guard on .npmrc.",
+    "It keeps Node 24.20.0 and npm 11.19.0 exactly as pinned.",
+    "It refuses the service-role key on the request and worker paths, puts the request path on the user's JWT with command functions, and the worker on RFC-2026-028's login role.",
+    "It fixes the layout: apps/web, src/modules/<key> per the register's MOD registry keys, db/foundation/migrations as the single migration source with no supabase/migrations.",
+    "It states what stays a spike until its contracts are Frozen v1, citing the register's rule at sprint-0a-decision-register-contract-catalog-th.md:190, package by package.",
+    "It names what a build must check once code exists, and says that until then the RFC is held by review alone.",
+    "It installs nothing and changes no CI, configuration, lockfile, migration or application path.",
+    "npm run check stays green."
+  ],
+  "required_tests": [
+    "npm run check"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": [
+      "npm run check"
+    ],
+    "package_evidence": [
+      "node scripts/validate-work-packages.mjs",
+      "node scripts/validate-work-package-ownership.mjs",
+      "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-001"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. Before WP-1A-A0-002 lands, the revert removes RFC-2026-029, this manifest, its evidence note and four registration lines, and changes nothing that runs. After WP-1A-A0-002 lands, its installation is reverted first or in the same revert.",
+  "open_blockers": [
+    "NOT APPROVED UNTIL THE OWNER MERGES IT. RFC-2026-029 is a governance change; under RFC-2026-025 §5 item 6 the Owner merges it personally. The A0 run opens the PR as a Draft and does not merge it.",
+    "NO ROLE VERDICT EXISTS FOR THIS PACKAGE. review_approved (/claude/c0_contract_reviewer), security_approved (/claude/a1_bastion), test_verified (/claude/q0_sentinel) and integration_verified (/claude/r0_steward) are each owed as a first verdict. The Author moves the package to in_review and no further.",
+    "THE PLAN'S PREDECESSOR DOES NOT EXIST YET. A0's G1/G2 plan places WP-0A-A0-010 (the G0 exit record, D0) before this package; no such manifest is on main at bd019c9c. Writing an RFC binds no provider, so this package proceeds under CONTRIBUTING_AGENTS.md § Current gate constraint; RFC-2026-029 §7 makes provisioning wait for that record.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending, and no shared-kernel contract is Frozen v1 (contract-catalog/shared-kernel/index.json: 9 Candidate, 5 Draft), so every contract-implementing G1 package stays a spike under RFC-2026-029 §7."
+  ],
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "test_verified",
+    "integration_verified"
+  ]
+}
