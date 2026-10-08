@@ -37,7 +37,7 @@
     "architecture/decisions/RFC-2026-026-audit-row-producer.md": "7c60977df514335d4f8b32a506daa744118e4eb2c8e65ef296722489bf206ab3",
     "architecture/decisions/RFC-2026-027-lifecycle-visibility.md": "86c48089aef99689a94c10abd54328060096a1f36b118d7db92be3a4f2da4dc2",
     "architecture/decisions/RFC-2026-028-worker-identity.md": "f65921eddc0ec6531b76872bca226a6a1be5912dc6d5e090467421e10cff6f75",
-    "architecture/decisions/RFC-2026-029-application-tier-stack.md": "23035f6672b36d83962762f7cae5712a300dbb8a9787d0ed1955e4860b6379b9",
+    "architecture/decisions/RFC-2026-029-application-tier-stack.md": "b8e4a9b7c83e03f44cd5d11f3727237b10a1501f202bd7c4a993ffac9eb271ee",
     "contract-catalog/README.md": "5bc361546dbaf3bdb9402eeb1c170214a1248bf7d79711d97771a988dfd852f1",
     "contract-catalog/shared-kernel/index.json": "a8c5173cb87e0f3efdd32a25fd57bfb90690defc1fe2def565e4bc175428df3d",
     "db/foundation/test-helpers/rls-assertions.mjs": "aaaa551d011f22491f743b7946cfa94713f1f0142b0a08a164d61228ee00c7bf",

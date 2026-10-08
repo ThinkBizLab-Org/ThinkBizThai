@@ -27,7 +27,7 @@ tonight as before, don't ask me, work through the night"). Neither changes who m
 | Plan item | Recommendation (A0's summary of the plan's §1.3) | Where RFC-2026-029 states it |
 |---|---|---|
 | D1 | Next.js App Router + TypeScript `strict`, checked by `tsc --noEmit` in CI; RFC-2026-029 with a dependency allowlist, a lockfile policy and `npm ci --ignore-scripts` | §2.1, §2.2, §3, §4 |
-| D2 | Vercel, region `sin1`; no Preview connects to the production database | §2.4 (tightened to every environment's database) |
+| D2 | Vercel Pro, region `sin1`; no Preview connects to the production database; function duration measured before D6 is relied on (marked as A0's inference in the plan; the mark follows the Preview clause and is read as covering the row) | §2.4 (tightened to every environment's database) |
 | D3 | Supabase `staging` and `prod`, both `ap-southeast-1`; Preview on the Postgres container and fakes; no branching in G1 (marked as A0's inference in the plan) | §2.5 |
 | D4 | Email OTP first; Google is P1; no LINE Login | §2.6 |
 | D5 | the service-role key is refused; the request path uses supabase-js with the user's JWT and command functions; the worker uses RFC-2026-028's login role through a direct or session-mode connection until Q-028-12 | §2.7 |
@@ -54,3 +54,20 @@ names each one, so that its silence is not read as a decision.
    on `main` at `bd019c9c`. This package goes ahead because writing an RFC binds no provider and installs
    nothing, so it is within CONTRIBUTING_AGENTS.md § Current gate constraint. The plan's ordering is kept
    where it matters: RFC-2026-029 §7 makes provisioning wait for the G0 exit record.
+
+## 4. Corrections in the review round, 2026-10-08
+
+Made by the A0 run in answer to the first role verdicts at `7d2c430c`; recorded in
+`evidence/WP-1A-A0-001/a0-closure-2026-10-08.md`.
+
+1. The D2 row above now carries the plan's **[อนุมาน]** mark and the plan's "Pro" tier, which the first
+   version of this table left out although §2 of RFC-2026-029 promised to carry every such mark (C0 F5,
+   Q0 Q4, R0 R7). The plan places the mark after D2's Preview clause; whether it covers the whole row or
+   that clause alone is ambiguous in the plan itself, and the wider reading is the one recorded.
+2. RFC-2026-029 §2.7/3 now puts the dispatcher and the worker credential in a separate deployment,
+   `apps/worker`. The plan's D6 and §3 rows do not say which deployment holds the dispatcher, so this is
+   A0's addition in review, answering A1 F1 against the approved condition of `RFC-2026-028` §3.3/2; it is
+   marked as such in the RFC, and the Owner's merge is what approves it.
+3. RFC-2026-029 §7 now waits for `WP-0A-A0-010` for every package it lists, which is the order the plan's
+   §3 table gives (`WP-1A-A0-001` depends on "D1, A0-010"); §3 item 4 above, which kept the plan's order
+   for provisioning only, is superseded by that (R0 R3).

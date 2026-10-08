@@ -37,7 +37,7 @@
     "require_distinct_author_reviewer": true,
     "require_distinct_author_tester": true,
     "prefer_cross_vendor_review": false,
-    "cross_vendor_exception": "Every assigned run is Anthropic claude-opus. RFC-2026-024 (approved 2026-09-15) withdrew the cross-vendor condition for WP-0A-DB-00, and the Owner's step 2 item 1 of 2026-10-05 extended it to fifteen G0 packages by A0's mapping (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §1.2, §3 row 1). This G1 package is not among those fifteen. Applying the same withdrawal to it is A0's reading of the Owner's standing delegation (`เอาตามที่คุณแนะนำทุกอย่าง`), not a recorded disposition; a reviewer who reads it otherwise should say so. What remains is all of CONTRIBUTING_AGENTS.md § Separation of duties: four distinct agent_run_ids in the four roles plus the conditional Security reviewer, no run approves its own work, and every role file opens with RFC-2026-024 §3/4's disclosure that it is a subagent of the Author's run."
+    "cross_vendor_exception": "Every assigned run is Anthropic claude-opus. This G1 package is not among the fifteen G0 packages to which the Owner's step 2 item 1 of 2026-10-05 extended RFC-2026-024's withdrawal (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §1.2, §3 row 1), and the exception taken here does not rest on A0's reading of the standing delegation. It rests on the register's own fallback, docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md:527: when no cross-vendor capacity exists, use an independent agent per run and record the exception (the clause RFC-2026-024 cites under Depends on; C0 F11, R0 R6). No cross-vendor run is available to this package, and this field is that record. What remains is all of CONTRIBUTING_AGENTS.md § Separation of duties: four distinct agent_run_ids in the four roles plus the conditional Security reviewer, no run approves its own work, and every role file opens with RFC-2026-024 §3/4's disclosure that it is a subagent of the Author's run. The PR description is to tell the Owner that this exception is taken."
   },
   "accountable_owners": [
     "A0"
@@ -55,10 +55,10 @@
     ],
     "exclude": [
       "Installing any package, writing any lockfile entry, adding .npmrc, tsconfig or lint configuration. That is WP-1A-A0-002, after this RFC is merged.",
-      "Creating apps/, src/ or spikes/. No application code.",
+      "Creating apps/ (apps/web or apps/worker), src/ or spikes/. No application code.",
       "Any CI change. RFC-2026-029 §4.6 and §8 name CI steps for WP-1A-A0-002 to add.",
       "Provisioning Supabase or Vercel, or any credential. That is WP-1A-A6-001 after the G0 exit record.",
-      "Editing the Decision Register to close OPEN-018, or WP-0A-DB-00's required_human_authorities text. Those documents belong to WP-0A-A0-010 and WP-0A-DB-00.",
+      "Editing the Decision Register to close OPEN-018, or WP-0A-DB-00's required_human_authorities text. The latter is WP-0A-DB-00's record. The register edit is owed once RFC-2026-029 is merged, and no package can make it today: at bd019c9c no manifest lists a docs/ path among its writable_paths, and WP-0A-A0-010 as proposed in PR #214 holds docs/** read-only (C0 F4; RFC-2026-029 §11).",
       "Approving RFC-2026-029. That is the Owner's merge."
     ]
   },
@@ -155,8 +155,8 @@
     "It states the lockfile and install policy: one npm 11.19.0 lockfile, exact versions, registry-only resolution with integrity, npm ci --ignore-scripts, and how a lockfile change is reviewed; and it does not contradict the existing exit-90 guard on .npmrc.",
     "It keeps Node 24.20.0 and npm 11.19.0 exactly as pinned.",
     "It refuses the service-role key on the request and worker paths, puts the request path on the user's JWT with command functions, and the worker on RFC-2026-028's login role.",
-    "It fixes the layout: apps/web, src/modules/<key> per the register's MOD registry keys, db/foundation/migrations as the single migration source with no supabase/migrations.",
-    "It states what stays a spike until its contracts are Frozen v1, citing the register's rule at sprint-0a-decision-register-contract-catalog-th.md:190, package by package.",
+    "It fixes the layout: apps/web, a separate apps/worker deployment holding the worker credential and the dispatcher (RFC-2026-028 §3.3/2), src/modules/<key> per the register's MOD registry keys, db/foundation/migrations as the single migration source with no supabase/migrations.",
+    "It states what stays a spike, rung by rung of the register's freeze levels (sprint-0a-decision-register-contract-catalog-th.md:186-191), lowering none of them, package by package.",
     "It names what a build must check once code exists, and says that until then the RFC is held by review alone.",
     "It installs nothing and changes no CI, configuration, lockfile, migration or application path.",
     "npm run check stays green."
@@ -172,6 +172,7 @@
     "package_evidence": [
       "node scripts/validate-work-packages.mjs",
       "node scripts/validate-work-package-ownership.mjs",
+      "node scripts/validate-work-package-role-separation.mjs work-packages/WP-1A-A0-001.json",
       "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-001"
     ]
   },
@@ -183,9 +184,9 @@
   "rollback_or_forward_fix": "Revert through a reviewed revert PR. Before WP-1A-A0-002 lands, the revert removes RFC-2026-029, this manifest, its evidence note and four registration lines, and changes nothing that runs. After WP-1A-A0-002 lands, its installation is reverted first or in the same revert.",
   "open_blockers": [
     "NOT APPROVED UNTIL THE OWNER MERGES IT. RFC-2026-029 is a governance change; under RFC-2026-025 §5 item 6 the Owner merges it personally. The A0 run opens the PR as a Draft and does not merge it.",
-    "NO ROLE VERDICT EXISTS FOR THIS PACKAGE. review_approved (/claude/c0_contract_reviewer), security_approved (/claude/a1_bastion), test_verified (/claude/q0_sentinel) and integration_verified (/claude/r0_steward) are each owed as a first verdict. The Author moves the package to in_review and no further.",
-    "THE PLAN'S PREDECESSOR DOES NOT EXIST YET. A0's G1/G2 plan places WP-0A-A0-010 (the G0 exit record, D0) before this package; no such manifest is on main at bd019c9c. Writing an RFC binds no provider, so this package proceeds under CONTRIBUTING_AGENTS.md § Current gate constraint; RFC-2026-029 §7 makes provisioning wait for that record.",
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending, and no shared-kernel contract is Frozen v1 (contract-catalog/shared-kernel/index.json: 9 Candidate, 5 Draft), so every contract-implementing G1 package stays a spike under RFC-2026-029 §7."
+    "FIRST VERDICTS GIVEN AT 7d2c430c; RE-CHECKS OWED. C0 changes_requested (F1 Major), A1 security_approved WITHHELD (F1 HIGH, F2 MEDIUM), Q0 test_verified_with_conditions, R0 not integration_verified (R1-R3) (evidence/WP-1A-A0-001/{c0,a1,q0,r0}-review-2026-10-07.md). The review-round revision answers every finding as recorded in evidence/WP-1A-A0-001/a0-closure-2026-10-08.md; C0, A1, Q0 and R0 each re-check the revised head. The Author moves the package to in_review and no further.",
+    "THE PLAN'S PREDECESSOR IS NOT ON MAIN. A0's G1/G2 plan places WP-0A-A0-010 (the G0 exit record, D0) before this package; at bd019c9c it is not on main (it is proposed in PR #214). Writing an RFC binds no provider and installs nothing, so this package proceeds under CONTRIBUTING_AGENTS.md § Current gate constraint; RFC-2026-029 §7 makes every package it lists, the skeleton included, and all provisioning wait for that record to be merged (R0 R3). Once #214 merges, this sentence is stale and is updated at the next handoff refresh (C0 F9).",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending, and no shared-kernel contract is Frozen v1 (contract-catalog/shared-kernel/index.json: 9 Candidate, 5 Draft), so every contract-implementing G1 package follows RFC-2026-029 §7's rungs: a spike against Draft, fakes and contract tests against Candidate, merged only against Integrated v1."
   ],
   "review_and_test_gates": [
     "author_complete",
