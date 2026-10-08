@@ -70,7 +70,7 @@ export const INTEGRITY_MANIFEST = 'test-kits/integrity-manifest.json';
 // reads.
 export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/branch-identity.test.mjs': 8,
-  'test-kits/branch-scope.test.mjs': 21,
+  'test-kits/branch-scope.test.mjs': 27,
   'test-kits/capability-profile.test.mjs': 4,
   'test-kits/ci-guard-behaviour.test.mjs': 17,
   'test-kits/contracts/catalog-groups.test.mjs': 7,
@@ -149,7 +149,7 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // point in opposite directions.
 export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/branch-identity.test.mjs': 15,
-  'test-kits/branch-scope.test.mjs': 112,
+  'test-kits/branch-scope.test.mjs': 146,
   'test-kits/capability-profile.test.mjs': 4,
   'test-kits/ci-guard-behaviour.test.mjs': 33,
   'test-kits/contracts/catalog-groups.test.mjs': 9,
@@ -325,7 +325,7 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
   'tests/db/identity/identity-isolation.test.mjs': '25aa50b576c0925b',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
-  'test-kits/branch-scope.test.mjs': 'c89691d0316299fb',
+  'test-kits/branch-scope.test.mjs': '6ffa7b5c06c5877c',
   'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',
   'test-kits/ci-guard-behaviour.test.mjs': 'cc42f80046d803e9',
   'test-kits/contracts/catalog-groups.test.mjs': '401597be61929abb',

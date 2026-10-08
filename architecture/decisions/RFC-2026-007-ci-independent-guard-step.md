@@ -274,3 +274,75 @@ throwaway repositories. They cover:
 
 Rollback is a reviewed revert of the two steps and the condition, which restores
 "always run". No data, provider or credential effect.
+
+## Amendment 2026-10-08 — CI prints the records-only classification, and gates nothing on it
+
+Status of this amendment: implements a step the Product Owner already approved. RFC-2026-025 §6
+was approved on 2026-10-08 (`evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-025-s6-answers.md`),
+and its §6.6 item 1 names this step as owed by the owner of `.github/workflows/ci.yml`, before the
+first delegated light-path merge: "a step that prints the classifier's verdict on every PR, without
+gating on it". This section records how that step is built. It decides nothing new about the light
+path, and the decision above and the Amendment 2026-10-06 stand unchanged.
+
+Origin and who presses. Asked whether A0 may press this governance pull request, the Owner replied,
+verbatim, on 2026-10-08: `ให้ A0 กดเอง ลุยตามแนะนำเลย` (A0's translation: "let A0 press it itself; go
+ahead as recommended"). That is the Owner's exception to RFC-2026-025 §5 item 6 for this pull
+request only, in the form PR #211 received one.
+
+### A. The step
+
+`Classify the pull request for the records-only light path (informational, gates nothing)` runs on
+`pull_request` events only, straight after `Verify pinned toolchain` and before `Clean install`.
+
+1. It prints `RECORDS-ONLY` only when the classifier exits 0 and its first line begins
+   `records-only: `. It prints `NOT RECORDS-ONLY`, with the reason, in every other case: a base
+   branch that is not exactly `main` (compared in bash, case-sensitively), an empty or missing base
+   commit, a base holding no readable classifier, a classifier exit 1 (its reasons follow), and any
+   other exit, including 2 for a diff or blob git could not read (fail closed).
+2. The verdict and the classifier's own output go to the job log and to the job summary
+   (`GITHUB_STEP_SUMMARY`). The step writes no step output, no environment and no path, has no `id`,
+   and no later step reads it. Its only `exit` is `exit 0`. It therefore cannot make a pull request
+   pass anything it would otherwise fail, and it cannot fail one.
+3. It runs the **base's** classifier: `git show <base.sha>:scripts/db/classify-records-only.mjs`
+   into a scratch directory, then `node <copy> <base.sha> HEAD`. A pull request that edits the
+   classifier is judged by the copy on `main`, which refuses the edit (a script is not a record).
+4. It runs before `npm ci` and `npm run check`, the first steps that execute the pull request's own
+   code, so the `GITHUB_PATH` route of §E "A hostile author" is not open to it.
+5. The negative-control skip rule (Amendment 2026-10-06 §A) is unchanged. The decision step stays
+   the workflow's only `GITHUB_OUTPUT` writer, and its test still pins that.
+
+### B. Tests
+
+Six tests in `test-kits/branch-scope.test.mjs` cut the step body out of `ci.yml` and run it with
+`bash -e` against throwaway repositories whose base commit holds a copy of the real classifier:
+
+- the step's shape: one `if:` (pull requests), no `id`, no `continue-on-error`, no write to
+  `GITHUB_OUTPUT`/`GITHUB_ENV`/`GITHUB_PATH`, one `exit 0`, one path to `RECORDS-ONLY`, the base's
+  classifier and not the head's, placed after the toolchain check and before `npm ci` and
+  `npm run check`;
+- a records-only diff (a new and an appended session record, a handoff) prints `RECORDS-ONLY`;
+- a code change, a rewritten record and an Owner disposition print `NOT RECORDS-ONLY` with the
+  classifier's reasons;
+- a head that replaces the classifier with one that always says records-only still prints
+  `NOT RECORDS-ONLY`;
+- an empty, missing or non-commit base, no repository, a base with no classifier, an unrelated
+  base (no merge base) and a missing blob print `NOT RECORDS-ONLY` and exit 0;
+- a records-only diff into `MAIN`, `Main`, `main2`, `main `, `refs/heads/main`, `release`, an empty
+  or an unset base branch prints `NOT RECORDS-ONLY`, the same diff into `main` prints
+  `RECORDS-ONLY`, and with no job summary the log still carries the verdict.
+
+### C. What this does NOT do
+
+- It does not put a pull request on the light path. The reader of RFC-2026-025 §6.2 still runs the
+  classifier on the head, records the command and exit code, and reads every line. The CI line is a
+  second, independent print of the same exit code, not a substitute.
+- It does not see a merge of `main` into the branch as a sync: `--sync` (§6.3) is not run in CI.
+- Its verdict is for the commit CI tested, which the checkout assertion pins to the head the run
+  reports on. A later commit needs a later run.
+- A base whose own classifier is wrong prints a wrong verdict. That classifier was reviewed and is
+  digested on `main` (RFC-2026-025 §6.6 item 2).
+
+### D. Rollback
+
+A reviewed revert of the one step and its six tests. Nothing reads the step, so removing it changes
+no other step's outcome. No data, provider or credential effect.
