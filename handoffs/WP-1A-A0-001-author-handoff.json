@@ -5,13 +5,23 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "bd019c9cde305109aca4088d50f62109e4d9c2a4",
-  "head_revision_or_patch_checksum": "bd019c9cde305109aca4088d50f62109e4d9c2a4",
+  "head_revision_or_patch_checksum": "2539603c02a8ae1163d74081a0a250e46c3eaddb",
   "task_ids": [
     "WP-1A-A0-001",
     "G1-D1"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "architecture/decisions/RFC-2026-029-application-tier-stack.md",
+    "evidence/WP-1A-A0-001/product-owner-decision-2026-10-08-g1-plan.md",
+    "handoffs/WP-1A-A0-001-author-handoff.json",
+    "work-packages/WP-1A-A0-001.json"
+  ],
+  "files_modified": [
+    "scripts/verify-test-coverage-floor.mjs",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/repository-json.test.mjs"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "OPEN-018",
@@ -110,12 +120,12 @@
     {
       "command": "npm run verify (run by node scripts/commit-when-clean.mjs for the work commit)",
       "exit_code": 0,
-      "result": "commit-when-clean refuses to commit unless the full suite is clean; the work commit exists only because it was. Counts: evidence/VERIFICATION.md (unchanged by this branch, which adds no test)"
+      "result": "work commit 2539603c: clean, tests 725, pass 725, fail 0, skipped 0, todo 0 (the same counts evidence/VERIFICATION.md records; this branch adds no test)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-001",
       "exit_code": 0,
-      "result": "every changed path is declared and every amendment explains one"
+      "result": "at 2539603c: all 8 changed path(s) are declared, and every amendment explains one"
     },
     {
       "command": "npm run check:handoff (after the last commit)",
