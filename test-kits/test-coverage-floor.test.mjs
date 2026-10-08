@@ -9,7 +9,10 @@ import {
   assertDeclaredTests,
   assertIntegrityManifest,
   assertEveryTestFileProtected,
+  assertImportClosureContained,
   assertNoEscapingPath,
+  assertTestBindingIntact,
+  extractImports,
   stripNonCode,
   assertPackageScripts,
   countDeclaredTests,
@@ -490,6 +493,28 @@ test('a comment, a string and a whitespace run do not change where a regex may b
     ['const a = b\n  / c;', 'division', 'an identifier, across a newline'],
     ["const a = 'y' /* c */\n  .length / 2;", 'division', 'a comment and a newline before a division'],
     ['const a = (1) / 2;', 'division', 'a closing paren is not an operator'],
+    // open_blockers[11]: after a keyword that ends no expression, a slash starts a regex.
+    ['function f() { return /x/; }', 'regex', 'a keyword before the slash'],
+    ['const a = typeof /* c */ /x/;', 'regex', 'a keyword and a comment before the slash'],
+    ['const a = x.return / 2;', 'division', 'a member named like a keyword'],
+    ['const a = returned / 2;', 'division', 'a word that only starts like a keyword'],
+    // C0 N1, A1 N3, Q0-E8, R0 R11: `of` is an identifier and a private name is a member, so each
+    // slash below divides. Read as a regex, the span to the next slash -- the import() -- vanished.
+    ["const of = 4; const q = of / 2 + import('./x.mjs') / g;", 'division', 'an identifier named of'],
+    ["class C { #return = 1; f() { return this.#return / 2 + import('./x.mjs') / 1; } }", 'division', 'a private name #return'],
+    ["class C { #typeof = 1; f() { return this.#typeof / 2 + import('./x.mjs') / 1; } }", 'division', 'a private name #typeof'],
+    ["class C { static #in = 4; static r() { return C.#in / 2 + import('./x.mjs') / 1; } }", 'division', 'a private name #in'],
+    // C0 N2: a string ends the word before it, so `return 'a' / 2` divides.
+    ["const f = () => { return 'a' / 2 + import('./x.mjs') / 1; };", 'division', 'a keyword, then a string'],
+    // C0 N3, Q0-E9: a non-ASCII identifier whose ASCII tail spells a keyword is one identifier, so
+    // the slash divides. Read as the keyword, the span to the next slash -- the import() -- vanished.
+    ["const éreturn = 4; const q = éreturn / 2 + import('./x.mjs') / 1;", 'division', 'a non-ASCII identifier ending in a keyword'],
+    ["const ไทยin = 4; const q = ไทยin / 2 + import('./x.mjs') / 1;", 'division', 'a Thai-prefixed identifier ending in a keyword'],
+    ['function f() { return /x/; }', 'regex', 'a keyword, then a non-ASCII space'],
+    // R0 R15, A1 N4: a string, template or regex literal ends an expression, so the slash divides.
+    ["const q = 'a' / 2 + import('./x.mjs') / 1;", 'division', 'a string literal, then a division'],
+    ["const q = `a` / 2 + import('./x.mjs') / 1;", 'division', 'a template literal, then a division'],
+    ["const q = /a/ / 2 + import('./x.mjs') / 1;", 'division', 'a regex literal, then a division'],
   ];
   for (const [code, reading, why] of cases) {
     const stripped = stripNonCode(code);
@@ -500,6 +525,9 @@ test('a comment, a string and a whitespace run do not change where a regex may b
       assert.equal(slashes, 0, `${why}: the regex literal must be blanked, not read as division`);
     } else {
       assert.ok(slashes >= 1, `${why}: the division must survive as code, not be eaten as a regex`);
+    }
+    if (code.includes('import(')) {
+      assert.ok(stripped.includes('import('), `${why}: the loader call must stay in code for the walk to see`);
     }
   }
 });
@@ -522,4 +550,257 @@ test('stripNonCode does not rescan its own output as the buffer grows', async ()
   assert.ok(elapsed < 2000,
     `stripNonCode took ${elapsed.toFixed(0)}ms on ${largest.length} bytes. The whole-buffer scan is `
     + 'back: find the last significant character incrementally rather than by re-reading `out`.');
+});
+
+// E4 (open_blockers[9]). Each fixture is a miniature repository under a temporary directory: a
+// manifest, test files and the modules they import, plus a file OUTSIDE that repository standing
+// for the code the measured routes ran. `assertImportClosureContained` takes the root, so the
+// fixture is judged exactly as the real tree is.
+async function closureFixture(layout, { digest = Object.keys(layout) } = {}) {
+  const { mkdtemp, mkdir, writeFile, realpath } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join, dirname } = await import('node:path');
+  const outer = await realpath(await mkdtemp(join(tmpdir(), 'e4-closure-')));
+  const root = join(outer, 'repo');
+  await mkdir(root);
+  await writeFile(join(outer, 'e4-outside.mjs'), "export const ran = 'outside';\n");
+  for (const [path, body] of Object.entries(layout)) {
+    await mkdir(dirname(join(root, path)), { recursive: true });
+    await writeFile(join(root, path), body);
+  }
+  const manifest = join(outer, 'manifest.json');
+  const files = Object.fromEntries(digest.map((path) => [path, '0'.repeat(64)]));
+  await writeFile(manifest, JSON.stringify({ files }));
+  return { outer, root, manifest };
+}
+
+const SUITE = "import test from 'node:test';\nimport { fixture } from './fixture.mjs';\ntest('a', () => {});\n";
+
+async function closureCode(files, fixture) {
+  try {
+    await assertImportClosureContained(files, fixture.manifest, fixture.root);
+    return { code: 0, message: '' };
+  } catch (error) {
+    return { code: error.code, message: error.message };
+  } finally {
+    // Each fixture is judged once; leaving it behind leaks a directory per case per run.
+    const { rm } = await import('node:fs/promises');
+    await rm(fixture.outer, { recursive: true, force: true });
+  }
+}
+
+test('E4 control: a contained, digested import closure passes', async () => {
+  const fixture = await closureFixture({
+    'kit/a.test.mjs': SUITE,
+    'kit/fixture.mjs': "import { join } from 'node:path';\nexport const fixture = join('a', 'b');\n",
+  });
+  const result = await closureCode(['kit/a.test.mjs'], fixture);
+  assert.equal(result.code, 0, result.message);
+});
+
+test('E4 route (a): an undigested module a digested suite imports cannot reach outside code', async () => {
+  // C0's measured route, verbatim in shape: one line prepended to a fixture the manifest never
+  // named. Before this increment the guard exited 0 and the manifest stayed byte-identical.
+  const fixture = await closureFixture({
+    'kit/a.test.mjs': SUITE,
+    'kit/fixture.mjs': "import '../../e4-outside.mjs';\nexport const fixture = 1;\n",
+  }, { digest: ['kit/a.test.mjs'] });
+  const result = await closureCode(['kit/a.test.mjs'], fixture);
+  assert.equal(result.code, 92);
+  assert.match(result.message, /kit\/fixture\.mjs, which is not digested/);
+  assert.match(result.message, /resolves outside the repository/);
+  // And digesting the fixture does not launder the escape: containment is checked on its own.
+  const digested = await closureFixture({
+    'kit/a.test.mjs': SUITE,
+    'kit/fixture.mjs': "import '../../e4-outside.mjs';\nexport const fixture = 1;\n",
+  });
+  const second = await closureCode(['kit/a.test.mjs'], digested);
+  assert.equal(second.code, 92);
+  assert.doesNotMatch(second.message, /not digested/);
+  assert.match(second.message, /'\.\.\/\.\.\/e4-outside\.mjs', which resolves outside the repository/);
+});
+
+test('E4 route (b): an existing digested suite cannot import out through a symlink or a ../ path', async () => {
+  const { symlink } = await import('node:fs/promises');
+  const { join } = await import('node:path');
+  // Q0-N1: a symlink inside the repository pointing out of it, digests "regenerated" (every key
+  // present in the manifest). The lexical path is inside; the bytes are not.
+  const viaLink = await closureFixture({
+    'kit/a.test.mjs': "import test from 'node:test';\nimport './e4-link.mjs';\ntest('a', () => {});\n",
+  });
+  await symlink(join(viaLink.outer, 'e4-outside.mjs'), join(viaLink.root, 'kit/e4-link.mjs'));
+  const linked = await closureCode(['kit/a.test.mjs'], viaLink);
+  assert.equal(linked.code, 92);
+  assert.match(linked.message, /through the symbolic link kit\/e4-link\.mjs/);
+  // A symlinked DIRECTORY on the way is the same escape one level up.
+  const viaDirectory = await closureFixture({
+    'kit/a.test.mjs': "import test from 'node:test';\nimport './out/e4-outside.mjs';\ntest('a', () => {});\n",
+  });
+  await symlink(viaDirectory.outer, join(viaDirectory.root, 'kit/out'));
+  const directory = await closureCode(['kit/a.test.mjs'], viaDirectory);
+  assert.equal(directory.code, 92);
+  assert.match(directory.message, /through the symbolic link kit\/out/);
+  // A1 I1: the same with a plain escaping relative path, and with a URL-encoded one, which the
+  // loader decodes to `../` while a string comparison would not.
+  for (const specifier of ['../../e4-outside.mjs', './%2e%2e/%2e%2e/e4-outside.mjs', '/etc/hosts', 'file:///etc/hosts']) {
+    const plain = await closureFixture({
+      'kit/a.test.mjs': `import test from 'node:test';\nimport '${specifier}';\ntest('a', () => {});\n`,
+    });
+    const result = await closureCode(['kit/a.test.mjs'], plain);
+    assert.equal(result.code, 92, `${specifier} must be refused`);
+  }
+  // Q0-E3 and Q0 T-1. Here the decoy EXISTS inside the repository and is digested, so only the
+  // character allowlist can refuse it: the walk would read the decoy, while the loader drops the
+  // tab, decodes %2e or cuts at ? and #, and loads something else.
+  for (const [specifier, decoy] of [
+    ['./.\t./.\t./e4-outside.mjs', 'kit/.\t./.\t./e4-outside.mjs'],
+    ['./%2e%2e/%2e%2e/e4-outside.mjs', 'kit/%2e%2e/%2e%2e/e4-outside.mjs'],
+    ['./fixture?.mjs', 'kit/fixture?.mjs'],
+    ['./fixture#.mjs', 'kit/fixture#.mjs'],
+  ]) {
+    const decoyed = await closureFixture({
+      'kit/a.test.mjs': `import test from 'node:test';\nimport '${specifier}';\ntest('a', () => {});\n`,
+      [decoy]: 'export const decoy = 1;\n',
+    });
+    const result = await closureCode(['kit/a.test.mjs'], decoyed);
+    assert.equal(result.code, 92, `${JSON.stringify(specifier)} must be refused`);
+    assert.match(result.message, /only letters, digits/, `${JSON.stringify(specifier)} must be refused by the allowlist, not by a missing file`);
+  }
+});
+
+test('E4 route (c): a new test file, digested and declared, still cannot import outside code', async () => {
+  // Route (c) edited the contract and the manifest to admit a NEW suite. Admission is not the
+  // check any more: the new file's closure is walked like every other.
+  const fixture = await closureFixture({
+    'kit/a.test.mjs': SUITE,
+    'kit/fixture.mjs': 'export const fixture = 1;\n',
+    'kit/new.test.mjs': "import test from 'node:test';\nconst { ran } = await import('../../e4-outside.mjs');\ntest('new', () => {});\n",
+  });
+  const result = await closureCode(['kit/a.test.mjs', 'kit/new.test.mjs'], fixture);
+  assert.equal(result.code, 92);
+  assert.match(result.message, /kit\/new\.test\.mjs imports '\.\.\/\.\.\/e4-outside\.mjs', which resolves outside/);
+});
+
+test('E4: specifiers the walk cannot name are refused, not skipped', async () => {
+  const cases = {
+    'a bare specifier with no declared dependency': "import 'left-pad';\n",
+    'a builtin without the node: prefix': "import 'fs';\n",
+    'a node: name that is not a builtin': "import 'node:not-a-module';\n",
+    'a computed dynamic import': "const where = '../../e4-outside.mjs';\nawait import(where);\n",
+    'a template-literal dynamic import': 'await import(`../../e4-${"outside"}.mjs`);\n',
+    'createRequire': "import { createRequire } from 'node:module';\nconst load = createRequire(import.meta.url);\n",
+    'a re-export from outside': "export { ran } from '../../e4-outside.mjs';\n",
+    // Q0-E1: a quote inside a comment, or a string used as a binding name, is not the specifier.
+    'a decoy specifier in a comment': "import /*'node:fs'*/ '../../e4-outside.mjs';\n",
+    'decoys in a re-export\'s comments': "export { ran } /*'node:fs'*/ from /*'./fixture.mjs'*/ '../../e4-outside.mjs';\n",
+    'a string binding name as a decoy': "import { './fixture.mjs' as decoy } from '../../e4-outside.mjs';\n",
+    'a decoy in a dynamic import\'s comment': "await import(/*'./fixture.mjs')*/ '../../e4-outside.mjs');\n",
+    // R0 R2: an import inside a template interpolation is blanked with the literal.
+    'an import inside a template interpolation': "const loaded = `${await import('../../e4-outside.mjs')}`;\n",
+    // Q0-E4 / R0 R3: createRequire reached as a member, not as a name.
+    'a member createRequire': "const load = (await import('node:module')).createRequire(import.meta.url);\n",
+    'createRequire through getBuiltinModule': "const load = process.getBuiltinModule('node:module').createRequire(import.meta.url);\n",
+    // Q0-E5: a spread is three dots, not a member access.
+    'an import behind a spread': "const spread = { ...import('../../e4-outside.mjs') };\n",
+    'an import behind a spread with a space': "const spread = [... import('../../e4-outside.mjs')];\n",
+    // R0 R7: a side-effect import whose clause regex used to reach a later `from` and its decoy.
+    'a side-effect import before a stray from': "import '../../e4-outside.mjs'\nfrom\n'./fixture.mjs'; var from;\n",
+    'a commented side-effect import before a stray from': "import /* x */ '../../e4-outside.mjs'\nfrom\n'./fixture.mjs'; var from;\n",
+    // A1 N1 / R0 R8: createRequire spelled with a Unicode escape, as a name and as a member.
+    'an escaped createRequire import': "import { create\\u0052equire as load } from 'node:module';\n",
+    'an escaped createRequire member': "import * as m from 'node:module';\nconst load = m.create\\u0052equire(import.meta.url);\n",
+    // Q0-E6 / C0 R1: CR and U+2028 end a line comment for V8 and not for the scanners.
+    'a CR ending a line comment': "// note\rimport '../../e4-outside.mjs';\n",
+    'a U+2028 ending a line comment': "// note\u2028import '../../e4-outside.mjs';\n",
+    'a U+2029 inside a string': "const text = 'a\u2029b';\n",
+  };
+  for (const [why, body] of Object.entries(cases)) {
+    const fixture = await closureFixture({
+      'kit/a.test.mjs': SUITE,
+      'kit/fixture.mjs': `${body}export const fixture = 1;\n`,
+    });
+    const result = await closureCode(['kit/a.test.mjs'], fixture);
+    assert.equal(result.code, 92, `${why} must be refused: ${result.message}`);
+  }
+  // A keyword inside a string or a comment is not an import, and `import.meta` is not one either.
+  const quiet = await closureFixture({
+    'kit/a.test.mjs': SUITE,
+    'kit/fixture.mjs': "// import '../../e4-outside.mjs';\nconst text = \"import '../../e4-outside.mjs'\";\nexport const fixture = import.meta.url + text;\n",
+  });
+  const control = await closureCode(['kit/a.test.mjs'], quiet);
+  assert.equal(control.code, 0, control.message);
+  // C0 F1 / A1 F1 / Q0-E2 / R0 R1. A digested, contained leaf the walk does not read is refused by
+  // its extension: `.cjs` runs require and `.mts`/`.ts` run through type stripping, unread.
+  for (const leaf of ['leaf.cjs', 'leaf.mts', 'leaf.ts', 'leaf.js', 'leaf.node', 'leaf']) {
+    const fixture = await closureFixture({
+      'kit/a.test.mjs': SUITE,
+      'kit/fixture.mjs': `import './${leaf}';\nexport const fixture = 1;\n`,
+      [`kit/${leaf}`]: "require('../../e4-outside.mjs');\n",
+    });
+    const result = await closureCode(['kit/a.test.mjs'], fixture);
+    assert.equal(result.code, 92, `${leaf} must be refused`);
+    assert.match(result.message, /loads code this walk never reads/, leaf);
+  }
+  // JSON is data and stays a leaf.
+  const data = await closureFixture({
+    'kit/a.test.mjs': SUITE,
+    'kit/fixture.mjs': "import data from './data.json' with { type: 'json' };\nexport const fixture = data;\n",
+    'kit/data.json': '{}\n',
+  });
+  const json = await closureCode(['kit/a.test.mjs'], data);
+  assert.equal(json.code, 0, json.message);
+});
+
+test('E4 on this repository: every module the suites reach is digested and inside the root', async () => {
+  const files = (await Promise.all(['test-kits', 'tests'].map((root) => discoverTestFiles(root)))).flat().sort();
+  const reached = await assertImportClosureContained(files);
+  assert.ok(reached > files.length, `the walk reached ${reached} modules from ${files.length} suites; it must follow imports, not stop at the roots`);
+  const { imports } = extractImports(await readFile('test-kits/db/foundation-contract.test.mjs', 'utf8'));
+  assert.ok(imports.some(({ specifier }) => specifier === './ws905-fixture.mjs'),
+    'the walk must see the import C0 used for route (a)');
+  const manifest = JSON.parse(await readFile(INTEGRITY_MANIFEST, 'utf8'));
+  assert.ok(manifest.files['test-kits/db/ws905-fixture.mjs'], 'route (a)\'s fixture is digested');
+  // A check that is not called protects nothing: both the guard and the post-run pass walk it.
+  assert.match(verifyTestCoverageFloor.toString(), /await assertImportClosureContained\(files\);/);
+  assert.match(assertDeclarationsMatchExecution.toString(), /await assertImportClosureContained\(files\);/);
+});
+
+test('Q0-C1: a shadowed or aliased test binding is refused', async () => {
+  const shadowed = {
+    'Q0-F2 verbatim': "import realTest from 'node:test';\nconst test = () => {};\ntest('a', () => {});\nrealTest('generated-0', () => {});\n",
+    'a named alias': "import { test as realTest } from 'node:test';\nfunction test() {}\ntest('a', () => {});\n",
+    'a later reassignment': "import test from 'node:test';\nlet t = test;\ntest('a', () => {});\n",
+    'a shadowing parameter': "import test from 'node:test';\n[1].forEach((test) => {\n  test('a', () => {});\n});\n",
+    'a function declaration': "import test from 'node:test';\nfunction test() {}\ntest('a', () => {});\n",
+    // C0 F3: the `*` of a generator was read as an operator before a call.
+    'a generator declaration': "import test from 'node:test';\nfunction* test() {}\ntest('a', () => {});\n",
+    'an async generator declaration': "import test from 'node:test';\nasync function *test() {}\ntest('a', () => {});\n",
+    // Q0-E5's spread, applied to the binding: `...test` passes it on.
+    'a spread of the binding': "import test from 'node:test';\nconst copy = [...test];\ntest('a', () => {});\n",
+  };
+  for (const [why, raw] of Object.entries(shadowed)) {
+    const { imports } = extractImports(raw);
+    assert.throws(() => assertTestBindingIntact('kit/a.test.mjs', raw, imports), (error) => error.code === 93, why);
+  }
+  const intact = "import test from 'node:test';\nconst matcher = { test: (x) => x };\ntest('a', async (t) => { await t.test('b', () => {}); matcher.test(1); });\n";
+  const { imports } = extractImports(intact);
+  assert.doesNotThrow(() => assertTestBindingIntact('kit/a.test.mjs', intact, imports));
+  // C0 F4 / A1 F3 / Q0 T-1. Calling the check directly does not prove the walk calls it: a mutant
+  // that unwired it from assertImportClosureContained survived every test. The walk is run here.
+  const walked = await closureCode(['kit/a.test.mjs'], await closureFixture({
+    'kit/a.test.mjs': "import realTest from 'node:test';\nconst test = () => {};\ntest('a', () => {});\n",
+  }));
+  assert.equal(walked.code, 92, walked.message);
+  assert.match(walked.message, /the `test` binding is not the runner's/);
+});
+
+test('A1 T1: the post-run reconciliation counts the same bytes it digests', async () => {
+  // A race cannot be reproduced deterministically in a unit test, so the property is pinned on
+  // the code: each file is read once, digested, and counted from that one buffer.
+  const source = assertDeclarationsMatchExecution.toString();
+  assert.match(source, /const bytes = await readFile\(file\);/);
+  assert.match(source, /createHash\('sha256'\)\.update\(bytes\)/);
+  assert.match(source, /countDeclaredTests\(bytes\.toString\('utf8'\)\)/);
+  assert.doesNotMatch(source, /countDeclaredTests\(await readFile/,
+    'a second read of the file to count it reopens A1 T1: the bytes hashed are not the bytes counted');
 });
