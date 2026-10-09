@@ -4,16 +4,22 @@
   "work_package_id": "WP-0A-CON-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "65695129f1feed95d08b863ee8a935c0d122cb8c",
-  "head_revision_or_patch_checksum": "97d4d1c5f47cfedd63a8ddfd1c21b81749dd736d",
+  "base_revision": "5c812c3d9301e6cad14dbdc3e05b88ef426b882c",
+  "head_revision_or_patch_checksum": "4d6f17a7bc2c859f78d1d646cb52a06080efc8b1",
   "task_ids": [],
   "files_added": [
+    "evidence/WP-0A-CON-006/a1-review-2026-10-09-pr235.md",
     "evidence/WP-0A-CON-006/a6-candidate-signature-2026-10-09.md",
-    "evidence/WP-0A-CON-006/author-candidate-increment-2026-10-09.md"
+    "evidence/WP-0A-CON-006/a6-check-2026-10-09-pr235.md",
+    "evidence/WP-0A-CON-006/author-candidate-increment-2026-10-09.md",
+    "evidence/WP-0A-CON-006/c0-review-2026-10-09-pr235.md",
+    "evidence/WP-0A-CON-006/q0-review-2026-10-09-pr235.md",
+    "evidence/WP-0A-CON-006/r0-review-2026-10-09-pr235.md"
   ],
   "files_modified": [
     "contract-catalog/shared-kernel/ctr-usg-001/manifest.json",
     "contract-catalog/shared-kernel/index.json",
+    "handoffs/WP-0A-CON-006-author-handoff.json",
     "test-kits/contracts/catalog-registry.test.mjs",
     "test-kits/contracts/shared-kernel-contract-catalog.test.mjs",
     "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs",
@@ -129,7 +135,7 @@
     "Conditions of use on Candidate CTR-USG-001, from A6's file §5, binding consumers and fakes rather than this move: (1) every consumer test or fake ledger rejects an event whose attribution.workspace_id or attribution.business_profile_id differs from tenant_context; (2) no consumer parses cost.amount or quantity.amount into a binary float. Nothing in this repository enforces either yet; a reader building a fake must."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H. Owed before merge: C0, A1, Q0 and R0 at this PR's final head, and an A6 check that the commits stay within evidence/WP-0A-CON-006/a6-candidate-signature-2026-10-09.md §8 (in particular whether the two status assertions in tests/db/identity/identity-isolation.test.mjs sit inside \"the census assertions\"). Presser: A0 (/claude/a0_atlas) may press this Draft→Candidate PR on the Owner's 2026-10-09 answer `ให้ A0 กดทั้งสองแบบ (Recommended)` (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-prep-and-candidate-press.md), which names the Draft→Candidate PRs of SEC/AUD/OBS/NTF/USG and requires the four roles passed on the final head, no security finding open, CI green on that head containing main, and the Owner's own disposition naming the contract; that disposition is `อนุมัติ USG (Recommended)` (evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-candidate-sec-aud-obs-usg.md), on main. Owed after merge: RFC-2026-010's status line (a WP-0A-CON-008 step); the amendment records on WP-0A-CON-001, -CON-002, -CON-008, -DB-00 and -A0-002 (recorded_on), with WP-0A-CON-001's acknowledgement by /root/r0_steward; A5's [22] for CTR-NTF-001."
+    "Full path, tier H. Role verdicts at 89768b54, carried with -x: c0-review-2026-10-09-pr235.md, a1-review-2026-10-09-pr235.md, q0-review-2026-10-09-pr235.md (740/740 on the branch name), r0-review-2026-10-09-pr235.md (integration-sound; integration_verified not earned while A5's [22] is open), a6-check-2026-10-09-pr235.md (A6's Candidate signature holds); each role's verdict and carry clause are in its own file. Presser: A0 (/claude/a0_atlas) presses this Draft→Candidate PR on the Owner's 2026-10-09 answer `ให้ A0 กดทั้งสองแบบ (Recommended)` (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-prep-and-candidate-press.md), which names Draft→Candidate PRs including USG; the Owner approved USG by name `อนุมัติ USG (Recommended)` (evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-candidate-sec-aud-obs-usg.md). Owed after merge: the RFC-2026-010 status-line governance step on WP-0A-CON-008 (R0 §6 wording), the R0 §9 record, the amended owners' records, CON-001's acknowledgement by /root/r0_steward. Conditions: bootstrap green on this exact head containing main, a true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "WP-0A-CON-006 USG Candidate increment of 2026-10-09 (e4f5b2f4 and b0264087): revert through a reviewed revert PR that sets ctr-usg-001/manifest.json and its index.json entry back to Draft, restores the two \"A6's countersignature … is OWED\" sentences and the cbd0acbf2f282076 caveat pin, the census 12/2 and Draft count 2, the two 'Draft' assertions in identity-isolation.test.mjs, and the regenerated integrity digests; a revert needs the Owner's word, because his `อนุมัติ USG (Recommended)` approved the move. A6's signature and the appended open_blockers stay as evidence. No schema, fixture, persisted data or provider state is involved.",
   "recommended_next_work_packages": [
