@@ -4,28 +4,17 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "4b5dac8ec3e7d62da1b88909b4f2baa187a301e8",
-  "head_revision_or_patch_checksum": "ef1ca23f19b371b7acc627cd111b82f4047435e6",
+  "base_revision": "9d0b3d23764cfe60b6fefb6b9688ff485f44fe33",
+  "head_revision_or_patch_checksum": "d0c92447da9ed4f893a614cf5ba1cc6f99d4e047",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-CON-008/a1-recheck-2026-10-07.md",
-    "evidence/WP-0A-CON-008/a1-recheck-2026-10-07b.md",
-    "evidence/WP-0A-CON-008/a1-review-2026-10-07.md",
-    "evidence/WP-0A-CON-008/c0-recheck-2026-10-07.md",
-    "evidence/WP-0A-CON-008/c0-recheck-2026-10-07b.md",
-    "evidence/WP-0A-CON-008/c0-review-2026-10-07.md",
-    "evidence/WP-0A-CON-008/g1-freeze-readiness-2026-10-08.md",
-    "evidence/WP-0A-CON-008/q0-recheck-2026-10-07.md",
-    "evidence/WP-0A-CON-008/q0-recheck-2026-10-07b.md",
-    "evidence/WP-0A-CON-008/q0-review-2026-10-07.md",
-    "evidence/WP-0A-CON-008/r0-recheck-2026-10-07.md",
-    "evidence/WP-0A-CON-008/r0-recheck-2026-10-07b.md",
-    "evidence/WP-0A-CON-008/r0-review-2026-10-07.md",
-    "evidence/WP-0A-CON-008/review-closure-2026-10-08.md"
+    "architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md",
+    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md"
   ],
   "files_modified": [
-    "handoffs/WP-0A-CON-008-author-handoff.json",
+    "scripts/verify-test-coverage-floor.mjs",
     "test-kits/integrity-manifest.json",
+    "test-kits/repository-json.test.mjs",
     "work-packages/WP-0A-CON-008.json"
   ],
   "files_deleted": [],
@@ -37,87 +26,88 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
-    "RFC-2026-002 reserves the merge for the Product Owner. This package was never merged and main was never touched.",
-    "Cross-vendor review is NOT satisfied. Every run against this package is Anthropic claude-opus-5, carried as the recorded exception rather than as an equivalent.",
-    "The revisions above are the branch's CURRENT base and head, and the base is now derived rather than carried: git merge-base HEAD against main, origin/main or origin/HEAD, whichever resolves latest. It is no longer copied forward from the previous increment, which is what made WP-0A-CON-002's handoff claim 861 files its branch never wrote.",
-    "2026-10-08: main moved to 4b5dac8 (PR #215, WP-1A-A0-001) after the role re-checks at 45f962f7 and the records commit 7a8e03fb. It was merged in as a MECHANICAL SYNC under RFC-2026-025 §6.3 (approved 2026-10-08): `node scripts/db/classify-records-only.mjs --sync HEAD^1 HEAD` exits 0 ('no conflict inside the PR's own paths'); the only generated file involved, test-kits/integrity-manifest.json, regenerates byte-identical (cmp 0). Under §6.3 a mechanical sync voids no role verdict and needs no carry reading; the handoff refresh last-and-alone and CI green on the final head still apply. The merge is pressed by A0 under the standing delegation `เอาตามที่คุณแนะนำทุกอย่าง` and the Owner's 2026-10-08 `ให้ A0 กดทุกตัวในแผน (Recommended)`."
+    "Gate G0: the exit is decided and conditional (D0, 2026-10-08), not passed. CONTRIBUTING_AGENTS.md \"Current gate constraint\" and register line 373 still bind; this increment writes an RFC and a disposition only, reversible and synthetic-only.",
+    "The Owner's words in the disposition were checked against the session transcript of session 3ecec68b (outside the repository, not committed), not against A0's relay. Where the relay and the transcript differ (the order of `เอาตามคุณแนะนำ`), the transcript is followed and the difference is stated in the disposition §1.",
+    "RFC-2026-031 is Proposed. Nothing in it binds beyond what the Owner's answers of 2026-10-08 (§10.1, §10.3) and 2026-10-09 (Q1, Q2) already decide, until the Owner answers Q-031-1 to Q-031-5 and the PR is merged.",
+    "A0 reads the Owner's 2026-10-08 standing direction (disposition of that date §10.2, a question naming \"RFC เรื่อง freeze ที่จะตามมา\") as covering the press of this governance PR once four roles pass and CI is green; that reading is A0's and is put to A1 and R0 (disposition 2026-10-09 §6).",
+    "Cross-vendor review is NOT satisfied; every role run is Anthropic claude-opus-5, recorded as the Decision Register exception (manifest independence.cross_vendor_exception)."
   ],
   "acceptance_results": [
     {
       "criterion": "Every required_before_freeze item is assessed against the shipped schema and fixture list, not against a fixture count.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "evidence": "evidence/WP-0A-CON-008/g1-freeze-readiness-2026-10-08.md (unchanged by this increment; RFC-2026-031 §4.1 item 2 keeps the same method for the freeze review)"
     },
     {
       "criterion": "The assessment states plainly that it establishes PRESENCE of an artifact and not that the artifact satisfies the intent behind the phrase, with the specific items where that gap is widest named.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "evidence": "architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md §4.1 item 2 restates RFC-2026-010's presence-not-sufficiency limits and requires the owner's signature on sufficiency"
     },
     {
       "criterion": "No contract status changes anywhere in the repository.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "evidence": "git diff origin/main..HEAD -- contract-catalog/ is empty; RFC-2026-031 §9"
     },
     {
       "criterion": "Contracts with a co-owner are routed to that co-owner rather than proposed for promotion by A0 alone.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "evidence": "architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md §2 (signature column), §3.2 item 2, §4.3"
     },
     {
       "criterion": "CTR-NTF-001 is not assessed.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "evidence": "architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md §2 and §4.1 item 1 name the A5 assessment it needs; this increment assesses nothing"
     },
     {
       "criterion": "npm run check stays green with no test skipped.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "evidence": "evidence/VERIFICATION.md (machine-written by the guarded commit)"
     }
   ],
   "tests": [
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
+      "result": "see evidence/VERIFICATION.md, machine-written by scripts/commit-when-clean.mjs and compared against a live run",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008",
+      "exit_code": 0,
+      "result": "every changed path declared: the RFC and the disposition in writable_paths; three amendments (repository-json.test.mjs, verify-test-coverage-floor.mjs, integrity-manifest.json), each changed",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
-  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. A decision record and an Owner disposition only. The disposition quotes chat messages between the Owner and A0 about repository work; they carry no personal data, credential, private URL or customer content. The transcript path it names is a local file path, not a URL. Cost impact none.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes and no catalog file touched. The 2026-10-08 increment adds one evidence record (evidence/WP-0A-CON-008/g1-freeze-readiness-2026-10-08.md) and the role review, re-check and closure files beside it, corrects open_blockers[0] of the manifest in place, records the increment as open_blockers[4], adds open_blockers[5] (scanner digest hazard, owner WP-0A-A0-003), [6] (gate-rule question, owner Product Owner + A0) and [7] (handoff guard HEAD^ blind spot, owner this package), narrows amends_without_owning to test-kits/integrity-manifest.json, and moves that file's one digest line by regeneration. main 9de0483e was merged in as a mechanical sync. No script, test, schema, fixture or contract status changed in this package's own paths; the manifest's own status moved from in_review to integration_verified in a records commit that appends the roles' closing words to open_blockers[4].",
+  "compatibility_impact": "No contract, schema, fixture, test assertion or status of any other package changes. Adds architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md (Proposed) and evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md. Registers the RFC where every decision record is registered: one DECISION_RECORDS line in test-kits/repository-json.test.mjs (WP-0A-A0-001), one DIGESTED_FLOOR line in scripts/verify-test-coverage-floor.mjs (WP-0A-A0-002), and its digest in the regenerated test-kits/integrity-manifest.json. The manifest of WP-0A-CON-008 adds the RFC to writable_paths and outputs, adds a scope line, appends the Owner's answer to open_blockers[6] after its whole old text, appends open_blockers[8], restates amends_without_owning, and moves status integration_verified to in_review for this increment.",
   "known_limitations": [
-    "No contract was moved: none of the eleven assessed G1 contracts has every precondition for its next step met with evidence on main; CTR-NTF-001 is listed and not assessed (record sections 2 and 3).",
-    "Whether a Candidate to Frozen v1 step must wait for the G0 exit record (WP-0A-A0-010, not on main) is a gate-rule question this package records and does not decide: Decision Register sections 1.2 and 5.1 against section 7.2 item 2 (open_blockers[6], owner Product Owner + A0).",
-    "CTR-SEC-001 lacks A1's promotion signature; CTR-AUD-001 and CTR-OBS-001 lack A6's countersignature of their 2026-10-07 bound values; CTR-NTF-001 lacks A5's ratification and is outside this package's scope.",
-    "The Owner's 2026-10-08 approval of the G1/G2 plan is not recorded on main and was not relied on.",
-    "The record lists what main records as owed; a freeze review may find more. RFC-2026-010's presence-not-sufficiency limits stand.",
-    "The handoff guard compares the cited head with HEAD^, so it is evidence only when the handoff commit is HEAD alone (open_blockers[7], owner this package; check git show --stat HEAD)."
+    "RFC-2026-031 is Proposed: Q-031-1 to Q-031-5 (§10) are unanswered, and the RFC's §3.3 breaking-change definition, §5.2 declared_gaps shape and §5.5 limits are A0's proposals until the Owner answers.",
+    "The test and registry change that admits Frozen (RFC-2026-031 §7.1) is specified and not implemented; until it is, catalog-registry.test.mjs rejects Frozen and no contract can freeze.",
+    "CTR-USG-001 is outside the First-Slice set, but register §7.2 (2) first clause asks every shared contract to be at least Candidate; RFC-2026-031 §6 reads that as a condition on closing the G0 exit and asks the Owner (Q-031-1).",
+    "Register §7.2 items 1 and 3-8, other than item 8 as it applies to the freezes, are not decided against the conditional exit by this RFC (§6).",
+    "The disposition's transcript check was made against a file outside the repository; a reader on main sees the quotes and their times, not the transcript."
   ],
   "open_risks_or_blockers": [
-    "CORRECTED 2026-10-08 BY A0 (/claude/a0_atlas) IN PLACE, RECORD CORRECTION (index kept; manifest open_blockers[0] carries the full wording): RFC-2026-010 is no longer Proposed. Its status line records the 2026-09-02 disposition under which CTR-API-001, CTR-PAG-001, CTR-IDM-001, CTR-MOD-001 and CTR-FLG-001 are Candidate. STILL OPEN: CTR-SEC-001 lacks A1's promotion signature, CTR-AUD-001 and CTR-OBS-001 lack A6's countersignature of their 2026-10-07 bound values, CTR-USG-001's promotion is undisposed, and CTR-NTF-001 is A5's (evidence/WP-0A-CON-008/g1-freeze-readiness-2026-10-08.md section 3).",
-    "A1 and A6 sign-off is outstanding for four contracts and cannot be represented by an agent.",
-    "The freeze check establishes presence, not sufficiency. Four items are named in the RFC where a script cannot see what the phrase meant: stable ordering, auth rules, decimal money and bounded cardinality.",
-    "CTR-NTF-001 remains unassessed; A5 owns it.",
-    "ADDED 2026-10-08 BY A0 (/claude/a0_atlas), INCREMENT 'G1 freeze readiness' (G1/G2 plan section 2), STATUS STAYS in_review: evidence/WP-0A-CON-008/g1-freeze-readiness-2026-10-08.md assesses, at origin/main bd019c9c, each of the twelve contracts G1 consumes against its next freeze step. RESULT: NO CONTRACT MOVED, because none has every precondition met with evidence on main. (1) Candidate to Frozen v1 for CTR-TEN-001, CTR-ERR-001, CTR-API-001, CTR-IDM-001, CTR-EVT-001, CTR-JOB-001, CTR-MOD-001 and CTR-FLG-001 is blocked for all eight by G0 not having passed (Decision Register 1.2 and 5.1 define Frozen v1 as a contract that has passed G0; G0-024 is blocked; WP-0A-A0-010, the G0 exit record, does not exist on main), and in addition per contract by the items the record names with their owners, among them the missing CTR-TEN-001 scope matrix, the CTR-JOB-001 tenant_context restatement owed by WP-0A-CON-001 after migration 174, and CTR-MOD-001's CS-1 handle-syntax RFC and CS-2 length non-composability with CTR-SEC-001 (A0 + A1). (2) Draft to Candidate v1: CTR-SEC-001 lacks A1's promotion signature (A1: 'not a co-owner signature promoting CTR-SEC-001'); CTR-AUD-001 and CTR-OBS-001 lack A6's countersignature of the fourteen 2026-10-07 bound values (WP-0A-CON-004 open_blockers[17]) and CTR-OBS-001 module.implementation_version is unbounded (open_blockers[18]); CTR-NTF-001 lacks A5's ratification and stays outside this package's scope. The Owner's 2026-10-08 approval of the plan is not recorded on main and was not relied on; it could not in any case supply a co-owner signature or pass G0. No status, schema, fixture, version or owner changed. AMENDED 2026-10-08 BY A0 (/claude/a0_atlas) ON THE FIRST ROLE ROUND OF THIS INCREMENT (evidence/WP-0A-CON-008/review-closure-2026-10-08.md), INDEX KEPT, NO VERDICT CHANGED: eleven of the twelve are assessed and CTR-NTF-001 is listed, not assessed (C0 F-3); the order \"WP-0A-A0-010 before any freeze\" is withdrawn from the record and replaced by the gate-rule question in open_blockers[6] (C0 F-1, A1 N-1); the CTR-SEC-001 row now weighs RFC-2026-013 and the 2026-09-02 co-owner review against A1's later words and leaves the conflict to A1 and the Product Owner (C0 F-2, R0 R-2); the API, IDM, MOD and FLG rows carry the \"Draft only.\" freeze_boundary restatement owed by A0 (WP-0A-CON-003 open_blockers[14] (3); C0 F-4, Q0 O-1); the JOB row carries the H-6 x-amended-by record (WP-0A-CON-006 open_blockers[17]; Q0 O-2); the Register citation is corrected to section 4.1, line 138 (R0 R-1). Status stays in_review. CLOSED 2026-10-08 BY A0 (/claude/a0_atlas) ON THE SECOND ROLE RE-CHECK AT 45f962f78b470db3e3fd5d56019e04e7d6bf0f4b, RECORDING THE ROLES' WORDS, INDEX KEPT, NO VERDICT CHANGED, STATUS in_review TO integration_verified. C0: review_approved by /claude/c0_contract_reviewer (evidence/WP-0A-CON-008/c0-recheck-2026-10-07b.md) at 45f962f7: F-1 to F-3 closed, N-1 met, N-2 recorded as open_blockers[7]; nothing blocks the merge. Q0: test_verified by /claude/q0_sentinel (evidence/WP-0A-CON-008/q0-recheck-2026-10-07b.md) at 45f962f7 with main 9de0483e merged, a new Tester run under R0 condition 1, carried to the merge head under that file's carry rule. A1: security_approved by /claude/a1_bastion (evidence/WP-0A-CON-008/a1-review-2026-10-07.md, a1-recheck-2026-10-07.md, a1-recheck-2026-10-07b.md) at 45f962f7: conditions 1-4 met; N-3 recorded as open_blockers[7] (owner WP-0A-CON-008) and the scanner hazard rate corrected in [5] (owner WP-0A-A0-003), both open; no A1 promotion signature on CTR-SEC-001 and no freeze sign-off on CTR-TEN-001 is given. R0: integration_verified by /claude/r0_steward (evidence/WP-0A-CON-008/r0-review-2026-10-07.md, r0-recheck-2026-10-07.md, r0-recheck-2026-10-07b.md) for the G1 freeze-readiness increment: eleven of the twelve G1 contracts assessed against main, CTR-NTF-001 listed and not assessed, none moved, every cited index and line checked; nothing under contract-catalog/, architecture/, docs/, .github/ or scripts/ changed by this package; C0 review_approved (c0-recheck-2026-10-07b.md), A1 security_approved with no open finding (a1-recheck-2026-10-07b.md) and Q0 test_verified (q0-recheck-2026-10-07b.md), all at 45f962f78b470db3e3fd5d56019e04e7d6bf0f4b after the merge of main 9de0483e44e116479093db0a71a027e26e89b513, where npm run check passed 734 of 734 and bootstrap was green (run 37758171379). The merge head is that head plus this record and a handoff refresh last and alone with its blocker copies equal to the manifest except index 0, under the carry rules of those files. The gate-rule question (open_blockers[6], Product Owner + A0) is recorded, not decided; the handoff guard's HEAD^ blind spot (open_blockers[7], owner WP-0A-CON-008) and the scanner digest hazard (open_blockers[5], owner WP-0A-A0-003) stay open. Owed before any contract status move: that question and WP-0A-A0-010 (G0 exit) for the eight Candidates; A6 countersignature of the 14 AUD/OBS values and the OBS implementation_version bound (WP-0A-CON-004 open_blockers[17], [18]); A1 promotion signature on CTR-SEC-001; A5 ratification of CTR-NTF-001; then a Product Owner disposition. R-5 to the Owner by A0.",
-    "ADDED 2026-10-08 BY A0 (/claude/a0_atlas), RESTORED ON A1 N-2 AND C0 I-2 (evidence/WP-0A-CON-008/a1-review-2026-10-07.md §3), OWNER WP-0A-A0-003 (the package that owns scripts/scan-repository-secrets.mjs), NOT A CONDITION ON THIS PACKAGE'S MERGE: a SHA-256 digest can contain a Luhn-valid 13-to-19 digit run by coincidence, and test-kits/integrity-manifest.json is a file of such digests rewritten whenever a protected file changes; scripts/scan-repository-secrets.mjs then correctly reports a payment card number, with no allowlist by design. This branch, first spelled WP-0A-CON-008-sweep-age-floor, tripped it once; the rename that changed the digest was a workaround and not a fix, and about one regenerated digest in 3,100 will trip it again on any package. The offending run is not reproduced here, because quoting it fails the scan. An exemption in the scanner is reserved for a reviewed decision by its owner. The entry lived only in this package's author handoff until the 2026-10-08 increment dropped it; it is kept here so the next author finds a diagnosis, not a mystery. AMENDED 2026-10-08 BY A0 (/claude/a0_atlas) IN PLACE ON A1 RE-CHECK N-2 (evidence/WP-0A-CON-008/a1-recheck-2026-10-07.md §3), RECORD CORRECTION (index kept): the figure first recorded was 'one in a few hundred'; A1 measured 65 trips in 200,000 random digests passed through the scanner's own scanText on a manifest-shaped line, about one in 3,100. No guard copies this entry into the author handoff; it is copied there by hand.",
-    "ADDED 2026-10-08 BY A0 (/claude/a0_atlas) ON C0 F-1 AND A1 N-1 (evidence/WP-0A-CON-008/c0-review-2026-10-07.md §2, a1-review-2026-10-07.md §3), OWNER PRODUCT OWNER + A0 (G0-024), A GATE-RULE QUESTION THIS PACKAGE DOES NOT DECIDE: Decision Register §1.2 (line 43) and §5.1 (line 190) define Frozen v1 as a contract that has passed G0, while §7.2 G0 Pass Rule item 2 (line 365) requires the contracts the First Slice uses to be Frozen v1 before G0 passes. Read as two events in sequence this is a cycle; read as one event, the freeze review of the First-Slice contracts is part of the G0 exit. Which reading governs, and whether a conditional G0 exit (WP-0A-A0-010 as the G1/G2 plan describes it) may waive §7.2 (2), is not decided on main; CONTRIBUTING_AGENTS.md sends a gate-rule change through an RFC. Under either reading no contract moves today: each of the eight Candidates has its own open, owned items (evidence/WP-0A-CON-008/g1-freeze-readiness-2026-10-08.md §2).",
-    "ADDED 2026-10-08 BY A0 (/claude/a0_atlas) ON A1 RE-CHECK N-3 (evidence/WP-0A-CON-008/a1-recheck-2026-10-07.md §4; also C0 N-2, Q0 O-1, R0 RC-3 in their 2026-10-07 re-checks), OWNER WP-0A-CON-008 (its writable_paths hold scripts/refresh-author-handoff.mjs), GUARD INTEGRITY, NOT A CONDITION ON THIS PACKAGE'S MERGE: npm run check:handoff and test-kits/handoff-conformance.test.mjs compare the handoff's cited head with branchTipBefore(), which for a non-merge HEAD is always HEAD^, so that a handoff need not cite the commit that contains it. Nothing checks that HEAD is the handoff commit, so whatever the last commit carries is outside the comparison. Measured at e601ea28, whose handoff cited 8526ca67 and whose own commit modified work-packages/WP-0A-CON-008.json: check:handoff exited 0 and conformance passed 19 of 19, and CI read the same HEAD^. A green handoff guard is therefore evidence only when git show --stat HEAD shows the handoff alone. Fix sketch for the owner to decide: when HEAD does not modify handoffs/<package>-author-handoff.json, compare the cited head with HEAD itself, keep HEAD^ only for the commit that carries the refresh, and add a negative-control test in which a last commit that changes a manifest and not the handoff exits DRIFTED. Until then reviewers check the last-and-alone rule by hand."
+    "OWED BY THE OWNER: answers to Q-031-1 to Q-031-5 of RFC-2026-031 §10, transcribed on this branch before the merge; until then the RFC stays Proposed.",
+    "OWED BY THE ROLES: C0, A1, Q0 and R0 runs on this governance PR, and a re-read of the commit that records the Owner's answers (RFC-2026-025 §5 item 2).",
+    "FOR A1 AND R0: whether the 2026-10-08 standing direction names this PR's sequence as RFC-2026-025 §5 item 6 requires (disposition 2026-10-09 §6); A0 reads that it does.",
+    "OWED BY WP-0A-A0-002 AND WP-0A-A0-001: acknowledgement of the one DIGESTED_FLOOR line plus the regenerated digests, and of the one DECISION_RECORDS line.",
+    "ADDED 2026-10-08 BY A0 (/claude/a0_atlas) ON C0 F-1 AND A1 N-1 (evidence/WP-0A-CON-008/c0-review-2026-10-07.md §2, a1-review-2026-10-07.md §3), OWNER PRODUCT OWNER + A0 (G0-024), A GATE-RULE QUESTION  ... (manifest open_blockers[6] carries the full text and the Owner's answer appended after it)",
+    "The manifest's open_blockers[1], [2], [3], [5] and [7] stand unchanged (co-owner sign-off outstanding; presence not sufficiency; CTR-NTF-001 unassessed; the scanner digest hazard, owner WP-0A-A0-003; the handoff guard HEAD^ blind spot, owner WP-0A-CON-008)."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR. Reverting restores a comparison point that is main whenever a branch has merged main into itself, which leaves check:handoff red with 'on no path to this branch' and refresh:handoff refusing to rewrite it -- so a reverted branch must be kept linear, as batch 040's was.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR of the RFC-2026-031 increment of WP-0A-CON-008: removing architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md also needs its DECISION_RECORDS line, its DIGESTED_FLOOR line and its integrity-manifest digest removed in the same revert, or repository-json.test.mjs and the coverage floor fail; the 2026-10-09 Owner disposition stays true as a record of what was said even if the RFC is withdrawn, so a revert that drops it must say where the Owner's answers are kept instead. No contract, schema or status other than this package's own moved, so nothing downstream needs rolling back.",
   "recommended_next_work_packages": [
-    "WP-0A-CON-004: an increment for A6's countersignature of the four CTR-AUD-001 and ten CTR-OBS-001 bound values and the CTR-OBS-001 implementation_version bound, with an A1 promotion signature on CTR-SEC-001; then the Product Owner's RFC-2026-010 disposition for those three.",
-    "WP-0A-A0-010: the G0 exit record, without which no contract can be Frozen.",
-    "WP-0A-CON-001: the CTR-TEN-001 scope matrix and bounds, the CTR-JOB-001 tenant_context restatement and bounds, and the API/IDM/EVT x-amended-by records.",
-    "WP-0A-CON-008: close open_blockers[7], so that check:handoff compares the cited head with HEAD whenever HEAD does not modify the handoff, with a negative-control test."
+    "WP-0A-CON-008 (this package), after the Owner answers Q-031-1..5 and the PR merges: the RFC-2026-031 §7.1 test and registry change (FREEZE_LEVELS, MANIFEST_KEYS, declared_gaps tests and pins, the two ratchets-bite reversals moved off the value Frozen), tier H, its own role round.",
+    "WP-0A-CON-001, WP-0A-CON-002, WP-0A-CON-003, WP-0A-CON-004, WP-0A-CON-006: close or prepare as declared gaps the items g1-freeze-readiness-2026-10-08.md §2 and §3 name for the contracts each owns.",
+    "WP-0A-A0-004 and WP-0A-A0-005: cite disposition 2026-10-09 §3 in their own records."
   ],
   "reviewer_instructions": [
-    "2026-10-08 increment: read evidence/WP-0A-CON-008/g1-freeze-readiness-2026-10-08.md and review-closure-2026-10-08.md. Check each 'blocked by' citation against main (assessed at bd019c9c; the cited paths are unchanged at 9de0483e), and check that no file under contract-catalog/ or any status changed (git diff origin/main --stat).",
-    "Read evidence/WP-0A-CON-008/ first: it records what was verified, what was refused and why, and the independent findings that corrected this package.",
-    "Ten independent verification runs were dispatched against this stack. The first eight each shipped an untested business rule past every guard; the ninth and tenth could not, after roughly 22,000 and 9,350 mutations respectively, but each still found real defects elsewhere. Assume an eleventh exists.",
-    "Attack the guards rather than reading them. Every defect found so far came from execution and none from reading.",
-    "The author is /claude/a0_atlas. Reviewer, tester and integration verification are open and must be distinct runs; cross-vendor review is not satisfied and is carried as a recorded exception.",
-    "For the earlier merge-parent-order increment read evidence/WP-0A-CON-008/merge-parent-order.md, then restore scripts/refresh-author-handoff.mjs from this branch's base revision and run node --test test-kits/handoff-conformance.test.mjs: three of the four new cases must fail (the merge orientations and both refusals) and 'an ordinary in-progress branch is untouched by any of this, byte for byte' must pass against both implementations. A test that cannot be made to fail is not evidence. The fourth failure you will see, 'a range is never compared backwards', is a pre-existing case reading the new return shape, and is recorded as such rather than presented as a finding."
+    "Read architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md and evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md. Check every Owner word and every option text in the disposition byte for byte against the source A0 names (the 2026-10-09 transcript of session 3ecec68b, which A0 can produce), and every citation (register lines 43, 111, 138, 190, 365, 371, 373; the 2026-10-08 disposition §2.1, §4.1, §6, §10.1-§10.3; test file lines in RFC-2026-031 §7.2) against origin/main.",
+    "Check that nothing under contract-catalog/, docs/, .github/ or CONTRIBUTING_AGENTS.md changed, and that no test assertion changed: the only test-file line is one DECISION_RECORDS entry.",
+    "Check open_blockers[6]: the old text is whole at the start and the Owner's answer is appended after it; open_blockers[8] is new at the end.",
+    "Judge RFC-2026-031 §5.2 (declared_gaps) against the existing accepted_gaps and untestable_by_* fields, §5.5 against the Owner's \"ช่องว่างทุกข้อ\", and §6's CTR-USG-001 reading against register §7.2 (2).",
+    "git show --stat HEAD must show the handoff alone."
   ],
   "superseded_by": null
 }
