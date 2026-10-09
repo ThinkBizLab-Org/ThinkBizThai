@@ -4,26 +4,15 @@
   "work_package_id": "WP-0A-A0-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "dc7b96849a833afb5918478d816027d695da9bf5",
-  "head_revision_or_patch_checksum": "4ccfcdd627d6630fdd99da59ea4ad6e783137c46",
+  "base_revision": "d44dbdbb1efebc9d891e3d31fdf01a8a8060c59a",
+  "head_revision_or_patch_checksum": "e5efe81ac82e4e0dcde0c7fa6fbf7858a6d98f94",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-A0-006/a1-recheck-2026-10-07.md",
-    "evidence/WP-0A-A0-006/a1-recheck-2026-10-07b.md",
-    "evidence/WP-0A-A0-006/a1-review-2026-10-07.md",
-    "evidence/WP-0A-A0-006/author-closure-2026-10-07.md",
-    "evidence/WP-0A-A0-006/author-reverify-2026-10-06.md",
-    "evidence/WP-0A-A0-006/c0-recheck-2026-10-07.md",
-    "evidence/WP-0A-A0-006/c0-recheck-2026-10-07b.md",
-    "evidence/WP-0A-A0-006/c0-review-2026-10-07.md",
-    "evidence/WP-0A-A0-006/q0-recheck-2026-10-07.md",
-    "evidence/WP-0A-A0-006/q0-recheck-2026-10-07b.md",
-    "evidence/WP-0A-A0-006/q0-review-2026-10-07.md",
-    "evidence/WP-0A-A0-006/r0-recheck-2026-10-07b.md",
-    "evidence/WP-0A-A0-006/r0-review-2026-10-07.md"
+    "evidence/WP-0A-A0-006/a1-gate-2026-10-09.md",
+    "evidence/WP-0A-A0-006/q0-after-merge-2026-10-09.md",
+    "evidence/WP-0A-A0-006/r0-ruling-2026-10-09.md"
   ],
   "files_modified": [
-    "handoffs/WP-0A-A0-006-author-handoff.json",
     "work-packages/WP-0A-A0-006.json"
   ],
   "files_deleted": [],
@@ -35,87 +24,67 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT CHANGES NO DECISION AND NO CODE. It changes one file this package owns, work-packages/WP-0A-A0-006.json, and adds records under evidence/WP-0A-A0-006/ and this handoff. RFC-2026-015 is not edited; no RFC, CONTRIBUTING_AGENTS.md, CI workflow or gate changes, so this is not a governance PR under RFC-2026-025 §5 item 6.",
-    "STATUS MOVES in_progress -> in_review, the furthest an Author may move it. The package's work (RFC-2026-015 and evidence/WP-0A-A0-006/blocker-re-audit.md) has been on main since PR #45 (squash 1a9f589, 2026-09-04); the RFC's disposition is recorded in its own status line (234693c), which this handoff cites rather than restates.",
-    "THE OWNER'S STEP 2 OF 2026-10-05 IS APPLIED BY A0's MAPPING, not by the Owner naming this package: item 1 (RFC-2026-024's cross-vendor withdrawal) sets independence.prefer_cross_vendor_review to false and replaces cross_vendor_exception with the withdrawal's record; item 2 (/claude/r0_steward succeeds /root/r0_steward) is recorded in role_assignments._run_id_disambiguation; item 3 (no Product reviewer for tooling and contract packages) is recorded in role_assignments.product_reviewer_note. Source: evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md; the Author's reading is evidence/WP-0A-A0-006/author-reverify-2026-10-06.md §3.",
-    "STALE MANIFEST SENTENCES ARE CORRECTED WITH THEIR TEXT AS RECORDED KEPT IN PLACE: open_blockers[0] (DATA-DEC-03's service path; \"the only member of app_worker is postgres\" is false since migration 173 and RFC-2026-028), open_blockers[1] closed in place, required_human_authorities[0] marked GIVEN 2026-09-04, rollback_or_forward_fix, and _run_id_disambiguation. package_evidence[2] gains the manifest argument without which the declared command exits 64.",
-    "THE FIRST ROLE VERDICTS (C0, A1, Q0, R0 at 89c9ec9) AND THE RE-CHECKS OF C0, A1 AND Q0 AT 6fd2657 ARE CHERRY-PICKED WITH -x, UNCHANGED. The Author's response to each first-verdict finding is evidence/WP-0A-A0-006/author-closure-2026-10-07.md. A0 executes under the Owner's standing delegation (`เอาตามที่คุณแนะนำทุกอย่าง`) and the 2026-10-06 night instruction (`คืนนี้คุณยิงยาว เหมือนเดิมเบย ไม่ต้องถามผม ไล่ทำไปทั้งคืน`); it approves, tests, integrates and acknowledges nothing."
+    "THIS INCREMENT is the post-merge records PR for PR #202 (merged 2026-10-07T16:05:48Z as 7fb0fc05, final head 60a25e73, CI run 37647781943 green). It follows R0's route in evidence/WP-0A-A0-006/r0-ruling-2026-10-09.md §6: three role files carried with cherry-pick -x (Q0 30d3b388 -> 46571873, R0 0baca953 -> 11a4054d, A1 2fec32f3 -> 3aa2a09c), then one manifest commit in R0's §7 words, then this handoff refresh last and alone.",
+    "The status move rests on A1's answer to R0's V2 gate question (evidence/WP-0A-A0-006/a1-gate-2026-10-09.md §2): A1's approval carried to 60a25e73 stands as the security_approved gate, without conditions. R0's ruling §5 item 3 makes that answer the condition for recording integration_verified.",
+    "No records-transcription file is added. A1's carry clause (a1-gate-2026-10-09.md §3) and R0's (r0-ruling-2026-10-09.md §9) admit only cherry-picked role files, mechanical syncs, one manifest commit and the handoff refresh; any other commit voids them. The transcription account is in the PR body instead.",
+    "Not governance: no RFC, CONTRIBUTING_AGENTS.md, CI workflow or gate file changes."
   ],
   "acceptance_results": [
     {
-      "criterion": "RFC proposes DATA-DEC-01 and DATA-DEC-02 only, with the data package's default and what changes if the Owner picks otherwise",
-      "result": "met",
-      "evidence": "Met on main at 1a9f589 (PR #45) and unchanged by this branch; the Author's reading with line references is evidence/WP-0A-A0-006/author-reverify-2026-10-06.md §5 row 1. Not a verdict; C0 reads it."
+      "criterion": "R0's §7 words transcribed exactly, only the four placeholders filled",
+      "result": "met for author self-check",
+      "evidence": "The manifest commit's text was copied programmatically from the ruling's §7 blockquotes and A1's §2 blockquote; <DATE> 2026-10-09, <A1_FILE> a1-gate-2026-10-09.md, <A1_GATE_WORD> A1's sentence verbatim, <R0_SHA> 11a4054d. Not a verdict; C0 and R0 read it."
     },
     {
-      "criterion": "DATA-DEC-03 referred to A1, no answer proposed, A0 must not close it alone",
-      "result": "met",
-      "evidence": "RFC-2026-015 §DATA-DEC-03 (author-reverify §5 row 2). The manifest's open_blockers[0] names what remains as A1's, WP-0A-DB-00's and the Integration Owner's and answers none of it."
+      "criterion": "Only status and open_blockers differ from main; in open_blockers only index 3 (old text whole after 'Text as recorded: ') and one new last entry (R0-6)",
+      "result": "met for author self-check",
+      "evidence": "parsed-JSON comparison of work-packages/WP-0A-A0-006.json against origin/main d44dbdbb"
     },
     {
-      "criterion": "Committed with status Proposed; an agent must not write Approved",
-      "result": "met",
-      "evidence": "1a9f589's status line reads Proposed; the later status line is commit 234693c, which transcribes the human disposition and is not the proposing commit (author-reverify §4). The criterion is not edited."
-    },
-    {
-      "criterion": "Re-audit records 36 verdicts and marks the two it could not re-measure as unknown",
-      "result": "met",
-      "evidence": "evidence/WP-0A-A0-006/blocker-re-audit.md, point-in-time at main 963990f, not re-run here (author-reverify §5 row 4)."
-    },
-    {
-      "criterion": "npm run check green, nothing skipped, no floor lowered",
-      "result": "met",
-      "evidence": "See tests: npm run check measured on this branch name with this handoff in place. This branch changes no test and no floor."
+      "criterion": "Merge facts match gh/git",
+      "result": "met for author self-check",
+      "evidence": "gh pr view 202: MERGED 2026-10-07T16:05:48Z, merge 7fb0fc05 with parents dc7b9684 and 60a25e73; gh run view 37647781943: pull_request, headSha 60a25e73, success; git log 7fb0fc05..origin/main on this package's paths: empty"
     }
   ],
   "tests": [
     {
-      "command": "npm run check",
+      "command": "npm run check (Q0, detached at 60a25e73, after the merge)",
       "exit_code": 0,
-      "result": "tests 716, pass 716, fail 0, skipped 0 at 4ccfcdd with this refreshed handoff in the working tree (npm run check on the branch name agent/claude/WP-0A-A0-006-db00-data-decisions, node v24.20.0); A1 measured the same 716 at 5c10378 in a1-recheck-2026-10-07b.md. This commit, made after the cherry-pick of A1 66a36f8 and the merge of origin/main dc7b968, is made by commit-when-clean, which refuses unless npm run check exits 0 on the branch name with this handoff in place."
+      "result": "716 tests, 716 pass (evidence/WP-0A-A0-006/q0-after-merge-2026-10-09.md M1)"
     },
     {
-      "command": "node scripts/refresh-author-handoff.mjs --check",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (this refresh, on the branch name)",
       "exit_code": 0,
-      "result": "the handoff describes the branch: nothing substantive after its cited head"
-    },
-    {
-      "command": "node --test test-kits/handoff-conformance.test.mjs",
-      "exit_code": 0,
-      "result": "tests 19, pass 19"
+      "result": "see this commit"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-006",
       "exit_code": 0,
-      "result": "all changed paths are declared, and every amendment explains one (15 paths against origin/main dc7b968 before this handoff commit)"
+      "result": "all changed paths declared"
     }
   ],
-  "security_privacy_cost_impact": "None. No code, schema, grant, policy, role, credential or contract is touched; the branch changes one manifest and adds records.",
+  "security_privacy_cost_impact": "None. Records only: one manifest's status and open_blockers, three carried role files and this handoff. No code, schema, grant, policy, credential or contract changes.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "None.",
   "known_limitations": [
-    "THE FIVE OUT-OF-PACKAGE EDITS OF 1a9f589 (AND ONE RE-PIN IN 234693c) HAVE NO ownership.amended_by ENTRY ON THEIR OWNERS. Those manifests (WP-0A-A0-001, WP-0A-A0-002, WP-0A-CON-008) are outside this package's writable_paths, so the entries are recorded as owed in open_blockers[4], not written here. Not a merge condition of this package by R0-4 and A1 F1.",
-    "C0 F4 IS NOT ACTED ON, as C0 asked: RFC-2026-015 is Approved and its text is not edited for a heading.",
-    "68a947dc WAS COMMITTED WITH git commit -F ON A MEASURED RED STATE (the stale handoff), disclosed in author-closure-2026-10-07.md §4 and recorded by C0 N1 and Q0 Q4. This handoff commit is the one that goes through scripts/commit-when-clean.mjs.",
-    "R0's RE-CHECK AT 9c18d05 (r0-recheck-2026-10-07b.md) READS integration_conditional, NOT integration_verified. Its conditions V1-V6 are procedural: role files carried file-only, C0's and A1's own word on whether their verdicts carry across merge 1802322 and the syncs with main, Q0's test_verified, the sync with main, this handoff refreshed last and alone, and nothing else changed. A1 has now written its carry file (a1-recheck-2026-10-07b.md, cherry-picked from 66a36f8): its verdict at 6fd2657 carries to 5c10378. Whether R0 reads V1-V6 as met is R0's to say, not this handoff's.",
-    "NOTHING PREVENTS THE NEXT STALE SENTENCE IN A BLOCKER LIST. A blocker list is prose and no lint reads English; this branch corrects sentences, it does not add a control."
+    "integration_verified is not done and not Gate G0. open_blockers[0] (A1's acceptance as DATA-DEC-03's co-owner, still owed), [2] (G0) and [4] (amended_by entries owed by WP-0A-A0-001, WP-0A-A0-002 and WP-0A-CON-008) stay open.",
+    "R0-6 is recorded, not excused: PR #202 was pressed with Q0's carry clause tripped by three syncs, and Q0's test_verified at 60a25e73 is after the fact. A1's gate answer is also given after the merge and does not make PR #202 an A1-gated merge as pressed.",
+    "R0-3 stands: PR #45 (1a9f589) reached main with no role evidence."
   ],
   "open_risks_or_blockers": [
-    "At 9c18d05 C0 re-checked (no block on its account; its carry rule N3 covers a mechanical sync with main plus this handoff), Q0 returned test_verified, and R0 returned integration_conditional pending V1-V6 of its file §5. At 5c10378 A1 re-checked (a1-recheck-2026-10-07b.md): its security/privacy verdict at 6fd2657 carries, no stop-the-line, not blocking; its INFO N1 asked for the sync with origin/main dc7b968 (PRs #206-#209, 50 paths, none shared with this package), done here as merge 4ccfcdd. Still open: R0's integration verdict on this head.",
-    "None of review_approved, security_approved, test_verified or integration_verified is held by this handoff.",
-    "Out of this PR: the three amended_by entries (manifest open_blockers[4]) and DATA-DEC-03's remainder (open_blockers[0]), owed by their named owners."
+    "Full path (R0 ruling §6 step 3): q0-after-merge-*, r0-ruling-* and a1-gate-* are not record names, so classify-records-only.mjs rejects the PR. Owed on this PR's head: C0 (review of the transcription), Q0 (test verdict) and R0 (a short integration reading of §7's words). A1's a1-gate-2026-10-09.md stands as A1's reading under its §3 carry clause unless R0 decides an A1 run on the head is needed. Each role file is carried -x before a final handoff refresh."
   ],
-  "rollback_or_forward_fix": "Revert this increment through a reviewed revert PR: it changes only this package's manifest and adds evidence files and this handoff, all records. Withdrawing the package's 2026-09-04 work (RFC-2026-015, Approved and built on by WP-0A-DB-00) is not a free revert; it is a superseding RFC through the Product Owner with a forward fix to what depends on it (manifest rollback_or_forward_fix).",
+  "rollback_or_forward_fix": "Revert the WP-0A-A0-006 post-merge records PR for PR #202 through a reviewed revert PR: it moves the manifest back to in_review, restores open_blockers[3] to its 2026-10-07 'UPDATED … BY A0' text and drops the R0-6 entry, and removes the carried q0-after-merge, r0-ruling and a1-gate files of 2026-10-09. The DATA-DEC decisions merged in PR #202 (7fb0fc05) are not touched by such a revert.",
   "recommended_next_work_packages": [
-    "WP-0A-A0-001, WP-0A-A0-002 and WP-0A-CON-008: each records in its own ownership.amended_by the edits WP-0A-A0-006 made to its paths in 1a9f589 / 234693c (manifest open_blockers[4]).",
-    "A1: acceptance as DATA-DEC-03's co-owner, owed by RFC-2026-028's status line; not this package's to give.",
-    "A rule tying a blocker that names a decision record to that record's status, if one can be written without reading prose."
+    "C0, Q0 and R0 readings of this records PR's head (R0 ruling §6 step 3), carried -x, then a final handoff refresh.",
+    "WP-0A-A0-001, WP-0A-A0-002 and WP-0A-CON-008: each records the amended_by entry owed in open_blockers[4].",
+    "A1: acceptance as DATA-DEC-03's co-owner under RFC-2026-028's status line (open_blockers[0]); not this package's to give."
   ],
   "reviewer_instructions": [
-    "Read this branch against origin/main: one manifest modified, evidence files added under evidence/WP-0A-A0-006/, this handoff. node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-006 must exit 0.",
-    "Check that the commits after 6fd2657 are: the three cherry-picked re-check files at 6fd2657 (blob-identical to 7f7639d, c0fb862, 7619af8); cfec90a, a handoff-only refresh; 1802322, a mechanical merge of origin/main 411dfa7 (PR #205, three WP-0A-CON-004 paths); 9c18d05, a handoff-only refresh; the three cherry-picked re-checks at 9c18d05 (C0 9a46871, Q0 4fc4c63, R0 6b587f4, each one file, blob-identical to its source); 13cc35c, a mechanical merge of origin/main 4dd767d (PR #200, twelve WP-0A-A0-007 paths); 16b9bbf, a mechanical merge of origin/main 0955b32 (PR #203, WP-0A-A0-003 paths including scripts and test-kits it owns); 5c10378, a handoff-only refresh; 1045800, the cherry-picked A1 re-check (one file, blob-identical to 66a36f8); 4ccfcdd, a mechanical merge of origin/main dc7b968 (PRs #206-#209, 50 paths, none of this package's); every merge tree equals git merge-tree; and this handoff commit. Nothing else; the manifest is unchanged since 68a947d.",
-    "Re-measure on the branch NAME, not detached: node scripts/refresh-author-handoff.mjs --check exit 0, npm run check exit 0.",
-    "For the manifest corrections, the per-finding table is evidence/WP-0A-A0-006/author-closure-2026-10-07.md §2 and the step 2 mapping is author-reverify-2026-10-06.md §3."
+    "Read evidence/WP-0A-A0-006/r0-ruling-2026-10-09.md §7 and §9 and evidence/WP-0A-A0-006/a1-gate-2026-10-09.md §2 and §3 first.",
+    "Commits after the cut from origin/main d44dbdbb: 46571873, 11a4054d, 3aa2a09c (one file each, cherry-picked -x, blobs equal to source), e5efe81a (the manifest), then this handoff refresh alone.",
+    "Compare work-packages/WP-0A-A0-006.json as parsed JSON against origin/main: only status (in_review -> integration_verified) and open_blockers differ; [3] ends with 'Text as recorded: ' followed by its old text whole; [5] is R0-6 from §7 with <DATE> filled; <A1_GATE_WORD> equals A1's §2 sentence character for character; <R0_SHA> is 11a4054d.",
+    "Run node scripts/db/classify-records-only.mjs origin/main <head> (expected 1, full path) and node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-006 (expected 0)."
   ],
   "superseded_by": null
 }
