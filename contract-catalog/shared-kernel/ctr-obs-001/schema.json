@@ -72,7 +72,9 @@
         },
         "implementation_version": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 64,
+          "x-bound-note": "DECLARED INFERENCE; no baseline task states a limit. An implementation version is the version half of the Workstream 3.2 `producer` pair this object carries, so it takes 64, the bound RFC-2026-009 R-2 set for CTR-EVT-001 producer.implementation_version: a health signal must not accept a version an event envelope rejects, or the health of a build cannot be joined to that build's events. No pattern, deliberately: CTR-EVT-001 carries none, no source says this is the CTR-MOD-001 manifest version, and a semver pattern would reject SHA-only builds. It keeps a version a version rather than a container (unbounded, it accepted a 100000-character value); it is NOT a control against credential material or content pasted into it. Value ruled 2026-10-09 by A6 (/claude/a6_relay), observability co-owner, in evidence/WP-0A-CON-004/a6-countersign-2026-10-09.md §4 (open_blockers[18] of WP-0A-CON-004), and landed by A0 (/claude/a0_atlas) as Author."
         }
       },
       "x-source": "OB-003 aggregates health per MODULE and OBS-002 requires the module on every structured record. The `module_key` shape is CTR-MOD-001's, so a health signal and a module manifest name the same module; the pair module key plus implementation version is the Workstream 3.2 `producer`."
