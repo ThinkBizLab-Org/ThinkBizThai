@@ -24,7 +24,15 @@ const CATALOG = 'contract-catalog/shared-kernel';
 const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'));
 
 // The only levels the Decision Register defines. Anything else is not a status.
-const FREEZE_LEVELS = ['Draft', 'Candidate'];
+//
+// RFC-2026-031 §3.1 and §7.1 (approved 2026-10-09) admit `Frozen`, the register's `Frozen v1`,
+// written the way `Candidate v1` is written. Admitting the value moves no contract: the per-contract
+// pin below is unchanged, so a status still moves only by a pinned edit in a reviewed diff.
+//
+// A `Draft` contract cannot be pinned `Frozen` without a pinned `Candidate` step before it (RFC-2026-031
+// §4.1 (1)). The pin history is reviewed, not computed: one tree does not carry the pins it replaced,
+// so this rule is stated here and is not measured.
+const FREEZE_LEVELS = ['Draft', 'Candidate', 'Frozen'];
 
 const CATALOG_REGISTRY = {
   'ctr-api-001': {
@@ -691,10 +699,12 @@ const COMPOSES = {
   'ctr-usg-001': ["CTR-TEN-001"],
 };
 
+// `declared_gaps` is RFC-2026-031 §5.2's field (Q-031-2, approved 2026-10-09). Its shape, closed
+// lists and pins are the declared-gap tests at the end of this file.
 const MANIFEST_KEYS = [
-  'accepted_gaps', 'agreement_witnesses', 'composes', 'contract_id', 'fixtures', 'freeze_boundary',
-  'owner', 'schema', 'source_references', 'status', 'trust_boundary', 'untestable_by_fixture',
-  'untestable_by_schema', 'version',
+  'accepted_gaps', 'agreement_witnesses', 'composes', 'contract_id', 'declared_gaps', 'fixtures',
+  'freeze_boundary', 'owner', 'schema', 'source_references', 'status', 'trust_boundary',
+  'untestable_by_fixture', 'untestable_by_schema', 'version',
 ];
 
 test('a contract manifest carries no field nobody declared', async () => {
@@ -885,4 +895,287 @@ test('every root required key is enforced, and a valid example proves it by losi
   assert.deepEqual(unenforced, [], `root required key(s) a schema does not actually enforce:\n  ${unenforced.join('\n  ')}\n`);
   assert.ok(checked >= 101, `only ${checked} root required key(s) were exercised; the catalog declares at least 101. `
     + 'A drop in this number means keys left a required list without anyone saying so.');
+});
+
+// RFC-2026-031 §5 and §7.1 (approved 2026-10-09): a contract may be Frozen with open gaps only if
+// every gap is declared in its manifest under `declared_gaps`, each with an owner and the gate that
+// must close it. The Owner's words: "Frozen ได้เมื่อช่องว่างทุกข้อระบุเจ้าของ และ gate ที่ต้องปิดก่อน".
+//
+// At the head that admits this field no manifest carries it and no contract is Frozen, so the
+// tests over the real catalog below pass vacuously today. Q0 said so of the RFC (q0-review
+// -2026-10-09-pr229.md, A1): a JSON reversal that empties an owner or deletes a gap has nothing to
+// aim at until a manifest carries one, and one that inserts a gap is caught first by the pin for
+// the wrong reason. So every rule is ALSO run against synthetic manifests built in this file, and
+// each violation must be reported for its own reason (the last test of this file). The JSON
+// reversals over a real gap belong to the first increment that adds `declared_gaps` to a contract.
+const DECLARED_GAP_KEYS = ['closes_before', 'gap', 'id', 'kind', 'owner', 'source'];
+const DECLARED_GAP_KINDS = ['runtime', 'schema', 'accepted-fixture', 'decision'];
+const DECLARED_GAP_OWNERS = ['A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'Product Owner', 'Legal/PDPA adviser', 'Accountant'];
+const DECLARED_GAP_GATES = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'production-customer-data'];
+// §5.2 says "at least 80 characters". The accepted_gaps reason test it cites asserts `> 80`, one
+// more; C0 advisory A-4 on PR #229 asked the §7.1 PR to pick one and say which. This follows the
+// RFC's words: 80 passes, 79 fails, and the synthetic controls below measure both sides.
+const DECLARED_GAP_MIN_LENGTH = 80;
+const DECLARED_GAP_SOURCE_FIELDS = ['untestable_by_fixture', 'untestable_by_schema', 'freeze_boundary'];
+const BLOCKER_SOURCE = /^(WP-[0-9A-Z]+(?:-[0-9A-Z]+)+):open_blockers\[(0|[1-9][0-9]*)\]$/;
+// A Frozen contract's boundary must say what the frozen text settles. Q0 advisory A3 on PR #229: four
+// Candidates open "Candidate only;", which is as stale after a freeze as "Draft only." is.
+const STALE_BOUNDARY = /^\s*(Draft|Candidate) only\b/;
+
+const gapDigest = async (entry) => {
+  const { createHash } = await import('node:crypto');
+  return createHash('sha256').update(JSON.stringify(entry, Object.keys(entry ?? {}).sort())).digest('hex').slice(0, 16);
+};
+
+const nonEmpty = (value) => typeof value === 'string' && value.trim().length > 0;
+
+// Pure: a manifest in, the problems out. `blockerExists(wp, n)` answers whether `WP-…:open_blockers[n]`
+// exists, so the synthetic controls can run without touching a work package.
+function declaredGapProblems(dir, manifest, blockerExists) {
+  const gaps = manifest.declared_gaps;
+  if (gaps === undefined) return [];
+  if (!Array.isArray(gaps)) return [`${dir}.declared_gaps is not an array`];
+  const problems = [];
+  const letters = String(manifest.contract_id ?? '').slice(4, 7);
+  const idShape = new RegExp(`^${letters}-GAP-[0-9]{2}$`);
+  const seen = new Set();
+  gaps.forEach((entry, at) => {
+    const where = `${dir}.declared_gaps[${at}]`;
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+      problems.push(`${where} is not an object`);
+      return;
+    }
+    const keys = Object.keys(entry).sort();
+    if (JSON.stringify(keys) !== JSON.stringify(DECLARED_GAP_KEYS)) {
+      problems.push(`${where} has keys ${JSON.stringify(keys)}; a declared gap has exactly ${JSON.stringify(DECLARED_GAP_KEYS)}`);
+    }
+    if (typeof entry.id !== 'string' || !idShape.test(entry.id)) {
+      problems.push(`${where} id ${JSON.stringify(entry.id)} is not ${letters}-GAP-<nn>`);
+    } else if (seen.has(entry.id)) {
+      problems.push(`${where} id ${entry.id} is used twice`);
+    }
+    seen.add(entry.id);
+    if (!DECLARED_GAP_KINDS.includes(entry.kind)) {
+      problems.push(`${where} kind ${JSON.stringify(entry.kind)} is not one of ${DECLARED_GAP_KINDS.join(', ')}`);
+    }
+    if (!DECLARED_GAP_OWNERS.includes(entry.owner)) {
+      problems.push(`${where} owner ${JSON.stringify(entry.owner)} is not one of the closed list; a gap nobody owns is not declared`);
+    }
+    if (!DECLARED_GAP_GATES.includes(entry.closes_before)) {
+      problems.push(`${where} closes_before ${JSON.stringify(entry.closes_before)} is not one of ${DECLARED_GAP_GATES.join(', ')}`);
+    }
+    if (typeof entry.gap !== 'string' || entry.gap.trim().length < DECLARED_GAP_MIN_LENGTH) {
+      problems.push(`${where} gap is ${typeof entry.gap === 'string' ? entry.gap.trim().length : 'not a string'}; it says what is unresolved in at least ${DECLARED_GAP_MIN_LENGTH} characters`);
+    }
+    const source = entry.source;
+    const blocker = typeof source === 'string' ? BLOCKER_SOURCE.exec(source) : null;
+    const resolves = typeof source === 'string' && (
+      (DECLARED_GAP_SOURCE_FIELDS.includes(source) && nonEmpty(manifest[source]))
+      || (manifest.accepted_gaps !== null && typeof manifest.accepted_gaps === 'object'
+        && Object.hasOwn(manifest.accepted_gaps, source))
+      || (blocker !== null && blockerExists(blocker[1], Number(blocker[2]))));
+    if (!resolves) problems.push(`${where} source ${JSON.stringify(source)} resolves to nothing`);
+  });
+  return problems;
+}
+
+// Pure: what RFC-2026-031 §5.2's coverage rule and §7.1 require of a manifest whose status is Frozen.
+function frozenProblems(dir, manifest, indexEntry) {
+  if (manifest.status !== 'Frozen') return [];
+  const problems = [];
+  const gaps = manifest.declared_gaps;
+  if (!Array.isArray(gaps)) {
+    problems.push(`${dir} is Frozen and has no declared_gaps; a gap that is not declared blocks the freeze`);
+  }
+  const sources = new Set((Array.isArray(gaps) ? gaps : []).map((entry) => entry?.source));
+  const accepted = manifest.accepted_gaps !== null && typeof manifest.accepted_gaps === 'object' ? Object.keys(manifest.accepted_gaps) : [];
+  for (const key of accepted) {
+    if (!sources.has(key)) problems.push(`${dir} is Frozen and its accepted gap "${key}" is the source of no declared gap`);
+  }
+  for (const field of ['untestable_by_fixture', 'untestable_by_schema']) {
+    if (nonEmpty(manifest[field]) && !sources.has(field)) {
+      problems.push(`${dir} is Frozen and its ${field} is the source of no declared gap`);
+    }
+  }
+  if (typeof manifest.freeze_boundary !== 'string' || STALE_BOUNDARY.test(manifest.freeze_boundary)) {
+    problems.push(`${dir} is Frozen and its freeze_boundary still opens ${JSON.stringify(String(manifest.freeze_boundary).slice(0, 16))}; restate what the frozen contract settles`);
+  }
+  if (indexEntry?.status !== 'Frozen') {
+    problems.push(`${dir} is Frozen and its index entry reads ${JSON.stringify(indexEntry?.status)}`);
+  }
+  return problems;
+}
+
+// Both directions, as ACCEPTED_GAP_DIGESTS: a declared gap cannot be added, dropped or reworded
+// without an edit here. Closing a gap (§5.4) removes its entry from the manifest and moves its id
+// from DECLARED_GAP_DIGESTS to RETIRED_DECLARED_GAP_IDS in the same commit, with the closing
+// evidence cited. §5.2 says an id is "never reused": the retired list is what makes that
+// measurable from one tree (Q0 advisory A6 on PR #229). A retired id that reappears fails here.
+async function declaredGapPinProblems(dir, manifest, pins, retired) {
+  const problems = [];
+  const gaps = Array.isArray(manifest.declared_gaps) ? manifest.declared_gaps : [];
+  const pinned = pins[dir] ?? {};
+  const present = new Set();
+  for (const entry of gaps) {
+    const id = entry?.id;
+    present.add(id);
+    if ((retired[dir] ?? []).includes(id)) {
+      problems.push(`${dir} reuses the retired gap id ${id}; an id is never reused`);
+      continue;
+    }
+    const expected = pinned[id];
+    if (expected === undefined) {
+      problems.push(`${dir} declares a gap ${JSON.stringify(id)} that is pinned by nothing; a new declaration belongs in a reviewed diff`);
+      continue;
+    }
+    const found = await gapDigest(entry);
+    if (found !== expected) problems.push(`${dir} rewrote the declared gap ${id} — digest ${expected} became ${found}`);
+  }
+  for (const id of Object.keys(pinned)) {
+    if (!present.has(id)) {
+      problems.push(`${dir} dropped the declared gap ${id}; closing one moves its id to RETIRED_DECLARED_GAP_IDS with its evidence cited`);
+    }
+  }
+  return problems;
+}
+
+// No contract declares a gap at this head. The first freeze increment that adds `declared_gaps` to a
+// manifest adds its digests here, in the same commit (RFC-2026-031 §4.5, the registry pin).
+const DECLARED_GAP_DIGESTS = {};
+const RETIRED_DECLARED_GAP_IDS = {};
+
+const workPackageBlockers = new Map();
+async function blockerExistsOnDisk(wp, n) {
+  if (!workPackageBlockers.has(wp)) {
+    const blockers = await readJson(join('work-packages', `${wp}.json`)).then((m) => m.open_blockers).catch(() => null);
+    workPackageBlockers.set(wp, Array.isArray(blockers) ? blockers.length : -1);
+  }
+  return n < workPackageBlockers.get(wp);
+}
+
+async function resolvedBlockers(manifest) {
+  const known = new Set();
+  for (const entry of Array.isArray(manifest.declared_gaps) ? manifest.declared_gaps : []) {
+    const match = typeof entry?.source === 'string' ? BLOCKER_SOURCE.exec(entry.source) : null;
+    if (match && await blockerExistsOnDisk(match[1], Number(match[2]))) known.add(`${match[1]}:${match[2]}`);
+  }
+  return (wp, n) => known.has(`${wp}:${n}`);
+}
+
+test('a declared gap names its owner and the gate that closes it', async () => {
+  const wrong = [];
+  for (const dir of Object.keys(CATALOG_REGISTRY)) {
+    const manifest = await readJson(join(CATALOG, dir, 'manifest.json'));
+    wrong.push(...declaredGapProblems(dir, manifest, await resolvedBlockers(manifest)));
+  }
+  assert.deepEqual(wrong, [], `declared gap(s) that do not say who closes them and before which gate:\n  ${wrong.join('\n  ')}`);
+});
+
+test('a declared gap cannot be dropped, reworded or reused without a reviewed edit', async () => {
+  const wrong = [];
+  for (const dir of Object.keys(CATALOG_REGISTRY)) {
+    const manifest = await readJson(join(CATALOG, dir, 'manifest.json'));
+    wrong.push(...await declaredGapPinProblems(dir, manifest, DECLARED_GAP_DIGESTS, RETIRED_DECLARED_GAP_IDS));
+  }
+  for (const dir of Object.keys(DECLARED_GAP_DIGESTS)) {
+    if (CATALOG_REGISTRY[dir] === undefined) wrong.push(`${dir} has pinned declared gaps and is not in the registry`);
+  }
+  assert.deepEqual(wrong, [], `declared gap(s) that changed without being written down:\n  ${wrong.join('\n  ')}`);
+});
+
+test('a Frozen contract declares every gap and no longer reads Draft only', async () => {
+  const index = await readJson(join(CATALOG, 'index.json'));
+  const entries = new Map((index.contracts ?? []).map((entry) => [entry.id, entry]));
+  const wrong = [];
+  for (const dir of Object.keys(CATALOG_REGISTRY)) {
+    const manifest = await readJson(join(CATALOG, dir, 'manifest.json'));
+    wrong.push(...frozenProblems(dir, manifest, entries.get(manifest.contract_id)));
+  }
+  assert.deepEqual(wrong, [], `Frozen contract(s) that do not meet RFC-2026-031 §5.2 and §7.1:\n  ${wrong.join('\n  ')}`);
+});
+
+// The measurement Q0 asked for (q0-review-2026-10-09-pr229.md, A1). A valid synthetic Frozen
+// contract must pass every rule, and each single violation of it must be reported for its own
+// reason. `test-kits/ratchets-bite.test.mjs` reverses these rules in this file's source and
+// requires this test to notice.
+test('the declared-gap and Frozen rules each reject a synthetic violation', async () => {
+  const clone = (value) => JSON.parse(JSON.stringify(value));
+  const gap = (n, overrides = {}) => ({
+    id: `ZZZ-GAP-0${n}`,
+    kind: 'runtime',
+    gap: 'A synthetic gap for this test alone: a behaviour no fixture of the synthetic contract can show, stated at length.',
+    owner: 'A0',
+    closes_before: 'G1',
+    source: 'untestable_by_fixture',
+    ...overrides,
+  });
+  const valid = {
+    contract_id: 'CTR-ZZZ-001',
+    status: 'Frozen',
+    freeze_boundary: 'Frozen v1. Settles the synthetic envelope and nothing about the runtime behaviour its gaps declare.',
+    untestable_by_fixture: 'A synthetic caveat this test declares and covers.',
+    untestable_by_schema: 'A second synthetic caveat this test declares and covers.',
+    accepted_gaps: { 'examples/accepted-gap-synthetic.json': { reason: 'synthetic' } },
+    declared_gaps: [
+      gap(1),
+      gap(2, { kind: 'schema', source: 'untestable_by_schema', owner: 'Legal/PDPA adviser', closes_before: 'production-customer-data' }),
+      gap(3, { kind: 'accepted-fixture', source: 'examples/accepted-gap-synthetic.json', owner: 'A6' }),
+      gap(4, { kind: 'decision', source: 'WP-0A-ZZZ-001:open_blockers[2]', owner: 'Product Owner', closes_before: 'G2' }),
+    ],
+  };
+  const blockers = (wp, n) => wp === 'WP-0A-ZZZ-001' && n === 2;
+  const frozenEntry = { id: 'CTR-ZZZ-001', status: 'Frozen' };
+  const pins = { 'ctr-zzz-001': {} };
+  for (const entry of valid.declared_gaps) pins['ctr-zzz-001'][entry.id] = await gapDigest(entry);
+  const retired = { 'ctr-zzz-001': ['ZZZ-GAP-09'] };
+  const all = async (manifest, entry = frozenEntry) => [
+    ...declaredGapProblems('ctr-zzz-001', manifest, blockers),
+    ...frozenProblems('ctr-zzz-001', manifest, entry),
+    ...await declaredGapPinProblems('ctr-zzz-001', manifest, pins, retired),
+  ];
+
+  // The negative control: the valid synthetic contract passes, and 80 characters is enough.
+  assert.deepEqual(await all(valid), [], 'the valid synthetic contract must pass every rule, or no violation below proves anything');
+  const exactly80 = clone(valid);
+  exactly80.declared_gaps[0].gap = 'x'.repeat(DECLARED_GAP_MIN_LENGTH);
+  assert.deepEqual(declaredGapProblems('ctr-zzz-001', exactly80, blockers), [], 'a gap of exactly 80 characters meets "at least 80"');
+  assert.ok(FREEZE_LEVELS.includes('Frozen') && !FREEZE_LEVELS.includes('Released'), 'Frozen is a level, Released is not');
+
+  const violations = [
+    ['an owner emptied', (m) => { m.declared_gaps[0].owner = ''; }, /owner "" is not one of the closed list/],
+    ['an owner outside the closed list', (m) => { m.declared_gaps[0].owner = 'A7'; }, /owner "A7" is not one of the closed list/],
+    ['closes_before outside the list', (m) => { m.declared_gaps[0].closes_before = 'G0'; }, /closes_before "G0" is not one of/],
+    ['a kind outside the list', (m) => { m.declared_gaps[0].kind = 'other'; }, /kind "other" is not one of/],
+    ['a gap of 79 characters', (m) => { m.declared_gaps[0].gap = 'x'.repeat(DECLARED_GAP_MIN_LENGTH - 1); }, /gap is 79; it says what is unresolved/],
+    ['an extra key', (m) => { m.declared_gaps[0].note = 'extra'; }, /has keys .* a declared gap has exactly/],
+    ['a missing key', (m) => { delete m.declared_gaps[0].closes_before; }, /has keys .* a declared gap has exactly/],
+    ['an id of another contract', (m) => { m.declared_gaps[0].id = 'SEC-GAP-01'; }, /id "SEC-GAP-01" is not ZZZ-GAP-<nn>/],
+    ['an id used twice', (m) => { m.declared_gaps[1].id = 'ZZZ-GAP-01'; }, /id ZZZ-GAP-01 is used twice/],
+    ['a source naming no field', (m) => { m.declared_gaps[0].source = 'trust_boundary'; }, /source "trust_boundary" resolves to nothing/],
+    ['a source naming an open blocker that does not exist', (m) => { m.declared_gaps[3].source = 'WP-0A-ZZZ-001:open_blockers[3]'; }, /source "WP-0A-ZZZ-001:open_blockers\[3\]" resolves to nothing/],
+    ['declared_gaps not an array', (m) => { m.declared_gaps = {}; }, /declared_gaps is not an array/],
+    ['one gap deleted', (m) => { m.declared_gaps.splice(0, 1); }, /dropped the declared gap ZZZ-GAP-01/],
+    ['one gap reworded', (m) => { m.declared_gaps[0].gap += ' Reworded.'; }, /rewrote the declared gap ZZZ-GAP-01/],
+    ['one gap added unpinned', (m) => { m.declared_gaps.push(gap(5)); }, /declares a gap "ZZZ-GAP-05" that is pinned by nothing/],
+    ['a retired id reused', (m) => { m.declared_gaps.push(gap(9)); }, /reuses the retired gap id ZZZ-GAP-09/],
+    ['Frozen with no declared_gaps', (m) => { delete m.declared_gaps; }, /is Frozen and has no declared_gaps/],
+    ['an accepted gap left undeclared', (m) => { m.declared_gaps.splice(2, 1); }, /accepted gap "examples\/accepted-gap-synthetic.json" is the source of no declared gap/],
+    ['untestable_by_schema left undeclared', (m) => { m.declared_gaps.splice(1, 1); }, /untestable_by_schema is the source of no declared gap/],
+    ['untestable_by_fixture left undeclared', (m) => { m.declared_gaps.splice(0, 1); }, /untestable_by_fixture is the source of no declared gap/],
+    ['a boundary that still opens "Draft only."', (m) => { m.freeze_boundary = 'Draft only. Materializes the synthetic envelope.'; }, /freeze_boundary still opens/],
+    ['a boundary that still opens "Candidate only;"', (m) => { m.freeze_boundary = 'Candidate only; the synthetic envelope.'; }, /freeze_boundary still opens/],
+  ];
+  for (const [description, mutate, expected] of violations) {
+    const manifest = clone(valid);
+    mutate(manifest);
+    const found = await all(manifest);
+    assert.ok(found.some((problem) => expected.test(problem)), `${description} must be reported for its own reason; got ${JSON.stringify(found)}`);
+  }
+  const notInIndex = await all(clone(valid), { id: 'CTR-ZZZ-001', status: 'Candidate' });
+  assert.ok(notInIndex.some((problem) => /its index entry reads "Candidate"/.test(problem)), 'a Frozen manifest whose index entry is not Frozen must be reported');
+  const candidate = clone(valid);
+  candidate.status = 'Candidate';
+  candidate.freeze_boundary = 'Candidate only; the synthetic envelope.';
+  delete candidate.declared_gaps;
+  assert.deepEqual(frozenProblems('ctr-zzz-001', candidate, { status: 'Candidate' }), [], 'the Frozen rule binds a Frozen contract only');
 });

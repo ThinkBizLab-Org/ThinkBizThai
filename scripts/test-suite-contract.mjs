@@ -75,7 +75,9 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/ci-guard-behaviour.test.mjs': 17,
   'test-kits/contracts/catalog-groups.test.mjs': 7,
   'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
-  'test-kits/contracts/catalog-registry.test.mjs': 15,
+  // RFC-2026-031 §7.1 (WP-0A-CON-008, 2026-10-09): four tests, the three declared-gap rules over the
+  // catalog and their synthetic controls, 15 to 19.
+  'test-kits/contracts/catalog-registry.test.mjs': 19,
 // The post-migrate assertion pass (2026-09-27) added three tests to foundation-contract: the
 // wiring, the coverage of every do-block, and the refusals. 63 to 66. Q0's F1 on that head added a
 // fourth, the verdict driven by synthetic outcomes: 66 to 67. The catalog-rule probes added one
@@ -121,7 +123,8 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/handoff-conformance.test.mjs': 19,
   'test-kits/integrity-manifest-rebuild.test.mjs': 3,
   'test-kits/protocol-schema-conformance.test.mjs': 4,
-  'test-kits/ratchets-bite.test.mjs': 19,
+  // RFC-2026-031 §7.1: the declared-gap rules reversed in their source, 19 to 20.
+  'test-kits/ratchets-bite.test.mjs': 20,
   'test-kits/repository-json.test.mjs': 8,
   'test-kits/role-separation.test.mjs': 8,
   'test-kits/secret-scan.test.mjs': 59,
@@ -156,7 +159,8 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/ci-guard-behaviour.test.mjs': 33,
   'test-kits/contracts/catalog-groups.test.mjs': 9,
   'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
-  'test-kits/contracts/catalog-registry.test.mjs': 19,
+  // RFC-2026-031 §7.1 (WP-0A-CON-008, 2026-10-09): 19 to 28 with the declared-gap tests, the guard's own count.
+  'test-kits/contracts/catalog-registry.test.mjs': 28,
 // The same tests moved the assertion floor with them, 258 to 276, and the corrections after the
 // three role runs to 288: the count the guard's own regex reads, not one taken by hand. Batch 121's lesson from C0 is that a floor that stays put
 // while assertion-bearing tests are added has stopped meaning anything.
@@ -334,7 +338,9 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/ci-guard-behaviour.test.mjs': 'cc42f80046d803e9',
   'test-kits/contracts/catalog-groups.test.mjs': '401597be61929abb',
   'test-kits/contracts/catalog-reference-integrity.test.mjs': '9753730c2bab68ba',
-  'test-kits/contracts/catalog-registry.test.mjs': '795d5f06ff14da33',
+  // RFC-2026-031 §7.1 (WP-0A-CON-008, 2026-10-09): catalog-registry gains the three declared-gap rules and
+  // their synthetic controls, ratchets-bite gains the declared-gap source probe; both name digests move.
+  'test-kits/contracts/catalog-registry.test.mjs': '3d1dcf350522f125',
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 'd1304414d53dccd7',
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': '6675342a26c7bc01',
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 'd84ed15beca0a546',
@@ -344,7 +350,7 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/handoff-conformance.test.mjs': 'aae5740519f84c40',
   'test-kits/integrity-manifest-rebuild.test.mjs': '91b24d70c4ac8fcb',
   'test-kits/protocol-schema-conformance.test.mjs': 'dc9a77399529cead',
-  'test-kits/ratchets-bite.test.mjs': '7308ec4c18729af9',
+  'test-kits/ratchets-bite.test.mjs': '319ac851dad85691',
   'test-kits/repository-json.test.mjs': '7e434c46d2b5cd7a',
   'test-kits/role-separation.test.mjs': '00a4c859fecdbbae',
   'test-kits/secret-scan.test.mjs': '29224e8a816a48e5',

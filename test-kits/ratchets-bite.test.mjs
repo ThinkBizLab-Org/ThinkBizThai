@@ -308,8 +308,12 @@ test('the registry ratchet notices a reversal in every contract it pins', async 
   const reversals = [];
   for (const contract of contracts) {
     const manifestPath = `contract-catalog/shared-kernel/${contract}/manifest.json`;
-    reversals.push([`${contract} promoted out of its freeze level`, manifestPath,
-      (m) => { m.status = 'Frozen'; }]);
+    // 'Released', not 'Frozen'. RFC-2026-031 §7.1 (2) admits 'Frozen', and once a contract is pinned
+    // Frozen a reversal that sets 'Frozen' is a no-op for it -- "aimed at something that was not a
+    // change", below. A value outside the register's vocabulary is a change for every contract
+    // whatever its pinned level.
+    reversals.push([`${contract} moved to a freeze level the register does not define`, manifestPath,
+      (m) => { m.status = 'Released'; }]);
     // `owner = 'A0'` was my first version and it is a no-op for the contracts A0 already owns --
     // the case failed on `ctr-api-001` for that reason, which is the fifth time a reversal here
     // has been aimed at something that was not a change. A value no contract can legitimately
@@ -323,6 +327,38 @@ test('the registry ratchet notices a reversal in every contract it pins', async 
     (m) => { m.untestable_by_fixture = 'Every claim this contract makes is demonstrated by its fixtures.'; }]);
 
   await mustNotice('test-kits/contracts/catalog-registry.test.mjs', reversals);
+});
+
+// RFC-2026-031 §7.1 asks for declared-gap reversals "each measured". At the head that admits
+// `declared_gaps` no manifest carries one, so a JSON reversal that empties an owner or deletes a gap
+// has nothing to aim at (Q0 advisory A1 on PR #229). The rules are measured here instead, the way
+// the scanner and the guards are: reverse the rule in the suite's own source, and require the
+// suite's synthetic controls to notice. The JSON reversals over a real gap -- an owner emptied, a
+// closes_before outside the list, one gap deleted -- belong to the first increment that adds
+// `declared_gaps` to a contract.
+test('the declared-gap ratchet notices each rule reversed in its source', async () => {
+  await mustNoticeSourceEdit('test-kits/contracts/catalog-registry.test.mjs', [
+    ['a declared gap may have any owner, or none',
+      'test-kits/contracts/catalog-registry.test.mjs',
+      'if (!DECLARED_GAP_OWNERS.includes(entry.owner)) {',
+      'if (false) {'],
+    ['a declared gap may close before any gate, or none',
+      'test-kits/contracts/catalog-registry.test.mjs',
+      'if (!DECLARED_GAP_GATES.includes(entry.closes_before)) {',
+      'if (false) {'],
+    ['a Frozen contract may keep an accepted gap undeclared',
+      'test-kits/contracts/catalog-registry.test.mjs',
+      'if (!sources.has(key)) problems.push',
+      'if (false) problems.push'],
+    ['a declared gap may be deleted without a pinned edit',
+      'test-kits/contracts/catalog-registry.test.mjs',
+      'if (!present.has(id)) {',
+      'if (false) {'],
+    ['a Frozen boundary may still open "Candidate only;"',
+      'test-kits/contracts/catalog-registry.test.mjs',
+      'const STALE_BOUNDARY = /^\\s*(Draft|Candidate) only\\b/;',
+      'const STALE_BOUNDARY = /^\\s*Draft only\\b/;'],
+  ]);
 });
 
 test('the catalog-group ratchet notices three unrelated reversals', async () => {
@@ -358,8 +394,11 @@ test('the envelope ratchet notices three unrelated reversals', async () => {
 
 test('the catalog ratchet notices two unrelated reversals', async () => {
   await mustNotice('test-kits/contracts/shared-kernel-contract-catalog.test.mjs', [
-    ['a Candidate contract promoted to a level the register does not define', 'contract-catalog/shared-kernel/index.json',
-      (i) => { for (const e of i.contracts) if (e.status === 'Candidate') { e.status = 'Frozen'; break; } }],
+    // A NAMED contract and a value outside the vocabulary (RFC-2026-031 §7.1 (2); Q0 advisory A2 on
+    // PR #229). "The first Candidate" runs dry once none is left, and 'Frozen' is a level now: either
+    // would turn this reversal into a no-op, and `mustNotice` then fails for the wrong reason.
+    ['a named contract moved to a level the register does not define', 'contract-catalog/shared-kernel/index.json',
+      (i) => { for (const e of i.contracts) if (e.id === 'CTR-ERR-001') e.status = 'Released'; }],
     // A Draft counted as Candidate is the promotion that must never happen by drift. Five
     // contracts are Draft precisely because their co-owners have not signed, so this reversal
     // now names one of them rather than taking whichever came first.
