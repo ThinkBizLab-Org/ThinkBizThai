@@ -5,12 +5,14 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "a4eed0e8d6f01fa341c3314052d14695bbdc59e7",
-  "head_revision_or_patch_checksum": "27a24c270755fc6d901bc10bcfddbaacb6ed5d41",
+  "head_revision_or_patch_checksum": "75c44e019616e3adb249e07b577d5a5d3f541513",
   "task_ids": [],
   "files_added": [
-    "architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md"
+    "architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md",
+    "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md"
   ],
   "files_modified": [
+    "handoffs/WP-0A-CON-004-author-handoff.json",
     "scripts/verify-test-coverage-floor.mjs",
     "test-kits/integrity-manifest.json",
     "test-kits/repository-json.test.mjs",
@@ -36,35 +38,30 @@
   ],
   "assumptions": [
     "Gate G0 remains Specification Baseline Complete / External Verification Pending. Nothing in this increment authorizes production schema, migration, provider call or a G0 item.",
-    "This is a governance increment of WP-0A-CON-004 on agent/claude/WP-0A-CON-004-security-audit-observability-2026-10-09, fast-forwarded to origin/main a4eed0e8 (PR #235). It adds architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md (status Proposed), the §4c RFC that open_blockers[0] carries as OWED, and registers it.",
-    "CTR-SEC-001 and CTR-MOD-001 are both Candidate at a4eed0e8 (index.json); CTR-SEC-001 handle carries maxLength 128 and CTR-MOD-001 secret_handles.items carries none, both with the pattern ^secret:[a-z0-9._-]+$.",
-    "F5 is taken as disclosed and answered on the Owner's words already on main: `ยังใช้ได้ RFC ตามมา (Recommended)` (evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-candidate-sec-aud-obs-usg.md §2, question 1)."
+    "This increment continues PR #236 on agent/claude/WP-0A-CON-004-security-audit-observability-2026-10-09 from 2e1ca571 (RFC text at 27a24c27, branched from origin/main a4eed0e8). It records the Owner's answers to RFC-2026-032 §9 and nothing else.",
+    "The Owner answered in one multiple-choice call on 2026-10-09 (asked 13:48:23Z, answered 14:46:47Z). The questions were A0's Thai summaries of Q-032-1 to Q-032-4, with Q-032-3 and Q-032-4 put as one question; evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md transcribes them, their options and the answers verbatim, generated from the tool call and checked byte for byte.",
+    "CTR-SEC-001 and CTR-MOD-001 are both Candidate at a4eed0e8; their schemas are unchanged by this increment."
   ],
   "acceptance_results": [
     {
-      "criterion": "The RFC makes CTR-SEC-001 normative for the handle syntax and states how CTR-MOD-001 references it.",
+      "criterion": "The Owner's answers to RFC-2026-032 §9 are transcribed verbatim, with the questions' nature (A0's Thai summaries of §9) stated.",
       "result": "pass",
-      "evidence": "architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md §3, §4 (pinned byte-equal copy, not a $ref, with the measured reasons)"
+      "evidence": "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md §1, §2"
     },
     {
-      "criterion": "The RFC states how equal accept sets are shown by probe.",
+      "criterion": "The RFC's status line cites the disposition, and §9 keeps its questions and gains an answers block.",
       "result": "pass",
-      "evidence": "architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md §5: keyword identity by pinned digest, equal document-level verdicts over A1's Probe 2 and 4 corpus and the length boundary, expected verdicts pinned"
+      "evidence": "architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md status line and §9 \"The Owner's answers (appended 2026-10-09)\"; the text otherwise equals 27a24c27"
     },
     {
-      "criterion": "The RFC records F5 as disclosed and answered, classifies each contract edit under RFC-2026-031 §3.3 and lists the contract-file changes as owed by a later increment.",
+      "criterion": "The RFC's integrity digest is regenerated and only that digest moves.",
       "result": "pass",
-      "evidence": "architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md §2, §7, §8"
+      "evidence": "npm run -s regenerate:manifest; git diff of test-kits/integrity-manifest.json is one line, the RFC-2026-032 entry"
     },
     {
-      "criterion": "The RFC carries Questions for the Owner, each with A0's recommendation.",
+      "criterion": "The answers are recorded on the manifest without moving status.",
       "result": "pass",
-      "evidence": "architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md §9, Q-032-1 to Q-032-4"
-    },
-    {
-      "criterion": "The RFC is registered as a decision record and digested.",
-      "result": "pass",
-      "evidence": "test-kits/repository-json.test.mjs DECISION_RECORDS, scripts/verify-test-coverage-floor.mjs DIGESTED_FLOOR, test-kits/integrity-manifest.json"
+      "evidence": "work-packages/WP-0A-CON-004.json open_blockers, last entry (append only); status stays in_review"
     }
   ],
   "tests": [
@@ -75,34 +72,27 @@
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
-      "command": "node --test test-kits/repository-json.test.mjs test-kits/test-coverage-floor.test.mjs test-kits/integrity-manifest-rebuild.test.mjs",
+      "command": "npm run -s regenerate:manifest",
       "exit_code": 0,
-      "result": "54/54 with RFC-2026-032 in DECISION_RECORDS, DIGESTED_FLOOR and the integrity manifest",
-      "toolchain": "node v24.20.0 / npm 11.19.0"
-    },
-    {
-      "command": "npm run -s scan:secrets",
-      "exit_code": 0,
-      "result": "no finding; the RFC quotes no credential-shaped literal",
+      "result": "rebuilt 110 digests; only the RFC-2026-032 digest changed",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
-  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. Documentation only: one RFC (Proposed) and its registration. No contract, fixture, test, credential, provider call, migration or customer-data effect. The RFC keeps A1 C1 (the handle pattern is not a security control) and routes A1 C2 (issuance format) without specifying it. Cost impact none.",
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. Documentation only: one Owner disposition, the RFC's status line and appended answers, and one manifest entry. No contract, fixture, test, credential, provider call, migration or customer-data effect. The answers fix CTR-MOD-001 gaining maxLength 128 (a narrowing) rather than widening CTR-SEC-001, so the security contract's bound stays as signed. Cost impact none.",
   "migration_and_data_impact": "None. No migration, database object or persisted data is touched; Gate G0 forbids them.",
-  "compatibility_impact": "Additive. No contract schema, fixture or status changes, so no accepted set moves. The RFC classifies the edits it proposes for a later increment: CTR-MOD-001 secret_handles.items gaining maxLength 128 is breaking by RFC-2026-031 §3.3's definition (it narrows) though not bound by it at Candidate, and rejects no shipped fixture; the CTR-SEC-001 and CTR-MOD-001 x-source rewrites are not breaking.",
+  "compatibility_impact": "Additive. No contract schema, fixture or status changes in this increment, so no accepted set moves. The Owner's Q-032-2 answer selects the RFC §7 narrowing of CTR-MOD-001 (maxLength 128, rejecting no shipped fixture) for the later §8 increment; that increment carries the compatibility change and its own round.",
   "known_limitations": [
-    "The RFC is Proposed. Nothing in its §3 to §8 binds until the Owner answers Q-032-1 to Q-032-4 and the answers are transcribed on this branch.",
-    "The contract and test edits of RFC-2026-032 §8 are not made here. open_blockers[0] stays OPEN until that later increment merges with the §5 test green; at a4eed0e8 that test would fail on the 129-, 200- and 407-character handles, which is the divergence it measures.",
-    "A1's handle issuance format (C2) is not specified; the RFC fixes only its route (§6, Q-032-3). accepted-gap-structureless-handle-body.json stays.",
+    "The §8 contract, fixture and test edits of RFC-2026-032 are not made here. open_blockers[0] stays OPEN until that later increment merges with the §5 test green.",
+    "A1's handle issuance format (C2) is not specified; the Owner's answer fixes only its route (an amendment to RFC-2026-032 §6). open_blockers[1] and accepted-gap-structureless-handle-body.json stay.",
     "The amendments to test-kits/repository-json.test.mjs (WP-0A-A0-001), scripts/verify-test-coverage-floor.mjs and test-kits/integrity-manifest.json (WP-0A-A0-002) are owed a record on those owners' manifests by their next PRs."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H (governance: an RFC). No role has run on this increment; C0, A1, Q0 and R0 are owed, and A1 reads it as the CTR-SEC-001 co-owner whose §4(c) condition it answers.",
-    "Presser basis, NOT YET ON main: on 2026-10-09 the Owner answered `ให้ A0 กดทั้ง 3 (Recommended)` for three governance PRs, this RFC among them. It is being transcribed in evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md on a parallel PR. Until that file is on main, no one may cite it as the basis to press this PR, and A0 does not press it (RFC-2026-025 §5 item 6).",
-    "The Owner's answers to Q-032-1 to Q-032-4 are owed and must be transcribed verbatim on this branch before the merge; the roles re-read that head.",
-    "If the Owner chooses the alternative of Q-032-2 (remove CTR-SEC-001's maxLength instead), §7 and §8 must be rewritten before the merge: that edit widens a security contract A1 signed at Candidate and needs A1's signature."
+    "The Owner answered RFC-2026-032 §9 on 2026-10-09: Q-032-1 `อนุมัติ (Recommended)`, Q-032-2 `MOD จำกัด 128 ด้วย (Recommended)`, Q-032-3 and Q-032-4 `รับทั้งสอง (Recommended)`, transcribed in evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md.",
+    "Full path, tier H (governance: an RFC). No role has run on the head carrying these answers; C0, A1, Q0 and R0 are owed on it, and A1 reads it as the CTR-SEC-001 co-owner whose §4(c) condition it answers.",
+    "Presser basis, NOT YET ON main: the Owner's 2026-10-09 answer `ให้ A0 กดทั้ง 3 (Recommended)` for three governance PRs, this one among them, is transcribed in evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md on PR #237. Until that file is on main, A0 does not press PR #236 (RFC-2026-025 §5 item 6).",
+    "Before pressing, the head must contain current main and CI must be green on it."
   ],
-  "rollback_or_forward_fix": "WP-0A-CON-004 RFC-2026-032 governance increment of 2026-10-09: revert through a reviewed revert PR that deletes architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md, removes its line from DECISION_RECORDS in test-kits/repository-json.test.mjs and from DIGESTED_FLOOR in scripts/verify-test-coverage-floor.mjs, regenerates test-kits/integrity-manifest.json, and drops the RFC path and the appended scope, inputs, outputs, required_human_authorities and open_blockers entries from this manifest. Once the RFC is Approved, a revert needs the Owner's word; a correction is an amendment. No contract, fixture, persisted data or provider state is involved.",
+  "rollback_or_forward_fix": "WP-0A-CON-004 RFC-2026-032 Owner-answers increment of 2026-10-09: before the merge, revert commit-by-commit on this branch (delete evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md, restore the RFC's Proposed status line and drop §9's appended answers block, regenerate test-kits/integrity-manifest.json, drop the last open_blockers entry). After the merge the Owner's answers stand; a wrong transcription is fixed forward by a correcting disposition against the session transcript, and changing an answer needs the Owner's word and an amendment. No contract, fixture, persisted data or provider state is involved.",
   "recommended_next_work_packages": [
     "WP-0A-CON-004",
     "WP-0A-CON-003",
@@ -111,11 +101,12 @@
     "WP-0A-A0-001"
   ],
   "reviewer_instructions": [
-    "Read architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md in full; it is short. Then A1's security-disposition-handle-ownership-a1.md §4 and §5 and a1-sec-candidate-signature-2026-10-09.md §4 and §6 F-1, F-2.",
-    "Check §1 and §7 against main a4eed0e8: the two schemas' handle constraints; that only ctr-mod-001 and ctr-sec-001 carry secret: values; the longest valid one is 49 characters.",
-    "Check §4's reasons against test-kits/contracts/catalog-reference-integrity.test.mjs (basename(target) === schema.json) and the whole-file resolver in catalog-registry.test.mjs.",
-    "Check that the F5 quote in §2 and the presser quote match their sources byte for byte, and that the presser source is described as NOT YET ON main.",
-    "C0: confirm or correct the breaking-change classification of §7 in writing (RFC-2026-031 §3.3).",
+    "Read evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md; check that its §2 quotes are the questions, options and answers of one multiple-choice call (the Author has the session transcript; a reader on main sees the quotes and times).",
+    "Check that each §2 question summarises the matching §9 question of architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md as committed at 27a24c27, and that Q-032-3 and Q-032-4 are put as one.",
+    "git diff 2e1ca571..HEAD -- architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md: only the status line and the appended answers block change.",
+    "git diff 2e1ca571..HEAD -- test-kits/integrity-manifest.json: one line, the RFC-2026-032 digest.",
+    "work-packages/WP-0A-CON-004.json: one open_blockers entry appended, status still in_review.",
+    "The presser source is described as on PR #237 and NOT YET ON main.",
     "git diff origin/main...HEAD must show no change under contract-catalog/ and no test added; verify-branch-scope must exit 0."
   ],
   "superseded_by": null
