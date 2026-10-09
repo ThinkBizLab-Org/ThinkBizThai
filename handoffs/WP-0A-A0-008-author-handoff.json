@@ -4,18 +4,24 @@
   "work_package_id": "WP-0A-A0-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "9b4a0ce60a3fcb6d1b65fa9f4cde8c0307e72b42",
-  "head_revision_or_patch_checksum": "dd9f477875fa46dcdd2d081c0041c42cbb0740bd",
+  "base_revision": "d1f70e813bffaec075d5fe4ad7a2aa649509aafc",
+  "head_revision_or_patch_checksum": "9961a268b2fbaa38fe0be580ceb73cc4d7322fe3",
   "task_ids": [
     "WP-0A-A0-008",
     "G0-step-4"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-008/a1-security-reverify-2026-10-05.md",
-    "evidence/WP-0A-A0-008/author-self-check-2026-10-07.md",
-    "evidence/WP-0A-A0-008/c0-contract-reverify-2026-10-05.md",
-    "evidence/WP-0A-A0-008/q0-test-reverify-2026-10-05.md",
-    "evidence/WP-0A-A0-008/r0-integration-verdict-2026-10-05.md"
+    "evidence/WP-0A-A0-008/a1-carry-2026-10-09.md",
+    "evidence/WP-0A-A0-008/a1-recheck-2026-10-09-pr221.md",
+    "evidence/WP-0A-A0-008/a1-review-2026-10-09-pr221.md",
+    "evidence/WP-0A-A0-008/c0-recheck-2026-10-09-pr221.md",
+    "evidence/WP-0A-A0-008/c0-review-2026-10-09-pr221.md",
+    "evidence/WP-0A-A0-008/light-path-reading-2026-10-09.md",
+    "evidence/WP-0A-A0-008/q0-recheck-2026-10-09-pr221.md",
+    "evidence/WP-0A-A0-008/q0-review-2026-10-09-pr221.md",
+    "evidence/WP-0A-A0-008/r0-recheck-2026-10-09-pr221.md",
+    "evidence/WP-0A-A0-008/r0-review-2026-10-09-pr221.md",
+    "evidence/WP-0A-A0-008/records-transcription-2026-10-09.md"
   ],
   "files_modified": [
     "handoffs/WP-0A-A0-008-author-handoff.json",
@@ -31,114 +37,68 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
+    "THIS INCREMENT is the post-merge record of PR #208, cut from origin/main d44dbdbb on the branch name agent/claude/WP-0A-A0-008-service-path. PR #208 merged as 5cb5cb83871179be83b0fe98e34112e0d992eddc (final head 763b4d60a3818982f7f743dc35641045fbafe5b4, bootstrap run 37516051508 success). It transcribes, on R0's behalf, evidence/WP-0A-A0-008/r0-integration-verdict-2026-10-05.md §5.1: status in_review -> integration_verified and open_blockers[3] closed in place with its old text kept whole after \"Text as recorded: \". The Author decides nothing; evidence/WP-0A-A0-008/records-transcription-2026-10-09.md lists every fact filled in and how it was verified.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is a reversible, synthetic-only record change.",
-    "The package's output, RFC-2026-017, has been on main since 2026-09-05 (e95957c, committed with status Proposed) and was disposed by the Product Owner the same day (8c16c0d). This branch does not edit it, so it changes no RFC, CONTRIBUTING_AGENTS.md, CI or gate and is not a governance PR under RFC-2026-025 §5 item 6. It rewords blockers and applies an Owner disposition, so it is not record-only either.",
-    "The Owner's step 2 (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md) is applied to this manifest: item 1 (cross-vendor condition withdrawn; which 15 packages is A0's mapping), item 2 (/claude/r0_steward succeeds /root/r0_steward; no acknowledgement on this manifest was owed by the Codex run, so none moves), item 3 (product_reviewer_note added).",
-    "Item 3 names tooling and contract packages. This is a decision-record package. Applying item 3 to it is A0's mapping, on two facts: no UX surface, and no product step in review_and_test_gates. Recorded in the manifest note so a reviewer can refuse it.",
-    "When the work commit e765cf9 was made, no role verdict existed for this package at any head, so no role condition existed to close. The G0 survey's extra item for this package (A1's countersignature of the role topology) is answered by recording the existing evidence/WP-0A-DB-00/a1-countersignature-role-topology.md against required_human_authorities[1] as a dated current state; whether it discharges that item for this package was left to /claude/a1_bastion and /claude/c0_contract_reviewer, whose files are now on this branch.",
-    "The counts in open_blockers[0] were measured at 4dd767d by importing buildCases from tests/db/identity/isolation-cases.mjs. The branch was then synced with main at 0955b32 (PR #203, the secret scan of WP-0A-A0-003) and again at 9b4a0ce (PR #206, the WP-0A-A0-005 records: its manifest, handoff and one evidence file); neither touches a file under tests/db or db/.",
-    "The status moves from in_progress to in_review and no further: an Author may move work only as far as in_review (CONTRIBUTING_AGENTS.md § Separation of duties).",
-    "After 25d449c the four role files were brought onto this branch with git cherry-pick -x of their own commits (85b8795c C0, d6f1b44b A1, 5fe4e875 Q0, 82b9d58b R0), each a single new file under evidence/WP-0A-A0-008/ whose blob equals the source commit's blob. They are those roles' records; this handoff does not restate them. The manifest is not edited in this PR: its status and open_blockers move in the records follow-up after the merge.",
-    "The base and head are regenerated by npm run refresh:handoff rather than typed. The work commit e765cf9 carried a range-only refresh of this file, because commit-when-clean verifies the whole tree and the handoff guard fails while the handoff cites the old head; this handoff commit is the branch's last and touches only this file."
+    "R0’s conditions I1-I5 held at 763b4d60 (git log 25d449ca..763b4d60: four role-file commits, one merge of main 9b4a0ce, the handoff refresh alone; manifest and self-check byte-identical to 25d449c). C0’s and Q0’s carry clauses held. A1’s clause WAS tripped (role files and the 763b4d60 handoff prose rewrite after 25d449c); A1 ruled after the merge that its verdict carries (evidence/WP-0A-A0-008/a1-carry-2026-10-09.md), an R19-class lapse, recorded in the transcription §4 correction (C0-221-1).",
+    "This increment began as records-only, but carries role files (C0’s light-path reading, A1’s carry ruling and the four role reviews), so it takes the FULL path (classifier exit 1). It changes no RFC, CONTRIBUTING_AGENTS.md, CI or gate, so it is not a governance PR. It changes the manifest’s status and one open_blockers entry, adds the records-transcription file (with a §4 correction) and refreshes this handoff.",
+    "final_status stays in_review: that is the furthest an Author moves work. The manifest's integration_verified is R0's status, transcribed."
   ],
   "acceptance_results": [
     {
-      "criterion": "The RFC states the measurement it rests on, names the instance it was taken from, and does not cite vendor documentation in its place.",
+      "criterion": "status moves only as far as the R0 file on main authorises",
       "result": "met",
-      "evidence": "RFC-2026-017 §2: \"Against the provisioned instance (ThinkBizThai, ap-southeast-2, Postgres 17.6), not from vendor documentation\"; evidence/WP-0A-A0-008/author-self-check-2026-10-07.md §6 row 1"
+      "evidence": "evidence/WP-0A-A0-008/r0-integration-verdict-2026-10-05.md §5.1 names integration_verified (not done, not G0); its VERDICT line converts at the final head once I1-I5 hold, verified in evidence/WP-0A-A0-008/records-transcription-2026-10-09.md §1.1"
     },
     {
-      "criterion": "It records that postgres bypasses RLS as well as service_role, so that a reader does not conclude a direct driver is by itself a fix.",
+      "criterion": "open_blockers[3] closed in place with R0's exact wording, old text whole",
       "result": "met",
-      "evidence": "RFC-2026-017 §2 table and finding 2; evidence/WP-0A-A0-008/author-self-check-2026-10-07.md §6 row 2"
+      "evidence": "evidence/WP-0A-A0-008/r0-integration-verdict-2026-10-05.md §5.1 blockquote; placeholders <DATE>, <FINAL_HEAD>, <MERGE_COMMIT>, <RUN_ID> and F2 filled from evidence/WP-0A-A0-008/records-transcription-2026-10-09.md §1"
     },
     {
-      "criterion": "The role topology names every role, its purpose, and that none holds BYPASSRLS.",
+      "criterion": "open_blockers[0] stays open",
       "result": "met",
-      "evidence": "RFC-2026-017 §3 table (app_worker, app_command, app_maintenance, each \"no\"). Later approved RFCs added app_authz (RFC-2026-020, migration 011) and app_worker_login (RFC-2026-028, migration 173), which §3 does not name; history, flagged for C0. evidence/WP-0A-A0-008/author-self-check-2026-10-07.md §6 row 3"
-    },
-    {
-      "criterion": "The costs are recorded in the RFC, not left to be discovered during implementation.",
-      "result": "met",
-      "evidence": "RFC-2026-017 §4; evidence/WP-0A-A0-008/author-self-check-2026-10-07.md §6 row 4"
-    },
-    {
-      "criterion": "The RFC does NOT claim tenant isolation is proven, and names the assertion that would prove it as still owed.",
-      "result": "met",
-      "evidence": "RFC-2026-017 §7 and its status line. Whether that assertion now exists is open_blockers[0], left to an independent reviewer. evidence/WP-0A-A0-008/author-self-check-2026-10-07.md §6 row 5"
-    },
-    {
-      "criterion": "The RFC is committed with status Proposed.",
-      "result": "met",
-      "evidence": "e95957c line 3: \"Status: Proposed — awaiting Product Owner disposition\". The status has since moved to Approved (8c16c0d); history, not a regression. evidence/WP-0A-A0-008/author-self-check-2026-10-07.md §6 row 6"
+      "evidence": "evidence/WP-0A-A0-008/r0-integration-verdict-2026-10-05.md §3.2 and §5.1; unchanged by this increment"
     }
   ],
   "tests": [
     {
-      "command": "npm run check (at 4dd767d on this branch name, before any change)",
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-008",
+      "exit_code": 0,
+      "result": "see the PR body for the run on the final head"
+    },
+    {
+      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD",
       "exit_code": 1,
-      "result": "tests 705, pass 703, fail 2: both are the handoff guard reading the stale citation c1f2647 on this branch name (the handoff suite and its ratchet copy). Expected; cleared by the refresh."
+      "result": "NOT records-only: carried role files; full path"
     },
     {
-      "command": "npm run verify (run by node scripts/commit-when-clean.mjs for e765cf9)",
+      "command": "npm run verify (run by node scripts/commit-when-clean.mjs for this handoff commit, on the branch name)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 705, pass 705, fail 0, skipped 0, todo 0"
-    },
-    {
-      "command": "node scripts/validate-work-packages.mjs",
-      "exit_code": 0,
-      "result": "the in_review manifest validates"
-    },
-    {
-      "command": "node scripts/validate-work-package-ownership.mjs",
-      "exit_code": 0,
-      "result": "every changed path is in this package's writable_paths"
-    },
-    {
-      "command": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A0-008.json",
-      "exit_code": 0,
-      "result": "four distinct core role ids"
-    },
-    {
-      "command": "node scripts/scan-repository-secrets.mjs",
-      "exit_code": 0,
-      "result": "no output"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-008 (after the sync with 9b4a0ce and the four role files)",
-      "exit_code": 0,
-      "result": "all 7 changed path(s) are declared, and every amendment explains one"
-    },
-    {
-      "command": "npm run verify (run by node scripts/commit-when-clean.mjs for this handoff commit, on the branch name, parent dd9f477)",
-      "exit_code": 0,
-      "result": "clean: exit 0 — tests 716, pass 716, fail 0, skipped 0, todo 0 (commit-when-clean refuses to commit on any other result). The same tree passed npm run check uncommitted first: tests 716, pass 716, fail 0."
+      "result": "commit-when-clean commits only on a clean full suite"
     }
   ],
-  "security_privacy_cost_impact": "None. No code, schema, grant, policy, role, contract or credential is touched; the files are a manifest, a handoff, the Author's self-check and four role files under evidence/WP-0A-A0-008/, with no secrets or personal data.",
+  "security_privacy_cost_impact": "None. Two manifest values and one new evidence file of git and gh facts; no code, schema, grant, policy, role, credential, personal data or customer content.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "None.",
   "known_limitations": [
-    "The manifest still reads in_review and still lists open_blockers[3] (no role file at any head), because the manifest is not edited in this PR. The four role files on this branch are the record of the role readings; transcribing them into the manifest is the records follow-up after the merge, on a WP-0A-A0-008 branch from the new main.",
-    "open_blockers[0]'s counts fell from 65 blocks / 28 denials (at 5abee8b) to 61 cases / 20 denials (at 4dd767d). The fall is measured, not explained case by case; comments in isolation-cases.mjs name one cause (labels removed where the static suite refused them).",
-    "Durations in the test output are not meaningful: many other agents' suites were running on the same machine."
+    "npm run check:handoff at PR #208's merged head 763b4d60 cannot be re-run on the branch name now that it is merged; that it was the last and alone commit rests on git show --stat (one file).",
+    "R0's further wording items (optional: C0 F2 and A1-008-3 in open_blockers[1], A1-008-4 / Q0-N1 in rollback_or_forward_fix, the dated note in open_blockers[0]; given by R0 §5.1 as an instruction, not optional: the dated note on required_human_authorities[1] — C0 light-path advisory A1) are not made: none has exact wording on main (R0 R-221-2: the required_human_authorities[1] note stays owed to the next WP-0A-A0-008 manifest PR).",
+    "Q221-4 (Q0 advisory): transcription §4 says no A1 file existed at 763b4d60; A1’s own verdict file a1-security-reverify-2026-10-05.md (ca32c88f) was there. The intended meaning — no A1 re-check after the trip — is correct; not edited, since a transcription edit is outside every role’s carry clause."
   ],
   "open_risks_or_blockers": [
-    "Four blockers are listed in the manifest; none is closed on this branch. open_blockers[0] (whether RFC-2026-017 §7 is discharged) stays open; open_blockers[3] is closed only in the records follow-up after the merge.",
-    "Owed outside this package: the production service path (open_blockers[1]) is owed to RFC-2026-028's open items (Q-028-3 custody, Q-028-12 pooler, Q-028-13 and Q170-c on the provisioned instance, A1R-2/A1-173-1, A1's co-owner acceptance) and RFC-2026-026's worker half, owned by A0 (WP-0A-DB-00) with A1 as DATA-DEC-03 co-owner.",
-    "RFC-2026-017's status line still reads \"Isolation remains unproven until the negative assertion in §7 exists\". Changing it would make a governance PR (RFC-2026-025 §5 item 6), Owner-merged; not done here."
+    "Full path. Verdicts at c9bd6849, carried with -x: C0 review_approved (C0-221-1 closed), A1 security_approved (no finding open), Q0 test_verified 735/735 on the branch name, R0 integration_verified earned (r0-recheck-2026-10-09-pr221.md). Each carries under (a) role files -x, (b) a mechanical sync of main, (c) this handoff refresh last and alone. A0 presses under the Owner’s standing delegation (product-owner-disposition-2026-10-03-batch-127.md §6), bootstrap green on this exact head with main contained, a true merge commit pinned with --match-head-commit."
   ],
-  "rollback_or_forward_fix": "ROLLBACK: a reviewed revert PR of this branch's commits. The manifest returns to in_progress with the cross-vendor exception and the earlier blocker text; no other file depends on them.",
+  "rollback_or_forward_fix": "WP-0A-A0-008 RECORDS 2026-10-09: before merge, close the PR. After merge, a reviewed revert of this records PR returns WP-0A-A0-008 to in_review and restores open_blockers[3] to the text kept after \"Text as recorded: \"; it removes records-transcription-2026-10-09.md. PR #208's merged content and the four role files are unaffected.",
   "recommended_next_work_packages": [
-    "The WP-0A-A0-008 records follow-up after this merge, its own PR from the new main: the manifest status, closing open_blockers[3] in place, and the wording items named in evidence/WP-0A-A0-008/r0-integration-verdict-2026-10-05.md §5.1.",
-    "WP-0A-A0-009: the same step 4 move to in_review; its blockers name RFC-2026-019 and are likely stale the same way against RFC-2026-028."
+    "A light-path reading of this PR by R0, or C0 standing in, under RFC-2026-025 §6.2.",
+    "If wanted, a separate increment, worded by C0 and A1, for C0 F2, A1-008-3, A1-008-4 / Q0-N1 and the required_human_authorities[1] ordering note (A1-008-2, C0 F4).",
+    "WP-0A-A0-009: the same step 4 move to in_review."
   ],
   "reviewer_instructions": [
-    "Start with open_blockers[0]: re-run buildCases from tests/db/identity/isolation-cases.mjs and confirm 61 cases cover RFC-2026-017§7 and 20 expect denied; then decide whether that discharges §7. The Author does not.",
-    "Read open_blockers[1] against RFC-2026-028's header and db/foundation/migrations/173_worker_login_identity.sql; confirm the list of still-open items and that no test connects as app_worker_login.",
-    "Decide whether the Owner's step 2 item 3 (\"tooling and contract work packages\") reaches a decision-record package. The manifest says that reading is A0's mapping; refuse it if you read otherwise.",
-    "Decide whether evidence/WP-0A-DB-00/a1-countersignature-role-topology.md (\"COUNTERSIGNED WITH RESERVATIONS\", /claude/a1_identity, against WP-0A-DB-00) discharges required_human_authorities[1] for this package.",
-    "Check the _run_id_disambiguation correction: no version of this manifest's open_blockers ever named /root/r0_steward (evidence/WP-0A-A0-008/author-self-check-2026-10-07.md §3)."
+    "Check each filled placeholder in open_blockers[3] against gh pr view 208, git log -1 --format=%P 5cb5cb83 and gh run view 37516051508 (evidence/WP-0A-A0-008/records-transcription-2026-10-09.md §1).",
+    "Check that the text after \"Text as recorded: \" equals open_blockers[3] at origin/main, and the clause before it equals evidence/WP-0A-A0-008/r0-integration-verdict-2026-10-05.md §5.1 with only the placeholders changed.",
+    "Check I1-I5 and the role carry clauses against git log 25d449ca..763b4d60 (evidence/WP-0A-A0-008/records-transcription-2026-10-09.md §1.1), then read its §4 Correction: A1’s clause was tripped and discharged after the merge by a1-carry-2026-10-09.md.",
+    "Run node scripts/db/classify-records-only.mjs origin/main <head>: it exits 1 (carried role files; full path). The one manifest status move is in_review -> integration_verified."
   ],
   "superseded_by": null
 }
