@@ -157,10 +157,12 @@ const COVERAGE_FLOOR = 0.70;
 // number someone has to edit deliberately, in a diff a reviewer reads.
 // 2026-10-07, WP-0A-CON-004 bounds increment: ctr-aud-001, ctr-obs-001 and ctr-sec-001 raised to
 // their measured counts after the 22 maxLength bounds (68, 93, 86).
+// 2026-10-09, WP-0A-CON-004 [18] increment: ctr-obs-001 93 -> 94 after module.implementation_version
+// takes maxLength 64.
 const SITE_FLOOR = {
   'ctr-api-001': 42, 'ctr-aud-001': 68, 'ctr-err-001': 23, 'ctr-evt-001': 51,
   'ctr-flg-001': 74, 'ctr-idm-001': 38, 'ctr-job-001': 42, 'ctr-mod-001': 87,
-  'ctr-ntf-001': 44, 'ctr-obs-001': 93, 'ctr-pag-001': 38, 'ctr-sec-001': 86,
+  'ctr-ntf-001': 44, 'ctr-obs-001': 94, 'ctr-pag-001': 38, 'ctr-sec-001': 86,
   'ctr-ten-001': 23, 'ctr-usg-001': 45 };
 
 // Held at the measured actual, not at a round number above it. Slack in this ceiling is
@@ -843,6 +845,10 @@ test('the untested count and the untested list agree about what they measure', a
 // maxLength sites (the 22 fields KNOWN_UNBOUNDED owed to that package), and the two ctr-obs-001
 // sli_tags key patterns rewritten from `{1,64}` to `+` with the limit moved to maxLength 64
 // (same accept set). Each new bound is killed by an `invalid-*-too-long.json` fixture.
+//
+// 2026-10-09, WP-0A-CON-004 [18] increment: ctr-obs-001 +1 maxLength site,
+// module.implementation_version = 64 (A6 ruling, matching CTR-EVT-001
+// producer.implementation_version), killed by invalid-module-implementation-version-too-long.json.
 const CONSTRAINT_SURFACE = {
   'ctr-api-001': {
     digest: '6cd40cd39fbd1019',
@@ -1443,7 +1449,7 @@ const CONSTRAINT_SURFACE = {
     ],
   },
   'ctr-obs-001': {
-    digest: '0c4022038b11458e',
+    digest: 'd97782175e546ec5',
     sites: [
       ".additionalProperties = false",
       ".allOf.0.if.properties = [readiness]",
@@ -1503,6 +1509,7 @@ const CONSTRAINT_SURFACE = {
       ".properties.liveness.type = \"object\"",
       ".properties.module.additionalProperties = false",
       ".properties.module.properties = [implementation_version, module_key]",
+      ".properties.module.properties.implementation_version.maxLength = 64",
       ".properties.module.properties.implementation_version.minLength = 1",
       ".properties.module.properties.implementation_version.type = \"string\"",
       ".properties.module.properties.module_key.maxLength = 64",

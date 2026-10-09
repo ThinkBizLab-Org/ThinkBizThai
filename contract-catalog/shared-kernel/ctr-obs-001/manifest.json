@@ -44,6 +44,7 @@
     "examples/invalid-liveness-type.json",
     "examples/invalid-module-additionalproperties.json",
     "examples/invalid-module-implementation-version-minlength.json",
+    "examples/invalid-module-implementation-version-too-long.json",
     "examples/invalid-module-implementation-version-type.json",
     "examples/invalid-module-module-key-pattern.json",
     "examples/invalid-module-module-key-too-long.json",
