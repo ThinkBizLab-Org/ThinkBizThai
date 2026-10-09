@@ -7,7 +7,7 @@
     ".agents/work-package.schema.json": "58c2479c152acccae957ed61d932f84a1f685306ec823a8b8bee74006168c440",
     ".github/workflows/ci.yml": "db8a0f3e5f154f198b3664a716606e3a12d79ba1676f0d2c17006899787052ba",
     ".node-version": "5b9d0e73029969ae9000117cb877f17bb9841c1279bfe8024e294acfcf017800",
-    "CONTRIBUTING_AGENTS.md": "7da1710fbb5cb82120e73a21d6a7b35f90b198b8d5dc1a58835a8f801f8cb5b2",
+    "CONTRIBUTING_AGENTS.md": "4cac3723510068aeeac5e8e9c9ebe05705e14769b3e46ec598ebc64113568ea9",
     "architecture/decisions/.gitkeep": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     "architecture/decisions/RFC-2026-001-bootstrap-tooling-contract.md": "8e08f28f6dd32b9ee0d4431d7eb78c3d0702a54f6a01880e5ea3114503d691c0",
     "architecture/decisions/RFC-2026-002-manual-merge-control.md": "8b66ff970ae597bf55db1d23893b666159e8149afb7102e3aff699678f7b2c0f",
