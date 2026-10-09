@@ -4,25 +4,25 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "75c60335a02443797834e589e9c7a52914e4ceb0",
-  "head_revision_or_patch_checksum": "c1c4900a146fb09441b85a2fa450557de1f85982",
+  "base_revision": "a4eed0e8d6f01fa341c3314052d14695bbdc59e7",
+  "head_revision_or_patch_checksum": "9486bf7e8756074827ae074e4269bd435aaed3e4",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-CON-008/a1-review-2026-10-09-pr231.md",
-    "evidence/WP-0A-CON-008/c0-review-2026-10-09-pr231.md",
-    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-prep-and-candidate-press.md",
-    "evidence/WP-0A-CON-008/q0-review-2026-10-09-pr231.md",
-    "evidence/WP-0A-CON-008/r0-review-2026-10-09-pr231.md",
-    "evidence/WP-0A-CON-008/records-transcription-2026-10-09.md",
-    "evidence/WP-0A-CON-008/rfc-031-7-1-prep-2026-10-09.md"
+    "evidence/WP-0A-CON-008/a1-recheck-2026-10-09-pr237.md",
+    "evidence/WP-0A-CON-008/a1-review-2026-10-09-pr237.md",
+    "evidence/WP-0A-CON-008/c0-recheck-2026-10-09-pr237.md",
+    "evidence/WP-0A-CON-008/c0-review-2026-10-09-pr237.md",
+    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md",
+    "evidence/WP-0A-CON-008/q0-recheck-2026-10-09-pr237.md",
+    "evidence/WP-0A-CON-008/q0-review-2026-10-09-pr237.md",
+    "evidence/WP-0A-CON-008/r0-recheck-2026-10-09-pr237.md",
+    "evidence/WP-0A-CON-008/r0-review-2026-10-09-pr237.md",
+    "evidence/WP-0A-CON-008/rfc-010-status-line-2026-10-09.md"
   ],
   "files_modified": [
-    "evidence/VERIFICATION.md",
+    "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
     "handoffs/WP-0A-CON-008-author-handoff.json",
-    "scripts/test-suite-contract.mjs",
-    "test-kits/contracts/catalog-registry.test.mjs",
     "test-kits/integrity-manifest.json",
-    "test-kits/ratchets-bite.test.mjs",
     "work-packages/WP-0A-CON-008.json"
   ],
   "files_deleted": [],
@@ -34,38 +34,38 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "Gate G0: the exit is decided and conditional (D0, 2026-10-08), not passed. CONTRIBUTING_AGENTS.md \"Current gate constraint\" and register line 373 still bind. This increment changes tests and records only; no contract, schema, fixture or status moves, and everything is synthetic-only and reversible.",
-    "RFC-2026-031 is Approved and on main (PR #229, merge 1bcc2349). Its §7.1 assigns this change to WP-0A-CON-008, and both test files it edits are in this package's writable_paths.",
-    "Who presses this PR: the Owner's answer `ให้ A0 กดทั้งสองแบบ (Recommended)` of 2026-10-09 (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-prep-and-candidate-press.md) directs A0 to press the RFC-2026-031 §7.1 PR and the Draft->Candidate PRs once four roles pass and CI is green. It is an exception to RFC-2026-025 §5 item 6 for those two classes and does not amend the rule; it does not cover the CONTRIBUTING_AGENTS.md \"Current gate constraint\" PR or the G0-exit record. It names this PR by its section and package, given before the PR was opened; A1 and R0 rule whether that meets §5 item 6.",
-    "The Owner's words were checked byte for byte against the tool call and its result in session 3ecec68b's transcript (outside the repository, not committed); asked 08:22:01Z, answered 08:25:43Z.",
-    "The records for PR #229 (open_blockers [6], [8], and [9] part (A)) are R0's words from r0-review-2026-10-09-pr229.md §9, recorded because every condition R0 set was checked and held (evidence/WP-0A-CON-008/records-transcription-2026-10-09.md §1). One reading is A0's and is flagged there §4: the merge-time handoff named a second press basis.",
+    "Gate G0: the exit is decided and conditional (D0, 2026-10-08), not passed. CONTRIBUTING_AGENTS.md \"Current gate constraint\" and register line 373 still bind. This increment changes one RFC status line and records only; no contract, schema, fixture, test or status moves.",
+    "CTR-SEC-001, CTR-AUD-001 and CTR-OBS-001 are Candidate on main by PR #233 (merge 65695129), and CTR-USG-001 by PR #235 (merge a4eed0e8); CTR-NTF-001 is Draft. RFC-2026-010 line 3 still said they await A1 and A6. R0 set the words of this step in evidence/WP-0A-CON-006/r0-review-2026-10-09-pr235.md §6 and evidence/WP-0A-CON-004/r0-review-2026-10-09-pr233.md §5 (R-233-4).",
+    "A1 §7 (e)'s long form applies once K2 and K3 are on main; both are, in evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-candidate-sec-aud-obs-usg.md (merged with 01deb3c1).",
+    "Who presses this PR: the Owner's answer `ให้ A0 กดทั้ง 3 (Recommended)` of 2026-10-09 (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md), which names 'the RFC-2026-010 status-line update' of WP-0A-CON-008 by content, after the question was put to him. It is an exception to RFC-2026-025 §5 item 6 for the three PRs it names only, and does not amend the rule. The Owner's words in that file are A0's relay; this run did not check them against the session transcript.",
+    "The records for PR #231 ([9] appended, [10] part (A)) are R0's words from r0-review-2026-10-09-pr231.md §8.3, recorded because every press condition and carry clause R0 set was checked and held (evidence/WP-0A-CON-008/rfc-010-status-line-2026-10-09.md §1).",
     "Cross-vendor review is NOT satisfied; every role run is Anthropic claude-opus-5, recorded as the Decision Register exception (manifest independence.cross_vendor_exception)."
   ],
   "acceptance_results": [
     {
       "criterion": "Every required_before_freeze item is assessed against the shipped schema and fixture list, not against a fixture count.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/g1-freeze-readiness-2026-10-08.md, unchanged by this increment; the registry pin of required_before_freeze is unchanged"
+      "evidence": "evidence/WP-0A-CON-008/g1-freeze-readiness-2026-10-08.md, unchanged by this increment"
     },
     {
       "criterion": "The assessment states plainly that it establishes PRESENCE of an artifact and not that the artifact satisfies the intent behind the phrase, with the specific items where that gap is widest named.",
       "result": "pass",
-      "evidence": "unchanged by this increment (RFC-2026-010; RFC-2026-031 §4.1 item 2)"
+      "evidence": "unchanged by this increment; the Limitations sentence of RFC-2026-010 line 3 is kept word for word"
     },
     {
       "criterion": "No contract status changes anywhere in the repository.",
       "result": "pass",
-      "evidence": "git diff origin/main..HEAD -- contract-catalog/ is empty; the CATALOG_REGISTRY pins are unchanged; FREEZE_LEVELS admits Frozen without moving any contract"
+      "evidence": "git diff origin/main..HEAD -- contract-catalog/ test-kits/contracts/ is empty; the RFC line records statuses already on main (index.json at a4eed0e8)"
     },
     {
       "criterion": "Contracts with a co-owner are routed to that co-owner rather than proposed for promotion by A0 alone.",
       "result": "pass",
-      "evidence": "no promotion is proposed; the Owner's press direction for Draft->Candidate PRs supplies no co-owner or owner signature (disposition 2026-10-09 prep-and-candidate-press)"
+      "evidence": "the line quotes A1's and A6's own words for their contracts, and the Owner's approvals; A6's stale ending is not transcribed as A6's words; no signature is written by A0"
     },
     {
       "criterion": "CTR-NTF-001 is not assessed.",
       "result": "pass",
-      "evidence": "this increment assesses no contract"
+      "evidence": "'CTR-NTF-001 is A5's and remains unassessed' is unchanged word for word"
     },
     {
       "criterion": "npm run check stays green with no test skipped.",
@@ -81,59 +81,41 @@
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
-      "command": "node --test test-kits/contracts/catalog-registry.test.mjs",
+      "command": "node script: A1 §7 (e) with the two placeholders filled, and A6 §7 cut before the semicolon, each found in RFC-2026-010 line 3; main's line 3 split on the replaced clause gives the new line's prefix and suffix",
       "exit_code": 0,
-      "result": "19 of 19, including the four new declared-gap tests",
-      "toolchain": "node v24.20.0 / npm 11.19.0"
-    },
-    {
-      "command": "node --test --test-name-pattern=\"declared-gap ratchet|registry ratchet|catalog ratchet\" test-kits/ratchets-bite.test.mjs",
-      "exit_code": 0,
-      "result": "3 of 3: the 'Released' reversals and the declared-gap source probe each noticed",
-      "toolchain": "node v24.20.0 / npm 11.19.0"
-    },
-    {
-      "command": "each of the five declared-gap source edits applied alone, then node --test test-kits/contracts/catalog-registry.test.mjs",
-      "exit_code": 1,
-      "result": "expected failure each time; the only failing test is the synthetic-controls test, on its 'must be reported for its own reason' assertion; file restored and cmp-clean (rfc-031-7-1-prep-2026-10-09.md §2)",
+      "result": "four checks true: both quotes byte for byte, nothing else on the line moved",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008",
       "exit_code": 0,
-      "result": "every changed path declared; two amendments (scripts/test-suite-contract.mjs, test-kits/integrity-manifest.json), each changed",
+      "result": "every changed path declared; the one amendment (test-kits/integrity-manifest.json) explains a change",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
-  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. Test code, synthetic manifests built in memory, and records. The disposition quotes one chat question and answer between the Owner and A0 about repository work; no personal data, credential, private URL or customer content. Cost impact none; the new ratchets-bite case copies the repository once and runs one suite five times (about 4 s measured).",
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. One RFC status line and records. The disposition quotes one chat question and answer between the Owner and A0 about repository work; no personal data, credential, private URL or customer content. Cost impact none.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract, schema, fixture or status changes. test-kits/contracts/catalog-registry.test.mjs admits Frozen in FREEZE_LEVELS and declared_gaps in MANIFEST_KEYS and adds four tests (three over the catalog, vacuous until a manifest declares a gap or a contract is Frozen, and one of synthetic controls). test-kits/ratchets-bite.test.mjs moves two reversals from 'Frozen' to 'Released', names CTR-ERR-001 in the catalog reversal, and adds one source-reversal case. scripts/test-suite-contract.mjs (WP-0A-A0-002) moves two test floors, one assertion floor and two name digests; test-kits/integrity-manifest.json is regenerated; evidence/VERIFICATION.md is re-recorded. The census tests of WP-0A-CON-001, WP-0A-CON-002, WP-0A-CON-005 and tests/db/** are untouched; they move per freeze or Draft->Candidate increment (rfc-031-7-1-prep-2026-10-09.md §4). PR #230 (WP-0A-CON-004), which also edits catalog-registry.test.mjs on other lines, merged to main as 75c60335 while this branch was written; the branch merged it (324488ba) before the PR was opened, the test file auto-merged and the integrity manifest was regenerated. That merge is not mechanical, and no role had read the branch before it.",
+  "compatibility_impact": "No contract, schema, fixture, test, script or status changes. RFC-2026-010 line 3 changes one clause; no test reads the line (repository-json.test.mjs and verify-test-coverage-floor.mjs list the file only). test-kits/integrity-manifest.json (WP-0A-A0-002) is regenerated for the RFC's and this manifest's digests; evidence/VERIFICATION.md is re-recorded.",
   "known_limitations": [
-    "The three tests over the real catalog pass vacuously today: no manifest declares a gap and no contract is Frozen. The rules are measured by synthetic controls and by source reversals, not by a reversal over a real gap.",
-    "The three JSON reversals RFC-2026-031 §7.1 (2) names (owner emptied, closes_before outside the list, one gap deleted) are left to the first increment that adds declared_gaps to a contract.",
-    "The gap floor is >= 80 characters (the RFC's words); the accepted_gaps reason test of WP-0A-CON-001 asserts > 80. They differ by one, on purpose (C0 A-4).",
-    "That a Draft is pinned Candidate before Frozen is reviewed, not measured; one tree does not carry its pin history.",
-    "The census list for later increments came from a search of status assertions spelled against 'Candidate' and 'Draft'; another spelling would not appear in it.",
-    "C0 A-8's re-signing and composition rules and A1 I-3's enumeration of production-customer-data gaps are not settled here."
+    "The RFC line still reads 'Partially approved 2026-09-02': CTR-NTF-001 is Draft and unassessed, so 'Partially' stays until NTF's own Candidate step.",
+    "A6 was not asked for post-disposition wording; R0's first option (A6 up to the semicolon, then A0's marked words) is used.",
+    "gh records the account workstationgroup as merger of #231, #233 and #235; it cannot tell A0's press from the Owner's own. [9]'s 'pressed by A0' follows R0's words and #231's final handoff.",
+    "The ratchets-bite.test.mjs comment naming CTR-USG-001 is stale since #235 (R-235-2); it is left for CTR-NTF-001's Candidate PR, as R0 directs."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H. Role verdicts at 749b86b2, carried with -x: c0-review-2026-10-09-pr231.md, a1-review-2026-10-09-pr231.md, q0-review-2026-10-09-pr231.md (740/740 on the branch name), r0-review-2026-10-09-pr231.md (each role's verdict and carry clause are in its own file). Presser: A0 (/claude/a0_atlas) presses this governance PR on the Owner's 2026-10-09 answer `ให้ A0 กดทั้งสองแบบ (Recommended)` (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-prep-and-candidate-press.md), which names the RFC-2026-031 §7.1 preparatory PR of this package; an exception to RFC-2026-025 §5 item 6 for that PR class only. NOT the 2026-10-03 standing delegation. Conditions: bootstrap green on this exact head containing main, no security finding open, a true merge commit pinned with --match-head-commit."
+    "Full path, tier H, GOVERNANCE. Round one at d2021008 and re-checks at f446c15b, all carried with -x: C0 (c0-review / c0-recheck-2026-10-09-pr237.md: C0-237-1 closed), A1 (a1-review / a1-recheck), Q0 (q0-review / q0-recheck: 740/740 on the branch name), R0 (r0-review / r0-recheck: press basis upheld with the corrected times); each role's verdict and carry clause are in its own file. Presser: A0 (/claude/a0_atlas) presses this governance PR on the Owner's 2026-10-09 answer `ให้ A0 กดทั้ง 3 (Recommended)` (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md, in this PR; asked 13:10:18Z, answered 13:16:41Z), an exception to RFC-2026-025 §5 item 6 for the three PRs it names only; not the earlier 2026-10-09 direction and not the 2026-10-03 delegation. Merge #237 before #236. Conditions (r0-recheck press conditions 1-6): bootstrap green on this exact head containing main, no security finding open, a true merge commit pinned with --match-head-commit."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR of WP-0A-CON-008's RFC-2026-031 §7.1 increment: restoring FREEZE_LEVELS to Draft and Candidate and dropping declared_gaps from MANIFEST_KEYS is safe only while no manifest reads Frozen or carries declared_gaps, so a revert after the first freeze must instead go forward by RFC; the revert also restores the two 'Frozen' reversals in ratchets-bite.test.mjs and the catalog-registry and ratchets-bite floors and name digests in scripts/test-suite-contract.mjs, regenerates the integrity manifest and re-records evidence/VERIFICATION.md. The open_blockers appends for PR #229 and the Owner's disposition stay as records of what happened.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR of WP-0A-CON-008's RFC-2026-010 status-line increment: restore line 3's clause 'CTR-SEC-001 awaits A1; CTR-AUD-001, CTR-OBS-001 and CTR-USG-001 await A6;' and regenerate the integrity manifest. A revert makes the line false again (the four contracts stay Candidate in index.json), so a correction should go forward with new words from A1, A6 or R0 instead. The open_blockers appends [9], [10], [11] and the 2026-10-09 three-governance-PRs disposition stay as records of what happened.",
   "recommended_next_work_packages": [
-    "WP-0A-CON-001, WP-0A-CON-002, WP-0A-CON-003, WP-0A-CON-004, WP-0A-CON-006: close or prepare as declared gaps the items g1-freeze-readiness-2026-10-08.md §2 and §3 name for the contracts each owns.",
-    "WP-0A-CON-004 (SEC, AUD, OBS) and WP-0A-CON-006 (NTF, USG): Draft->Candidate PRs, each with its co-owner's or owner's signature and the Owner's RFC-2026-010 disposition on the branch, moving the census lines listed in rfc-031-7-1-prep-2026-10-09.md §4.",
-    "The first freeze increment that adds declared_gaps: the three JSON reversals over a real gap and its DECLARED_GAP_DIGESTS lines.",
-    "WP-0A-CON-008: an RFC-2026-031 amendment for C0 A-8's re-signing and composition rules, if the Owner wants them settled before the first freeze."
+    "WP-0A-CON-006 (NTF): CTR-NTF-001's Candidate step, which still needs A5's assessment and the Owner's disposition naming it; it repoints the ratchets-bite.test.mjs reversal and moves the census pins (r0-review-2026-10-09-pr235.md §7), and gives RFC-2026-010 NTF's clause in A5's words.",
+    "WP-0A-CON-004: the RFC §4c that makes CTR-SEC-001 own the secret-handle format, before CTR-MOD-001 or CTR-SEC-001 enters freeze review (A1 §7 (a)).",
+    "WP-0A-CON-004: the RFC bounding CTR-OBS-001's cardinality (closed error_code and outcome lists, a budget per label).",
+    "The first freeze increment that adds declared_gaps: the three JSON reversals over a real gap and its DECLARED_GAP_DIGESTS lines ([9] item (4))."
   ],
   "reviewer_instructions": [
-    "Read RFC-2026-031 §5.2, §5.5 and §7 on main, then test-kits/contracts/catalog-registry.test.mjs from FREEZE_LEVELS, MANIFEST_KEYS and the block after the last existing test, and test-kits/ratchets-bite.test.mjs's three changed places. Check each rule against §5.2 and §7.1, and the advisories table in evidence/WP-0A-CON-008/rfc-031-7-1-prep-2026-10-09.md §3 against the PR #229 role files.",
-    "Measure that each declared-gap rule bites: run the synthetic-controls test, and apply each of the five source edits in the new ratchets-bite case by hand to see that the synthetic test fails for its own reason and not by a syntax error.",
-    "Check scripts/test-suite-contract.mjs: only the catalog-registry and ratchets-bite floors and name digests move, each to the guard's own count (node scripts/verify-test-coverage-floor.mjs exits 0).",
-    "Check the disposition against the Owner's question and answer in session 3ecec68b (A0 can produce it), and judge whether naming the PR by section and package before it existed meets RFC-2026-025 §5 item 6.",
-    "Check open_blockers: [0]-[5] and [7] unchanged, [6] and [8] each their old text whole followed by R0's words from r0-review-2026-10-09-pr229.md §9 with only the placeholders filled, [9] new at the end. Check the facts in records-transcription-2026-10-09.md §1 with the commands it names.",
-    "Check that nothing under contract-catalog/, docs/, .github/ or CONTRIBUTING_AGENTS.md changed, and that no census test of another package changed.",
-    "git show --stat HEAD must show the handoff alone."
+    "Read evidence/WP-0A-CON-008/rfc-010-status-line-2026-10-09.md first. Then compare RFC-2026-010 line 3 against main's: only the named clause changes. Check the SEC text against a1-sec-candidate-signature-2026-10-09.md §7 (e) and the A6 text against WP-0A-CON-004's a6-candidate-signature-2026-10-09.md §7, both byte for byte; check that A0's added words are marked as A0's and that each fact in them (three approvals, #233 at 65695129, #235 at a4eed0e8) matches gh and the disposition file.",
+    "Check work-packages/WP-0A-CON-008.json: [0] to [8] unchanged; [9]'s old text whole, then R0's #231 §8.3 words with placeholders filled from gh and git; [10] and [11] new; amends_without_owning.paths narrowed to test-kits/integrity-manifest.json; status in_review.",
+    "Check evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md against A0's relay of the Owner's chat, and rule (A1, R0) whether the direction meets RFC-2026-025 §5 item 6 for this PR."
   ],
   "superseded_by": null
 }
