@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-009",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "ec0bffd6aa5054d48a5a676a95242e2fef994fb0",
-  "head_revision_or_patch_checksum": "7b1bbcf146ac29dd7ab94677951af4872a811dcb",
+  "base_revision": "c5c8155cd592e1fd9f44021befaa4b176811a800",
+  "head_revision_or_patch_checksum": "2e603590e681a2bb43700b246293a7a0fdf8e358",
   "task_ids": [
     "WP-0A-A0-009",
     "G0-step-4"
@@ -14,6 +14,7 @@
     "evidence/WP-0A-A0-009/a1-recheck-2026-10-09-pr226.md",
     "evidence/WP-0A-A0-009/a1-review-2026-10-09-pr226.md",
     "evidence/WP-0A-A0-009/c0-recheck-2026-10-09-pr226.md",
+    "evidence/WP-0A-A0-009/c0-recheck-2026-10-09b-pr226.md",
     "evidence/WP-0A-A0-009/c0-review-2026-10-09-pr226.md",
     "evidence/WP-0A-A0-009/q0-recheck-2026-10-09-pr226.md",
     "evidence/WP-0A-A0-009/q0-review-2026-10-09-pr226.md",
@@ -37,7 +38,7 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending. This increment takes the FULL path (classifier exit 1): besides the manifest and this handoff it adds seven evidence files under evidence/WP-0A-A0-009/ — R0’s short reading, R0’s wording file, the records transcription, and the four role reviews of this PR (c0-, a1-, q0-, r0-review-2026-10-09-pr226.md), plus their re-checks (c0-, a1-, q0-, r0-recheck-2026-10-09-pr226.md).",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending. This increment takes the FULL path (classifier exit 1): besides the manifest and this handoff it adds the evidence files listed in files_added, all under evidence/WP-0A-A0-009/: R0’s short reading, R0’s wording file, the records transcription, and the role review and re-check files of PR #226.",
     "PR #207 merged on 2026-10-06T19:37:12Z as 85ad66dabc2b4305abe6ea998758c4cbefc83148, parents 5cb5cb83 (main) and d1efb73d (final head). CI run 37518860891 on d1efb73d concluded success. Verified with gh pr view 207, git log -1 --format=%P and gh run view in this run.",
     "R0's short reading, evidence/WP-0A-A0-009/r0-short-reading-2026-10-09.md, is carried on this branch by cherry-pick -x of b739a164 as d6c441923f0f14eea7b57234efa36580d149cfeb. It is R0's own file. The Author wrote none of it.",
     "R0's verdict of 2026-10-05 set five merge conditions in its §4: (1) a sync with main on the branch name, (2) the four role files on the branch, (3) this handoff refreshed last and alone, (4) CI green at the head, and (5) R0's short reading at the new head and CI run. R0's short reading rules that items 1-4 held at d1efb73d before the merge. It rules that item 5 did not exist when PR #207 was pressed and holds now, after the merge (R-009-1).",
@@ -104,9 +105,9 @@
     "The required_human_authorities entry first transcribed from r0-short-reading-2026-10-09.md §4 failed test-kits/authority-dispositions.test.mjs (unclassifiable); R0 restated it in r0-wording-2026-10-09.md (carried 59bceee6), and that text replaces it (cac883eb). Same meaning."
   ],
   "open_risks_or_blockers": [
-    "Full path. Verdicts at 269fd3f1, carried with -x: C0 changes_requested on handoff prose only (C0-226-2/3), A1 security_approved, Q0 test_verified 735/735, R0 integration_conditional (R0-226-6 advisory, same prose). This refresh corrects assumptions[0] and [4], tests[3], rollback_or_forward_fix and acceptance_results[0]; C0 re-reads this diff alone. Then a mechanical sync of main, the handoff refreshed last and alone, bootstrap green on the exact head, and A0 presses under the Owner’s standing delegation (product-owner-disposition-2026-10-03-batch-127.md §6), a true merge commit pinned with --match-head-commit so <S> = d6c44192 reaches main."
+    "Full path. Role files carried with -x: c0-recheck-2026-10-09b-pr226.md (C0-226-3 open on the evidence-file count in assumptions[0]; this refresh drops the count in favour of files_added, and C0 re-reads this diff), a1-recheck-2026-10-09-pr226.md, q0-recheck-2026-10-09-pr226.md, r0-recheck-2026-10-09-pr226.md (R0 press conditions: sync, role files, refresh last and alone, CI green). Each role’s verdict and carry clause is in its own file. A0 presses under the Owner’s standing delegation (product-owner-disposition-2026-10-03-batch-127.md §6) once C0 has re-read this diff and bootstrap is green on the exact head, a true merge commit pinned with --match-head-commit so <S> = d6c44192 reaches main."
   ],
-  "rollback_or_forward_fix": "ROLLBACK for the WP-0A-A0-009 PR #207 post-merge records increment: a reviewed revert PR of this increment’s merge commit. The manifest returns to in_review with open_blockers[0] and [3] in their pre-closure text and two required_human_authorities entries. Every evidence file this increment added disappears: r0-short-reading-2026-10-09.md, r0-wording-2026-10-09.md, records-transcription-2026-10-09.md and the eight role review and re-check files of PR #226. PR #207’s merged content (the role files, the self-check and both RFCs) is untouched, because nothing in it depends on these records.",
+  "rollback_or_forward_fix": "ROLLBACK for the WP-0A-A0-009 PR #207 post-merge records increment: a reviewed revert PR of this increment’s merge commit. The manifest returns to in_review with open_blockers[0] and [3] in their pre-closure text and two required_human_authorities entries. Every evidence file this increment added (files_added) disappears: r0-short-reading-2026-10-09.md, r0-wording-2026-10-09.md, records-transcription-2026-10-09.md and the role review and re-check files of PR #226. PR #207’s merged content (the role files, the self-check and both RFCs) is untouched, because nothing in it depends on these records.",
   "recommended_next_work_packages": [
     "A governance PR adding a dated line to RFC-2026-019 that corrects §5 rule 2's stated reason and §8's 'A1 has not seen this RFC' (A1-009-1, A1-009-2), and records migration 172 and RFC-2026-028.",
     "WP-0A-A0-008: the RFC-2026-017 §3 correction, owed as a governance PR."
