@@ -5,17 +5,22 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "d44dbdbb1efebc9d891e3d31fdf01a8a8060c59a",
-  "head_revision_or_patch_checksum": "cac883eb902cdb3143bb8f159eb906b5ec76b410",
+  "head_revision_or_patch_checksum": "53d83454af50a2baacd3be5fef77398eb20f90c8",
   "task_ids": [
     "WP-0A-A0-009",
     "G0-step-4"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-009/a1-review-2026-10-09-pr226.md",
+    "evidence/WP-0A-A0-009/c0-review-2026-10-09-pr226.md",
+    "evidence/WP-0A-A0-009/q0-review-2026-10-09-pr226.md",
+    "evidence/WP-0A-A0-009/r0-review-2026-10-09-pr226.md",
     "evidence/WP-0A-A0-009/r0-short-reading-2026-10-09.md",
     "evidence/WP-0A-A0-009/r0-wording-2026-10-09.md",
     "evidence/WP-0A-A0-009/records-transcription-2026-10-09.md"
   ],
   "files_modified": [
+    "handoffs/WP-0A-A0-009-author-handoff.json",
     "work-packages/WP-0A-A0-009.json"
   ],
   "files_deleted": [],
@@ -28,7 +33,7 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending. This increment changes records only: the manifest, this handoff and two evidence files under evidence/WP-0A-A0-009/.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending. This increment changes records only: the manifest, this handoff and three evidence files (the short reading, the wording file and the transcription) under evidence/WP-0A-A0-009/.",
     "PR #207 merged on 2026-10-06T19:37:12Z as 85ad66dabc2b4305abe6ea998758c4cbefc83148, parents 5cb5cb83 (main) and d1efb73d (final head). CI run 37518860891 on d1efb73d concluded success. Verified with gh pr view 207, git log -1 --format=%P and gh run view in this run.",
     "R0's short reading, evidence/WP-0A-A0-009/r0-short-reading-2026-10-09.md, is carried on this branch by cherry-pick -x of b739a164 as d6c441923f0f14eea7b57234efa36580d149cfeb. It is R0's own file. The Author wrote none of it.",
     "R0's verdict of 2026-10-05 set five merge conditions in its §4: (1) a sync with main on the branch name, (2) the four role files on the branch, (3) this handoff refreshed last and alone, (4) CI green at the head, and (5) R0's short reading at the new head and CI run. R0's short reading rules that items 1-4 held at d1efb73d before the merge. It rules that item 5 did not exist when PR #207 was pressed and holds now, after the merge (R-009-1).",
@@ -95,9 +100,7 @@
     "The required_human_authorities entry first transcribed from r0-short-reading-2026-10-09.md §4 failed test-kits/authority-dispositions.test.mjs (unclassifiable); R0 restated it in r0-wording-2026-10-09.md (carried 59bceee6), and that text replaces it (cac883eb). Same meaning."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[1] stays open: the dated line on RFC-2026-019 (A1-009-1 and A1-009-2) is owed by A0 on an RFC-2026-019 governance PR, and RFC-2026-017 §3's correction is owed by A0 under WP-0A-A0-008 on a governance PR.",
-    "open_blockers[2] stays open: Gate G0 remains Specification Baseline Complete / External Verification Pending. done is not R0's to give, and this increment does not move to it.",
-    "This PR takes the full path because it carries an r0-*.md role file, so the roles named by the package read it before the merge."
+    "Full path. Round-one verdicts at 4dc6d310, carried with -x: C0 changes_requested (C0-226-1/2: transcription and handoff did not cite r0-wording-2026-10-09.md), A1 security_approved, Q0 test_verified 735/735, R0 integration_conditional (sync main; advisories R0-226-2/3). The correction is appended to the transcription and this refresh fixes the handoff; C0, A1, Q0 and R0 re-read that fix (it is outside their carry clauses). Then a mechanical sync of main, refresh last and alone, CI green, and A0 presses under the Owner’s standing delegation (product-owner-disposition-2026-10-03-batch-127.md §6), true merge commit pinned with --match-head-commit, so that <S> = d6c44192 reaches main."
   ],
   "rollback_or_forward_fix": "ROLLBACK for the WP-0A-A0-009 PR #207 post-merge records increment: a reviewed revert PR of this increment's merge commit. The manifest returns to in_review with open_blockers[0] and [3] in their pre-closure text and two required_human_authorities entries. evidence/WP-0A-A0-009/r0-short-reading-2026-10-09.md and records-transcription-2026-10-09.md disappear. PR #207's merged content (the role files, the self-check and both RFCs) is untouched, because nothing in it depends on these records.",
   "recommended_next_work_packages": [
@@ -105,11 +108,9 @@
     "WP-0A-A0-008: the RFC-2026-017 §3 correction, owed as a governance PR."
   ],
   "reviewer_instructions": [
-    "Run git diff --stat origin/main...HEAD. Expect four paths: work-packages/WP-0A-A0-009.json, this handoff, evidence/WP-0A-A0-009/r0-short-reading-2026-10-09.md (carried by cherry-pick -x of b739a164) and evidence/WP-0A-A0-009/records-transcription-2026-10-09.md.",
-    "Check the carried R0 file is blob-identical to its source: git rev-parse b739a164:evidence/WP-0A-A0-009/r0-short-reading-2026-10-09.md and d6c441923f0f14eea7b57234efa36580d149cfeb:<same path> must be equal.",
-    "Compare the manifest with origin/main field by field. Only status, open_blockers and required_human_authorities may differ. open_blockers[0] and [3] must each end with their old text whole. required_human_authorities[0] and [1] must be byte-identical, and [2] must equal the short reading's §4 blockquote.",
-    "Check every added clause against r0-short-reading-2026-10-09.md §4 byte for byte, with <S> = d6c441923f0f14eea7b57234efa36580d149cfeb. Check the merge facts with gh pr view 207 and gh run view 37518860891.",
-    "Confirm no presser statement was added beyond R0's sourced sentence in the records transcription §2."
+    "Read evidence/WP-0A-A0-009/records-transcription-2026-10-09.md including its closing Correction.",
+    "Compare open_blockers[0], [3] with r0-short-reading-2026-10-09.md §4 (<S> = d6c44192) and required_human_authorities[2] with r0-wording-2026-10-09.md §2, byte for byte; [0] and [1] unchanged.",
+    "git diff origin/main...HEAD lists the manifest, this handoff, the transcription, the two R0 files and the role reviews."
   ],
   "superseded_by": null,
   "outputs": null
