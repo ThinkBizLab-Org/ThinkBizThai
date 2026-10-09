@@ -41,7 +41,7 @@
     "architecture/decisions/RFC-2026-030-risk-tiered-review.md": "541e9e86eac30aec2fbbbb465378a9f94b0ac30326468191f0cd0d8502b5e3c9",
     "architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md": "987a348d7517684da6b3dd216d6e5e344fd56e4d7ae00f83047b6d041276f3b4",
     "architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md": "e3f3df2e322bc6435a455669609770845c311fa5355752bd1503e07e8e833b07",
-    "architecture/decisions/RFC-2026-033-obs-label-cardinality.md": "11cd5374e6fec5a851fd419f60aee2147edd89801b128d37e23b4e05d1fb0621",
+    "architecture/decisions/RFC-2026-033-obs-label-cardinality.md": "3ada007f5f93683e98513e5339dffbee62275e68dbe06e1ecf372dc8586f10c8",
     "contract-catalog/README.md": "5bc361546dbaf3bdb9402eeb1c170214a1248bf7d79711d97771a988dfd852f1",
     "contract-catalog/shared-kernel/index.json": "f6dfbb7abef9bc4b23184aa81bdcfce38fa729d851f79d29c83dc3111bc123d9",
     "db/foundation/test-helpers/rls-assertions.mjs": "aaaa551d011f22491f743b7946cfa94713f1f0142b0a08a164d61228ee00c7bf",

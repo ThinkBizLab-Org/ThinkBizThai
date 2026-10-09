@@ -1,10 +1,10 @@
 # RFC-2026-033: CTR-OBS-001 label cardinality — closed lists and a budget per label
 
-Status: **Proposed (in review).** The Owner questions of §9 carry A0's recommendations, each marked answered on the
-Owner's blanket delegation of 2026-10-09T17:10:06Z
-(`evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-night-delegation.md`); the Owner may revisit any of them.
-This RFC is not Accepted: the four roles and A6 read it first, and A0 sets the status only in a later step after they
-pass.
+Status: **Proposed (in review).** The Owner questions of §9 carry A0's recommendations, each awaiting the Product
+Owner's own answer, which item 3 of
+`evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md` requires before the press (C0-239-2,
+A1-239-1). This RFC is not Accepted: the four roles and A6 read it first, and A0 sets the status only in a later step
+after they pass. A6's amendments A-1 to A-7 (`evidence/WP-0A-CON-004/a6-rfc033-reading-2026-10-09.md` §6) are applied.
 Date: 2026-10-09
 Author: `/claude/a0_atlas` (A0, owner of CTR-OBS-001 and of CTR-ERR-001), as an increment of `WP-0A-CON-004`
 Owner: A0 with A6 (`/claude/a6_relay`) as observability co-owner of CTR-OBS-001 (index `owner` "A0+A6"), on the Product
@@ -21,7 +21,8 @@ budget; how the budget is enforced; and the breaking-change classification under
 Who merges: this is a governance PR (RFC-2026-025 §5 item 6). The Owner named it, by content, as item 3 of
 `evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md` ("RFC จำกัด cardinality ของ OBS
 (error_code/outcome เป็นรายการปิด + budget ต่อ label)") and chose `ให้ A0 กดทั้ง 3 (Recommended)`. A0 presses it only when
-C0, A1, Q0 and R0 have passed on its final head, CI is green, and the questions of §9 are answered.
+C0, A1, Q0 and R0 have passed on its final head, CI is green, and the Product Owner has answered the questions of §9
+himself.
 
 ---
 
@@ -29,7 +30,8 @@ C0, A1, Q0 and R0 have passed on its final head, CI is green, and the questions 
 
 CTR-OBS-001 (Candidate since PR #233) closes the set of label NAMES on `sli_tags` (`additionalProperties: false`), so
 `page_name`, a workspace id or user content cannot become a metric dimension. It does not bound the set of label VALUES.
-Its manifest says so three times: `untestable_by_schema`, `accepted_gaps`, and `sli_tags.x-cardinality-limitation`.
+The contract says so three times: its manifest in `untestable_by_schema` and `accepted_gaps`, and its `schema.json` in
+`sli_tags.x-cardinality-limitation`.
 Today the five labels stand like this at `5e444c53`:
 
 | Label | Rule today | Values bounded? |
@@ -80,25 +82,30 @@ fixtures.
 - **The alternative not taken.** A registry of ERR codes with a published count under 64, owned by the CTR-ERR-001
   owner (A6's second option). No such registry exists; building one first would hold the OBS freeze on new ERR work.
   It stays open as a later amendment if a category proves too coarse for alerting (§9, Q-033-1).
+- **Budget in force.** The enforced budget of `error_code` is 8, the length of the enum. 64 is a cap, not an
+  allowance: any change that raises the number of `error_code` values above 8, by an added ERR category or by a later
+  code registry, is an increase under §5 and an Owner question, because it raises §4.1's series ceiling.
 
 ## 3. Decision: `outcome` is a closed list, seeded from the contract's own fixtures
 
-`sli_tags.outcome` becomes an enum. The seed is exactly the three values CTR-OBS-001's own valid fixtures use:
+`sli_tags.outcome` becomes an enum. The list has four values: the three that CTR-OBS-001's own valid fixtures use, and
+`error`, which A6 added as observability co-owner (`evidence/WP-0A-CON-004/a6-rfc033-reading-2026-10-09.md` §3).
 
 | Value | Used by | Reading |
 |---|---|---|
-| `success` | `examples/valid-ready.json` | the probed capability or SLI event succeeded |
-| `provider_unavailable` | `examples/valid-provider-unavailable-but-still-live.json` | an external provider was unavailable (OB-003: it may affect readiness, never liveness) |
-| `down` | `examples/valid-down-and-not-ready.json` | the module or capability was not serving |
+| `success` | `examples/valid-ready.json` | the SLI event succeeded |
+| `provider_unavailable` | `examples/valid-provider-unavailable-but-still-live.json` | the event failed because an external provider was unavailable while the module was live (OB-003: it may affect readiness, never liveness); `error_code`, when present, is `provider` |
+| `down` | `examples/valid-down-and-not-ready.json` | the event was not served because the module or capability was not serving (not live, or not ready for a reason other than an unavailable provider) |
+| `error` | the §8 increment's valid fixture | the event failed while the module was serving, for a reason other than an unavailable external provider; `error_code` carries its CTR-ERR-001 category |
 
 - **Why these and not CTR-AUD-001's.** AUD's `succeeded`/`failed`/`denied` is the result of an actor's action; this
   label is the result of a health probe or SLI event. Borrowing AUD's set was tried and reverted because it rejects this
   contract's own valid documents (`co-owner-review-sec-aud-obs-usg.md`, "Reviewer overruled"; the `outcome` x-source).
-- **The list is a seed, not a vocabulary design.** A6 said it "will propose" an SLI outcome enumeration of four or fewer
-  with this RFC (`a6-candidate-signature-2026-10-09.md` §6). A0 does not invent the fourth value. A6 reads this section
-  and either signs the three, or replaces or adds within the budget of 4, in its own words, before this RFC is
-  Accepted. A0's flag for that reading: `down` overlaps `liveness.status` and may belong there rather than in an SLI
-  outcome; that is A6's call.
+- **A6's list.** A6 signed the three fixture values and added `error`, which fills the budget of 4. Without `error`, a
+  live module that fails an event for a reason other than a provider has no correct value
+  (`a6-rfc033-reading-2026-10-09.md` §3). `down` stays in the label. `liveness.status` is a field of the health
+  document, not a label, so an availability SLI counts its not-served events under `outcome: down`. The label
+  classifies an SLI event; it does not report liveness, and no consumer reads liveness from it.
 - **Who adds an entry.** A6, as observability co-owner, by an amendment to this RFC with its signature and a four-role
   round. Before CTR-OBS-001 is Frozen, that is enough while the list stays within its budget. After the freeze, an added
   value widens the accepted set and is breaking under RFC-2026-031 §3.3, so it needs an RFC and version 2.0.0. Raising
@@ -116,14 +123,17 @@ optional label counts as one more value, because a backend stores the unlabelled
 | `environment` | yes | **4** | schema enum (exists) | the four Track INF environments; A6 |
 | `module_key` | yes | **32** modules | runtime population check (§6.2) | A6's number. The schema bounds length (64) but cannot bound a population. The First-Slice module map is far below 32; 32 leaves room for the G1 and G2 waves |
 | `capability_key` | no | **16 per module** (17 with absent) | runtime population check (§6.2) | A6's number. Capabilities are declared in each module's CTR-MOD-001 manifest, so the population is known at build time |
-| `outcome` | no | **4** (seed 3; 5 with absent) | schema enum (§3) | A6's number; the seed fills 3 |
-| `error_code` | no | **64 ceiling; 8 in use** (9 with absent) | schema enum (§2) | A6's ceiling of 64 holds for any later code registry; the category list fills 8 |
+| `outcome` | no | **4** (all four in use; 5 with absent) | schema enum (§3) | A6's number and A6's list (§3) |
+| `error_code` | no | **8** enforced (the enum; 9 with absent); cap 64 (§2) | schema enum (§2) | A6's ceiling of 64 holds for any later code registry; the category list fills 8 |
 
-**Derived series ceiling.** One metric in one environment can have at most
-32 × 17 × 5 × 9 = **24,480** series with the lists of §2 and §3, and 97,920 across the four environments. That is an
-upper bound, not a forecast: an `error_code` is meaningful only on a failing outcome, and most modules declare a few
-capabilities. If `error_code` ever used its full ceiling of 64, the bound would be 32 × 17 × 5 × 65 = 176,800 per
-environment, which is why raising it is a §5 decision and not automatic. A6's dictionary states the same budget as a
+**Derived series ceiling.** This ceiling counts `outcome` at its full budget of 4. One metric name in one environment
+can have at most 32 × 17 × 5 × 9 = **24,480** series with §2's list and §3's budget (with A6's four values, §3's list
+and its budget coincide), and 97,920 across the four environments. That is an upper bound, not a forecast: an
+`error_code` is meaningful only on a failing outcome, and most modules declare a few capabilities. If `error_code` ever
+used its cap of 64, the bound would be 32 × 17 × 5 × 65 = 176,800 per metric name per environment, which is why raising
+it is a §5 decision and not automatic. **The bound is per metric name.** Total series, which a metric backend charges
+for, is this figure times the number of metric names, and this RFC does not bound that number (A1-239-3); bounding the
+metric-name set, or giving it a budget, is a follow-up listed in §8. A6's dictionary states the same budget as a
 full cross product without absent values and across environments, 4 × 4 × 64 × (32 × 16) = 524,288; with `error_code`
 at 8 that figure becomes 4 × 4 × 8 × (32 × 16) = 65,536. The two counts measure the same budget two ways. The number is an Owner question (§9, Q-033-3)
 because series count drives the metric backend's cost.
@@ -145,10 +155,12 @@ The `sli_tags` name set is already closed, so none of these can be a metric labe
 
 ### 4.3 Structured logs
 
-OBS-002 requires `module_key` and `environment` on every structured record. A log backend that indexes labels (streams)
-uses only those two as index labels: 32 × 4 = **128** streams at most. Every other field, including the correlation ids
-and the fine-grained ERR `code`, goes in the record body, where it is searchable without creating streams. This is A0's
-proposal, inferred from OB-006 and OBS-001, and it is A6's to sign with §3.
+OBS-002 requires `module_key` and `environment` on every structured record, along with severity, `error_code` and
+correlation. A log backend that indexes labels (streams) uses only `module_key` and `environment` as index labels: at
+most 32 streams per environment, and **128** across the four. Severity, the record's `error_code`, the correlation
+ids and every other field go in the record body, where they are searchable without creating streams. In the log body,
+`error_code` carries the fine-grained CTR-ERR-001 `code`. Adding any index label, severity included, is an amendment
+under §5. A6 signed this limit on 2026-10-09 (`a6-rfc033-reading-2026-10-09.md` §4.3).
 
 ## 5. Ownership and changes to a list or a budget
 
@@ -196,7 +208,9 @@ under RFC-2026-031 §3.3 (RFC and version 2.0.0). A budget number that is not a 
   digest, fixture names and digests), `test-kits/contracts/schema-mutation-coverage.test.mjs` (WP-0A-CON-003: two
   `pattern` sites become `enum` sites, and the floor), and `test-kits/integrity-manifest.json` (regenerated).
 - **Population (runtime, G1).** That no more than 32 modules and 16 capabilities per module emit `sli_tags` is a
-  property of a running fleet. It is carried as a declared gap of kind `runtime`, owner A6, `closes_before` G1, as A6
+  property of a running fleet. The §4.3 log index rule (only `module_key` and `environment` as stream labels) is a
+  property of the deployed log shipper, not of a document, and is carried in the same declared gap. It is carried as a
+  declared gap of kind `runtime`, owner A6, `closes_before` G1, as A6
   placed it (`a6-candidate-signature-2026-10-09.md` §6). A build-time check over the registered CTR-MOD-001 manifests
   can close it earlier once module manifests exist. That gap is declarable: it is a population, not the missing
   "bounded cardinality" item, which §6.1 closes.
@@ -213,13 +227,13 @@ the §8 edits. The classification is given by §3.3's definition so C0 can confi
 | Edit (§8) | Accepted set | Class by §3.3 | Version |
 |---|---|---|---|
 | `sli_tags.error_code`: pattern → enum of 8 categories | narrows | **breaking** (and a change of the label's meaning) | stays `1.0.0` (Candidate) |
-| `sli_tags.outcome`: pattern → enum of 3 | narrows | **breaking** | stays `1.0.0` |
+| `sli_tags.outcome`: pattern → enum of 4 | narrows | **breaking** | stays `1.0.0` |
 | accepted-gap fixture → `invalid-sli-tags-error-code-enum.json`; `accepted_gaps` entry removed | narrows (part of the rows above); the gap is closed by evidence, not removed without it | breaking only through the rows above | `1.0.0` |
 | 54 invalid fixtures: `error_code` value rewritten | unchanged (each fixture still fails for its one reason) | not breaking | `1.0.0` |
 | manifest budget table; restated annotations and `freeze_boundary` | unchanged | not breaking | `1.0.0` |
 
-**Measured impact.** Of CTR-OBS-001's three valid fixtures, none carries `error_code`, and their `outcome` values are the
-§3 seed, so none becomes invalid. The one document that becomes invalid is the accepted-gap fixture, which is the point.
+**Measured impact.** Of CTR-OBS-001's three valid fixtures, none carries `error_code`, and their `outcome` values are in
+the §3 list, so none becomes invalid (A6 measured the four-value list: `a6-rfc033-reading-2026-10-09.md` §1). The one document that becomes invalid is the accepted-gap fixture, which is the point.
 A consumer fake or test written against Candidate CTR-OBS-001 that emits a fine-grained code in `error_code`, or another
 outcome word, would break. None is in the repository (`grep -rn sli_tags` outside `contract-catalog/` and the catalog
 tests finds no consumer at `5e444c53`).
@@ -242,7 +256,32 @@ four-role round and A6's co-owner signature on the changed CTR-OBS-001 text.
 | `test-kits/contracts/catalog-registry.test.mjs` | WP-0A-CON-008 | OBS pins |
 | `test-kits/contracts/schema-mutation-coverage.test.mjs` | WP-0A-CON-003 | OBS constraint surface and floor |
 | `scripts/test-suite-contract.mjs`, `test-kits/integrity-manifest.json` | WP-0A-A0-002 | the new test's registration; the manifest regenerated, not edited by hand |
-| `evidence/WP-0A-A6-001/product-kpi-metric-dictionary.json` and `.md` | WP-0A-A6-001 (A6) | the `outcome` and `error_code` budget lines become `enforced: true` with `max_distinct_values` equal to the enum length (3 and 8), or the checker reports them; the "blocked on `CTR-ERR-001.code`" text and the 524,288 figure are restated. A6 makes this edit, or it is amended without owning with A6's acknowledgement; the checker is not in the suite, so nothing in CI fails if it is missed, which is why it is listed here |
+| `evidence/WP-0A-A6-001/product-kpi-metric-dictionary.json` and `.md` | WP-0A-A6-001 (A6) | the `outcome` and `error_code` budget lines become `enforced: true` with `max_distinct_values` equal to the enum length (4 and 8), or the checker reports them; the "blocked on `CTR-ERR-001.code`" text and the 524,288 figure are restated. A6 makes this edit, or it is amended without owning with A6's acknowledgement; the checker is not in the suite, so nothing in CI fails if it is missed, which is why it is listed here |
+
+**Follow-ups the §8 increment carries** (raised in the roles' reading of this RFC; advisory, each settled in that
+increment's own round):
+
+- **A6 N-1.** Add one valid fixture that exercises `error`, for example `valid-error-while-live.json` (live, ready,
+  `outcome: "error"`, `error_code: "internal"`), so every value of both enums is used by a valid document.
+- **A6 N-2 and C0 A-1.** `invalid-sli-tags-error-code-pattern.json` and `invalid-sli-tags-outcome-pattern.json` will fail
+  on `enum`, not `pattern`, and the renamed `invalid-sli-tags-error-code-enum.json` duplicates the first; they are
+  renamed or merged in the same increment, so the fixture-name and digest pins move once. With string enums, deleting
+  `type` on `outcome` and `error_code` changes no verdict, so both `type` sites become SUBSUMED in
+  `schema-mutation-coverage.test.mjs`, as `sli_tags.environment.type` already is; the CON-003 row names the two
+  subsumption entries.
+- **A6 N-3.** Nothing stops `outcome: "success"` with an `error_code`. An `allOf` rule "no `error_code` when `outcome`
+  is `success`" would narrow the accepted set; it is optional, A0's choice as Author.
+- **C0 A-2.** The dictionary and the manifest must not state different numbers for one label. With A-1 and A-3 the
+  enforced numbers are 4 and 8 in both; the increment says which record holds the cap of 64.
+- **C0 A-5.** A `label_budget` manifest key needs `MANIFEST_KEYS` in `catalog-registry.test.mjs` to change (CON-008
+  row); the increment also states whether OBS `composes` gains `CTR-ERR-001` (the RFC-2026-032 precedent suggests not).
+- **R0 R-239-4.** `test-kits/contracts/obs-label-budget.test.mjs` enters `WP-0A-CON-004`'s `writable_paths`; the
+  amendments to CON-003, CON-008, A0-002 and A6-001 are declared in `amends_without_owning` with `recorded_on`; the
+  A6-001 dictionary edit needs A6's own words or acknowledgement.
+- **A1 A1-239-3.** The number of metric names is not bounded by this RFC (§4.1). The metric-name set, or its budget, is
+  owed by A6 before any real metric backend is connected.
+- **A1 A1-239-2 (A1's condition C-3 on that increment).** The §6.2 runtime gap is restated as a membership check:
+  `module_key` in the registered CTR-MOD-001 module keys, `capability_key` in that module's declared capabilities.
 
 **Records closed by that increment, not by this PR:** `WP-0A-CON-004` `open_blockers[4]`; the CTR-OBS-001 accepted gap;
 the index item "bounded cardinality" becomes present for C0 to match at the freeze review (RFC-2026-031 §4.1 (2)).
@@ -253,44 +292,50 @@ RFC-2026-031, which are cited and not amended.
 
 ## 9. Owner questions
 
-Each question carries A0's recommendation. On 2026-10-09T17:10:06Z the Owner gave A0 full authority for the night's work
-without asking permission (`evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-night-delegation.md`, verbatim).
-Under that disposition A0 answers each question with its own stated recommendation and chooses no option it did not
-recommend. Each answer below is **answered on the Owner's blanket delegation of 2026-10-09T17:10:06Z (see that
-disposition); Owner may revisit.** None of these answers replaces A6's signature (§3, §4) or any role's verdict, and none
-makes this RFC Accepted.
+Each question carries A0's recommendation. None is answered yet. Item 3 of
+`evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md`, on whose option A0 would press
+this PR, requires that the Product Owner himself has answered the RFC's questions (C0-239-2, A1-239-1). The night
+delegation (`evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-night-delegation.md`) does not stand in for
+that answer. Each answer below is marked **A0's recommendation — awaiting the Product Owner's own answer, which item 3
+of the 2026-10-09 three-governance-PRs disposition requires before the press.** The Owner's answers will be transcribed
+verbatim in a `product-owner-disposition-*` file under `evidence/WP-0A-CON-004/`. No answer replaces A6's signature
+(§3, §4) or any role's verdict, and none makes this RFC Accepted.
 
 - **Q-033-1. What does `error_code` carry?** (a) CTR-ERR-001 `category`, 8 values, fine-grained code in the log (§2);
   (b) a new ERR code registry with a published count under 64; (c) drop the `error_code` label. **A0 recommends (a).** It
   has a source today, sits well inside A6's ceiling, and is A6's own preferred closure; (b) holds the freeze on ERR work
   that does not exist; (c) loses the one failure dimension SLO alerting needs.
-  **Answer: (a), answered on the Owner's blanket delegation of 2026-10-09T17:10:06Z (see that disposition); Owner may
-  revisit.**
+  **Proposed answer: (a). A0's recommendation — awaiting the Product Owner's own answer, which
+  item 3 of the 2026-10-09 three-governance-PRs disposition requires before the press.**
 - **Q-033-2. How is `outcome` closed?** (a) seed it with the three values the contract's valid fixtures use (`success`,
   `provider_unavailable`, `down`), budget 4, A6 to confirm or replace within the budget before acceptance (§3); (b) leave
   it open until A6 proposes a full vocabulary, which keeps the freeze blocked. **A0 recommends (a).** It invents nothing,
-  rejects no valid fixture, and leaves the vocabulary A6's.
-  **Answer: (a), answered on the Owner's blanket delegation of 2026-10-09T17:10:06Z (see that disposition); Owner may
-  revisit.**
+  rejects no valid fixture, and leaves the vocabulary A6's. A6 has since signed the three and added `error` within the
+  budget (§3); A6 records that this reopens no answer (`a6-rfc033-reading-2026-10-09.md` §5).
+  **Proposed answer: (a). A0's recommendation — awaiting the Product Owner's own answer, which
+  item 3 of the 2026-10-09 three-governance-PRs disposition requires before the press.**
 - **Q-033-3. Accept the budget and its cost ceiling?** A6's per-label numbers (§4.1: environment 4, module_key 32,
-  capability_key 16 per module, outcome 4, error_code ceiling 64 with 8 in use), giving at most 24,480 series per metric
-  per environment, and any increase coming back to the Owner. **A0 recommends accepting them.** They are the observability
-  co-owner's numbers, unchanged since 2026-09-02; the ceiling is an upper bound far above the First Slice's expected
-  series; and an increase stays an Owner decision.
-  **Answer: accept, answered on the Owner's blanket delegation of 2026-10-09T17:10:06Z (see that disposition); Owner may
-  revisit.**
+  capability_key 16 per module, outcome 4, error_code 8 enforced with a cap of 64), giving at most 24,480 series per
+  metric name per environment, and any increase coming back to the Owner. The number of metric names is not bounded by
+  this RFC (§4.1, §8 follow-ups). **A0 recommends accepting them.** They are the observability co-owner's
+  numbers, unchanged since 2026-09-02; the ceiling is an upper bound far above the First Slice's expected series; and an
+  increase stays an Owner decision.
+  **Proposed answer: accept. A0's recommendation — awaiting the Product Owner's own answer, which
+  item 3 of the 2026-10-09 three-governance-PRs disposition requires before the press.**
 - **Q-033-4. Land it before the freeze?** The §8 increment lands while CTR-OBS-001 is Candidate, and CTR-OBS-001 does not
   enter its freeze review until §7's freeze gate holds; until then no consumer emits `sli_tags` to a real metric backend.
   **A0 recommends yes.** "bounded cardinality" cannot be declared (RFC-2026-031 §5.5 (1)), and landing the narrowing at
   Candidate avoids a version 2.0.0.
-  **Answer: yes, answered on the Owner's blanket delegation of 2026-10-09T17:10:06Z (see that disposition); Owner may
-  revisit.**
+  **Proposed answer: yes. A0's recommendation — awaiting the Product Owner's own answer, which
+  item 3 of the 2026-10-09 three-governance-PRs disposition requires before the press.**
 
 **Order before acceptance and the merge.**
 1. The four roles read this head; A1 as the security reviewer; A6 reads §3 and §4 as observability co-owner and signs,
    changes or refuses the `outcome` seed and the numbers in its own words.
-2. If A6 changes a value, this RFC is amended to A6's words and the roles re-read the changed head.
-3. A0 sets the status to Accepted in a later step, after the roles pass, citing their files and the delegation.
-4. A0 presses the PR on a green head containing current `main` (Owner disposition item 3).
+2. If A6 changes a value, this RFC is amended to A6's words and the roles re-read the changed head. (Done for A6's
+   A-1 to A-7: A6 added `error` to §3; the roles re-read the amended head, and A6 re-reads that its words landed.)
+3. The Product Owner answers Q-033-1 to Q-033-4 himself, and A0 transcribes the answers verbatim.
+4. A0 sets the status to Accepted in a later step, after the roles pass, citing their files and the Owner's answers.
+5. A0 presses the PR on a green head containing current `main` (Owner disposition item 3).
 
 Until the status reads Accepted, nothing in §2 to §8 binds.
