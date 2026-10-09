@@ -72,3 +72,22 @@ No condition was tripped, so the status move is recorded.
 - **F2 placeholder.** R0 offered `FIXED IN THIS FOLLOW-UP | LEFT OPEN`; `LEFT OPEN` was chosen because this increment
   does not change `open_blockers[1]`.
 - **`check:handoff` at the merged head** could not be re-run (§1.1, I3); the diff evidence stands in for it.
+
+## 4. Correction, 2026-10-09 (C0-221-1; A1R-221-1; Q221-1; R0 R-221-1)
+
+§1.1 is wrong in two places, and both are corrected here rather than edited above:
+
+- **The A1 row and the closing sentence.** A1's carry clause at `25d449c` reads in full that "anything else in this
+  branch's own diff does" need an A1 re-check. After `25d449c` the branch's own diff gained the C0, Q0 and R0 role
+  files, and the handoff commit `763b4d60` rewrote prose beyond its range and file lists. The §1.1 row quoted only the
+  sync half of the clause. **A1's clause was tripped**, and no A1 file existed at `763b4d60` when PR #208 was
+  pressed. A1 ruled after the merge, on 2026-10-09, that its `security_approved` carries to `763b4d60`
+  (`evidence/WP-0A-A0-008/a1-carry-2026-10-09.md`, carried on this PR). That is a process lapse of the R19 class
+  (`evidence/WP-0A-A0-002/r0-ruling-2026-10-09.md`): recorded, not excused. The sentence "No condition was tripped,
+  so the status move is recorded" is withdrawn. The status move rests on R0's I1-I5, which held, and on A1's
+  after-the-merge carry ruling.
+- **Row I1 (C0 light-path advisory A2).** "the merge commit's first parent is `9b4a0ce6`" means the sync commit
+  `dd9f4778`, whose second parent is `9b4a0ce6`. PR #208's merge commit `5cb5cb83` has parents `9b4a0ce6` (main) and
+  `763b4d60` (the final head).
+
+This PR takes the full path: C0, A1, Q0 and R0 read it (`*-review-2026-10-09-pr221.md`, carried).
