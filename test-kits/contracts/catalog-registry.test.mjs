@@ -168,10 +168,10 @@ const CATALOG_REGISTRY = {
   'ctr-usg-001': {
     contract_id: "CTR-USG-001",
     version: "1.0.0",
-    status: "Draft",
+    status: "Candidate",
     owner: "A0+A6",
     index_owner: "A0+A6",
-    index_status: "Draft",
+    index_status: "Candidate",
     required_before_freeze: ["dimensions","attribution","decimal money","dedupe"],
     consumers: ["AI","Research","Storage","Media","Publish","Billing"],
   },
@@ -323,7 +323,7 @@ const CAVEAT_DIGESTS = {
   'ctr-pag-001': { freeze_boundary: '7cc50c9d8daf646d', untestable_by_fixture: 'd5b82746b3379dcd', untestable_by_schema: '632e77c7c5fd5e87' },
   'ctr-sec-001': { freeze_boundary: '76d856658740ce9c', untestable_by_fixture: '1ffa2979d8f056c7', untestable_by_schema: 'c4809fecbc249148' },
   'ctr-ten-001': { freeze_boundary: '8f0ab5a50b9a2de4' },
-  'ctr-usg-001': { freeze_boundary: '8ef114c8bfe9c430', untestable_by_fixture: '07e5a82c4dfc9bf2', untestable_by_schema: 'cbd0acbf2f282076' },
+  'ctr-usg-001': { freeze_boundary: '8ef114c8bfe9c430', untestable_by_fixture: '07e5a82c4dfc9bf2', untestable_by_schema: '0c2b8e05d11523d7' },
 };
 
 test('a caveat cannot be replaced by its opposite', async () => {
