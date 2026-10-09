@@ -44,7 +44,7 @@
     "contract-catalog/shared-kernel/index.json": "a8c5173cb87e0f3efdd32a25fd57bfb90690defc1fe2def565e4bc175428df3d",
     "db/foundation/test-helpers/rls-assertions.mjs": "aaaa551d011f22491f743b7946cfa94713f1f0142b0a08a164d61228ee00c7bf",
     "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md": "0a7656abb31f25ba5107cf304951b6fbaefca67bb607415250ea3a4d400056c4",
-    "evidence/VERIFICATION.md": "880ef15ef22ec552ca6d268c3eb1f1ce36bd85fd986df8e7a648280a66caf114",
+    "evidence/VERIFICATION.md": "c405fb97340dc94187521788cb3aaf51fcbae1dde3b6fe486ef6a1648917ad96",
     "package-lock.json": "24471bf1aa7ced9e84119f90054030e044f099d5310dd3ddeaaf8209d9721cb5",
     "package.json": "fbbca027d2445f87badb757e33dd87fbc2c2349c1dcb7049d0471277d9a33a78",
     "scripts/commit-when-clean.mjs": "0a842c175520f4b1b6341c3249ee915aa0df511e9356a0a5f6b4d039906f1b1d",
@@ -64,7 +64,7 @@
     "scripts/regenerate-integrity-manifest.mjs": "6bafae1737d7de9c0ea0679315e8dcca167eed7faa7df5b3f61ed9d39c597173",
     "scripts/run-test-suite.mjs": "4634f66d9eac7c336890f548e180665899f96f66e72462c342c19f892051490f",
     "scripts/scan-repository-secrets.mjs": "dce41df8d408a5421af4caed937cf574cdb721ad135ca2469e8ef88120264571",
-    "scripts/test-suite-contract.mjs": "efb9e79b7b1418afb99ee9158f0ba46ca7e95cb3f5db2416d970c76472a2f18f",
+    "scripts/test-suite-contract.mjs": "c9e9ee5442bf6a1ecedadfc60e105f6cda5978388690a3992dab907b215b7ad8",
     "scripts/toolchain-contract.mjs": "c84becb9ffb43800063204eac6ec2820a7d6f8112bcf9df5299c5859e4c65d27",
     "scripts/validate-capability-profiles.mjs": "aba9f1b6157d55e22b7a9e633ed5645b285d0a7bb2c9e7e0af8b274d74b28c89",
     "scripts/validate-work-package-ownership.mjs": "4b2e878f4ff1c56cf19d2b5363359cf4b22069b4ab499d2d6d6d2d9486b03518",
@@ -83,7 +83,7 @@
     "test-kits/ci-guard-behaviour.test.mjs": "20f731693f20a7eeb4f6ea2add033f68d03b799f86a00799caf03bf8fb56cbc3",
     "test-kits/contracts/catalog-groups.test.mjs": "98d740f69ffb890a6092a1453430f1e0bf83da56f967806a68e8e7569246b9c8",
     "test-kits/contracts/catalog-reference-integrity.test.mjs": "8c6a843db46f2435ae1c87cd87de0a5e2390319f6ca69ebfa6f7d6de4cd3de19",
-    "test-kits/contracts/catalog-registry.test.mjs": "5c040e669c19ba4e0dab7e455f530a8d69c528925a9aff453599c4a9cbfb6283",
+    "test-kits/contracts/catalog-registry.test.mjs": "fd5c05d8951ba80d2826c9f561f6121ff5ac3e208dc5515bb8f0c4623f7cf002",
     "test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs": "cf9a5325c1c970e63a57bc1ae5c7c313fef2a6f49b0038698cbb3f0eda03b40b",
     "test-kits/contracts/ctr-job-001-reference-hardening.test.mjs": "66e9d40cb286cacfae3ab022f74aa6b0b4280cc6da073a78c9945e9b4eb689cb",
     "test-kits/contracts/json-schema-subset.mjs": "9037cc0a7ef19b0d230d4a56018a686c50456e24a05d4e665fbf0e04ebc75632",
@@ -97,7 +97,7 @@
     "test-kits/handoff-conformance.test.mjs": "b76f0e5134e82dcd1ea56735530471b86277d6046eb858ca97f17526f9f48f17",
     "test-kits/integrity-manifest-rebuild.test.mjs": "dfca90589213bfcd9d74aeff1b2216be9bbde67a82cc85dd69ef22000b647143",
     "test-kits/protocol-schema-conformance.test.mjs": "53f75bb38d749c2383936a7c358e9c00c76b60bbcf80b671c5a31be1aaf90945",
-    "test-kits/ratchets-bite.test.mjs": "89b0c9d30733a05ffcce34897fa2184989471729364ead36d878c7f4cb77a439",
+    "test-kits/ratchets-bite.test.mjs": "0c748c712ff97d13b8512743f307521d2a3859972265213e78c1b14668b7d554",
     "test-kits/repository-json.test.mjs": "22411fa77bb41524b18d3d49e9e9238da06ae5a7241938ed97714ce2dc364e55",
     "test-kits/role-separation.test.mjs": "e00a8c05ee43e01652b83fff1d1ac82039921f2db4149b48427a24e42aa3c756",
     "test-kits/secret-scan.test.mjs": "2a34046ef8411266b86c718aebda10c5db81b03ef089519db23c7bfa15e67bd0",
@@ -109,7 +109,7 @@
     "tests/db/identity/identity-isolation.test.mjs": "7b6f78a481b41403ef78fe0e2555c3304552dd18dcf040e3c36b5ceaa11bc6f3",
     "tests/db/identity/isolation-cases.mjs": "bac0e46ce5ed241dcbf26e46f56a6e48c4bd3ca554e8c244e91ef1ebe2576fc7",
     "tests/db/identity/run-isolation.mjs": "b7df49228d82af244ba7a5ec14508ed674d11293082014cc265275fbe7823d9b",
-    "work-packages/WP-0A-CON-008.json": "61b2aaa24a970062c4016b450a97df80eb88b5468b3f5b810d90aa9947b7ce6d"
+    "work-packages/WP-0A-CON-008.json": "c8a1d3c64b4cd8597eb5f99176d002f2cbb54dc430305cb8b5550dcf135c36ab"
   },
   "cross_package_note": "Any package that adds a test file must add it here, because the guard requires every discovered test file to be digested. This is a deliberate coupling: an unprotected suite can be gutted with the manifest byte-identical. It surfaced when WP-0A-CON-002 added three contract suites and CI failed at exit 87 while a local run on the unrebased branch passed - GitHub tests the MERGE of head into base, so a stacked branch that has not been rebased does not see its own integration."
 }
