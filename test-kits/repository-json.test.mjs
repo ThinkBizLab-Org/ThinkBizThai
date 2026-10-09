@@ -125,6 +125,7 @@ const DECISION_RECORDS = [
   'RFC-2026-028-worker-identity.md',
   'RFC-2026-029-application-tier-stack.md',
   'RFC-2026-030-risk-tiered-review.md',
+  'RFC-2026-031-first-slice-contract-freeze.md',
 ];
 
 test('the set of decision records is what it was, and each is digested', async () => {
