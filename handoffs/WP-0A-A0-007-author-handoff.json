@@ -4,18 +4,23 @@
   "work_package_id": "WP-0A-A0-007",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "d44dbdbb1efebc9d891e3d31fdf01a8a8060c59a",
-  "head_revision_or_patch_checksum": "d65430f59d6225c7b5078c51857a6f064bc56c4a",
+  "base_revision": "f2e51e90c5eff2c0fde0f1ce42cd6c45a33fa8f7",
+  "head_revision_or_patch_checksum": "86ec25396700c5b305fe19bbc0c8c9ea97309a33",
   "task_ids": [
     "WP-0A-A0-007",
     "G0-step-4"
   ],
   "files_added": [
     "evidence/WP-0A-A0-007/a1-carry-2026-10-09.md",
+    "evidence/WP-0A-A0-007/a1-review-2026-10-09-pr223.md",
+    "evidence/WP-0A-A0-007/c0-review-2026-10-09-pr223.md",
     "evidence/WP-0A-A0-007/q0-carry-2026-10-09.md",
+    "evidence/WP-0A-A0-007/q0-review-2026-10-09-pr223.md",
+    "evidence/WP-0A-A0-007/r0-review-2026-10-09-pr223.md",
     "evidence/WP-0A-A0-007/records-transcription-2026-10-09.md"
   ],
   "files_modified": [
+    "handoffs/WP-0A-A0-007-author-handoff.json",
     "work-packages/WP-0A-A0-007.json"
   ],
   "files_deleted": [],
@@ -69,9 +74,7 @@
     "C0 wrote no carry ruling; its clause (4) is read by A0 as holding because the PR's own path list is identical before and after the sync with main (evidence/WP-0A-A0-007/records-transcription-2026-10-09.md §1). That reading is the Author's."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[0], [1], [2] and [3] stay open after this increment; [4] is closed in place; [5] is new and records the after-merge lapse.",
-    "RFC-2026-016's stale status line, §4 and §7 are owed to its owner through the governance path, not to this package.",
-    "This PR carries role files, so it takes the full path of RFC-2026-025, not the records-only light path."
+    "Full path. Role verdicts on this PR, carried with -x: C0 review_approved, A1 security_approved, Q0 test_verified (735/735 on the branch name), R0 integration-sound with its press conditions (evidence/WP-0A-A0-007/{c0,a1,q0,r0}-review-2026-10-09-pr223.md). Each carries under its stated clause: role files -x, a mechanical sync of main, this handoff refresh last and alone. A0 presses under the Owner’s standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once bootstrap is green on this exact head with main contained, as a true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "ROLLBACK (WP-0A-A0-007 records of 2026-10-09): a reviewed revert PR of this branch's commits returns WP-0A-A0-007 to in_review, restores open_blockers[4] to its \"NO ROLE VERDICT EXISTS\" text, drops open_blockers[5] and removes the Q0 and A1 carry rulings and records-transcription-2026-10-09.md; PR #200's merged content is untouched.",
   "recommended_next_work_packages": [
