@@ -5,13 +5,14 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "9d0b3d23764cfe60b6fefb6b9688ff485f44fe33",
-  "head_revision_or_patch_checksum": "d0c92447da9ed4f893a614cf5ba1cc6f99d4e047",
+  "head_revision_or_patch_checksum": "e2ec50a821ad0f19ab7cc200e509587d210034dc",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md",
     "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md"
   ],
   "files_modified": [
+    "handoffs/WP-0A-CON-008-author-handoff.json",
     "scripts/verify-test-coverage-floor.mjs",
     "test-kits/integrity-manifest.json",
     "test-kits/repository-json.test.mjs",
@@ -27,9 +28,9 @@
   "contracts_produced_or_changed": [],
   "assumptions": [
     "Gate G0: the exit is decided and conditional (D0, 2026-10-08), not passed. CONTRIBUTING_AGENTS.md \"Current gate constraint\" and register line 373 still bind; this increment writes an RFC and a disposition only, reversible and synthetic-only.",
-    "The Owner's words in the disposition were checked against the session transcript of session 3ecec68b (outside the repository, not committed), not against A0's relay. Where the relay and the transcript differ (the order of `เอาตามคุณแนะนำ`), the transcript is followed and the difference is stated in the disposition §1.",
-    "RFC-2026-031 is Proposed. Nothing in it binds beyond what the Owner's answers of 2026-10-08 (§10.1, §10.3) and 2026-10-09 (Q1, Q2) already decide, until the Owner answers Q-031-1 to Q-031-5 and the PR is merged.",
-    "A0 reads the Owner's 2026-10-08 standing direction (disposition of that date §10.2, a question naming \"RFC เรื่อง freeze ที่จะตามมา\") as covering the press of this governance PR once four roles pass and CI is green; that reading is A0's and is put to A1 and R0 (disposition 2026-10-09 §6).",
+    "The Owner's words in the disposition, §1-§7 and the appended §8, were checked against the session transcript of session 3ecec68b (outside the repository, not committed), not against A0's relay. Where the relay and the transcript differ (the order of `เอาตามคุณแนะนำ`), the transcript is followed and the difference is stated in the disposition §1. For §8 the relay matched the transcript.",
+    "The Owner answered RFC-2026-031 §10 on 2026-10-09: Q-031-1 `อนุมัติ รวม USG (Recommended)`, and Q-031-2 to Q-031-5 as A0 recommended, transcribed verbatim in evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md §8. The RFC's status line now cites that section. The text put to him is the RFC as committed at d0c92447; the commit that records his answers changes only its status line and appends them to §10. It binds once this PR is merged.",
+    "Who presses this PR: the Owner's Q-031-4 answer `ได้ ทั้งสอง + กด #229 (Recommended)` directs A0 to press PR #229 once its four roles pass, and to press freeze PRs under RFC-2026-031 §4.4. That direction is an exception to RFC-2026-025 §5 item 6 for those PRs only and does not amend the rule (disposition §8.3). A0's earlier reading of the 2026-10-08 standing direction (disposition §6) is no longer what the press rests on.",
     "Cross-vendor review is NOT satisfied; every role run is Anthropic claude-opus-5, recorded as the Decision Register exception (manifest independence.cross_vendor_exception)."
   ],
   "acceptance_results": [
@@ -80,33 +81,34 @@
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. A decision record and an Owner disposition only. The disposition quotes chat messages between the Owner and A0 about repository work; they carry no personal data, credential, private URL or customer content. The transcript path it names is a local file path, not a URL. Cost impact none.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract, schema, fixture, test assertion or status of any other package changes. Adds architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md (Proposed) and evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md. Registers the RFC where every decision record is registered: one DECISION_RECORDS line in test-kits/repository-json.test.mjs (WP-0A-A0-001), one DIGESTED_FLOOR line in scripts/verify-test-coverage-floor.mjs (WP-0A-A0-002), and its digest in the regenerated test-kits/integrity-manifest.json. The manifest of WP-0A-CON-008 adds the RFC to writable_paths and outputs, adds a scope line, appends the Owner's answer to open_blockers[6] after its whole old text, appends open_blockers[8], restates amends_without_owning, and moves status integration_verified to in_review for this increment.",
+  "compatibility_impact": "No contract, schema, fixture, test assertion or status of any other package changes. Adds architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md (its status line cites the Owner's 2026-10-09 answers; the approval commit changes its status line and appends the answers to §10, and rebuilds its integrity-manifest digest) and evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md. Registers the RFC where every decision record is registered: one DECISION_RECORDS line in test-kits/repository-json.test.mjs (WP-0A-A0-001), one DIGESTED_FLOOR line in scripts/verify-test-coverage-floor.mjs (WP-0A-A0-002), and its digest in the regenerated test-kits/integrity-manifest.json. The manifest of WP-0A-CON-008 adds the RFC to writable_paths and outputs, adds a scope line, appends the Owner's answer to open_blockers[6] after its whole old text, appends open_blockers[8], restates amends_without_owning, and moves status integration_verified to in_review for this increment.",
   "known_limitations": [
-    "RFC-2026-031 is Proposed: Q-031-1 to Q-031-5 (§10) are unanswered, and the RFC's §3.3 breaking-change definition, §5.2 declared_gaps shape and §5.5 limits are A0's proposals until the Owner answers.",
+    "RFC-2026-031 is Approved but binds only once merged; its §3.3 breaking-change definition, §5.2 declared_gaps shape and §5.5 limits are the Owner's decisions (Q-031-2, Q-031-3, Q-031-5) from the merge on.",
     "The test and registry change that admits Frozen (RFC-2026-031 §7.1) is specified and not implemented; until it is, catalog-registry.test.mjs rejects Frozen and no contract can freeze.",
-    "CTR-USG-001 is outside the First-Slice set, but register §7.2 (2) first clause asks every shared contract to be at least Candidate; RFC-2026-031 §6 reads that as a condition on closing the G0 exit and asks the Owner (Q-031-1).",
+    "CTR-USG-001 is outside the First-Slice set; by the Owner's Q-031-1 answer it must reach Candidate (not Frozen) before the G0 exit closes (RFC-2026-031 §6). Nothing on this branch moves it.",
     "Register §7.2 items 1 and 3-8, other than item 8 as it applies to the freezes, are not decided against the conditional exit by this RFC (§6).",
     "The disposition's transcript check was made against a file outside the repository; a reader on main sees the quotes and their times, not the transcript."
   ],
   "open_risks_or_blockers": [
-    "OWED BY THE OWNER: answers to Q-031-1 to Q-031-5 of RFC-2026-031 §10, transcribed on this branch before the merge; until then the RFC stays Proposed.",
-    "OWED BY THE ROLES: C0, A1, Q0 and R0 runs on this governance PR, and a re-read of the commit that records the Owner's answers (RFC-2026-025 §5 item 2).",
-    "FOR A1 AND R0: whether the 2026-10-08 standing direction names this PR's sequence as RFC-2026-025 §5 item 6 requires (disposition 2026-10-09 §6); A0 reads that it does.",
+    "The Owner answered RFC-2026-031 §10 on 2026-10-09 (disposition §8), and the RFC's status line cites that section. Nothing is owed by the Owner for this PR's text.",
+    "OWED BY THE ROLES: C0, A1, Q0 and R0 runs on the new head, which carries the approval commit (RFC-2026-031 §10 'Order before the merge' step 3; RFC-2026-025 §5 item 2). The heads they read before the approval commit do not cover it.",
+    "PRESSER: A0 presses PR #229 under the Owner's Q-031-4 answer `ได้ ทั้งสอง + กด #229 (Recommended)`, once the four roles pass and CI is green on a head that contains current main. This is an exception to RFC-2026-025 §5 item 6 for #229 and for freeze PRs under RFC-2026-031 §4.4; it does not amend the rule. The earlier question whether the 2026-10-08 standing direction alone named this PR (disposition §6) no longer decides the press.",
     "OWED BY WP-0A-A0-002 AND WP-0A-A0-001: acknowledgement of the one DIGESTED_FLOOR line plus the regenerated digests, and of the one DECISION_RECORDS line.",
     "ADDED 2026-10-08 BY A0 (/claude/a0_atlas) ON C0 F-1 AND A1 N-1 (evidence/WP-0A-CON-008/c0-review-2026-10-07.md §2, a1-review-2026-10-07.md §3), OWNER PRODUCT OWNER + A0 (G0-024), A GATE-RULE QUESTION  ... (manifest open_blockers[6] carries the full text and the Owner's answer appended after it)",
     "The manifest's open_blockers[1], [2], [3], [5] and [7] stand unchanged (co-owner sign-off outstanding; presence not sufficiency; CTR-NTF-001 unassessed; the scanner digest hazard, owner WP-0A-A0-003; the handoff guard HEAD^ blind spot, owner WP-0A-CON-008)."
   ],
   "rollback_or_forward_fix": "Revert through a reviewed revert PR of the RFC-2026-031 increment of WP-0A-CON-008: removing architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md also needs its DECISION_RECORDS line, its DIGESTED_FLOOR line and its integrity-manifest digest removed in the same revert, or repository-json.test.mjs and the coverage floor fail; the 2026-10-09 Owner disposition stays true as a record of what was said even if the RFC is withdrawn, so a revert that drops it must say where the Owner's answers are kept instead. No contract, schema or status other than this package's own moved, so nothing downstream needs rolling back.",
   "recommended_next_work_packages": [
-    "WP-0A-CON-008 (this package), after the Owner answers Q-031-1..5 and the PR merges: the RFC-2026-031 §7.1 test and registry change (FREEZE_LEVELS, MANIFEST_KEYS, declared_gaps tests and pins, the two ratchets-bite reversals moved off the value Frozen), tier H, its own role round.",
+    "WP-0A-CON-008 (this package), after this PR merges: the RFC-2026-031 §7.1 test and registry change (FREEZE_LEVELS, MANIFEST_KEYS, declared_gaps tests and pins, the two ratchets-bite reversals moved off the value Frozen), tier H, its own role round.",
     "WP-0A-CON-001, WP-0A-CON-002, WP-0A-CON-003, WP-0A-CON-004, WP-0A-CON-006: close or prepare as declared gaps the items g1-freeze-readiness-2026-10-08.md §2 and §3 name for the contracts each owns.",
     "WP-0A-A0-004 and WP-0A-A0-005: cite disposition 2026-10-09 §3 in their own records."
   ],
   "reviewer_instructions": [
-    "Read architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md and evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md. Check every Owner word and every option text in the disposition byte for byte against the source A0 names (the 2026-10-09 transcript of session 3ecec68b, which A0 can produce), and every citation (register lines 43, 111, 138, 190, 365, 371, 373; the 2026-10-08 disposition §2.1, §4.1, §6, §10.1-§10.3; test file lines in RFC-2026-031 §7.2) against origin/main.",
+    "Read architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md and evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md. Check every Owner word and every option text in the disposition, including the appended §8 (Q-031-1 to Q-031-5 and the PR #228 context), byte for byte against the source A0 names (the 2026-10-09 transcript of session 3ecec68b, which A0 can produce), and every citation (register lines 43, 111, 138, 190, 365, 371, 373; the 2026-10-08 disposition §2.1, §4.1, §6, §10.1-§10.3; test file lines in RFC-2026-031 §7.2) against origin/main.",
     "Check that nothing under contract-catalog/, docs/, .github/ or CONTRIBUTING_AGENTS.md changed, and that no test assertion changed: the only test-file line is one DECISION_RECORDS entry.",
     "Check open_blockers[6]: the old text is whole at the start and the Owner's answer is appended after it; open_blockers[8] is new at the end.",
     "Judge RFC-2026-031 §5.2 (declared_gaps) against the existing accepted_gaps and untestable_by_* fields, §5.5 against the Owner's \"ช่องว่างทุกข้อ\", and §6's CTR-USG-001 reading against register §7.2 (2).",
+    "Check that the approval commit changes no decision text: `git diff d0c92447 HEAD -- architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md` shows only the status line and the appended block at the end of §10; the disposition's §1-§7 are unchanged; the only other file is the RFC's digest in test-kits/integrity-manifest.json.",
     "git show --stat HEAD must show the handoff alone."
   ],
   "superseded_by": null
