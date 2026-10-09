@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-009",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "c5c8155cd592e1fd9f44021befaa4b176811a800",
-  "head_revision_or_patch_checksum": "2e603590e681a2bb43700b246293a7a0fdf8e358",
+  "base_revision": "3f8236fef0f9bce166104c08f8508dd561e969ce",
+  "head_revision_or_patch_checksum": "fad93f0afd30b509f34290e9048ba0cb41ae34cf",
   "task_ids": [
     "WP-0A-A0-009",
     "G0-step-4"
@@ -15,6 +15,7 @@
     "evidence/WP-0A-A0-009/a1-review-2026-10-09-pr226.md",
     "evidence/WP-0A-A0-009/c0-recheck-2026-10-09-pr226.md",
     "evidence/WP-0A-A0-009/c0-recheck-2026-10-09b-pr226.md",
+    "evidence/WP-0A-A0-009/c0-recheck-2026-10-09c-pr226.md",
     "evidence/WP-0A-A0-009/c0-review-2026-10-09-pr226.md",
     "evidence/WP-0A-A0-009/q0-recheck-2026-10-09-pr226.md",
     "evidence/WP-0A-A0-009/q0-review-2026-10-09-pr226.md",
