@@ -4,78 +4,74 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "9d0b3d23764cfe60b6fefb6b9688ff485f44fe33",
-  "head_revision_or_patch_checksum": "025d9ba5c86dfad6c4a542a4d12ff702383a2b4c",
+  "base_revision": "b10e20a50b92904431e313b7fb6f0dea883ef5ef",
+  "head_revision_or_patch_checksum": "2ca20bf4892c6f29db50c7a414504cbee9139a5a",
   "task_ids": [
     "WP-0A-A0-001",
-    "RFC-2026-030-s7-contributing-passages"
+    "NTF-A5-capability-profile-2026-10-09"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-001/a1-review-2026-10-09-pr228.md",
-    "evidence/WP-0A-A0-001/c0-review-2026-10-09-pr228.md",
-    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-pr228.md",
-    "evidence/WP-0A-A0-001/q0-review-2026-10-09-pr228.md",
-    "evidence/WP-0A-A0-001/r0-review-2026-10-09-pr228.md",
-    "evidence/WP-0A-A0-001/rfc-030-contributing-passages-2026-10-09.md"
+    ".agents/capability-profiles/cc-a5-loom.json",
+    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md"
   ],
   "files_modified": [
-    "CONTRIBUTING_AGENTS.md",
-    "handoffs/WP-0A-A0-001-author-handoff.json",
-    "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-A0-001.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-002",
+    "RFC-2026-013",
     "RFC-2026-025",
-    "RFC-2026-030"
+    "RFC-2026-031"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
     "WRITER DISCLOSURE: this increment was written by /claude/a0_atlas (A0), through a subagent of A0's run. The agent_run_id field reads /root because test-kits/handoff-conformance.test.mjs requires it to equal the manifest author_agent_run_id of WP-0A-A0-001, which this increment does not change. /root did not write it.",
-    "THIS INCREMENT is a governance PR (RFC-2026-025 §5 item 6) that makes the CONTRIBUTING_AGENTS.md edits RFC-2026-030 §10 item 1 owes to this package (also WP-0A-DB-00 open_blockers[204] item (3)): the three §7 passages replaced word for word, and a citation of RFC-2026-025 §6 in \"Temporary manual merge control\" (RFC-2026-025 §6.6 item 3).",
-    "Word for word is read as: the RFC's blockquote lines, trimmed and joined with single spaces, are the replacement text. Paragraphs (a) and (b) are single lines in the guide; bullet (c) is re-wrapped at 80 columns with the section's two-space continuation indent. evidence/WP-0A-A0-001/rfc-030-contributing-passages-2026-10-09.md §2-§3 byte-compares each.",
-    "No RFC prescribes the wording of the RFC-2026-025 §6 citation. The wording is A0's, a bullet of its own after (c), and adds no rule."
+    "THIS INCREMENT adds .agents/capability-profiles/cc-a5-loom.json, declaring the Claude run /claude/a5_loom for A5 (Loom) owner assessment of A5-owned contracts, starting with CTR-NTF-001, as the Product Owner directed on 2026-10-09 (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md, Q1, option (ข)). RFC-2026-013 counts a run's assessment as a signature only for a role its capability profile declares, and no profile on main declared a run A5 could be dispatched as.",
+    "The profile values were declared by A0 from the harness A0 dispatches from, not supplied by the run, as cc-a6-relay.json was on 2026-09-02. The profile says so in declaration_origin and asks the run to confirm or correct them in its first A5 file.",
+    "The disposition file is a byte-for-byte copy of the record A0 wrote of the Owner's answers in session 3ecec68b (cmp exit 0 against the source).",
+    "cc-a6-relay.json had no owning manifest: 790f0f36 created it under this package's amends_without_owning, which later increments narrowed. It is added back to this package's writable_paths and outputs.files; its content is unchanged."
   ],
   "acceptance_results": [
     {
-      "criterion": "RFC-2026-030 §7 (a), (b) and (c) replacements present in CONTRIBUTING_AGENTS.md word for word, the rest of each paragraph unchanged",
-      "result": "pass for author self-check: byte-equal after the stated normalisation, and undoing the edits gives origin/main byte for byte (evidence/WP-0A-A0-001/rfc-030-contributing-passages-2026-10-09.md §3)"
+      "criterion": "cc-a5-loom.json passes the capability validator (required fields, protocol_version 1.0.0, can_access_external_secrets false, unique agent_run_id)",
+      "result": "pass for author self-check: node scripts/validate-capability-profiles.mjs exit 0"
     },
     {
-      "criterion": "RFC-2026-025 §6 cited in \"Temporary manual merge control\"",
-      "result": "pass for author self-check: CONTRIBUTING_AGENTS.md \"Temporary manual merge control\", bullet after (c)"
+      "criterion": "The profile states its scope, its missing benchmark, its origin, the batch 090 history, the distinction from /root/a5_loom and the same-lineage disclosure",
+      "result": "pass for author self-check: limitations.role_scope, benchmark_outcome, declaration_origin and same_lineage_disclosure"
     },
     {
-      "criterion": "\"Current gate constraint\" and every other line of the guide untouched",
-      "result": "pass for author self-check: section byte-identical to origin/main (evidence/WP-0A-A0-001/rfc-030-contributing-passages-2026-10-09.md §3)"
-    },
-    {
-      "criterion": "Cross-package write declared",
-      "result": "pass for author self-check: test-kits/integrity-manifest.json in ownership.amends_without_owning with its reason; verify-branch-scope exit 0"
+      "criterion": "The disposition is on main verbatim, and every owned path is declared",
+      "result": "pass for author self-check: cmp exit 0; node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-001 exit 0"
     }
   ],
   "tests": [
     {
+      "command": "node scripts/validate-capability-profiles.mjs",
+      "exit_code": 0,
+      "result": "every profile valid, run ids unique, every role run declared"
+    },
+    {
       "command": "node scripts/commit-when-clean.mjs <message-file> (on branch agent/root/WP-0A-A0-001-repository-bootstrap-2026-10-07)",
       "exit_code": 0,
-      "result": "clean: tests 735, pass 735, fail 0"
+      "result": "clean: full suite, see the commit-when-clean output for this head"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-001",
       "exit_code": 0,
-      "result": "all 4 changed paths declared, every amendment explains one"
+      "result": "all 3 changed paths declared, every amendment explains one"
     },
     {
       "command": "node scripts/db/classify-records-only.mjs origin/main HEAD",
       "exit_code": 1,
-      "result": "NOT records-only: CONTRIBUTING_AGENTS.md, a non-record evidence file, the generated integrity manifest, an amendment widened; full path"
+      "result": "NOT records-only: a capability profile, an Owner disposition, and writable_paths and outputs changed; full path"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD",
       "exit_code": 0,
-      "result": "tier H (governance text and a generated file; base's classifier copy)"
+      "result": "tier H (a capability profile and ownership change; base classifier copy)"
     },
     {
       "command": "npm run check:handoff",
@@ -83,26 +79,26 @@
       "result": "describes the branch"
     }
   ],
-  "security_privacy_cost_impact": "Governance text only. No code, test, schema, CI, credential or customer data. The edited passages keep separation of duties whole (no role held by the Author's run); what they change takes effect only under RFC-2026-030 §9, and until its item 2 (the CI tier step, WP-0A-A0-004) is also on main every PR stays tier H.",
+  "security_privacy_cost_impact": "Protocol declaration only. The new profile denies external-secret access (validator-enforced) and grants no Author, Reviewer, Tester, Integration Owner, Product Owner, merge or G0 authority. No code, test, schema, CI, credential or customer data changes.",
   "migration_and_data_impact": "None. No database migration, RLS change, object-storage operation or external state change.",
-  "compatibility_impact": "No contract or test changes. test-kits/integrity-manifest.json changes only the CONTRIBUTING_AGENTS.md digest (regenerated). Review depth for any PR is unchanged until RFC-2026-030 §9 items 1 and 2 are both on main.",
+  "compatibility_impact": "Additive. One capability profile added; /claude/a5_loom joins the run ids test-kits/handoff-conformance.test.mjs enumerates, and the full suite passes with it. No contract, test, script or integrity-manifest change.",
   "known_limitations": [
-    "\"Current gate constraint\" is not edited here: that PR is the Owner's, after the First-Slice contracts freeze (product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md §6, §10.3).",
-    "WP-0A-DB-00 open_blockers[204] item (3) is not closed here; it is WP-0A-DB-00's to record after this PR merges.",
-    "The RFC-2026-025 §6 citation wording is A0's, not an RFC's."
+    "No capability benchmark exists for /claude/a5_loom yet. Q0's short forward-scoped benchmark (disposition Q2) is owed before the run signs as A5, and benchmark_outcome reads none until a later increment records it.",
+    "The capability values are A0's declaration, not the run's own; .agents/capability-profiles/README.md asks for run-supplied values when A0 transcribes a declaration.",
+    "This increment assesses nothing and moves no contract. The A5 assessment and the CTR-NTF-001 Draft -> Candidate move are WP-0A-CON-006 PRs (disposition, sequence items 2 and 3)."
   ],
   "open_risks_or_blockers": [
-    "Full path. Role verdicts on this PR, carried with -x: C0 review_approved, A1 security_approved, Q0 test_verified (735/735 on the branch name), R0 integration-sound with its press conditions (evidence/WP-0A-A0-001/{c0,a1,q0,r0}-review-2026-10-09-pr228.md). Each carries under its stated clause: role files -x, a mechanical sync of main, this handoff refresh last and alone. A0 presses under the Owner’s standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once bootstrap is green on this exact head with main contained, as a true merge commit pinned with --match-head-commit."
+    "Full path, tier H (a capability profile is not a record). Owed on the final head: C0, A1, Q0 and R0. A0 presses only after all four have passed on that head and bootstrap is green on it (disposition, 'What this directs'). The handoff refresh is the last commit and alone."
   ],
-  "rollback_or_forward_fix": "Before merge: close the governance PR. After merge: a reviewed governance revert PR restores the three RFC-2026-030 §7 passages of CONTRIBUTING_AGENTS.md to their pre-RFC-030 wording, removes the RFC-2026-025 §6 citation bullet and regenerates the guide's integrity digest; every PR is then tier H by the guide alone, as before.",
+  "rollback_or_forward_fix": "Before merge: close the A5 capability-profile PR. After merge: a reviewed revert PR deletes .agents/capability-profiles/cc-a5-loom.json and removes it and cc-a6-relay.json from WP-0A-A0-001 writable_paths and outputs.files; /claude/a5_loom then has no declared role again and any signature it made stops counting under RFC-2026-013. The disposition record stays as history.",
   "recommended_next_work_packages": [
-    "WP-0A-A0-004: the CI step running the base's copy of scripts/db/classify-review-tier.mjs on every PR (RFC-2026-030 §9 item 2, §10 item 2).",
-    "WP-0A-DB-00: after this merges, record open_blockers[204] item (3) as met.",
-    "Owner: the \"Current gate constraint\" governance PR after the First-Slice freeze."
+    "WP-0A-CON-006: Q0's forward-scoped benchmark of /claude/a5_loom, then the A5 assessment of CTR-NTF-001 with its §0 disclosure (disposition sequence item 2).",
+    "WP-0A-A0-001: record the benchmark outcome in cc-a5-loom.json, and any correction the run makes to its capability values.",
+    "WP-0A-CON-006 then WP-0A-CON-008: CTR-NTF-001 Draft -> Candidate on A5's signature and A1's SC-2 confirmation, then the RFC-2026-010 status line (sequence items 3 and 4)."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-001/rfc-030-contributing-passages-2026-10-09.md first. Compare each passage of CONTRIBUTING_AGENTS.md with RFC-2026-030 §7 on main, joining wrapped lines with single spaces.",
-    "git diff origin/main -- CONTRIBUTING_AGENTS.md must show only the three replacements and one added citation bullet; \"Current gate constraint\" must be unchanged.",
-    "Run npm run regenerate:manifest and confirm test-kits/integrity-manifest.json is unchanged (only the CONTRIBUTING_AGENTS.md digest differs from main)."
+    "Read evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md first, then .agents/capability-profiles/cc-a5-loom.json beside cc-a6-relay.json (the precedent, 790f0f36).",
+    "Check each limitations sentence against its source: the disposition Q1-Q4; evidence/WP-0A-DB-00/a5-batch-090-probes-2026-09-13.md:3; .agents/capability-profiles/a5-loom.json; WP-0A-CON-006 open_blockers[1].",
+    "git diff origin/main -- work-packages/WP-0A-A0-001.json must show only: two profile paths in writable_paths and outputs.files, the disposition in outputs.files, amends_without_owning.paths narrowed to [] with a rationale sentence appended, and one appended open_blockers entry."
   ]
 }
