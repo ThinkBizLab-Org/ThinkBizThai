@@ -154,7 +154,7 @@
         "Notification",
         "Storage adapters"
       ],
-      "status": "Draft",
+      "status": "Candidate",
       "required_before_freeze": [
         "opaque ref",
         "scope",
@@ -206,7 +206,7 @@
         "admin",
         "external actions"
       ],
-      "status": "Draft",
+      "status": "Candidate",
       "required_before_freeze": [
         "actor/scope/action/reason/ref/redaction"
       ]
@@ -219,7 +219,7 @@
       "consumers": [
         "all runtime modules"
       ],
-      "status": "Draft",
+      "status": "Candidate",
       "required_before_freeze": [
         "propagation",
         "SLI tags",

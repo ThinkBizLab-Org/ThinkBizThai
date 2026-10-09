@@ -1,7 +1,7 @@
 {
   "contract_id": "CTR-SEC-001",
   "version": "1.0.0",
-  "status": "Draft",
+  "status": "Candidate",
   "owner": "A0+A1",
   "schema": "schema.json",
   "fixtures": [
