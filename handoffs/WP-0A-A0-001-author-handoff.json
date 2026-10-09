@@ -5,13 +5,17 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "9d0b3d23764cfe60b6fefb6b9688ff485f44fe33",
-  "head_revision_or_patch_checksum": "5bead76ea9ca76b933a26a09375fda6b66e5bed0",
+  "head_revision_or_patch_checksum": "025d9ba5c86dfad6c4a542a4d12ff702383a2b4c",
   "task_ids": [
     "WP-0A-A0-001",
     "RFC-2026-030-s7-contributing-passages"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-001/a1-review-2026-10-09-pr228.md",
+    "evidence/WP-0A-A0-001/c0-review-2026-10-09-pr228.md",
     "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-pr228.md",
+    "evidence/WP-0A-A0-001/q0-review-2026-10-09-pr228.md",
+    "evidence/WP-0A-A0-001/r0-review-2026-10-09-pr228.md",
     "evidence/WP-0A-A0-001/rfc-030-contributing-passages-2026-10-09.md"
   ],
   "files_modified": [
@@ -88,9 +92,7 @@
     "The RFC-2026-025 §6 citation wording is A0's, not an RFC's."
   ],
   "open_risks_or_blockers": [
-    "Governance PR (RFC-2026-025 §5 item 6): the Owner merges it personally unless the Owner names it for A0. Whether the standing direction of disposition §10.2 covers it is the Owner's to say.",
-    "Owed on the head: C0, A1, Q0 and R0 (tier H); WP-0A-A0-002's acknowledgement of the integrity-manifest line.",
-    "PRESSER: the Owner answered on 2026-10-09 `ให้ A0 กด #228 (Recommended)` (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-pr228.md): A0 presses PR #228 after C0, A1, Q0 and R0 pass and CI is green on a head containing main, an exception to RFC-2026-025 §5 item 6 for PR #228 only."
+    "Full path. Role verdicts on this PR, carried with -x: C0 review_approved, A1 security_approved, Q0 test_verified (735/735 on the branch name), R0 integration-sound with its press conditions (evidence/WP-0A-A0-001/{c0,a1,q0,r0}-review-2026-10-09-pr228.md). Each carries under its stated clause: role files -x, a mechanical sync of main, this handoff refresh last and alone. A0 presses under the Owner’s standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once bootstrap is green on this exact head with main contained, as a true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Before merge: close the governance PR. After merge: a reviewed governance revert PR restores the three RFC-2026-030 §7 passages of CONTRIBUTING_AGENTS.md to their pre-RFC-030 wording, removes the RFC-2026-025 §6 citation bullet and regenerates the guide's integrity digest; every PR is then tier H by the guide alone, as before.",
   "recommended_next_work_packages": [
