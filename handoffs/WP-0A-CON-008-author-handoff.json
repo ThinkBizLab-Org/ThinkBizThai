@@ -5,13 +5,17 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "a4eed0e8d6f01fa341c3314052d14695bbdc59e7",
-  "head_revision_or_patch_checksum": "89ee507c66f48287d2e2c6592e2a2a4b9a76ea42",
+  "head_revision_or_patch_checksum": "9486bf7e8756074827ae074e4269bd435aaed3e4",
   "task_ids": [],
   "files_added": [
+    "evidence/WP-0A-CON-008/a1-recheck-2026-10-09-pr237.md",
     "evidence/WP-0A-CON-008/a1-review-2026-10-09-pr237.md",
+    "evidence/WP-0A-CON-008/c0-recheck-2026-10-09-pr237.md",
     "evidence/WP-0A-CON-008/c0-review-2026-10-09-pr237.md",
     "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md",
+    "evidence/WP-0A-CON-008/q0-recheck-2026-10-09-pr237.md",
     "evidence/WP-0A-CON-008/q0-review-2026-10-09-pr237.md",
+    "evidence/WP-0A-CON-008/r0-recheck-2026-10-09-pr237.md",
     "evidence/WP-0A-CON-008/r0-review-2026-10-09-pr237.md",
     "evidence/WP-0A-CON-008/rfc-010-status-line-2026-10-09.md"
   ],
@@ -99,7 +103,7 @@
     "The ratchets-bite.test.mjs comment naming CTR-USG-001 is stale since #235 (R-235-2); it is left for CTR-NTF-001's Candidate PR, as R0 directs."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H, GOVERNANCE. Round-one verdicts at d2021008, carried with -x: c0-review-2026-10-09-pr237.md (changes_requested on C0-237-1, the timing sentence of the Owner disposition), a1-review-2026-10-09-pr237.md, q0-review-2026-10-09-pr237.md (740/740), r0-review-2026-10-09-pr237.md. e3ecb545 corrects that sentence (asked 13:10:18Z before PR #235 merged; answered 13:16:41Z after) and the evidence file's flag; C0, A1, Q0 and R0 re-read that diff. Presser: A0 (/claude/a0_atlas) presses this governance PR on the Owner's 2026-10-09 answer `ให้ A0 กดทั้ง 3 (Recommended)` (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md, in this PR), an exception to RFC-2026-025 §5 item 6 for the three PRs it names only. Merge #237 before #236. Conditions: bootstrap green on this exact head containing main, no security finding open, a true merge commit pinned with --match-head-commit."
+    "Full path, tier H, GOVERNANCE. Round one at d2021008 and re-checks at f446c15b, all carried with -x: C0 (c0-review / c0-recheck-2026-10-09-pr237.md: C0-237-1 closed), A1 (a1-review / a1-recheck), Q0 (q0-review / q0-recheck: 740/740 on the branch name), R0 (r0-review / r0-recheck: press basis upheld with the corrected times); each role's verdict and carry clause are in its own file. Presser: A0 (/claude/a0_atlas) presses this governance PR on the Owner's 2026-10-09 answer `ให้ A0 กดทั้ง 3 (Recommended)` (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md, in this PR; asked 13:10:18Z, answered 13:16:41Z), an exception to RFC-2026-025 §5 item 6 for the three PRs it names only; not the earlier 2026-10-09 direction and not the 2026-10-03 delegation. Merge #237 before #236. Conditions (r0-recheck press conditions 1-6): bootstrap green on this exact head containing main, no security finding open, a true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Revert through a reviewed revert PR of WP-0A-CON-008's RFC-2026-010 status-line increment: restore line 3's clause 'CTR-SEC-001 awaits A1; CTR-AUD-001, CTR-OBS-001 and CTR-USG-001 await A6;' and regenerate the integrity manifest. A revert makes the line false again (the four contracts stay Candidate in index.json), so a correction should go forward with new words from A1, A6 or R0 instead. The open_blockers appends [9], [10], [11] and the 2026-10-09 three-governance-PRs disposition stay as records of what happened.",
   "recommended_next_work_packages": [
