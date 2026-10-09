@@ -137,17 +137,28 @@ test('the index reports the census the Product Owner approved, not one that drif
   // because a person decided it, which is the only reason it may move.
   //
   // The four co-owned contracts — CTR-SEC-001 (A1), CTR-AUD-001, CTR-OBS-001, CTR-USG-001 (A6) —
-  // stay Draft until their co-owners sign, and CTR-NTF-001 belongs to A5 and was never assessed.
-  // Those five are asserted by name below, because "still Draft" is the part a drift would eat.
+  // stayed Draft until their co-owners signed, and CTR-NTF-001 belongs to A5 and was never assessed.
+  //
+  // On 2026-10-09 three of them moved 9/5 → 12/2, again because a person decided it: A1 signed
+  // CTR-SEC-001 for Candidate (evidence/WP-0A-CON-004/a1-sec-candidate-signature-2026-10-09.md), A6
+  // signed CTR-AUD-001 and CTR-OBS-001 (a6-candidate-signature-2026-10-09.md), and the Product Owner
+  // approved each by name (product-owner-disposition-2026-10-09-candidate-sec-aud-obs-usg.md).
+  // CTR-USG-001 and CTR-NTF-001 are still Draft and are asserted by name below, because "still
+  // Draft" is the part a drift would eat.
   const PROMOTED = ['CTR-API-001', 'CTR-PAG-001', 'CTR-IDM-001', 'CTR-MOD-001', 'CTR-FLG-001'];
-  const AWAITING_CO_OWNER = ['CTR-SEC-001', 'CTR-AUD-001', 'CTR-OBS-001', 'CTR-USG-001', 'CTR-NTF-001'];
+  const PROMOTED_2026_10_09 = ['CTR-SEC-001', 'CTR-AUD-001', 'CTR-OBS-001'];
+  const AWAITING_CO_OWNER = ['CTR-USG-001', 'CTR-NTF-001'];
 
   const index = await readJson(`${CATALOG}/index.json`);
   assert.equal(index.contracts.length, 14);
-  assert.equal(index.contracts.filter((c) => c.status === 'Candidate').length, 9);
-  assert.equal(index.contracts.filter((c) => c.status === 'Draft').length, 5);
+  assert.equal(index.contracts.filter((c) => c.status === 'Candidate').length, 12);
+  assert.equal(index.contracts.filter((c) => c.status === 'Draft').length, 2);
   for (const id of PROMOTED) {
     assert.equal(index.contracts.find((c) => c.id === id).status, 'Candidate', `${id} was approved for Candidate`);
+  }
+  for (const id of PROMOTED_2026_10_09) {
+    assert.equal(index.contracts.find((c) => c.id === id).status, 'Candidate',
+      `${id} was signed by its co-owner and approved for Candidate on 2026-10-09`);
   }
   for (const id of AWAITING_CO_OWNER) {
     assert.equal(index.contracts.find((c) => c.id === id).status, 'Draft',

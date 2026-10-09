@@ -400,10 +400,14 @@ test('the catalog ratchet notices two unrelated reversals', async () => {
     ['a named contract moved to a level the register does not define', 'contract-catalog/shared-kernel/index.json',
       (i) => { for (const e of i.contracts) if (e.id === 'CTR-ERR-001') e.status = 'Released'; }],
     // A Draft counted as Candidate is the promotion that must never happen by drift. Five
-    // contracts are Draft precisely because their co-owners have not signed, so this reversal
-    // now names one of them rather than taking whichever came first.
-    ['a co-owned Draft contract promoted without its co-owner', 'contract-catalog/shared-kernel/index.json',
-      (i) => { for (const e of i.contracts) if (e.id === 'CTR-SEC-001') e.status = 'Candidate'; }],
+    // contracts were Draft precisely because their co-owners or owner had not signed, so this
+    // reversal names one of them rather than taking whichever came first. It named CTR-SEC-001
+    // until A1 signed it and the Product Owner approved it for Candidate on 2026-10-09
+    // (WP-0A-CON-004), which made setting it Candidate a no-op. It now names CTR-NTF-001, A5's
+    // contract, which no owner signature or Owner disposition has moved; CTR-USG-001 is not used
+    // because its own Candidate step is the next to land.
+    ['a Draft contract promoted without its owner\'s signature', 'contract-catalog/shared-kernel/index.json',
+      (i) => { for (const e of i.contracts) if (e.id === 'CTR-NTF-001') e.status = 'Candidate'; }],
   ]);
 });
 
