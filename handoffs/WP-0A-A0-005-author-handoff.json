@@ -4,17 +4,22 @@
   "work_package_id": "WP-0A-A0-005",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "d44dbdbb1efebc9d891e3d31fdf01a8a8060c59a",
-  "head_revision_or_patch_checksum": "51e715aa9e7a8f3d83ac62f7c4a08b70baf061bd",
+  "base_revision": "f2e51e90c5eff2c0fde0f1ce42cd6c45a33fa8f7",
+  "head_revision_or_patch_checksum": "a1855b8a50139be970714a9d10a7c1a86ca62bec",
   "task_ids": [
     "WP-0A-A0-005",
     "G0-step-2"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-005/a1-review-2026-10-09-pr224.md",
+    "evidence/WP-0A-A0-005/c0-review-2026-10-09-pr224.md",
+    "evidence/WP-0A-A0-005/q0-review-2026-10-09-pr224.md",
+    "evidence/WP-0A-A0-005/r0-review-2026-10-09-pr224.md",
     "evidence/WP-0A-A0-005/r0-ruling-2026-10-09.md",
     "evidence/WP-0A-A0-005/records-transcription-2026-10-09.md"
   ],
   "files_modified": [
+    "handoffs/WP-0A-A0-005-author-handoff.json",
     "work-packages/WP-0A-A0-005.json"
   ],
   "files_deleted": [],
@@ -71,9 +76,7 @@
     "A pattern scanner cannot prove absence; the scanner limits recorded in RFC-2026-008's 2026-10-06 correction and open_blockers[6] are unchanged by this record."
   ],
   "open_risks_or_blockers": [
-    "This PR carries a role file (R0's ruling), so it takes the full path, not the records-only path the ruling's 'How it reaches main' paragraph expected. C0, A1, Q0 and R0 runs are owed on this head; C0 checks open_blockers[10] against the ruling's quoted block character for character.",
-    "open_blockers[5] (RFC-2026-008 governance merge) is not closed; the ruling leaves it out of scope and says any closing clause must use its presser words, not 'the Owner merged'.",
-    "The amended_by acknowledgements on WP-0A-A0-003.json and WP-0A-A0-002.json stay pending; none is given here."
+    "Full path. Role verdicts on this PR, carried with -x: C0 review_approved, A1 security_approved, Q0 test_verified (735/735 on the branch name), R0 integration-sound with its press conditions (evidence/WP-0A-A0-005/{c0,a1,q0,r0}-review-2026-10-09-pr224.md). Each carries under its stated clause: role files -x, a mechanical sync of main, this handoff refresh last and alone. A0 presses under the Owner’s standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once bootstrap is green on this exact head with main contained, as a true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Revert the WP-0A-A0-005 records PR of 2026-10-09 (R0 ruling on PR #190 presser clause) through a reviewed revert PR of its merge commit: work-packages/WP-0A-A0-005.json returns to in_review with ten open_blockers, and r0-ruling-2026-10-09.md and records-transcription-2026-10-09.md are removed. If the Owner denies that คุณทำเลย covered #190, the forward fix is R0's re-ruling, not an edit of open_blockers[10].",
   "recommended_next_work_packages": [
