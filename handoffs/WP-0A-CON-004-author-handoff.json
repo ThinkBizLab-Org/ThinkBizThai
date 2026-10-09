@@ -4,17 +4,22 @@
   "work_package_id": "WP-0A-CON-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "9d0b3d23764cfe60b6fefb6b9688ff485f44fe33",
-  "head_revision_or_patch_checksum": "8c9cefd10d6b9aff75f28672788d32b99e23da41",
+  "base_revision": "1bcc2349d13ef3563866d710816ad7d84ea38b56",
+  "head_revision_or_patch_checksum": "64d975d9e9c574a6c7715294a062e50858c24f5a",
   "task_ids": [],
   "files_added": [
     "contract-catalog/shared-kernel/ctr-obs-001/examples/invalid-module-implementation-version-too-long.json",
+    "evidence/WP-0A-CON-004/a1-review-2026-10-09-pr230.md",
     "evidence/WP-0A-CON-004/a6-countersign-2026-10-09.md",
-    "evidence/WP-0A-CON-004/author-increment-2026-10-09.md"
+    "evidence/WP-0A-CON-004/author-increment-2026-10-09.md",
+    "evidence/WP-0A-CON-004/c0-review-2026-10-09-pr230.md",
+    "evidence/WP-0A-CON-004/q0-review-2026-10-09-pr230.md",
+    "evidence/WP-0A-CON-004/r0-review-2026-10-09-pr230.md"
   ],
   "files_modified": [
     "contract-catalog/shared-kernel/ctr-obs-001/manifest.json",
     "contract-catalog/shared-kernel/ctr-obs-001/schema.json",
+    "handoffs/WP-0A-CON-004-author-handoff.json",
     "test-kits/contracts/catalog-registry.test.mjs",
     "test-kits/contracts/schema-mutation-coverage.test.mjs",
     "test-kits/integrity-manifest.json",
@@ -174,9 +179,7 @@
     "ADDED 2026-10-09 BY A0 (/claude/a0_atlas): STATUS MOVED BACK integration_verified -> in_review, as PR #204 and PR #210 did. The 2026-10-09 increment lands A6's open_blockers[18] ruling (evidence/WP-0A-CON-004/a6-countersign-2026-10-09.md §4): CTR-OBS-001 module.implementation_version takes maxLength 64 with no pattern, an x-bound-note and the kill fixture invalid-module-implementation-version-too-long.json (65 code points). A bound is a rule change to a Draft contract, so the integration_verified recorded for PR #210's head does not cover this head; the package returns to in_review until C0 (/claude/c0_contract_reviewer), A1 (/claude/a1_bastion), Q0 (/claude/q0_sentinel) and R0 (/claude/r0_steward) have run at this pull request's head. A6 (/claude/a6_relay) needs no further run if the landing changes only that bound, its note and its fixture (a6-countersign-2026-10-09.md §4). No contract status moves: CTR-OBS-001 stays Draft. OPEN until those four role files at this head are carried onto the branch."
   ],
   "open_risks_or_blockers": [
-    "Full path. No role has run at this head: C0 (/claude/c0_contract_reviewer), A1 (/claude/a1_bastion), Q0 (/claude/q0_sentinel) and R0 (/claude/r0_steward) are owed (open_blockers[20]). The package is in_review until their files are carried onto this branch with -x.",
-    "A6 needs no further run only if the landing stays as described (value 64, no pattern, the note, the fixture). Any review condition that changes the value or adds a pattern goes back to A6 (a6-countersign-2026-10-09.md §4).",
-    "The record of the amendments to test-kits/contracts/catalog-registry.test.mjs (WP-0A-CON-008), test-kits/contracts/schema-mutation-coverage.test.mjs (WP-0A-CON-003) and test-kits/integrity-manifest.json (WP-0A-A0-002) on those packages' manifests is still owed by their next PRs."
+    "Full path. Role verdicts on this PR, carried with -x: C0 review_approved, A1 security_approved, Q0 test_verified (735/735 on the branch name), R0 integration-sound with its press conditions (evidence/WP-0A-CON-004/{c0,a1,q0,r0}-review-2026-10-09-pr230.md). Each carries under its stated clause: role files -x, a mechanical sync of main, this handoff refresh last and alone. A0 presses under the Owner’s standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once bootstrap is green on this exact head with main contained, as a true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "WP-0A-CON-004 [18] increment of 2026-10-09 (CTR-OBS-001 module.implementation_version maxLength 64): revert it through a reviewed revert PR, which removes the maxLength and its x-bound-note, deletes invalid-module-implementation-version-too-long.json and its manifest registration, restores the ctr-obs-001 annotation pin (31, ef75f1eda69f54c1), fixture set, constraint-surface digest (0c4022038b11458e) and site floor (93) with the regenerated integrity digests, restores open_blockers[17] and [18] to their 2026-10-07 text, drops open_blockers[20], and returns status to integration_verified only if R0 so records. A6's countersign file may stay: it is evidence, not a rule. No persisted data, provider state or migration is involved.",
   "recommended_next_work_packages": [
