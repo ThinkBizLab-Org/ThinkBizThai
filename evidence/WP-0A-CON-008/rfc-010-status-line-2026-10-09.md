@@ -55,8 +55,9 @@ No role has run on it.
 
 ## 4. Flags for the reader
 
-- **The Owner's press direction is A0's relay.** This run did not check it against the session transcript, and it
-  has no timestamps. The disposition file says so.
+- **The Owner's press direction is A0's relay.** This run did not check it against the session transcript. The
+  role runs later did (A1, C0: byte-exact), and the disposition file now carries the times: asked 13:10:18Z, before
+  PR #235 merged; answered 13:16:41Z, after it (C0-237-1, C0-237-2).
 - **`gh` shows `workstationgroup` as the merger of #231, #233 and #235.** That account cannot tell A0's press apart
   from the Owner's own click. `[9]`'s "pressed by A0" follows R0's words and #231's final handoff, which named A0 as
   the presser.

@@ -2,7 +2,7 @@
 
 Scribe: `/claude/a0_atlas`. This file transcribes the Owner's chat answer verbatim. A0 decides nothing in it.
 
-Asked and answered on 2026-10-09, in session `3ecec68b`, after PR #235 merged (`a4eed0e8`, 2026-10-09T13:13:11Z).
+Asked on 2026-10-09 at 13:10:18Z, in session `3ecec68b`, before PR #235 merged (`a4eed0e8`, 2026-10-09T13:13:11Z); answered at 13:16:41Z, after that merge. A0's correction of 2026-10-09 (C0-237-1): an earlier version of this line said both were after the merge. The answer came after the question, and before PRs #236 and #237 were opened.
 One question, single choice. The question, the options and the answer below are A0's relay of that chat, copied into
 this file as A0 gave them. The session transcript is a file outside the repository; a reader on `main` sees the
 quotes, not the transcript.
