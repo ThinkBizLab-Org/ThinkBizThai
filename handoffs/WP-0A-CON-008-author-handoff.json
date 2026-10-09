@@ -5,10 +5,14 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "75c60335a02443797834e589e9c7a52914e4ceb0",
-  "head_revision_or_patch_checksum": "2ed5dc1de9a8827231cfb76aebdeed3b0647deab",
+  "head_revision_or_patch_checksum": "c1c4900a146fb09441b85a2fa450557de1f85982",
   "task_ids": [],
   "files_added": [
+    "evidence/WP-0A-CON-008/a1-review-2026-10-09-pr231.md",
+    "evidence/WP-0A-CON-008/c0-review-2026-10-09-pr231.md",
     "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-prep-and-candidate-press.md",
+    "evidence/WP-0A-CON-008/q0-review-2026-10-09-pr231.md",
+    "evidence/WP-0A-CON-008/r0-review-2026-10-09-pr231.md",
     "evidence/WP-0A-CON-008/records-transcription-2026-10-09.md",
     "evidence/WP-0A-CON-008/rfc-031-7-1-prep-2026-10-09.md"
   ],
@@ -113,11 +117,7 @@
     "C0 A-8's re-signing and composition rules and A1 I-3's enumeration of production-customer-data gaps are not settled here."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H. No role has run on this increment: C0, A1, Q0 and R0 are owed.",
-    "OWED BY A1 AND R0: whether the Owner's direction of 2026-10-09, which names this PR by its RFC section and package before it was opened, meets RFC-2026-025 §5 item 6.",
-    "OWED BY WP-0A-A0-002's Integration Owner: acknowledgement of the scripts/test-suite-contract.mjs lines and the regenerated integrity manifest.",
-    "FOR R0: the records of PR #229 rest on A0's reading that the merge-time handoff prose stayed true (records-transcription-2026-10-09.md §4).",
-    "The manifest's open_blockers[1], [2], [3], [5] and [7] stand unchanged; [6] is closed and [8] amended by R0's words, appended."
+    "Full path, tier H. Role verdicts at 749b86b2, carried with -x: c0-review-2026-10-09-pr231.md, a1-review-2026-10-09-pr231.md, q0-review-2026-10-09-pr231.md (740/740 on the branch name), r0-review-2026-10-09-pr231.md (each role's verdict and carry clause are in its own file). Presser: A0 (/claude/a0_atlas) presses this governance PR on the Owner's 2026-10-09 answer `ให้ A0 กดทั้งสองแบบ (Recommended)` (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-prep-and-candidate-press.md), which names the RFC-2026-031 §7.1 preparatory PR of this package; an exception to RFC-2026-025 §5 item 6 for that PR class only. NOT the 2026-10-03 standing delegation. Conditions: bootstrap green on this exact head containing main, no security finding open, a true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Revert through a reviewed revert PR of WP-0A-CON-008's RFC-2026-031 §7.1 increment: restoring FREEZE_LEVELS to Draft and Candidate and dropping declared_gaps from MANIFEST_KEYS is safe only while no manifest reads Frozen or carries declared_gaps, so a revert after the first freeze must instead go forward by RFC; the revert also restores the two 'Frozen' reversals in ratchets-bite.test.mjs and the catalog-registry and ratchets-bite floors and name digests in scripts/test-suite-contract.mjs, regenerates the integrity manifest and re-records evidence/VERIFICATION.md. The open_blockers appends for PR #229 and the Owner's disposition stay as records of what happened.",
   "recommended_next_work_packages": [
