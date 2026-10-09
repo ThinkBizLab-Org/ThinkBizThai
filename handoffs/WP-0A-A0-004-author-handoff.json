@@ -5,12 +5,14 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "d17ff25606977b6e9135e9466e3606a7ccdc45da",
-  "head_revision_or_patch_checksum": "6044c7c84d467ede81c3fa83f15574e595188903",
+  "head_revision_or_patch_checksum": "86038cf3bbd49a350b2336591afdbd639d48f2f6",
   "task_ids": [],
   "files_added": [
+    "evidence/WP-0A-A0-004/light-path-reading-2026-10-09.md",
     "evidence/WP-0A-A0-004/records-transcription-2026-10-09.md"
   ],
   "files_modified": [
+    "handoffs/WP-0A-A0-004-author-handoff.json",
     "work-packages/WP-0A-A0-004.json"
   ],
   "files_deleted": [],
@@ -67,9 +69,7 @@
     "gh records mergedBy workstationgroup (the repository account) only; who pressed a merge is not machine-verifiable."
   ],
   "open_risks_or_blockers": [
-    "WP-0A-A0-004 stays in_review on the Owner's 2026-10-09 answer until A1-R1 is closed by a governance PR correcting RFC-2026-007 Amendment 2026-10-08 §C (open_blockers[14]).",
-    "PR #189's integration_verified is owed and unrecorded: A1's carry clause at 5bbb3f1 was tripped by merge 1b9ca458 with no later A1 reading on main, and R0's r0-recheck-2026-10-06.md §6 wording replaces open_blockers[6], which a records PR cannot do (open_blockers[15]).",
-    "This records PR takes the light path only if one reader (RFC-2026-025 §6.2) confirms the transcription; until then it is a Draft."
+    "Records light path (RFC-2026-025 §6; classify-records-only exit 0, no status move). The one independent reading: C0 (/claude/c0_contract_reviewer) in R0's place, evidence/WP-0A-A0-004/light-path-reading-2026-10-09.md, carried with -x. Presser: A0 (/claude/a0_atlas) presses this records-only PR under RFC-2026-025 §6.2 item 3, i.e. the Owner's standing delegation for finished non-governance batches (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), with §2 item 1 and §5 item 6 applying in full: bootstrap green on this exact head containing current main, no security finding open, a true merge commit pinned with --match-head-commit. This PR is not a governance PR (no RFC, CONTRIBUTING_AGENTS.md, CI or gate change)."
   ],
   "rollback_or_forward_fix": "Revert the WP-0A-A0-004 records PR of 2026-10-09 (#212 breach and #189 owed record) through a reviewed revert PR of its merge commit: open_blockers returns to fourteen entries, amends_without_owning.paths regains evidence/VERIFICATION.md and scripts/test-suite-contract.mjs, and records-transcription-2026-10-09.md is removed. A wrong fact in open_blockers[14] or [15] is fixed forward by an appended correcting entry, never by rewording.",
   "recommended_next_work_packages": [
