@@ -4,60 +4,50 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "56d97d7a07e9e39843cb697cb6af751fc3842955",
-  "head_revision_or_patch_checksum": "d57965c81c2896661876576e6b52ea256592316b",
+  "base_revision": "9d0b3d23764cfe60b6fefb6b9688ff485f44fe33",
+  "head_revision_or_patch_checksum": "05248f81ba14a1943a57b79ec4cec4576fb6a6e9",
   "task_ids": [
     "WP-0A-A0-001",
-    "WP-0A-A0-010",
-    "G0-conditional-exit"
+    "RFC-2026-030-s7-contributing-passages"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-001/light-path-reading-2026-10-08.md",
-    "evidence/WP-0A-A0-001/records-transcription-2026-10-08.md"
+    "evidence/WP-0A-A0-001/rfc-030-contributing-passages-2026-10-09.md"
   ],
   "files_modified": [
-    "handoffs/WP-0A-A0-001-author-handoff.json",
-    "work-packages/WP-0A-A0-001.json",
-    "work-packages/WP-0A-A0-010.json"
+    "CONTRIBUTING_AGENTS.md",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-A0-001.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "OPEN-002",
-    "OPEN-010",
-    "OPEN-011",
-    "OPEN-018",
-    "OPEN-019",
-    "OPEN-020",
-    "RFC-2026-001",
-    "RFC-2026-011",
-    "RFC-2026-017",
-    "RFC-2026-024",
+    "RFC-2026-002",
     "RFC-2026-025",
-    "RFC-2026-028"
+    "RFC-2026-030"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "WRITER DISCLOSURE: this increment was written by /claude/a0_atlas (A0). The agent_run_id field reads /root because test-kits/handoff-conformance.test.mjs requires it to equal the manifest author_agent_run_id of WP-0A-A0-001, which this increment does not change. /root did not write it.",
-    "THIS INCREMENT is the post-merge records PR for PR #214 (PR #217), on the records light path of RFC-2026-025 §6: R0 words (r0-recheck-2026-10-08-pr214-final.md §5) appended to WP-0A-A0-001 open_blockers[3]; WP-0A-A0-010 in_review -> integration_verified on R0 §5, with A1 words (a1-recheck-2026-10-08-pr214-final.md §1) appended; amends_without_owning narrowed to work-packages/WP-0A-A0-010.json. See evidence/WP-0A-A0-001/records-transcription-2026-10-08.md.",
-    "The presser of PR #214 (A0 under disposition §10.2) is A0’s own account; gh mergedBy shows only the repository account (C0 advisory A2)."
+    "WRITER DISCLOSURE: this increment was written by /claude/a0_atlas (A0), through a subagent of A0's run. The agent_run_id field reads /root because test-kits/handoff-conformance.test.mjs requires it to equal the manifest author_agent_run_id of WP-0A-A0-001, which this increment does not change. /root did not write it.",
+    "THIS INCREMENT is a governance PR (RFC-2026-025 §5 item 6) that makes the CONTRIBUTING_AGENTS.md edits RFC-2026-030 §10 item 1 owes to this package (also WP-0A-DB-00 open_blockers[204] item (3)): the three §7 passages replaced word for word, and a citation of RFC-2026-025 §6 in \"Temporary manual merge control\" (RFC-2026-025 §6.6 item 3).",
+    "Word for word is read as: the RFC's blockquote lines, trimmed and joined with single spaces, are the replacement text. Paragraphs (a) and (b) are single lines in the guide; bullet (c) is re-wrapped at 80 columns with the section's two-space continuation indent. evidence/WP-0A-A0-001/rfc-030-contributing-passages-2026-10-09.md §2-§3 byte-compares each.",
+    "No RFC prescribes the wording of the RFC-2026-025 §6 citation. The wording is A0's, a bullet of its own after (c), and adds no rule."
   ],
   "acceptance_results": [
     {
-      "criterion": "The Owner's words and A0's message quoted verbatim; the plan's D0-D14 table copied faithfully",
-      "result": "pass for author self-check: evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md §1-§2.3"
+      "criterion": "RFC-2026-030 §7 (a), (b) and (c) replacements present in CONTRIBUTING_AGENTS.md word for word, the rest of each paragraph unchanged",
+      "result": "pass for author self-check: byte-equal after the stated normalisation, and undoing the edits gives origin/main byte for byte (evidence/WP-0A-A0-001/rfc-030-contributing-passages-2026-10-09.md §3)"
     },
     {
-      "criterion": "Each D-item listed with its recommendation as now decided, and what it does not decide",
-      "result": "pass for author self-check: disposition §3"
+      "criterion": "RFC-2026-025 §6 cited in \"Temporary manual merge control\"",
+      "result": "pass for author self-check: CONTRIBUTING_AGENTS.md \"Temporary manual merge control\", bullet after (c)"
     },
     {
-      "criterion": "G0 tracker updated per D0: approved fallback under the readiness report pass rule, each external item bound to its gate, no production customer data until legal/PDPA passes; no external item claimed done",
-      "result": "pass for author self-check: evidence/g0-tracker-th.md header, checklist rows, G0-024 row, section \"G0 ทางออกแบบมีเงื่อนไข (D0)\""
+      "criterion": "\"Current gate constraint\" and every other line of the guide untouched",
+      "result": "pass for author self-check: section byte-identical to origin/main (evidence/WP-0A-A0-001/rfc-030-contributing-passages-2026-10-09.md §3)"
     },
     {
-      "criterion": "OPEN-010/018/019/020 recorded as decided by D8/D1/D6/D10 in evidence, register not edited, its owner named",
-      "result": "pass for author self-check: disposition §5 and §6; tracker OPEN table"
+      "criterion": "Cross-package write declared",
+      "result": "pass for author self-check: test-kits/integrity-manifest.json in ownership.amends_without_owning with its reason; verify-branch-scope exit 0"
     }
   ],
   "tests": [
@@ -69,12 +59,17 @@
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-001",
       "exit_code": 0,
-      "result": "all changed paths declared, every amendment explains one"
+      "result": "all 4 changed paths declared, every amendment explains one"
     },
     {
       "command": "node scripts/db/classify-records-only.mjs origin/main HEAD",
+      "exit_code": 1,
+      "result": "NOT records-only: CONTRIBUTING_AGENTS.md, a non-record evidence file, the generated integrity manifest, an amendment widened; full path"
+    },
+    {
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD",
       "exit_code": 0,
-      "result": "records-only; one status move: WP-0A-A0-010 in_review -> integration_verified"
+      "result": "tier H (governance text and a generated file; base's classifier copy)"
     },
     {
       "command": "npm run check:handoff",
@@ -82,24 +77,27 @@
       "result": "describes the branch"
     }
   ],
-  "security_privacy_cost_impact": "None. Records only: one evidence transcription, the C0 light-path reading, two manifests and this handoff. No code, test, schema, CI, credential or customer data.",
+  "security_privacy_cost_impact": "Governance text only. No code, test, schema, CI, credential or customer data. The edited passages keep separation of duties whole (no role held by the Author's run); what they change takes effect only under RFC-2026-030 §9, and until its item 2 (the CI tier step, WP-0A-A0-004) is also on main every PR stays tier H.",
   "migration_and_data_impact": "None. No database migration, RLS change, object-storage operation or external state change.",
-  "compatibility_impact": "None. No contract, test or generated file changes. WP-0A-A0-010 status moves forward to integration_verified; WP-0A-A0-001 stays integration_verified.",
+  "compatibility_impact": "No contract or test changes. test-kits/integrity-manifest.json changes only the CONTRIBUTING_AGENTS.md digest (regenerated). Review depth for any PR is unchanged until RFC-2026-030 §9 items 1 and 2 are both on main.",
   "known_limitations": [
-    "G0 exit stays decided, conditional; never G0 passed. Every external item is open.",
-    "PR #213 post-merge record (WP-0A-DB-00 open_blockers[204]) is not here: branch scope judges one package per branch, and on WP-0A-DB-00 the narrowing of dead amendments shifts open_blockers lines pinned by db/foundation/lint/audit-coverage-map.json, so that record cannot take the light path as is.",
-    "Recording WP-0A-A0-010 as done is outside R0’s verdict."
+    "\"Current gate constraint\" is not edited here: that PR is the Owner's, after the First-Slice contracts freeze (product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md §6, §10.3).",
+    "WP-0A-DB-00 open_blockers[204] item (3) is not closed here; it is WP-0A-DB-00's to record after this PR merges.",
+    "The RFC-2026-025 §6 citation wording is A0's, not an RFC's."
   ],
   "open_risks_or_blockers": [
-    "Records-only PR #217: one independent reading by C0 (evidence/WP-0A-A0-001/light-path-reading-2026-10-08.md, no blocking finding, four advisories). A0 presses under the standing delegation (RFC-2026-025 §6.2 item 3) once bootstrap is green on the final head, pinned with --match-head-commit."
+    "Governance PR (RFC-2026-025 §5 item 6): the Owner merges it personally unless the Owner names it for A0. Whether the standing direction of disposition §10.2 covers it is the Owner's to say.",
+    "Owed on the head: C0, A1, Q0 and R0 (tier H); WP-0A-A0-002's acknowledgement of the integrity-manifest line."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores the previous records; no persisted data or external state is involved.",
+  "rollback_or_forward_fix": "Before merge: close the governance PR. After merge: a reviewed governance revert PR restores the three RFC-2026-030 §7 passages of CONTRIBUTING_AGENTS.md to their pre-RFC-030 wording, removes the RFC-2026-025 §6 citation bullet and regenerates the guide's integrity digest; every PR is then tier H by the guide alone, as before.",
   "recommended_next_work_packages": [
-    "WP-0A-DB-00: PR #213 post-merge record (R0 r0-recheck-2026-10-08-pr213-final.md §4 words) via a path that also re-pins audit-coverage-map line numbers; open_blockers[203] (#211) needs R0 to restate its wording (it says the Owner pressed; RFC-2026-025 §6 records A0).",
-    "Earlier post-merge records for A0-002, A0-004, A0-006..009, CON-004, each on its own package branch."
+    "WP-0A-A0-004: the CI step running the base's copy of scripts/db/classify-review-tier.mjs on every PR (RFC-2026-030 §9 item 2, §10 item 2).",
+    "WP-0A-DB-00: after this merges, record open_blockers[204] item (3) as met.",
+    "Owner: the \"Current gate constraint\" governance PR after the First-Slice freeze."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-001/records-transcription-2026-10-08.md first, then compare each appended line with its source file on main.",
-    "Run node scripts/db/classify-records-only.mjs origin/main <head> and check the one status move against r0-recheck-2026-10-08-pr214-final.md §5."
+    "Read evidence/WP-0A-A0-001/rfc-030-contributing-passages-2026-10-09.md first. Compare each passage of CONTRIBUTING_AGENTS.md with RFC-2026-030 §7 on main, joining wrapped lines with single spaces.",
+    "git diff origin/main -- CONTRIBUTING_AGENTS.md must show only the three replacements and one added citation bullet; \"Current gate constraint\" must be unchanged.",
+    "Run npm run regenerate:manifest and confirm test-kits/integrity-manifest.json is unchanged (only the CONTRIBUTING_AGENTS.md digest differs from main)."
   ]
 }
