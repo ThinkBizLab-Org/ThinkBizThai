@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "1bcc2349d13ef3563866d710816ad7d84ea38b56",
-  "head_revision_or_patch_checksum": "87871c7c81b7489f36a3add572868ea2e6153394",
+  "base_revision": "75c60335a02443797834e589e9c7a52914e4ceb0",
+  "head_revision_or_patch_checksum": "2ed5dc1de9a8827231cfb76aebdeed3b0647deab",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-prep-and-candidate-press.md",
@@ -14,6 +14,7 @@
   ],
   "files_modified": [
     "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-CON-008-author-handoff.json",
     "scripts/test-suite-contract.mjs",
     "test-kits/contracts/catalog-registry.test.mjs",
     "test-kits/integrity-manifest.json",
@@ -102,7 +103,7 @@
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. Test code, synthetic manifests built in memory, and records. The disposition quotes one chat question and answer between the Owner and A0 about repository work; no personal data, credential, private URL or customer content. Cost impact none; the new ratchets-bite case copies the repository once and runs one suite five times (about 4 s measured).",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract, schema, fixture or status changes. test-kits/contracts/catalog-registry.test.mjs admits Frozen in FREEZE_LEVELS and declared_gaps in MANIFEST_KEYS and adds four tests (three over the catalog, vacuous until a manifest declares a gap or a contract is Frozen, and one of synthetic controls). test-kits/ratchets-bite.test.mjs moves two reversals from 'Frozen' to 'Released', names CTR-ERR-001 in the catalog reversal, and adds one source-reversal case. scripts/test-suite-contract.mjs (WP-0A-A0-002) moves two test floors, one assertion floor and two name digests; test-kits/integrity-manifest.json is regenerated; evidence/VERIFICATION.md is re-recorded. The census tests of WP-0A-CON-001, WP-0A-CON-002, WP-0A-CON-005 and tests/db/** are untouched; they move per freeze or Draft->Candidate increment (rfc-031-7-1-prep-2026-10-09.md §4). Open PR #230 also edits catalog-registry.test.mjs on different lines; whichever merges second needs a non-mechanical sync and a role re-read.",
+  "compatibility_impact": "No contract, schema, fixture or status changes. test-kits/contracts/catalog-registry.test.mjs admits Frozen in FREEZE_LEVELS and declared_gaps in MANIFEST_KEYS and adds four tests (three over the catalog, vacuous until a manifest declares a gap or a contract is Frozen, and one of synthetic controls). test-kits/ratchets-bite.test.mjs moves two reversals from 'Frozen' to 'Released', names CTR-ERR-001 in the catalog reversal, and adds one source-reversal case. scripts/test-suite-contract.mjs (WP-0A-A0-002) moves two test floors, one assertion floor and two name digests; test-kits/integrity-manifest.json is regenerated; evidence/VERIFICATION.md is re-recorded. The census tests of WP-0A-CON-001, WP-0A-CON-002, WP-0A-CON-005 and tests/db/** are untouched; they move per freeze or Draft->Candidate increment (rfc-031-7-1-prep-2026-10-09.md §4). PR #230 (WP-0A-CON-004), which also edits catalog-registry.test.mjs on other lines, merged to main as 75c60335 while this branch was written; the branch merged it (324488ba) before the PR was opened, the test file auto-merged and the integrity manifest was regenerated. That merge is not mechanical, and no role had read the branch before it.",
   "known_limitations": [
     "The three tests over the real catalog pass vacuously today: no manifest declares a gap and no contract is Frozen. The rules are measured by synthetic controls and by source reversals, not by a reversal over a real gap.",
     "The three JSON reversals RFC-2026-031 §7.1 (2) names (owner emptied, closes_before outside the list, one gap deleted) are left to the first increment that adds declared_gaps to a contract.",
