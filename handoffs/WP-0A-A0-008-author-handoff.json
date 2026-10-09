@@ -4,18 +4,22 @@
   "work_package_id": "WP-0A-A0-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "d44dbdbb1efebc9d891e3d31fdf01a8a8060c59a",
-  "head_revision_or_patch_checksum": "f75e36759465842de2adb3b3fec8da28a662f485",
+  "base_revision": "c5c8155cd592e1fd9f44021befaa4b176811a800",
+  "head_revision_or_patch_checksum": "6dc50c9d1ee26afe18d5c00723c60753091e93b4",
   "task_ids": [
     "WP-0A-A0-008",
     "G0-step-4"
   ],
   "files_added": [
     "evidence/WP-0A-A0-008/a1-carry-2026-10-09.md",
+    "evidence/WP-0A-A0-008/a1-recheck-2026-10-09-pr221.md",
     "evidence/WP-0A-A0-008/a1-review-2026-10-09-pr221.md",
+    "evidence/WP-0A-A0-008/c0-recheck-2026-10-09-pr221.md",
     "evidence/WP-0A-A0-008/c0-review-2026-10-09-pr221.md",
     "evidence/WP-0A-A0-008/light-path-reading-2026-10-09.md",
+    "evidence/WP-0A-A0-008/q0-recheck-2026-10-09-pr221.md",
     "evidence/WP-0A-A0-008/q0-review-2026-10-09-pr221.md",
+    "evidence/WP-0A-A0-008/r0-recheck-2026-10-09-pr221.md",
     "evidence/WP-0A-A0-008/r0-review-2026-10-09-pr221.md",
     "evidence/WP-0A-A0-008/records-transcription-2026-10-09.md"
   ],
@@ -78,10 +82,11 @@
   "compatibility_impact": "None.",
   "known_limitations": [
     "npm run check:handoff at PR #208's merged head 763b4d60 cannot be re-run on the branch name now that it is merged; that it was the last and alone commit rests on git show --stat (one file).",
-    "R0's further wording items (optional: C0 F2 and A1-008-3 in open_blockers[1], A1-008-4 / Q0-N1 in rollback_or_forward_fix, the dated note in open_blockers[0]; given by R0 §5.1 as an instruction, not optional: the dated note on required_human_authorities[1] — C0 light-path advisory A1) are not made: none has exact wording on main, and required_human_authorities is strictly append-only on the records path."
+    "R0's further wording items (optional: C0 F2 and A1-008-3 in open_blockers[1], A1-008-4 / Q0-N1 in rollback_or_forward_fix, the dated note in open_blockers[0]; given by R0 §5.1 as an instruction, not optional: the dated note on required_human_authorities[1] — C0 light-path advisory A1) are not made: none has exact wording on main (R0 R-221-2: the required_human_authorities[1] note stays owed to the next WP-0A-A0-008 manifest PR).",
+    "Q221-4 (Q0 advisory): transcription §4 says no A1 file existed at 763b4d60; A1’s own verdict file a1-security-reverify-2026-10-05.md (ca32c88f) was there. The intended meaning — no A1 re-check after the trip — is correct; not edited, since a transcription edit is outside every role’s carry clause."
   ],
   "open_risks_or_blockers": [
-    "Full path. Role verdicts at b64c9ea9, carried with -x: C0 changes_requested (C0-221-1, blocking: the A1 carry statement), A1 security_approved_with_conditions (A1R-221-1, same), Q0 test_verified 735/735, R0 integration-sound (R-221-1 advisory: stale handoff prose). f75e3675 appends the correction to the transcription (§4) and this refresh fixes the handoff; C0 and A1 re-read that fix. open_blockers[0], [1] and [2] stay open. Then sync main, refresh last and alone, CI green, A0 presses under the Owner’s standing delegation (product-owner-disposition-2026-10-03-batch-127.md §6), true merge commit pinned with --match-head-commit."
+    "Full path. Verdicts at c9bd6849, carried with -x: C0 review_approved (C0-221-1 closed), A1 security_approved (no finding open), Q0 test_verified 735/735 on the branch name, R0 integration_verified earned (r0-recheck-2026-10-09-pr221.md). Each carries under (a) role files -x, (b) a mechanical sync of main, (c) this handoff refresh last and alone. A0 presses under the Owner’s standing delegation (product-owner-disposition-2026-10-03-batch-127.md §6), bootstrap green on this exact head with main contained, a true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "WP-0A-A0-008 RECORDS 2026-10-09: before merge, close the PR. After merge, a reviewed revert of this records PR returns WP-0A-A0-008 to in_review and restores open_blockers[3] to the text kept after \"Text as recorded: \"; it removes records-transcription-2026-10-09.md. PR #208's merged content and the four role files are unaffected.",
   "recommended_next_work_packages": [
@@ -92,8 +97,8 @@
   "reviewer_instructions": [
     "Check each filled placeholder in open_blockers[3] against gh pr view 208, git log -1 --format=%P 5cb5cb83 and gh run view 37516051508 (evidence/WP-0A-A0-008/records-transcription-2026-10-09.md §1).",
     "Check that the text after \"Text as recorded: \" equals open_blockers[3] at origin/main, and the clause before it equals evidence/WP-0A-A0-008/r0-integration-verdict-2026-10-05.md §5.1 with only the placeholders changed.",
-    "Check I1-I5 and the role carry clauses against git log 25d449ca..763b4d60 (evidence/WP-0A-A0-008/records-transcription-2026-10-09.md §1.1).",
-    "Run node scripts/db/classify-records-only.mjs origin/main <head> and confirm it prints the one status move in_review -> integration_verified."
+    "Check I1-I5 and the role carry clauses against git log 25d449ca..763b4d60 (evidence/WP-0A-A0-008/records-transcription-2026-10-09.md §1.1), then read its §4 Correction: A1’s clause was tripped and discharged after the merge by a1-carry-2026-10-09.md.",
+    "Run node scripts/db/classify-records-only.mjs origin/main <head>: it exits 1 (carried role files; full path). The one manifest status move is in_review -> integration_verified."
   ],
   "superseded_by": null
 }
