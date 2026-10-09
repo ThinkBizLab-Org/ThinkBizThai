@@ -270,3 +270,106 @@ questions the Owner was asked.
 - Not a statement that G0 passed. The G0 exit stays "decided, conditional" (2026-10-08 disposition §4.1). RFC-2026-031
   §6 states when it closes.
 - Not record-only under RFC-2026-025 §6. It is an Owner disposition, and it takes the full path.
+
+## 8. RFC-2026-031 §10: the Owner's answers (appended 2026-10-09)
+
+Appended by a subagent of `/claude/a0_atlas` (A0) at A0's direction, after §1 to §7 were committed at `d0c92447`.
+Sections 1 to 7 above are unchanged. As there, A0 relayed the questions and answers to this run, and this run checked
+every quoted string against the same session transcript (outside the repository, not committed). It quotes the
+transcript, not the relay.
+
+### 8.1 Context: PR #228, asked first
+
+At `2026-10-09T04:45:47Z` A0 asked the Owner (header `PR #228`, single choice) who presses PR #228 (`WP-0A-A0-001`,
+the `CONTRIBUTING_AGENTS.md` amendment under RFC-2026-030 §7). The Owner answered at `2026-10-09T04:46:03Z`:
+
+> ให้ A0 กด #228 (Recommended)
+
+That question, its options and the answer are transcribed in
+`evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-pr228.md` on PR #228's branch
+(`agent/root/WP-0A-A0-001-repository-bootstrap-2026-10-07`, commit `5bead76e`). It is noted here as context only. This
+file does not decide anything about PR #228, and that disposition, not this section, is its record.
+
+### 8.2 The questions and answers
+
+Asked `2026-10-09T04:52:30Z`, in one call of four questions, and answered `2026-10-09T04:52:46Z`. The text the Owner
+was asked to approve is RFC-2026-031 as committed at `d0c92447` (the last commit to touch it before the question; the
+branch head was `72bd328a`, which does not change the RFC).
+
+#### Q-031-1 (header `Q-031-1`, single choice)
+
+> Q-031-1: อนุมัติข้อความ RFC-2026-031 รวมทั้งการตีความเรื่อง CTR-USG-001 ไหม? (register §7.2(2) กำหนดว่า shared contract ทุกตัวต้องเป็นอย่างน้อย Candidate — USG ไม่อยู่ใน First Slice แต่ต้องเลื่อนเป็น Candidate ก่อนปิด G0 exit)
+
+Options, as shown:
+
+- `อนุมัติ รวม USG (Recommended)`: "USG ต้องเป็น Candidate ก่อนปิด exit ไม่ต้อง Frozen — ไม่เปลี่ยน gate เพิ่ม"
+- `อนุมัติ แต่ยกเว้น USG`: "ยกเว้น USG จากเงื่อนไข §7.2(2) — เป็นการเปลี่ยน gate เพิ่มอีกข้อ"
+
+**The Owner chose `อนุมัติ รวม USG (Recommended)`.**
+
+#### Q-031-2 and Q-031-5 (header `Q-031-2/5`, single choice)
+
+> Q-031-2 + Q-031-5: บันทึกช่องว่างใน key ใหม่ `declared_gaps` (มีเจ้าของ + gate ที่ต้องปิดก่อน) และใช้นิยาม breaking change = การเปลี่ยนใดๆ ที่ทำให้ชุดเอกสารที่ schema ยอมรับเปลี่ยน (ทั้งแคบลงและกว้างขึ้น) หรือเปลี่ยนความหมาย/owner/consumers ต้องทำ RFC โดย C0 เป็นผู้จัดประเภท (สงสัย = breaking)
+
+Options, as shown:
+
+- `รับทั้งสองข้อ (Recommended)`: "ใช้ declared_gaps และนิยาม breaking change ตามที่ RFC เสนอ"
+- `ขอดูข้อความก่อน`: "ส่งข้อความ §3.3 และ §5.2 มาให้อ่านก่อนตัดสิน"
+
+**The Owner chose `รับทั้งสองข้อ (Recommended)`.**
+
+#### Q-031-3 (header `Q-031-3`, single choice)
+
+> Q-031-3: ห้ามประกาศช่องว่าง 3 ประเภท (ต้องปิดจริงก่อน freeze): (1) ขาด artifact ขั้นต่ำก่อน freeze ตาม register (2) finding ของ A1 ที่ยังเปิด ทุกระดับ (3) ช่องว่างเรื่อง tenant isolation — แคบกว่าคำตอบ 'ช่องว่างทุกข้อ' เมื่อเช้า
+
+Options, as shown:
+
+- `รับทั้ง 3 ข้อ (Recommended)`: "สามประเภทนี้ประกาศค้างไม่ได้ ต้องปิดก่อน freeze"
+- `ไม่จำกัด`: "ประกาศได้ทุกช่องว่างตามคำตอบเดิม"
+
+**The Owner chose `รับทั้ง 3 ข้อ (Recommended)`.**
+
+#### Q-031-4 (header `Q-031-4`, single choice)
+
+> Q-031-4: คุณจะอนุมัติ freeze ทีละตัวตามชื่อ (ถามครั้งเดียวหลายตัวได้) และให้ A0 กด merge PR ที่ freeze เมื่อ 4 role + ลายเซ็น co-owner + คำอนุมัติของคุณอยู่บน branch แล้ว ได้ไหม? (รวมทั้งให้ A0 กด PR #229 นี้เองหลัง 4 role ผ่าน)
+
+Options, as shown:
+
+- `ได้ ทั้งสอง + กด #229 (Recommended)`: "คุณอนุมัติตามชื่อต่อ contract; A0 กด freeze PR และ #229 เองเมื่อเงื่อนไขครบ"
+- `อนุมัติตามชื่อ แต่ผมกดเอง`: "A0 เตรียม PR ให้พร้อม คุณกด merge freeze PR และ #229 เอง"
+
+**The Owner chose `ได้ ทั้งสอง + กด #229 (Recommended)`.**
+
+### 8.3 What the answers decide
+
+- **Q-031-1.** The Owner approves the text of RFC-2026-031 as committed at `d0c92447`, with A0's CTR-USG-001 reading of
+  §6: CTR-USG-001 must reach Candidate (not Frozen) before the G0 exit closes, and register §7.2 (2)'s first clause is
+  not waived for it. The option's own words: no further gate change. RFC-2026-031's status line now reads Approved,
+  citing this section.
+- **Q-031-2 and Q-031-5.** Declared gaps are recorded in the new manifest key `declared_gaps` (RFC-2026-031 §5.2), and
+  the breaking-change definition of §3.3 applies, as the RFC proposes.
+- **Q-031-3.** The three kinds of gap of RFC-2026-031 §5.5 may not be declared and must close before a freeze: a missing
+  pre-freeze artifact required by the register, an open A1 finding of any severity, and a tenant-isolation gap. This
+  narrows §4.3's `ได้ ถ้าประกาศครบ (Recommended)`, by the Owner's word.
+- **Q-031-4.**
+  - The Owner approves each freeze by name, per contract (one question may list several).
+  - A0 may press a freeze PR under RFC-2026-031 §4.4 once its four roles, the co-owner signature and the Owner's
+    approval are on the branch.
+  - A0 may press PR #229 itself once its four roles pass.
+
+**The press direction and RFC-2026-025 §5 item 6.** Q-031-4 was asked while PR #229 exists, and it names #229. For
+freeze PRs, it names their sequence: every freeze PR under RFC-2026-031 §4.4. It is a direction for PR #229 and for
+those freeze PRs only. It is an exception to §5 item 6's rule that a governance PR is pressed by the Owner. **It does
+not amend RFC-2026-025 §5 item 6**, which reads as before for every other governance PR. It does not widen the
+2026-10-08 standing direction, and it does not answer whether that direction alone would have covered #229 (§6 of this
+file left that to A1 and R0).
+
+### 8.4 What the answers do not do
+
+- They freeze no contract and promote none. They do not move CTR-USG-001.
+- They sign nothing for A1, A5, A6 or any co-owner. They approve no freeze by name. Each freeze is asked when its
+  PR is ready (RFC-2026-031 §4.4).
+- They change no word of RFC-2026-031 §1 to §9. This PR changes only its status line and appends the answers to §10.
+- They are not a role verdict. The roles re-read the commit that carries this section (RFC-2026-031 §10, "Order before
+  the merge", step 3; RFC-2026-025 §5 item 2). CI must be green on a head that contains current `main`.
+- They decide nothing about PR #228 (§8.1).

@@ -1,6 +1,6 @@
 # RFC-2026-031: the First-Slice contract freeze rule
 
-Status: Proposed
+Status: **Approved 2026-10-09 by the Product Owner.** To Q-031-1 he chose `อนุมัติ รวม USG (Recommended)`, and he answered Q-031-2 to Q-031-5 as A0 recommended (transcribed verbatim in `evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md` §8). The approved text is this file as committed at `d0c92447`; since then only this status line and §10's appended answers have changed. Earlier status: Proposed.
 Date: 2026-10-09
 Author: `/claude/a0_atlas` (A0 Architecture/Integration), as an increment of `WP-0A-CON-008`
 Owner: A0, on the Product Owner's disposition
@@ -416,3 +416,18 @@ Each question carries A0's recommendation. The Owner's answers are recorded on t
 
 Until then the status stays `Proposed`, and nothing in §2 to §7 binds beyond what the Owner's own answers of
 2026-10-08 and 2026-10-09 already decide.
+
+**The Owner's answers (appended 2026-10-09).** Asked at `2026-10-09T04:52:30Z` and answered at `2026-10-09T04:52:46Z`;
+the questions, options and answers are transcribed verbatim in
+`evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md` §8. The questions above
+are kept as written.
+
+- **Q-031-1:** `อนุมัติ รวม USG (Recommended)`. The text is approved, with the CTR-USG-001 reading of §6.
+- **Q-031-2 and Q-031-5** (asked as one question): `รับทั้งสองข้อ (Recommended)`.
+- **Q-031-3:** `รับทั้ง 3 ข้อ (Recommended)`.
+- **Q-031-4:** `ได้ ทั้งสอง + กด #229 (Recommended)`. Freezes are approved by name, per contract. A0 presses a freeze PR
+  under §4.4 once its four roles, the co-owner signature and the Owner's approval are on the branch, and presses PR
+  #229 once its four roles pass. For PR #229 and for freeze PRs under §4.4 this is an exception to RFC-2026-025 §5
+  item 6. It does not amend that rule.
+
+Step 2 of "Order before the merge" is done by that disposition and this status line. Steps 3 and 4 remain.

@@ -39,7 +39,7 @@
     "architecture/decisions/RFC-2026-028-worker-identity.md": "f65921eddc0ec6531b76872bca226a6a1be5912dc6d5e090467421e10cff6f75",
     "architecture/decisions/RFC-2026-029-application-tier-stack.md": "b8e4a9b7c83e03f44cd5d11f3727237b10a1501f202bd7c4a993ffac9eb271ee",
     "architecture/decisions/RFC-2026-030-risk-tiered-review.md": "541e9e86eac30aec2fbbbb465378a9f94b0ac30326468191f0cd0d8502b5e3c9",
-    "architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md": "75979a1afb1630515fdf3a9086b9f8bb0bbec2f14a43061f111bf9261137c6ca",
+    "architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md": "987a348d7517684da6b3dd216d6e5e344fd56e4d7ae00f83047b6d041276f3b4",
     "contract-catalog/README.md": "5bc361546dbaf3bdb9402eeb1c170214a1248bf7d79711d97771a988dfd852f1",
     "contract-catalog/shared-kernel/index.json": "a8c5173cb87e0f3efdd32a25fd57bfb90690defc1fe2def565e4bc175428df3d",
     "db/foundation/test-helpers/rls-assertions.mjs": "aaaa551d011f22491f743b7946cfa94713f1f0142b0a08a164d61228ee00c7bf",
