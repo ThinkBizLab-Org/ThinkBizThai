@@ -4,12 +4,16 @@
   "work_package_id": "WP-0A-CON-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "a4eed0e8d6f01fa341c3314052d14695bbdc59e7",
-  "head_revision_or_patch_checksum": "75c44e019616e3adb249e07b577d5a5d3f541513",
+  "base_revision": "b10e20a50b92904431e313b7fb6f0dea883ef5ef",
+  "head_revision_or_patch_checksum": "72ad42f66bacdecbc2818de1abf277eaaad81001",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md",
-    "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md"
+    "evidence/WP-0A-CON-004/a1-review-2026-10-09-pr236.md",
+    "evidence/WP-0A-CON-004/c0-review-2026-10-09-pr236.md",
+    "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md",
+    "evidence/WP-0A-CON-004/q0-review-2026-10-09-pr236.md",
+    "evidence/WP-0A-CON-004/r0-review-2026-10-09-pr236.md"
   ],
   "files_modified": [
     "handoffs/WP-0A-CON-004-author-handoff.json",
@@ -87,10 +91,7 @@
     "The amendments to test-kits/repository-json.test.mjs (WP-0A-A0-001), scripts/verify-test-coverage-floor.mjs and test-kits/integrity-manifest.json (WP-0A-A0-002) are owed a record on those owners' manifests by their next PRs."
   ],
   "open_risks_or_blockers": [
-    "The Owner answered RFC-2026-032 §9 on 2026-10-09: Q-032-1 `อนุมัติ (Recommended)`, Q-032-2 `MOD จำกัด 128 ด้วย (Recommended)`, Q-032-3 and Q-032-4 `รับทั้งสอง (Recommended)`, transcribed in evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md.",
-    "Full path, tier H (governance: an RFC). No role has run on the head carrying these answers; C0, A1, Q0 and R0 are owed on it, and A1 reads it as the CTR-SEC-001 co-owner whose §4(c) condition it answers.",
-    "Presser basis, NOT YET ON main: the Owner's 2026-10-09 answer `ให้ A0 กดทั้ง 3 (Recommended)` for three governance PRs, this one among them, is transcribed in evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md on PR #237. Until that file is on main, A0 does not press PR #236 (RFC-2026-025 §5 item 6).",
-    "Before pressing, the head must contain current main and CI must be green on it."
+    "Full path, tier H, GOVERNANCE. Role verdicts at 2b99839f, carried with -x: c0-review-2026-10-09-pr236.md, a1-review-2026-10-09-pr236.md (security_approved_with_conditions; S-1: the press-direction file on main and contained in the pressed head — met once PR #237 is merged and synced), q0-review-2026-10-09-pr236.md (740/740 on the branch name), r0-review-2026-10-09-pr236.md (press conditions 1-8); each role's verdict and carry clause are in its own file. The Owner answered RFC-2026-032 §9 (evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md). Presser: A0 (/claude/a0_atlas) presses this governance PR on the Owner's 2026-10-09 answer `ให้ A0 กดทั้ง 3 (Recommended)` (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md, on main via PR #237), an exception to RFC-2026-025 §5 item 6 for the three PRs it names only. The RFC header and open_blockers[24]/[25] say that file was \"not yet on main\" when written; R0's post-merge entry supersedes those dated sentences. Conditions: this head contains PR #237's merge via a mechanical sync, bootstrap green on this exact head, no security finding open, a true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "WP-0A-CON-004 RFC-2026-032 Owner-answers increment of 2026-10-09: before the merge, revert commit-by-commit on this branch (delete evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md, restore the RFC's Proposed status line and drop §9's appended answers block, regenerate test-kits/integrity-manifest.json, drop the last open_blockers entry). After the merge the Owner's answers stand; a wrong transcription is fixed forward by a correcting disposition against the session transcript, and changing an answer needs the Owner's word and an amendment. No contract, fixture, persisted data or provider state is involved.",
   "recommended_next_work_packages": [
