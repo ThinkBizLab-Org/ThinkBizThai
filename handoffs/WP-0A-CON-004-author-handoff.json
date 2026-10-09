@@ -5,13 +5,18 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "5e444c5355624e442d145dbbedb0c30c7df99833",
-  "head_revision_or_patch_checksum": "c2096f79d6ecfee4949947b39dadbf88735d2c31",
+  "head_revision_or_patch_checksum": "362c3e4eecb71637040e23fc8d92c5a56d7328eb",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-033-obs-label-cardinality.md",
-    "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-night-delegation.md"
+    "evidence/WP-0A-CON-004/a1-review-2026-10-09-pr239.md",
+    "evidence/WP-0A-CON-004/a6-rfc033-reading-2026-10-09.md",
+    "evidence/WP-0A-CON-004/c0-review-2026-10-09-pr239.md",
+    "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-night-delegation.md",
+    "evidence/WP-0A-CON-004/r0-review-2026-10-09-pr239.md"
   ],
   "files_modified": [
+    "handoffs/WP-0A-CON-004-author-handoff.json",
     "scripts/verify-test-coverage-floor.mjs",
     "test-kits/integrity-manifest.json",
     "test-kits/repository-json.test.mjs",
@@ -30,42 +35,43 @@
     "CTR-ERR-001",
     "CTR-MOD-001"
   ],
-  "contracts_produced_or_changed": [
-    "CTR-SEC-001: Draft → Candidate, version 1.0.0; only manifest.json \"status\" changes (A1 K1)",
-    "CTR-AUD-001: Draft → Candidate, version 1.0.0; only manifest.json \"status\" changes (A6 §8)",
-    "CTR-OBS-001: Draft → Candidate, version 1.0.0; only manifest.json \"status\" changes (A6 §8)"
-  ],
+  "contracts_produced_or_changed": [],
   "assumptions": [
     "Gate G0 remains Specification Baseline Complete / External Verification Pending. Nothing in this increment authorizes production schema, migration, provider call, metric backend or a G0 item.",
-    "This increment runs on agent/claude/WP-0A-CON-004-security-audit-observability-2026-10-09, recreated from origin/main 5e444c53 (PR #236 merged and its remote branch deleted; the manifest's ownership.branch still names this branch). It adds RFC-2026-033 at status Proposed and the Owner's 2026-10-09T17:10:06Z blanket-delegation disposition, and nothing else.",
-    "CTR-OBS-001 and CTR-ERR-001 are Candidate at 5e444c53; their schemas, manifests and fixtures are unchanged by this increment. The RFC's lists are taken from CTR-ERR-001 properties.category.enum and from the outcome values of CTR-OBS-001's three valid fixtures; its numbers are A6's, recorded in co-owner-review-sec-aud-obs-usg.md, a6-countersign-2026-10-09.md §5 and a6-candidate-signature-2026-10-09.md §6.",
-    "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-night-delegation.md is A0's scribe copy of the Owner's words, placed byte for byte as A0 supplied it. The RFC's §9 answers rest on it and are marked revisable by the Owner."
+    "This increment runs on agent/claude/WP-0A-CON-004-security-audit-observability-2026-10-09 from origin/main 5e444c53 (PR #236). It adds RFC-2026-033 at status Proposed and the night-delegation disposition; after the roles first read head c3039031, it carries the A1, A6, C0 and R0 files with cherry-pick -x and adds one amendment commit answering them. Q0 has not yet read this PR.",
+    "CTR-OBS-001 and CTR-ERR-001 are Candidate at 5e444c53; their schemas, manifests and fixtures are unchanged by this increment. The RFC lists are CTR-ERR-001 properties.category.enum (8) and the four outcome values A6 signed and added (success, provider_unavailable, down, error); the numbers are A6's.",
+    "The night-delegation words are not an RFC-2026-025 §5 item-6 delegation (the disposition reading section, C0-239-1). The §9 answers are A0's recommendations awaiting the Product Owner's own answers, which item 3 of the three-governance-PRs disposition requires before the press (C0-239-2, A1-239-1)."
   ],
   "acceptance_results": [
     {
-      "criterion": "error_code and outcome are closed lists drawn only from what a contract declares or uses, with no invented domain code.",
+      "criterion": "error_code and outcome are closed lists drawn only from a contract or from A6's signed words, with no invented domain code.",
       "result": "pass",
-      "evidence": "architecture/decisions/RFC-2026-033-obs-label-cardinality.md §2 (CTR-ERR-001 category, 8), §3 (success, provider_unavailable, down from the valid fixtures)"
+      "evidence": "architecture/decisions/RFC-2026-033-obs-label-cardinality.md §2 (CTR-ERR-001 category, 8, enforced budget 8, cap 64), §3 (success, provider_unavailable, down from the valid fixtures; error added by A6)"
     },
     {
-      "criterion": "Every CTR-OBS-001 metric label has a numeric budget with its justification, and the non-label fields and log index labels are stated.",
+      "criterion": "A6's amendments A-1 to A-7 are applied in A6's words.",
       "result": "pass",
-      "evidence": "architecture/decisions/RFC-2026-033-obs-label-cardinality.md §4.1, §4.2, §4.3"
+      "evidence": "architecture/decisions/RFC-2026-033-obs-label-cardinality.md §2 last bullet, §3, §4.1 table, §4.3, §6.2 Population bullet, §7 table, §8 dictionary row; evidence/WP-0A-CON-004/a6-rfc033-reading-2026-10-09.md §6"
     },
     {
-      "criterion": "Ownership of each list and budget, enforcement, breaking-change classification under RFC-2026-031 §3.3, and rollout are stated.",
+      "criterion": "Every CTR-OBS-001 metric label has a numeric budget, the ceiling is stated per metric name, and the unbounded metric-name count is named as a follow-up.",
       "result": "pass",
-      "evidence": "architecture/decisions/RFC-2026-033-obs-label-cardinality.md §5, §6, §7, §8, §9 order"
+      "evidence": "architecture/decisions/RFC-2026-033-obs-label-cardinality.md §4.1, §8 follow-ups, §9 Q-033-3"
     },
     {
-      "criterion": "Owner questions carry A0's recommendation and are marked answered on the blanket delegation, Owner may revisit; status stays Proposed.",
+      "criterion": "Owner questions carry A0's recommendation, each awaiting the Product Owner's own answer; status stays Proposed.",
       "result": "pass",
-      "evidence": "architecture/decisions/RFC-2026-033-obs-label-cardinality.md status line and §9; evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-night-delegation.md"
+      "evidence": "architecture/decisions/RFC-2026-033-obs-label-cardinality.md status line and §9"
     },
     {
-      "criterion": "The RFC is registered and digested; the manifest records the increment without moving status.",
+      "criterion": "The night-delegation reading quotes RFC-2026-025 §5 item 6 whole and states the words are not an item-6 delegation; header and verbatim words unchanged.",
       "result": "pass",
-      "evidence": "test-kits/repository-json.test.mjs DECISION_RECORDS, scripts/verify-test-coverage-floor.mjs DIGESTED_FLOOR, test-kits/integrity-manifest.json; work-packages/WP-0A-CON-004.json open_blockers[26] appended, status in_review"
+      "evidence": "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-night-delegation.md How A0 reads these words"
+    },
+    {
+      "criterion": "The manifest records the press order append-only, without moving status.",
+      "result": "pass",
+      "evidence": "work-packages/WP-0A-CON-004.json open_blockers[27] appended, status in_review"
     }
   ],
   "tests": [
@@ -78,7 +84,13 @@
     {
       "command": "npm run -s regenerate:manifest",
       "exit_code": 0,
-      "result": "rebuilt 111 digests; the RFC-2026-033 entry added and the two amended files' digests moved",
+      "result": "the RFC-2026-033 digest moved with the amendment commit; nothing else",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "node --test test-kits/repository-json.test.mjs",
+      "exit_code": 0,
+      "result": "8/8 pass after the amendment commit (decision-status guard over evidence/ included)",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
@@ -88,22 +100,21 @@
       "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
-  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. Documentation only: one RFC, one Owner disposition, three one-line registrations and one manifest entry. No contract, fixture, test, credential, provider call, migration or customer-data effect. The RFC, once accepted and landed, narrows what a metric label may carry, which keeps correlation ids and fine-grained codes out of metric labels. Cost: the RFC proposes an upper bound of 24,480 series per metric per environment; nothing is emitted today and the standing restriction (no sli_tags to a real metric backend before the budget lands) is unchanged.",
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. Documentation only: one RFC, one Owner disposition, four role evidence files, three one-line registrations and manifest entries. No contract, fixture, test, credential, provider call, migration or customer-data effect. The RFC, once accepted and landed, keeps correlation ids and fine-grained codes out of metric labels. Cost: at most 24,480 series per metric name per environment; the number of metric names is not bounded by this RFC (A1-239-3, a §8 follow-up). Nothing is emitted today and the standing restriction (no sli_tags to a real metric backend before the budget lands) is unchanged.",
   "migration_and_data_impact": "None. No migration, database object or persisted data is touched; Gate G0 forbids them.",
-  "compatibility_impact": "Additive. No contract schema, fixture or status changes in this increment, so no accepted set moves. RFC-2026-033 §7 classifies the later §8 edits: both enums narrow CTR-OBS-001 (breaking by RFC-2026-031 §3.3's definition, not bound by it at Candidate), rejecting only the accepted-gap fixture; that increment carries the change and its own round.",
+  "compatibility_impact": "Additive. No contract schema, fixture or status changes in this increment, so no accepted set moves. RFC-2026-033 §7 classifies the later §8 edits: both enums (error_code 8, outcome 4) narrow CTR-OBS-001, breaking by RFC-2026-031 §3.3's definition and not bound by it at Candidate, rejecting only the accepted-gap fixture; that increment carries the change and its own round.",
   "known_limitations": [
-    "The §8 contract, fixture and test edits of RFC-2026-033 are not made here. open_blockers[4] stays OPEN until that later increment merges with the §6.2 test green.",
-    "A6 has not yet read the RFC. The outcome seed (§3) and the numbers (§4) stand as A0's proposal from A6's recorded numbers until A6 signs, changes or refuses them in its own words.",
-    "WP-0A-A6-001's metric dictionary and its checker (evidence/WP-0A-A6-001/verify-source-fields.mjs, not in the suite) will disagree with CTR-OBS-001 once §8 lands, unless their budget lines move with it (RFC §8 table).",
-    "The amendments to test-kits/repository-json.test.mjs (WP-0A-A0-001), scripts/verify-test-coverage-floor.mjs and test-kits/integrity-manifest.json (WP-0A-A0-002) are owed a record on those owners' manifests by their next PRs."
+    "The §8 contract, fixture and test edits of RFC-2026-033 are not made here. open_blockers[4] stays OPEN until that later increment merges with the §6.2 test green; the follow-ups that increment carries are listed in RFC §8.",
+    "A6 signed §2, the §4.1 numbers, §4.2 and §5 to §7; §3 and §4.3 are signed as amended once A6 re-reads that A-1 to A-7 landed verbatim.",
+    "open_blockers[26] and required_human_authorities[6] still say the §9 answers rest on the night delegation; both are append-only and stand as recorded, superseded by open_blockers[27].",
+    "The amendments to test-kits/repository-json.test.mjs (WP-0A-A0-001), scripts/verify-test-coverage-floor.mjs and test-kits/integrity-manifest.json (WP-0A-A0-002) are owed a record on those owners' manifests by their next PRs (R0 R-239-6)."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H, GOVERNANCE (a new RFC). No role file exists for this head yet; C0, A1, Q0 and R0 run next, and A6 reads §3 and §4 as observability co-owner.",
-    "Press basis: item 3 of evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md (on main) names this RFC by content; A0 presses only when the four roles pass on the final head, CI is green, and the §9 questions are answered. The §9 answers rest on evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-night-delegation.md and may be revisited by the Owner.",
-    "The RFC's status is Proposed. A0 sets Accepted only in a later commit after the roles pass; that commit moves the RFC's integrity digest, so the roles re-read that head.",
-    "PR #238 (WP-0A-A0-001) is open; this branch touches none of its files."
+    "Full path, tier H, GOVERNANCE. C0 changes_requested (C0-239-1, C0-239-2), A1 security_approved_with_conditions (A1-239-1 open), R0 integration_verified on its §5/§6 conditions, A6 accept-with-amendments, all at c3039031; Q0 not yet run. The amendment commit is outside every carry clause, so C0, A1, R0 and A6 re-read it.",
+    "The press of #239 waits for the Product Owner's own answers to Q-033-1 to Q-033-4 (C0-239-2), then the Accepted commit under R0's S1 to S6, then four-role delta re-reads and A6's re-read of the amendment commit (open_blockers[27]).",
+    "The night-delegation file cites evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md, which reaches main only with PR #238."
   ],
-  "rollback_or_forward_fix": "WP-0A-CON-004 RFC-2026-033 OBS-label-cardinality increment of 2026-10-09: before the merge, revert commit-by-commit on this branch (delete architecture/decisions/RFC-2026-033-obs-label-cardinality.md and evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-night-delegation.md, drop the RFC-2026-033 line from DECISION_RECORDS and DIGESTED_FLOOR, regenerate test-kits/integrity-manifest.json, drop open_blockers[26], the last required_human_authorities entry, the added scope.include, inputs, outputs and writable_paths entries and the appended amendment rationale). After the merge the RFC stays on record; a wrong list or budget is fixed forward by an amendment to the RFC with A6's words, and a withdrawn RFC by a superseding one. No contract, fixture, provider, migration or customer data is touched, so nothing else rolls back.",
+  "rollback_or_forward_fix": "WP-0A-CON-004 RFC-2026-033 OBS-label-cardinality increment of 2026-10-09/10: before the merge, revert commit-by-commit on this branch (the amendment commit restores the RFC as first read at c3039031; dropping c2096f79 removes the RFC, the night-delegation disposition, the DECISION_RECORDS and DIGESTED_FLOOR lines, open_blockers[26] and the last required_human_authorities entry; regenerate test-kits/integrity-manifest.json). The cherry-picked role files are evidence and are dropped only with the head they read. After the merge the RFC stays on record; a wrong list or budget is fixed forward by an amendment with A6's words, and a withdrawn RFC by a superseding one. No contract, fixture, provider, migration or customer data is touched.",
   "recommended_next_work_packages": [
     "WP-0A-CON-004",
     "WP-0A-A6-001",
@@ -113,12 +124,12 @@
     "WP-0A-A0-001"
   ],
   "reviewer_instructions": [
-    "Read architecture/decisions/RFC-2026-033-obs-label-cardinality.md against CTR-OBS-001 and CTR-ERR-001 at 5e444c53: check that §2's eight values equal ctr-err-001/schema.json properties.category.enum in order, and that §3's three values are exactly the outcome values of ctr-obs-001/examples/valid-*.json.",
-    "Check §4's numbers against A6's records (co-owner-review-sec-aud-obs-usg.md, a6-countersign-2026-10-09.md §5, a6-candidate-signature-2026-10-09.md §6, evidence/WP-0A-A6-001/product-kpi-metric-dictionary.md) and the arithmetic 32 x 17 x 5 x 9 = 24,480.",
-    "Check §6.1's fixture count: 55 files under ctr-obs-001/examples carry error_code provider.http_502.attempt_7.corr_0004, one being the accepted gap.",
-    "Check §7's classification against RFC-2026-031 §3.3 and that no valid fixture becomes invalid under §2 and §3.",
-    "Check that evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-night-delegation.md is the file A0 supplied, byte for byte, and that each §9 answer is A0's stated recommendation, marked revisable, with the status line still Proposed.",
-    "git diff origin/main...HEAD: the RFC, the disposition, one line each in test-kits/repository-json.test.mjs and scripts/verify-test-coverage-floor.mjs, the regenerated integrity manifest, the manifest and this handoff; no contract-catalog/** change."
+    "git diff c3039031..HEAD -- architecture/ evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-night-delegation.md work-packages/: the amendment commit only; the four role files arrive by cherry-pick -x and touch only themselves.",
+    "A6: check that A-1 to A-7 of a6-rfc033-reading-2026-10-09.md §6 appear verbatim in the RFC (§2 last bullet, §3 second sentence, table and A6 list bullet, §4.1 rows and ceiling sentence, §4.3, §6.2 Population bullet, §7, §8).",
+    "C0: C0-239-1 in the disposition reading section (RFC-2026-025 §5 item 6 quoted whole from main, header and words unchanged); C0-239-2 in the RFC status line and §9 markers; A-3, A-4, A-6 and the §8 follow-ups.",
+    "A1: A1-239-1 (§9 no longer rests on the night words), A1-239-3 (per metric name, follow-up), A1-239-4, A1-239-5.",
+    "R0: R-239-3 (contracts_produced_or_changed now empty), open_blockers[27] append-only, verify-branch-scope and classify on the branch name.",
+    "Q0: the full suite and check:handoff on the branch name at the final head."
   ],
   "superseded_by": null
 }
