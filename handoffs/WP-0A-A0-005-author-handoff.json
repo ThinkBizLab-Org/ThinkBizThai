@@ -4,19 +4,16 @@
   "work_package_id": "WP-0A-A0-005",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "ec0bffd6aa5054d48a5a676a95242e2fef994fb0",
-  "head_revision_or_patch_checksum": "02c78274b9500f3a83bbdedaf64a0e4b2df77700",
+  "base_revision": "7261094e2f85956eca478e1ce6b6d85ad7805441",
+  "head_revision_or_patch_checksum": "860b2ece527e18c95cdbddcd0404d3046d179bd8",
   "task_ids": [
     "WP-0A-A0-005",
     "G0-step-2"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-005/a1-review-2026-10-09-pr224.md",
-    "evidence/WP-0A-A0-005/c0-review-2026-10-09-pr224.md",
-    "evidence/WP-0A-A0-005/q0-review-2026-10-09-pr224.md",
-    "evidence/WP-0A-A0-005/r0-review-2026-10-09-pr224.md",
-    "evidence/WP-0A-A0-005/r0-ruling-2026-10-09.md",
-    "evidence/WP-0A-A0-005/records-transcription-2026-10-09.md"
+    "evidence/WP-0A-A0-005/light-path-reading-2026-10-09.md",
+    "evidence/WP-0A-A0-005/light-path-reading-2026-10-09b.md",
+    "evidence/WP-0A-A0-005/records-transcription-2026-10-09b.md"
   ],
   "files_modified": [
     "handoffs/WP-0A-A0-005-author-handoff.json",
@@ -32,32 +29,32 @@
   "contracts_produced_or_changed": [],
   "assumptions": [
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
-    "This is a records increment after PR #190 merged (merge 5debf570215c2a1e7f8cd8be14e6226419ba60c4, head 2d015cc9aa1cb39b976c3e89978210f8a3c09918, CI bootstrap run 37419674193 success). The branch was cut from origin/main d44dbdbb1efebc9d891e3d31fdf01a8a8060c59a and carries, in order: R0's ruling evidence/WP-0A-A0-005/r0-ruling-2026-10-09.md (cherry-picked with -x from 4e59a323), the records commit, and this handoff refresh, last and alone.",
-    "R0's ruling is the role verdict that names this package and the target status integration_verified (RFC-2026-025 §6.2 item 1). It replaces condition 5 of r0-sync-reading-2026-10-06.md (an Owner-pressed merge) with a presser clause stating that /claude/a0_atlas pressed the merge on the Owner's คุณทำเลย of 2026-10-06.",
+    "This is a records increment (2026-10-09, second) after PR #224 merged (merge c5c8155cd592e1fd9f44021befaa4b176811a800, final head 71fd893703507cdc2c911a84ac1715febf4945be, bootstrap run 37871771409 success). The branch was cut from origin/main d17ff256 and carries the records commit and this handoff refresh, last and alone.",
+    "The Owner's answer quoted is `ครอบคลุม #190 (Recommended)`, on main in evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md §3.2 (PR #229).",
     "This handoff is written by a records-only subagent of the Author run /claude/a0_atlas. It writes no role verdict and decides nothing."
   ],
   "acceptance_results": [
     {
-      "criterion": "work-packages/WP-0A-A0-005.json status moves in_review -> integration_verified, as R0's ruling §4 (b) item 1 states, and nothing else in the manifest changes except the appended open_blockers entry.",
+      "criterion": "work-packages/WP-0A-A0-005.json keeps status integration_verified; open_blockers[11] is appended; open_blockers[5] keeps its old text whole after 'Text as recorded:'; every other entry and field matches origin/main.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-005/records-transcription-2026-10-09.md §1-§2"
+      "evidence": "evidence/WP-0A-A0-005/records-transcription-2026-10-09b.md §2"
     },
     {
-      "criterion": "open_blockers[10] is R0's §4 (b) blockquote joined with single spaces, byte for byte, with its backticks and apostrophes; open_blockers[0]-[9] are unchanged.",
+      "criterion": "The presser words in the closure of open_blockers[5] are byte-equal to R0's ruling §4 (b) blockquote; the Owner's question and answer are byte-equal to the disposition on main.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-005/records-transcription-2026-10-09.md §1 (byte comparison against the ruling file and against origin/main)"
+      "evidence": "evidence/WP-0A-A0-005/records-transcription-2026-10-09b.md §1"
     },
     {
-      "criterion": "Every merge fact in the appended text was re-measured with gh and git before recording.",
+      "criterion": "R0's post-merge words for #224 are transcribed with placeholders filled from gh/git, in the evidence file and not in the manifest, as R0's heading says.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-005/records-transcription-2026-10-09.md §1"
+      "evidence": "evidence/WP-0A-A0-005/records-transcription-2026-10-09b.md §2-§3"
     }
   ],
   "tests": [
     {
-      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-005 (after the records commit, origin/main d44dbdbb)",
+      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD (on the records commit)",
       "exit_code": 0,
-      "result": "all changed paths declared, every amendment explains one",
+      "result": "records-only: all 2 changed path(s) are records; no status move printed",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
@@ -67,27 +64,25 @@
       "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
-  "security_privacy_cost_impact": "Records only: one manifest status move, one appended open_blockers line, one evidence file and this handoff. No code, provider call, credential, migration or customer-data effect. Cost impact none.",
+  "security_privacy_cost_impact": "Records only: one appended open_blockers line, one blocker closed in place, one evidence file and this handoff. No code, provider call, credential, migration or customer-data effect. Cost impact none.",
   "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "No contract-catalog file, script, test or workflow is changed by this records increment, so no consumer is affected.",
+  "compatibility_impact": "No contract-catalog file, script, test, workflow or RFC is changed by this records increment, so no consumer is affected.",
   "known_limitations": [
-    "The presser clause rests on A0's report that the Owner's คุณทำเลย of 2026-10-06 covered PR #190. The words as quoted on main (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-08-rfc-025-s6-answers.md §6 item 5) name no PR. If the Owner says they did not cover #190, R0's ruling is void (its §3 last paragraph) and the status goes back through the full path.",
-    "gh records mergedBy workstationgroup (the repository account) only; who pressed the merge is not machine-verifiable.",
+    "gh records mergedBy workstationgroup (the repository account) only; that A0 pressed #190 and #224 is A0's account.",
     "A pattern scanner cannot prove absence; the scanner limits recorded in RFC-2026-008's 2026-10-06 correction and open_blockers[6] are unchanged by this record."
   ],
   "open_risks_or_blockers": [
-    "Full path. Role verdicts on this PR, carried with -x: C0 review_approved, A1 security_approved, Q0 test_verified (735/735 on the branch name), R0 integration-sound with its press conditions (evidence/WP-0A-A0-005/{c0,a1,q0,r0}-review-2026-10-09-pr224.md). Each carries under its stated clause: role files -x, a mechanical sync of main, this handoff refresh last and alone. A0 presses under the Owner’s standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once bootstrap is green on this exact head with main contained, as a true merge commit pinned with --match-head-commit."
+    "Records light path (RFC-2026-025 §6; classify-records-only exit 0, no status move). The one independent reading: C0 (/claude/c0_contract_reviewer) in R0's place, evidence/WP-0A-A0-005/light-path-reading-2026-10-09.md, carried with -x. Presser: A0 (/claude/a0_atlas) presses this records-only PR under RFC-2026-025 §6.2 item 3, i.e. the Owner's standing delegation for finished non-governance batches (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), with §2 item 1 and §5 item 6 applying in full: bootstrap green on this exact head containing current main, no security finding open, a true merge commit pinned with --match-head-commit. This PR is not a governance PR (no RFC, CONTRIBUTING_AGENTS.md, CI or gate change).\nStill open: WP-0A-A0-002.json ownership.amended_by[0] acknowledgement for WP-0A-A0-005 is pending (open_blockers[3]). The next state record quotes the delegation and names A0 as presser."
   ],
-  "rollback_or_forward_fix": "Revert the WP-0A-A0-005 records PR of 2026-10-09 (R0 ruling on PR #190 presser clause) through a reviewed revert PR of its merge commit: work-packages/WP-0A-A0-005.json returns to in_review with ten open_blockers, and r0-ruling-2026-10-09.md and records-transcription-2026-10-09.md are removed. If the Owner denies that คุณทำเลย covered #190, the forward fix is R0's re-ruling, not an edit of open_blockers[10].",
+  "rollback_or_forward_fix": "Revert the WP-0A-A0-005 records PR of 2026-10-09 (b) (Owner confirmation for #190, open_blockers[5] closure) through a reviewed revert PR of its merge commit: open_blockers[5] returns to its old text, open_blockers[11] goes, and records-transcription-2026-10-09b.md is removed; status stays integration_verified either way.",
   "recommended_next_work_packages": [
-    "WP-0A-A0-004",
-    "WP-0A-CON-007"
+    "WP-0A-A0-002"
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-005/r0-ruling-2026-10-09.md §3-§4, then evidence/WP-0A-A0-005/records-transcription-2026-10-09.md.",
-    "Reviewer (C0): compare open_blockers[10] in work-packages/WP-0A-A0-005.json with the ruling's §4 (b) blockquote, character for character; confirm open_blockers[0]-[9] and every other field match origin/main and the only status move is in_review -> integration_verified.",
-    "Integration Owner (R0): confirm the cherry-picked ruling is byte-identical to 4e59a323 and that this handoff commit is the branch's last and touches only this file.",
-    "The author is /claude/a0_atlas, through a records-only subagent. Role verdicts are distinct runs; each role file opens with the RFC-2026-024 §0 spawning disclosure."
+    "Read evidence/WP-0A-A0-005/records-transcription-2026-10-09b.md, then open_blockers[5] and [11] of work-packages/WP-0A-A0-005.json.",
+    "Reader (C0, since R0's words are the subject): compare the presser words in open_blockers[5] with r0-ruling-2026-10-09.md §4 (b), the question and answer in [11] with the WP-0A-CON-008 disposition §3.2, and the filled #224 words with r0-review-2026-10-09-pr224.md §4 and gh pr view 224 / gh run list --commit 71fd8937….",
+    "Confirm status is integration_verified, open_blockers[5] ends with its old text whole, every other field matches origin/main, and this handoff commit is the branch's last and touches only this file.",
+    "The author is /claude/a0_atlas, through a records-only subagent. Role verdicts are distinct runs."
   ],
   "superseded_by": null
 }
