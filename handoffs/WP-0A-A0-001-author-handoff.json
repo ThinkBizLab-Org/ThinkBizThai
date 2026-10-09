@@ -5,16 +5,18 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "9d0b3d23764cfe60b6fefb6b9688ff485f44fe33",
-  "head_revision_or_patch_checksum": "05248f81ba14a1943a57b79ec4cec4576fb6a6e9",
+  "head_revision_or_patch_checksum": "5bead76ea9ca76b933a26a09375fda6b66e5bed0",
   "task_ids": [
     "WP-0A-A0-001",
     "RFC-2026-030-s7-contributing-passages"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-pr228.md",
     "evidence/WP-0A-A0-001/rfc-030-contributing-passages-2026-10-09.md"
   ],
   "files_modified": [
     "CONTRIBUTING_AGENTS.md",
+    "handoffs/WP-0A-A0-001-author-handoff.json",
     "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-A0-001.json"
   ],
@@ -87,7 +89,8 @@
   ],
   "open_risks_or_blockers": [
     "Governance PR (RFC-2026-025 §5 item 6): the Owner merges it personally unless the Owner names it for A0. Whether the standing direction of disposition §10.2 covers it is the Owner's to say.",
-    "Owed on the head: C0, A1, Q0 and R0 (tier H); WP-0A-A0-002's acknowledgement of the integrity-manifest line."
+    "Owed on the head: C0, A1, Q0 and R0 (tier H); WP-0A-A0-002's acknowledgement of the integrity-manifest line.",
+    "PRESSER: the Owner answered on 2026-10-09 `ให้ A0 กด #228 (Recommended)` (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-pr228.md): A0 presses PR #228 after C0, A1, Q0 and R0 pass and CI is green on a head containing main, an exception to RFC-2026-025 §5 item 6 for PR #228 only."
   ],
   "rollback_or_forward_fix": "Before merge: close the governance PR. After merge: a reviewed governance revert PR restores the three RFC-2026-030 §7 passages of CONTRIBUTING_AGENTS.md to their pre-RFC-030 wording, removes the RFC-2026-025 §6 citation bullet and regenerates the guide's integrity digest; every PR is then tier H by the guide alone, as before.",
   "recommended_next_work_packages": [
