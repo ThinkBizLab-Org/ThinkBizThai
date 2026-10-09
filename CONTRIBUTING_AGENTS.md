@@ -24,7 +24,7 @@ Sprint 0A is **Specification Baseline Complete / External Verification Pending**
 
 ## Separation of duties
 
-Every implementation package has distinct Author, Independent Reviewer, Independent Tester, and Integration Owner. The Author may move work only through `in_review`; an Author must never approve, test-verify, integrate, or gate-approve their own work. Critical work additionally requires the appropriate independent Security/Privacy, Product/UX, Domain, or SRE reviewer.
+Every implementation package has distinct Author, Independent Reviewer, Independent Tester, and Integration Owner, and no role is ever held by the Author's run. How many of them read each pull request follows its risk tier under [`RFC-2026-030`](architecture/decisions/RFC-2026-030-risk-tiered-review.md), decided by the base's copy of `scripts/db/classify-review-tier.mjs` and never lowered by hand: tier H (migrations and RLS, auth, secrets and OAuth, publishing, billing, CI and gates, contracts, every module not on the reviewed module allowlist, and anything the classifier cannot place) is read by every role on every pull request; tier M by the Reviewer and the Tester, and tier L by one Reviewer with the Tester reading CI artifacts, each with the Integration Owner's verdict at the end of the work package and the merge pressed by a run that is not the Author's; records-only pull requests follow RFC-2026-025 §6. A stop-the-line or security finding raises any pull request to tier H. The Author may move work only through `in_review`; an Author must never approve, test-verify, integrate, or gate-approve their own work. Critical work additionally requires the appropriate independent Security/Privacy, Product/UX, Domain, or SRE reviewer.
 
 The work-package manifest must contain real, distinct `agent_run_id` values before the package moves from `backlog` to `ready`. If staffing is insufficient, keep the package in backlog or work sequentially; do not collapse the roles. The schema enforces non-empty IDs for ready-or-later packages, and `scripts/validate-work-package-role-separation.mjs` compares the four named role IDs directly. Reviewer and CI/evidence review must run that validator before a package is accepted as ready.
 
@@ -56,7 +56,7 @@ Use the schemas in `.agents/` for capability profiles, work packages, status upd
 
 Run only repository-declared deterministic commands. RFC-2026-001 is the in-review bootstrap tooling decision: Node.js `24.20.0` with bundled npm `11.19.0`, locked by `.node-version`, `package.json`, and `package-lock.json`. It is authorized for local validation only and cannot be treated as approved or merged until independent review, security review, test, integration, and CI evidence complete. `npm run check` enforces this exact toolchain before tests; do not substitute a system Node version, add another package manager, or introduce dependencies without a new approved RFC. Node-only validators and secret scan accept no network, credentials, or global tools. Record all commands and output in the handoff.
 
-Before any commit or push, the Author must provide a clean diff and self-test evidence; an independent Reviewer and Tester must complete their respective checks. The Integration Owner verifies the final state and CI before merging. Pushing branch-protection settings or production configuration requires authorized repository/operations ownership and must not be inferred from this guide.
+Before any commit or push, the Author must provide a clean diff and self-test evidence; an independent Reviewer and Tester must complete their respective checks. The Integration Owner verifies the final state and CI before merging; for a tier M or L pull request under RFC-2026-030, the Integration Owner's verdict is given at the end of the work package instead (RFC-2026-030 §3.2), and the merge is pressed by a run that is not the Author's. Pushing branch-protection settings or production configuration requires authorized repository/operations ownership and must not be inferred from this guide.
 
 ## Temporary manual merge control
 
@@ -66,9 +66,16 @@ every proposed merge into `main`:
 
 - Never push directly to `main`, force-push it, or delete it. Use a branch and
   Draft PR.
-- Before the Product Owner merges, the head commit must have a green required
-  CI run and linked Author, independent Reviewer, independent Tester,
-  Security/Privacy (when required), and Integration Owner evidence.
+- Before the Product Owner merges, the head commit must have a green required CI
+  run and linked Author, independent Reviewer, independent Tester,
+  Security/Privacy (when required), and Integration Owner evidence; for a tier M
+  or L pull request under RFC-2026-030, the linked evidence is what RFC-2026-030
+  §3 names for its tier, and the Integration Owner's verdict follows at the end
+  of the work package (RFC-2026-030 §3.2).
+- A records-only pull request, and a mechanical sync of `main` into a pull
+  request branch, follow
+  [`RFC-2026-025`](architecture/decisions/RFC-2026-025-owner-delegated-merge.md)
+  §6.
 - The Author never approves, test-verifies, integrates, or authorizes their own
   work. A manual merge cannot waive an unresolved stop-the-line risk.
 - Record the PR URL, head SHA, CI run, evidence links, and rollback plan in the
