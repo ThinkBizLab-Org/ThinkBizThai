@@ -44,7 +44,7 @@
     "contract-catalog/shared-kernel/index.json": "a8c5173cb87e0f3efdd32a25fd57bfb90690defc1fe2def565e4bc175428df3d",
     "db/foundation/test-helpers/rls-assertions.mjs": "aaaa551d011f22491f743b7946cfa94713f1f0142b0a08a164d61228ee00c7bf",
     "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md": "0a7656abb31f25ba5107cf304951b6fbaefca67bb607415250ea3a4d400056c4",
-    "evidence/VERIFICATION.md": "880ef15ef22ec552ca6d268c3eb1f1ce36bd85fd986df8e7a648280a66caf114",
+    "evidence/VERIFICATION.md": "c405fb97340dc94187521788cb3aaf51fcbae1dde3b6fe486ef6a1648917ad96",
     "package-lock.json": "24471bf1aa7ced9e84119f90054030e044f099d5310dd3ddeaaf8209d9721cb5",
     "package.json": "fbbca027d2445f87badb757e33dd87fbc2c2349c1dcb7049d0471277d9a33a78",
     "scripts/commit-when-clean.mjs": "0a842c175520f4b1b6341c3249ee915aa0df511e9356a0a5f6b4d039906f1b1d",
