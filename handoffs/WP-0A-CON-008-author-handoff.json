@@ -4,12 +4,16 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "9d0b3d23764cfe60b6fefb6b9688ff485f44fe33",
-  "head_revision_or_patch_checksum": "e2ec50a821ad0f19ab7cc200e509587d210034dc",
+  "base_revision": "36b6d3c30fba006c17177ad72365a2abd8bb0868",
+  "head_revision_or_patch_checksum": "ae188a17fbbef2b8b0612f6617f69e113ffd80e1",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md",
-    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md"
+    "evidence/WP-0A-CON-008/a1-review-2026-10-09-pr229.md",
+    "evidence/WP-0A-CON-008/c0-review-2026-10-09-pr229.md",
+    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md",
+    "evidence/WP-0A-CON-008/q0-review-2026-10-09-pr229.md",
+    "evidence/WP-0A-CON-008/r0-review-2026-10-09-pr229.md"
   ],
   "files_modified": [
     "handoffs/WP-0A-CON-008-author-handoff.json",
@@ -90,12 +94,7 @@
     "The disposition's transcript check was made against a file outside the repository; a reader on main sees the quotes and their times, not the transcript."
   ],
   "open_risks_or_blockers": [
-    "The Owner answered RFC-2026-031 §10 on 2026-10-09 (disposition §8), and the RFC's status line cites that section. Nothing is owed by the Owner for this PR's text.",
-    "OWED BY THE ROLES: C0, A1, Q0 and R0 runs on the new head, which carries the approval commit (RFC-2026-031 §10 'Order before the merge' step 3; RFC-2026-025 §5 item 2). The heads they read before the approval commit do not cover it.",
-    "PRESSER: A0 presses PR #229 under the Owner's Q-031-4 answer `ได้ ทั้งสอง + กด #229 (Recommended)`, once the four roles pass and CI is green on a head that contains current main. This is an exception to RFC-2026-025 §5 item 6 for #229 and for freeze PRs under RFC-2026-031 §4.4; it does not amend the rule. The earlier question whether the 2026-10-08 standing direction alone named this PR (disposition §6) no longer decides the press.",
-    "OWED BY WP-0A-A0-002 AND WP-0A-A0-001: acknowledgement of the one DIGESTED_FLOOR line plus the regenerated digests, and of the one DECISION_RECORDS line.",
-    "ADDED 2026-10-08 BY A0 (/claude/a0_atlas) ON C0 F-1 AND A1 N-1 (evidence/WP-0A-CON-008/c0-review-2026-10-07.md §2, a1-review-2026-10-07.md §3), OWNER PRODUCT OWNER + A0 (G0-024), A GATE-RULE QUESTION  ... (manifest open_blockers[6] carries the full text and the Owner's answer appended after it)",
-    "The manifest's open_blockers[1], [2], [3], [5] and [7] stand unchanged (co-owner sign-off outstanding; presence not sufficiency; CTR-NTF-001 unassessed; the scanner digest hazard, owner WP-0A-A0-003; the handoff guard HEAD^ blind spot, owner WP-0A-CON-008)."
+    "Full path. Role verdicts on this PR, carried with -x: C0 review_approved, A1 security_approved, Q0 test_verified (735/735 on the branch name), R0 integration-sound with its press conditions (evidence/WP-0A-CON-008/{c0,a1,q0,r0}-review-2026-10-09-pr229.md). Each carries under its stated clause: role files -x, a mechanical sync of main, this handoff refresh last and alone. A0 presses under the Owner’s standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once bootstrap is green on this exact head with main contained, as a true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Revert through a reviewed revert PR of the RFC-2026-031 increment of WP-0A-CON-008: removing architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md also needs its DECISION_RECORDS line, its DIGESTED_FLOOR line and its integrity-manifest digest removed in the same revert, or repository-json.test.mjs and the coverage floor fail; the 2026-10-09 Owner disposition stays true as a record of what was said even if the RFC is withdrawn, so a revert that drops it must say where the Owner's answers are kept instead. No contract, schema or status other than this package's own moved, so nothing downstream needs rolling back.",
   "recommended_next_work_packages": [
