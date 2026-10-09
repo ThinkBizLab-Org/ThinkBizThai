@@ -168,10 +168,10 @@ const CATALOG_REGISTRY = {
   'ctr-usg-001': {
     contract_id: "CTR-USG-001",
     version: "1.0.0",
-    status: "Draft",
+    status: "Candidate",
     owner: "A0+A6",
     index_owner: "A0+A6",
-    index_status: "Draft",
+    index_status: "Candidate",
     required_before_freeze: ["dimensions","attribution","decimal money","dedupe"],
     consumers: ["AI","Research","Storage","Media","Publish","Billing"],
   },

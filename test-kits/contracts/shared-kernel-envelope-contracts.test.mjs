@@ -143,16 +143,19 @@ test('the index reports the census the Product Owner approved, not one that drif
   // CTR-SEC-001 for Candidate (evidence/WP-0A-CON-004/a1-sec-candidate-signature-2026-10-09.md), A6
   // signed CTR-AUD-001 and CTR-OBS-001 (a6-candidate-signature-2026-10-09.md), and the Product Owner
   // approved each by name (product-owner-disposition-2026-10-09-candidate-sec-aud-obs-usg.md).
-  // CTR-USG-001 and CTR-NTF-001 are still Draft and are asserted by name below, because "still
-  // Draft" is the part a drift would eat.
+  //
+  // Later on 2026-10-09 CTR-USG-001 moved 12/2 → 13/1 (WP-0A-CON-006): A6 signed it for Candidate
+  // (evidence/WP-0A-CON-006/a6-candidate-signature-2026-10-09.md) and the Product Owner approved it
+  // by name (the same disposition file, `อนุมัติ USG (Recommended)`). CTR-NTF-001 is still Draft and
+  // is asserted by name below, because "still Draft" is the part a drift would eat.
   const PROMOTED = ['CTR-API-001', 'CTR-PAG-001', 'CTR-IDM-001', 'CTR-MOD-001', 'CTR-FLG-001'];
-  const PROMOTED_2026_10_09 = ['CTR-SEC-001', 'CTR-AUD-001', 'CTR-OBS-001'];
-  const AWAITING_CO_OWNER = ['CTR-USG-001', 'CTR-NTF-001'];
+  const PROMOTED_2026_10_09 = ['CTR-SEC-001', 'CTR-AUD-001', 'CTR-OBS-001', 'CTR-USG-001'];
+  const AWAITING_CO_OWNER = ['CTR-NTF-001'];
 
   const index = await readJson(`${CATALOG}/index.json`);
   assert.equal(index.contracts.length, 14);
-  assert.equal(index.contracts.filter((c) => c.status === 'Candidate').length, 12);
-  assert.equal(index.contracts.filter((c) => c.status === 'Draft').length, 2);
+  assert.equal(index.contracts.filter((c) => c.status === 'Candidate').length, 13);
+  assert.equal(index.contracts.filter((c) => c.status === 'Draft').length, 1);
   for (const id of PROMOTED) {
     assert.equal(index.contracts.find((c) => c.id === id).status, 'Candidate', `${id} was approved for Candidate`);
   }

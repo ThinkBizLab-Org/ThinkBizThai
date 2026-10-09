@@ -6020,9 +6020,13 @@ test("the ledger's columns are CTR-USG-001's, and every divergence from that con
 test('the two rules CTR-USG-001 says its validator cannot express are constraints in the store', async () => {
   const manifest = JSON.parse(await readFile(USAGE_MANIFEST, 'utf8'));
   assert.equal(manifest.contract_id, 'CTR-USG-001');
-  assert.equal(manifest.status, 'Draft',
-    'the columns come from a DRAFT contract, which is a departure this batch declares rather than hides — '
-    + 'and if the status ever moves, the four divergences in 061\'s header are what a freeze has to weigh');
+  // 'Draft' → 'Candidate' on 2026-10-09 (WP-0A-CON-006: A6's signature and the Product Owner's
+  // disposition). Candidate is not Frozen, so the four divergences in 061's header are still what
+  // a freeze has to weigh.
+  assert.equal(manifest.status, 'Candidate',
+    'the columns come from a contract that is not Frozen, which is a departure this batch declares rather than '
+    + 'hides — and if the status moves to Frozen, the four divergences in 061\'s header are what that freeze has '
+    + 'to weigh');
   assert.match(manifest.untestable_by_schema, /SELF-REFERENCE AND SUPERSESSION UNIQUENESS/,
     'the contract records both gaps, and this test exists because a store can close what a JSON Schema '
     + 'subset cannot');
@@ -8001,8 +8005,11 @@ test('batch 132 needs all four questions batch 061 left open, and quotes them fr
     'CTR-USG-001 puts OB-008 outside itself, which is why question two has no owner inside the contract');
   assert.match(mine, /reconciliation algorithm \(OB-008\)/i,
     'and batch 132 cites that boundary rather than paraphrasing it');
-  assert.equal(manifest.status, 'Draft',
-    'and the contract is still a Draft, so its owners (A0+A6) can still move the thing this batch is blocked on');
+  // 'Draft' → 'Candidate' on 2026-10-09 (WP-0A-CON-006). A Candidate contract is not Frozen, so
+  // the property this assertion protects still holds.
+  assert.equal(manifest.status, 'Candidate',
+    'and the contract is Candidate, not Frozen, so its owners (A0+A6) can still move the thing this batch is '
+    + 'blocked on');
 });
 
 test('batch 132 classifies no S cell and declines the service policy batch 130 expected of it', async () => {

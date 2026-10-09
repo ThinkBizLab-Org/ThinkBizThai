@@ -135,7 +135,7 @@
         "Publish",
         "Billing"
       ],
-      "status": "Draft",
+      "status": "Candidate",
       "required_before_freeze": [
         "dimensions",
         "attribution",
