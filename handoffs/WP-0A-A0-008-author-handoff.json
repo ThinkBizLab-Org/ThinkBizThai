@@ -5,14 +5,18 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "d44dbdbb1efebc9d891e3d31fdf01a8a8060c59a",
-  "head_revision_or_patch_checksum": "7a10c5d3c6a18fd9df72cef88b1e4c3af60e288b",
+  "head_revision_or_patch_checksum": "f75e36759465842de2adb3b3fec8da28a662f485",
   "task_ids": [
     "WP-0A-A0-008",
     "G0-step-4"
   ],
   "files_added": [
     "evidence/WP-0A-A0-008/a1-carry-2026-10-09.md",
+    "evidence/WP-0A-A0-008/a1-review-2026-10-09-pr221.md",
+    "evidence/WP-0A-A0-008/c0-review-2026-10-09-pr221.md",
     "evidence/WP-0A-A0-008/light-path-reading-2026-10-09.md",
+    "evidence/WP-0A-A0-008/q0-review-2026-10-09-pr221.md",
+    "evidence/WP-0A-A0-008/r0-review-2026-10-09-pr221.md",
     "evidence/WP-0A-A0-008/records-transcription-2026-10-09.md"
   ],
   "files_modified": [
@@ -31,8 +35,8 @@
   "assumptions": [
     "THIS INCREMENT is the post-merge record of PR #208, cut from origin/main d44dbdbb on the branch name agent/claude/WP-0A-A0-008-service-path. PR #208 merged as 5cb5cb83871179be83b0fe98e34112e0d992eddc (final head 763b4d60a3818982f7f743dc35641045fbafe5b4, bootstrap run 37516051508 success). It transcribes, on R0's behalf, evidence/WP-0A-A0-008/r0-integration-verdict-2026-10-05.md §5.1: status in_review -> integration_verified and open_blockers[3] closed in place with its old text kept whole after \"Text as recorded: \". The Author decides nothing; evidence/WP-0A-A0-008/records-transcription-2026-10-09.md lists every fact filled in and how it was verified.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is a reversible, synthetic-only record change.",
-    "R0's conditions I1-I5 and the C0, A1 and Q0 carry clauses were checked against git log 25d449ca..763b4d60: the four role-file commits, one merge of main 9b4a0ce, and the handoff refresh alone; the manifest and the self-check are byte-identical to 25d449c. None was tripped (evidence/WP-0A-A0-008/records-transcription-2026-10-09.md §1.1).",
-    "This increment is meant to be records-only under RFC-2026-025 §6.1: it changes the manifest's status and one open_blockers entry, adds one records-transcription file, and refreshes this handoff. It changes no RFC, CONTRIBUTING_AGENTS.md, CI or gate, so it is not a governance PR.",
+    "R0’s conditions I1-I5 held at 763b4d60 (git log 25d449ca..763b4d60: four role-file commits, one merge of main 9b4a0ce, the handoff refresh alone; manifest and self-check byte-identical to 25d449c). C0’s and Q0’s carry clauses held. A1’s clause WAS tripped (role files and the 763b4d60 handoff prose rewrite after 25d449c); A1 ruled after the merge that its verdict carries (evidence/WP-0A-A0-008/a1-carry-2026-10-09.md), an R19-class lapse, recorded in the transcription §4 correction (C0-221-1).",
+    "This increment began as records-only, but carries role files (C0’s light-path reading, A1’s carry ruling and the four role reviews), so it takes the FULL path (classifier exit 1). It changes no RFC, CONTRIBUTING_AGENTS.md, CI or gate, so it is not a governance PR. It changes the manifest’s status and one open_blockers entry, adds the records-transcription file (with a §4 correction) and refreshes this handoff.",
     "final_status stays in_review: that is the furthest an Author moves work. The manifest's integration_verified is R0's status, transcribed."
   ],
   "acceptance_results": [
@@ -60,8 +64,8 @@
     },
     {
       "command": "node scripts/db/classify-records-only.mjs origin/main HEAD",
-      "exit_code": 0,
-      "result": "see the PR body for the run on the final head"
+      "exit_code": 1,
+      "result": "NOT records-only: carried role files; full path"
     },
     {
       "command": "npm run verify (run by node scripts/commit-when-clean.mjs for this handoff commit, on the branch name)",
@@ -77,7 +81,7 @@
     "R0's further wording items (optional: C0 F2 and A1-008-3 in open_blockers[1], A1-008-4 / Q0-N1 in rollback_or_forward_fix, the dated note in open_blockers[0]; given by R0 §5.1 as an instruction, not optional: the dated note on required_human_authorities[1] — C0 light-path advisory A1) are not made: none has exact wording on main, and required_human_authorities is strictly append-only on the records path."
   ],
   "open_risks_or_blockers": [
-    "FULL PATH now (A1 and C0 role files carried): C0 light-path reading blocked on B1 (A1 carry clause tripped by the 763b4d60 handoff prose rewrite); A1 then ruled after the merge (a1-carry-2026-10-09.md) that security_approved carries to 763b4d60 (R19 class: PR #208 was pressed before that re-check existed). Owed: C0, A1, Q0 and R0 read this PR’s final head; then A0 presses under the Owner’s standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), CI green on the exact head, pinned with --match-head-commit."
+    "Full path. Role verdicts at b64c9ea9, carried with -x: C0 changes_requested (C0-221-1, blocking: the A1 carry statement), A1 security_approved_with_conditions (A1R-221-1, same), Q0 test_verified 735/735, R0 integration-sound (R-221-1 advisory: stale handoff prose). f75e3675 appends the correction to the transcription (§4) and this refresh fixes the handoff; C0 and A1 re-read that fix. open_blockers[0], [1] and [2] stay open. Then sync main, refresh last and alone, CI green, A0 presses under the Owner’s standing delegation (product-owner-disposition-2026-10-03-batch-127.md §6), true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "WP-0A-A0-008 RECORDS 2026-10-09: before merge, close the PR. After merge, a reviewed revert of this records PR returns WP-0A-A0-008 to in_review and restores open_blockers[3] to the text kept after \"Text as recorded: \"; it removes records-transcription-2026-10-09.md. PR #208's merged content and the four role files are unaffected.",
   "recommended_next_work_packages": [
