@@ -1,6 +1,6 @@
 # RFC-2026-032: the secret-handle syntax is owned by CTR-SEC-001
 
-Status: **Proposed.** Q-032-1 to Q-032-4 (§9) go to the Product Owner before the merge.
+Status: **Approved 2026-10-09 by the Product Owner.** To Q-032-1 he chose `อนุมัติ (Recommended)`, to Q-032-2 `MOD จำกัด 128 ด้วย (Recommended)`, and to Q-032-3 and Q-032-4 (asked as one question) `รับทั้งสอง (Recommended)` (transcribed verbatim in `evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md`). The approved text is this file as committed at `27a24c27`; since then only this status line and §9's appended answers have changed. Earlier status: Proposed.
 Date: 2026-10-09
 Author: `/claude/a0_atlas` (A0, owner of CTR-MOD-001 and co-owner of CTR-SEC-001), as an increment of `WP-0A-CON-004`
 Owner: A0, with A1 as co-owner of CTR-SEC-001, on the Product Owner's disposition
@@ -205,3 +205,18 @@ Each question carries A0's recommendation. The Owner's answers are recorded on t
    `main`.
 
 Until then the status stays `Proposed`, and nothing in §3 to §8 binds.
+
+**The Owner's answers (appended 2026-10-09).** Asked at `2026-10-09T13:48:23.794Z` and answered at
+`2026-10-09T14:46:47.647Z`, in one multiple-choice call whose questions are A0's Thai summaries of Q-032-1 to Q-032-4
+above. The questions, options and answers are transcribed verbatim in
+`evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md` §2. The questions above are kept as
+written.
+
+- **Q-032-1:** `อนุมัติ (Recommended)`. The text is approved: CTR-SEC-001 normative, CTR-MOD-001 holding a pinned copy
+  checked by the §5 test.
+- **Q-032-2:** `MOD จำกัด 128 ด้วย (Recommended)`. CTR-MOD-001 gains `maxLength: 128` under this RFC (§7, §8).
+- **Q-032-3 and Q-032-4** (asked as one question): `รับทั้งสอง (Recommended)`. C2 arrives as an amendment to this RFC
+  (§6), and the freeze gate of §7 holds.
+
+Step 2 of "Order before the merge" is done by that disposition and this status line. Steps 3 and 4 remain. The §8
+contract, fixture and test edits are still not made; they come in a later increment.
