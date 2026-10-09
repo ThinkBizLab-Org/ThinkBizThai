@@ -4,14 +4,15 @@
   "work_package_id": "WP-0A-A0-005",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "65695129f1feed95d08b863ee8a935c0d122cb8c",
-  "head_revision_or_patch_checksum": "fc07d099586c418227417185b2d6130400d89224",
+  "base_revision": "7261094e2f85956eca478e1ce6b6d85ad7805441",
+  "head_revision_or_patch_checksum": "860b2ece527e18c95cdbddcd0404d3046d179bd8",
   "task_ids": [
     "WP-0A-A0-005",
     "G0-step-2"
   ],
   "files_added": [
     "evidence/WP-0A-A0-005/light-path-reading-2026-10-09.md",
+    "evidence/WP-0A-A0-005/light-path-reading-2026-10-09b.md",
     "evidence/WP-0A-A0-005/records-transcription-2026-10-09b.md"
   ],
   "files_modified": [
@@ -71,7 +72,7 @@
     "A pattern scanner cannot prove absence; the scanner limits recorded in RFC-2026-008's 2026-10-06 correction and open_blockers[6] are unchanged by this record."
   ],
   "open_risks_or_blockers": [
-    "Records light path (RFC-2026-025 §6; classify-records-only exit 0, no status move). The one independent reading: C0 (/claude/c0_contract_reviewer) in R0's place, evidence/WP-0A-A0-005/light-path-reading-2026-10-09.md, carried with -x. Presser: A0 (/claude/a0_atlas) presses this records-only PR under RFC-2026-025 §6.2 item 3, i.e. the Owner's standing delegation for finished non-governance batches (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), with §2 item 1 and §5 item 6 applying in full: bootstrap green on this exact head containing current main, no security finding open, a true merge commit pinned with --match-head-commit. This PR is not a governance PR (no RFC, CONTRIBUTING_AGENTS.md, CI or gate change)."
+    "Records light path (RFC-2026-025 §6; classify-records-only exit 0, no status move). The one independent reading: C0 (/claude/c0_contract_reviewer) in R0's place, evidence/WP-0A-A0-005/light-path-reading-2026-10-09.md, carried with -x. Presser: A0 (/claude/a0_atlas) presses this records-only PR under RFC-2026-025 §6.2 item 3, i.e. the Owner's standing delegation for finished non-governance batches (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), with §2 item 1 and §5 item 6 applying in full: bootstrap green on this exact head containing current main, no security finding open, a true merge commit pinned with --match-head-commit. This PR is not a governance PR (no RFC, CONTRIBUTING_AGENTS.md, CI or gate change).\nStill open: WP-0A-A0-002.json ownership.amended_by[0] acknowledgement for WP-0A-A0-005 is pending (open_blockers[3]). The next state record quotes the delegation and names A0 as presser."
   ],
   "rollback_or_forward_fix": "Revert the WP-0A-A0-005 records PR of 2026-10-09 (b) (Owner confirmation for #190, open_blockers[5] closure) through a reviewed revert PR of its merge commit: open_blockers[5] returns to its old text, open_blockers[11] goes, and records-transcription-2026-10-09b.md is removed; status stays integration_verified either way.",
   "recommended_next_work_packages": [
