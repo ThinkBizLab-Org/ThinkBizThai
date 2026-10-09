@@ -4,15 +4,20 @@
   "work_package_id": "WP-0A-A0-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "d44dbdbb1efebc9d891e3d31fdf01a8a8060c59a",
-  "head_revision_or_patch_checksum": "e5efe81ac82e4e0dcde0c7fa6fbf7858a6d98f94",
+  "base_revision": "f2e51e90c5eff2c0fde0f1ce42cd6c45a33fa8f7",
+  "head_revision_or_patch_checksum": "0cfdba54db6ffa4b581a454b4b5c5ee10b8fefdc",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-A0-006/a1-gate-2026-10-09.md",
+    "evidence/WP-0A-A0-006/a1-review-2026-10-09-pr227.md",
+    "evidence/WP-0A-A0-006/c0-review-2026-10-09-pr227.md",
     "evidence/WP-0A-A0-006/q0-after-merge-2026-10-09.md",
+    "evidence/WP-0A-A0-006/q0-review-2026-10-09-pr227.md",
+    "evidence/WP-0A-A0-006/r0-review-2026-10-09-pr227.md",
     "evidence/WP-0A-A0-006/r0-ruling-2026-10-09.md"
   ],
   "files_modified": [
+    "handoffs/WP-0A-A0-006-author-handoff.json",
     "work-packages/WP-0A-A0-006.json"
   ],
   "files_deleted": [],
@@ -72,7 +77,7 @@
     "R0-3 stands: PR #45 (1a9f589) reached main with no role evidence."
   ],
   "open_risks_or_blockers": [
-    "Full path (R0 ruling §6 step 3): q0-after-merge-*, r0-ruling-* and a1-gate-* are not record names, so classify-records-only.mjs rejects the PR. Owed on this PR's head: C0 (review of the transcription), Q0 (test verdict) and R0 (a short integration reading of §7's words). A1's a1-gate-2026-10-09.md stands as A1's reading under its §3 carry clause unless R0 decides an A1 run on the head is needed. Each role file is carried -x before a final handoff refresh."
+    "Full path. Role verdicts on this PR, carried with -x: C0 review_approved, A1 security_approved, Q0 test_verified (735/735 on the branch name), R0 integration-sound with its press conditions (evidence/WP-0A-A0-006/{c0,a1,q0,r0}-review-2026-10-09-pr227.md). Each carries under its stated clause: role files -x, a mechanical sync of main, this handoff refresh last and alone. A0 presses under the Owner’s standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once bootstrap is green on this exact head with main contained, as a true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Revert the WP-0A-A0-006 post-merge records PR for PR #202 through a reviewed revert PR: it moves the manifest back to in_review, restores open_blockers[3] to its 2026-10-07 'UPDATED … BY A0' text and drops the R0-6 entry, and removes the carried q0-after-merge, r0-ruling and a1-gate files of 2026-10-09. The DATA-DEC decisions merged in PR #202 (7fb0fc05) are not touched by such a revert.",
   "recommended_next_work_packages": [
