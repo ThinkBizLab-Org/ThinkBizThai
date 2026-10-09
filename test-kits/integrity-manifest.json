@@ -18,7 +18,7 @@
     "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md": "7f9773672f0a98afe2742a0e1a647ceaa0ab1251c988cfd3be1d6c94c7a49d56",
     "architecture/decisions/RFC-2026-008-cardholder-data-scan.md": "4e048b0236fe8212469ef40ead31dbcaf7817218b5ccfa858e02c2dd7573b6fa",
     "architecture/decisions/RFC-2026-009-reference-bounds.md": "c546d055469fc7a7a1ce6eccdf7430ddae52117c1e3a33f865639b5d87d92ec3",
-    "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md": "30ec6a7458171da64d20cc074908db03bdeb2760c6539605dab8e55bcec8e0c1",
+    "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md": "6573c8228eacf72ef212060c1ed7e52ff49dae30c5b320efdc775e88f0250373",
     "architecture/decisions/RFC-2026-011-repository-language.md": "4b56eb94e86fb701d37ff4796b1dde51cff334a92bbf4495faacb1c00a62385c",
     "architecture/decisions/RFC-2026-012-client-database-boundary.md": "5ad190fc4c7766b453139bc9d139a0076e3113b5b26e0da5cf682628dbf9edea",
     "architecture/decisions/RFC-2026-013-agent-signature-scope.md": "b0eeee8a8c1b8f4367fea41150f6b8ebef5fecc8769f350ff3cec5c3ec32da20",
@@ -110,7 +110,7 @@
     "tests/db/identity/identity-isolation.test.mjs": "902679e108727dd74d71aa9cade5a2f2f9e1eb431115d151c82113197cd619ae",
     "tests/db/identity/isolation-cases.mjs": "bac0e46ce5ed241dcbf26e46f56a6e48c4bd3ca554e8c244e91ef1ebe2576fc7",
     "tests/db/identity/run-isolation.mjs": "b7df49228d82af244ba7a5ec14508ed674d11293082014cc265275fbe7823d9b",
-    "work-packages/WP-0A-CON-008.json": "c8a1d3c64b4cd8597eb5f99176d002f2cbb54dc430305cb8b5550dcf135c36ab"
+    "work-packages/WP-0A-CON-008.json": "d52fd3ec31462b941519b962d4e282fe710c91fbd8b6574749de1b4f818fd404"
   },
   "cross_package_note": "Any package that adds a test file must add it here, because the guard requires every discovered test file to be digested. This is a deliberate coupling: an unprotected suite can be gutted with the manifest byte-identical. It surfaced when WP-0A-CON-002 added three contract suites and CI failed at exit 87 while a local run on the unrebased branch passed - GitHub tests the MERGE of head into base, so a stacked branch that has not been rebased does not see its own integration."
 }
