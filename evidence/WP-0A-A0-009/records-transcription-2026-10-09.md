@@ -69,3 +69,14 @@ No sentence about who pressed PR #207 is added. No file on `main` and no A0 reco
    shown.
 3. **`<S>` is the branch SHA `d6c44192`.** If this PR merges with `--merge` (not squash or rebase), that commit
    reaches `main` unchanged. Any other merge method would leave `<S>` pointing at a commit that is not on `main`.
+
+## Correction, 2026-10-09 (C0-226-1; A1-226-2; Q0-226-2; R0-226-2)
+
+The opening statement that every recorded word is copied from `r0-short-reading-2026-10-09.md` §4, and §2's
+description of the `required_human_authorities` entry, are true only of the branch as it stood at `8c8ffa6f`. That
+entry failed `test-kits/authority-dispositions.test.mjs` (unclassifiable). R0 restated it in
+`evidence/WP-0A-A0-009/r0-wording-2026-10-09.md` §2 (R0's commit `4ff25ac3`, carried as `59bceee6`), and commit
+`cac883eb` replaced the entry with that text, byte for byte. So the recorded words come from two R0 files: the short
+reading §4 for `status`, `open_blockers[0]` and `[3]`, and the wording file §2 for `required_human_authorities[2]`.
+Entries `[0]` and `[1]` of `required_human_authorities` are unchanged. The branch adds three evidence files (the short
+reading, the wording file and this transcription), not two.
