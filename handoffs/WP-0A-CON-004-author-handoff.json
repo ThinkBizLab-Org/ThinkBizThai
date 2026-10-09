@@ -5,19 +5,25 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "d17ff25606977b6e9135e9466e3606a7ccdc45da",
-  "head_revision_or_patch_checksum": "b10d64673347dbc59ec2b0ddbe0e0d39f75ebffc",
+  "head_revision_or_patch_checksum": "67ba0680f836a6d017d5bad0ce1745be1b3bd945",
   "task_ids": [],
   "files_added": [
+    "evidence/WP-0A-CON-004/a1-review-2026-10-09-pr233.md",
     "evidence/WP-0A-CON-004/a1-sec-candidate-signature-2026-10-09.md",
     "evidence/WP-0A-CON-004/a6-candidate-signature-2026-10-09.md",
+    "evidence/WP-0A-CON-004/a6-check-2026-10-09-pr233.md",
     "evidence/WP-0A-CON-004/author-candidate-increment-2026-10-09.md",
-    "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-candidate-sec-aud-obs-usg.md"
+    "evidence/WP-0A-CON-004/c0-review-2026-10-09-pr233.md",
+    "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-candidate-sec-aud-obs-usg.md",
+    "evidence/WP-0A-CON-004/q0-review-2026-10-09-pr233.md",
+    "evidence/WP-0A-CON-004/r0-review-2026-10-09-pr233.md"
   ],
   "files_modified": [
     "contract-catalog/shared-kernel/ctr-aud-001/manifest.json",
     "contract-catalog/shared-kernel/ctr-obs-001/manifest.json",
     "contract-catalog/shared-kernel/ctr-sec-001/manifest.json",
     "contract-catalog/shared-kernel/index.json",
+    "handoffs/WP-0A-CON-004-author-handoff.json",
     "test-kits/contracts/catalog-registry.test.mjs",
     "test-kits/contracts/shared-kernel-contract-catalog.test.mjs",
     "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs",
@@ -198,7 +204,7 @@
     "ADDED 2026-10-09 BY A0 (/claude/a0_atlas): CTR-AUD-001 and CTR-OBS-001 moved Draft → Candidate at 15e2dd30a66f3bf4272d334974804ae787a23f23 on A6's co-owner signature (evidence/WP-0A-CON-004/a6-candidate-signature-2026-10-09.md, signed at main d17ff256 on the blobs named in its §0: AUD schema 73609d10, manifest 265c8f83, examples 05d24f98; OBS schema c9f28c72, manifest fc135b99, examples 64ab193a) and the Product Owner's disposition evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-candidate-sec-aud-obs-usg.md (`อนุมัติ AUD (Recommended)`, `อนุมัติ OBS (Recommended)`). The same commit moves CTR-SEC-001 (entry [22]). In each of the three directories it changes only manifest.json \"status\", as A1's K1 and A6's §8 allow; schema.json, examples/ and every other manifest byte, freeze_boundary included, are unchanged. Outside them it changes only the index status entries, the registry pins, the census assertions, the catalog ratchet's Draft-promotion reversal (repointed to CTR-NTF-001, because setting CTR-SEC-001 to Candidate is now a no-op) and the regenerated integrity manifest (ownership.amends_without_owning). Version stays 1.0.0. Consumer bound for CTR-OBS-001, from A6's restriction and the Owner's option text (\"ตามข้อจำกัดของ A6\"): no consumer, fake or harness built under Candidate CTR-OBS-001 emits sli_tags to a real metric backend before the per-label budget lands. CTR-AUD-001: A6's N-A1 to N-A3 stand as notes for its freeze. Neither A6's signature nor the Owner's answers is toward Frozen. Scope: this package's scope.exclude (\"Contract freeze-level advancement, contract-catalog/shared-kernel/index.json\") and contracts_produced (\"at Draft only\") record the materialization increment and are kept as written; RFC-2026-031 §4.1 (1) and §4.5 (approved 2026-10-09) place this Draft → Candidate increment in this package, the owner of the three directories. NOT DONE HERE: RFC-2026-010's status line, which still reads \"CTR-SEC-001 awaits A1; CTR-AUD-001, CTR-OBS-001 and CTR-USG-001 await A6\". RFC-2026-010 is WP-0A-CON-008's file, and editing an RFC would make this PR a governance PR beyond the Owner's press direction for Draft → Candidate PRs (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-prep-and-candidate-press.md; RFC-2026-025 §5 item 6). The update, with A1's §7 (e) and A6's §7 wording, is owed to a WP-0A-CON-008 records step. This increment owes its own C0, A1, Q0 and R0 round (A1 K5); status stays in_review."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H (contracts). No role has run on this increment: C0, A1, Q0 and R0 are owed at this PR's final head (A1 K5), and the package stays in_review. Presser basis: the Owner's answer `ให้ A0 กดทั้งสองแบบ (Recommended)` (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-prep-and-candidate-press.md), which names the Draft→Candidate PRs of SEC/AUD/OBS/NTF/USG, given before this PR existed; A0 may press only when the four roles pass on the final head with no security finding of any grade open, CI is green on that exact head containing current main, and the Owner's disposition naming each contract (evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-candidate-sec-aud-obs-usg.md) is on the branch. Open for the roles: the ratchets-bite.test.mjs reversal repointed from CTR-SEC-001 to CTR-NTF-001 is not named in A1 K1 or A6 §8 (evidence/WP-0A-CON-004/author-candidate-increment-2026-10-09.md §2). Not done here: RFC-2026-010's status line, owed to a WP-0A-CON-008 records step (open_blockers[23])."
+    "Full path, tier H. Role verdicts at 6a2abec7, carried with -x: c0-review-2026-10-09-pr233.md, a1-review-2026-10-09-pr233.md (K1–K5 met), q0-review-2026-10-09-pr233.md (740/740 on the branch name), r0-review-2026-10-09-pr233.md, a6-check-2026-10-09-pr233.md (A6's Candidate signature holds); each role's verdict and carry clause are in its own file. Presser: A0 (/claude/a0_atlas) presses this Draft→Candidate PR on the Owner's 2026-10-09 answer `ให้ A0 กดทั้งสองแบบ (Recommended)` (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-prep-and-candidate-press.md), which names Draft→Candidate PRs of SEC/AUD/OBS/NTF/USG; the Owner approved SEC, AUD and OBS by name (evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-candidate-sec-aud-obs-usg.md). Owed after merge: RFC-2026-010 status line (a WP-0A-CON-008 governance step), the R0 §9 records, CON-001's amendment acknowledgement by /root/r0_steward. Conditions: bootstrap green on this exact head containing main, a true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "WP-0A-CON-004 Candidate increment of 2026-10-09 (SEC, AUD, OBS Draft → Candidate at 15e2dd30): revert through a reviewed revert PR that sets the three manifests' \"status\" and their index.json entries back to Draft, restores the catalog-registry.test.mjs pins, the census 9/5 and Draft count 5, the ratchets-bite reversal on CTR-SEC-001, and the regenerated integrity digests; a revert needs the Owner's word, because his disposition approved the move. The signatures, the disposition and the appended open_blockers stay as evidence. No schema, fixture, persisted data or provider state is involved.",
   "recommended_next_work_packages": [
