@@ -4,31 +4,16 @@
   "work_package_id": "WP-0A-CON-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "ecc6911bb4add0f26f17164c65271aaee3b7bbbd",
-  "head_revision_or_patch_checksum": "8a425e41525ccb35c3060566cd98c69f01ca68ae",
+  "base_revision": "9d0751ece9ba71c6bb7812f55dd04ab3c4b96c4b",
+  "head_revision_or_patch_checksum": "dce274791612dd9fcc98382421e4abd5872bca1c",
   "task_ids": [
     "WP-0A-CON-006",
     "NTF-step2a-SC2-and-A5-benchmark-2026-10-10"
   ],
   "files_added": [
-    "evidence/WP-0A-CON-006/a1-review-2026-10-10-ntf2a.md",
-    "evidence/WP-0A-CON-006/a5-benchmark-answer-2026-10-10.md",
-    "evidence/WP-0A-CON-006/author-ntf-step2-2026-10-10.md",
-    "evidence/WP-0A-CON-006/c0-review-2026-10-10-ntf2a.md",
-    "evidence/WP-0A-CON-006/q0-a5-benchmark-2026-10-10.md",
-    "evidence/WP-0A-CON-006/q0-a5-benchmark-key-2026-10-10.md",
-    "evidence/WP-0A-CON-006/q0-a5-benchmark-tasks-2026-10-10.md",
-    "evidence/WP-0A-CON-006/q0-review-2026-10-10-ntf2a.md",
-    "evidence/WP-0A-CON-006/r0-review-2026-10-10-ntf2a.md"
+    "evidence/WP-0A-CON-006/a5-ntf-assessment-2026-10-10.md"
   ],
-  "files_modified": [
-    ".agents/capability-profiles/cc-a5-loom.json",
-    "contract-catalog/shared-kernel/ctr-ntf-001/manifest.json",
-    "handoffs/WP-0A-CON-006-author-handoff.json",
-    "test-kits/contracts/catalog-registry.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "work-packages/WP-0A-CON-006.json"
-  ],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -108,7 +93,7 @@
   ],
   "security_privacy_cost_impact": "SC-2 narrows nothing and widens nothing on the wire: it states, for consumers and for A5, whose permission the deep link checks and when, which closes the ambiguity A1 graded Medium (A1-S2) once A1 confirms it. The benchmark grants no authority: the run still signs only after this branch is on main, only for CTR-NTF-001, and its file is cited only after Q0 re-reads it against C-T3. One synthetic phone-shaped number is redacted from the transcription so no PII-shaped string enters the tree. No credential, customer data or provider call.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "Contract-catalog changes are additive, in caveat text only: the CTR-NTF-001 manifest's untestable_by_schema gains item (4) (SC-2). No schema, fixture, requiredness, enum, version or freeze-level change, so nothing a consumer builds against moves; no other contract changes.",
+  "compatibility_impact": "Interim: the cited range changes no contract-catalog file; the final handoff, refreshed last and alone, states the impact of the branch.",
   "known_limitations": [
     "SC-2 is not yet confirmed by A1 as met; A5 may still correct the wording as owner.",
     "The benchmark key sat in A0's scratch area; the hash shows it did not change, and the transcript search shows no tool call read it, but neither proves no other access (Q0 §4).",
