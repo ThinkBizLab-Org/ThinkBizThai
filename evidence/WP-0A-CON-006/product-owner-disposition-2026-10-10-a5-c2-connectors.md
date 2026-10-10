@@ -34,11 +34,34 @@ posture every profile states, are not A0's to choose.
 - Vercel still read `connected` at 11:07Z, and the switch answered "already disabled". A0 reports this to the Owner
   rather than working around it. C-2 is not closed while any of the five reads `connected`.
 
-## What this settles, and what it does not
+## Second answer, for Vercel only (2026-10-10, 12:03:15Z)
 
-- `cc-a5-loom.json` keeps `can_access_external_secrets: false` and is not amended for C-2. The value is made true of the
-  session, not rewritten.
-- C-2 closes when `/claude/a5_loom` re-measures the session's connectors and records that none able to read external
-  secrets, run SQL or send mail is connected. That record is the A5's own words, carried on the A5-assessment PR.
+Vercel stayed `connected` after the first answer, and the app's switch reported it already disabled. The Owner asked
+first what A0 needed (12:00:08Z) and then why Vercel had to be cut (12:00:58Z). A0 answered at 12:01:14Z with the
+reasons (the profile's `false` and validator exit 67; the Vercel tools that read environment variables; the profile
+as the fact an A5 signature rests on, RFC-2026-013) and, for the case the Owner did not want Vercel off, two
+alternatives, shown verbatim:
+
+- **(ก)** คง `false` ไว้ แล้วเปิดเผยใน profile ว่ามี Vercel อยู่ใน harness แต่ห้ามใช้และไม่ได้ใช้ ข้อเสียคือ `false` จะกลายเป็นข้อห้ามเชิงนโยบาย ไม่ใช่ข้อเท็จจริงของเครื่องมือ และ A1 กับ A5 ต้องยอมรับการตีความนี้
+- **(ข)** เปิด RFC แก้ validator ทำได้ แต่ NTF ต้องรอจน RFC ผ่าน
+
+The Owner answered at 12:03:15Z, verbatim: "ก"
+
+What this settles:
+
+- For **Vercel only**, `cc-a5-loom.json` keeps `can_access_external_secrets: false` and gains a disclosure that the
+  Vercel connector is present in the harness, is forbidden to this run, and was not used. That `false` is, for
+  Vercel, a policy prohibition, not a fact of the tools. A1 and A5 must accept that reading before the A5 signature is
+  cited (the condition the Owner was shown).
+- Supabase, Microsoft 365, Gmail and Cloudflare stay off under the first answer; the first answer is not withdrawn.
+- The validator and the capability schema are not changed (alternative (ข) was not chosen). The same reading for the
+  other Claude profiles of this session is not decided here.
+
+## What the first answer settled, read with the second
+
+- Under the first answer alone, `cc-a5-loom.json` kept `can_access_external_secrets: false` unamended, made true of the
+  session by turning the connectors off. The second answer amends that for Vercel (above).
+- C-2 closes when `/claude/a5_loom` re-measures the session's connectors and records that none of Supabase, Microsoft
+  365, Gmail and Cloudflare is connected, and accepts the Vercel disclosure (second answer); A1 accepts it too. That record is the A5's own words, carried on the A5-assessment PR.
 - The Owner's answer covers this session. It does not amend the capability schema, the validator or any other profile,
   and it says nothing about sessions in which the connectors are turned back on.
