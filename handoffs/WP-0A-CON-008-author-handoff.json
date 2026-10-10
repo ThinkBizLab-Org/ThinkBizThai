@@ -5,12 +5,17 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "89b2167d9a8f62e91da666fd3e05105b3a431e1e",
-  "head_revision_or_patch_checksum": "b8fa38782e1fb97b816cd2d73b2ec7189a7182a3",
+  "head_revision_or_patch_checksum": "55dedaeaedb3511bcf169b34b07be888fdd86e68",
   "task_ids": [
     "WP-0A-CON-008",
     "NTF-step4-RFC-010-status-line-2026-10-11"
   ],
   "files_added": [
+    "evidence/WP-0A-CON-008/a1-review-2026-10-11-ntf4.md",
+    "evidence/WP-0A-CON-008/a5-reading-2026-10-11-ntf4.md",
+    "evidence/WP-0A-CON-008/c0-review-2026-10-11-ntf4.md",
+    "evidence/WP-0A-CON-008/q0-review-2026-10-11-ntf4.md",
+    "evidence/WP-0A-CON-008/r0-review-2026-10-11-ntf4.md",
     "evidence/WP-0A-CON-008/rfc-010-status-line-2026-10-11.md"
   ],
   "files_modified": [
@@ -86,7 +91,7 @@
     "R0's #244 post-merge words go on WP-0A-CON-006's next PR."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H, GOVERNANCE. Owed on the final head: C0, A1, Q0, R0, and A5 (the words are A5's). A0 presses only under R0's ntf3 §4.1 ruling (Q3 names the RFC-2026-010 status line), once all pass, no security finding is open and bootstrap is green on that exact head."
+    "Full path, tier H, GOVERNANCE (RFC-2026-010 line 3). Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-CON-008/ at c62954ac: c0-review-2026-10-11-ntf4.md (review_approved; advisories C0-245-1..3), a1-review-2026-10-11-ntf4.md (security_approved, no finding of any grade; R0's §4.1 exception bounded to this PR), q0-review-2026-10-11-ntf4.md (test_verified 740/740 on the branch name; the RFC digest pin bites), r0-review-2026-10-11-ntf4.md (integration_verified; §4.1 conditions met; post-merge words §7), a5-reading-2026-10-11-ntf4.md (A5 confirms the words are its own, byte for byte). Connector listing re-read before the press: every connector able to read secrets, run SQL or send mail disabled (Neon had reconnected and was turned off again first). Presser: A0 (/claude/a0_atlas), under R0's ruling (evidence/WP-0A-CON-006/r0-review-2026-10-10-ntf3.md §4.1) that the Owner's Q3 of 2026-10-09 names the RFC-2026-010 status line, an exception to RFC-2026-025 §5 item 6 for this PR only, once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores the clause \"CTR-NTF-001 is A5's and remains unassessed.\" — which would then be false, so a correction PR rather than a bare revert.",
   "recommended_next_work_packages": [
