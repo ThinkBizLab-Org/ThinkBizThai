@@ -4,27 +4,14 @@
   "work_package_id": "WP-0A-A0-002",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "1940d7beb1039fa02252bbb5233b7ee539565f2b",
-  "head_revision_or_patch_checksum": "671256a65a51a0007ff285c905c48b355255e030",
+  "base_revision": "f0b948c78a02211805dcb22bf0922a26404a6b41",
+  "head_revision_or_patch_checksum": "f0b948c78a02211805dcb22bf0922a26404a6b41",
   "task_ids": [
     "WP-0A-A0-002",
     "G0-step-2"
   ],
-  "files_added": [
-    "evidence/WP-0A-A0-002/a1-recheck-2026-10-09.md",
-    "evidence/WP-0A-A0-002/a1-review-2026-10-09.md",
-    "evidence/WP-0A-A0-002/c0-recheck-2026-10-09.md",
-    "evidence/WP-0A-A0-002/c0-recheck-2026-10-09b.md",
-    "evidence/WP-0A-A0-002/light-path-reading-2026-10-09.md",
-    "evidence/WP-0A-A0-002/q0-test-2026-10-09.md",
-    "evidence/WP-0A-A0-002/q0-test-2026-10-09b.md",
-    "evidence/WP-0A-A0-002/r0-ruling-2026-10-09.md",
-    "evidence/WP-0A-A0-002/records-transcription-2026-10-09.md"
-  ],
-  "files_modified": [
-    "handoffs/WP-0A-A0-002-author-handoff.json",
-    "work-packages/WP-0A-A0-002.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
