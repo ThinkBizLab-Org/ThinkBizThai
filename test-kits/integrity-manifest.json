@@ -85,7 +85,7 @@
     "test-kits/ci-guard-behaviour.test.mjs": "20f731693f20a7eeb4f6ea2add033f68d03b799f86a00799caf03bf8fb56cbc3",
     "test-kits/contracts/catalog-groups.test.mjs": "98d740f69ffb890a6092a1453430f1e0bf83da56f967806a68e8e7569246b9c8",
     "test-kits/contracts/catalog-reference-integrity.test.mjs": "8c6a843db46f2435ae1c87cd87de0a5e2390319f6ca69ebfa6f7d6de4cd3de19",
-    "test-kits/contracts/catalog-registry.test.mjs": "8316b5e42430fe3eabc8ce837810de996eb9d99b07b962ea2d277f53011b0631",
+    "test-kits/contracts/catalog-registry.test.mjs": "fc079471f8ba8f39fd606a9e207eb1290c393d55e88f62aced081a73fe620116",
     "test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs": "cf9a5325c1c970e63a57bc1ae5c7c313fef2a6f49b0038698cbb3f0eda03b40b",
     "test-kits/contracts/ctr-job-001-reference-hardening.test.mjs": "66e9d40cb286cacfae3ab022f74aa6b0b4280cc6da073a78c9945e9b4eb689cb",
     "test-kits/contracts/json-schema-subset.mjs": "9037cc0a7ef19b0d230d4a56018a686c50456e24a05d4e665fbf0e04ebc75632",
