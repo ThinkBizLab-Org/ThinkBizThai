@@ -4,18 +4,22 @@
   "work_package_id": "WP-0A-CON-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "9296877418cd0939b07829c915717bf13d571d92",
-  "head_revision_or_patch_checksum": "56ff27a27058957cc21b3ec5c29d10c292067558",
+  "base_revision": "ecc6911bb4add0f26f17164c65271aaee3b7bbbd",
+  "head_revision_or_patch_checksum": "8a425e41525ccb35c3060566cd98c69f01ca68ae",
   "task_ids": [
     "WP-0A-CON-006",
     "NTF-step2a-SC2-and-A5-benchmark-2026-10-10"
   ],
   "files_added": [
+    "evidence/WP-0A-CON-006/a1-review-2026-10-10-ntf2a.md",
     "evidence/WP-0A-CON-006/a5-benchmark-answer-2026-10-10.md",
     "evidence/WP-0A-CON-006/author-ntf-step2-2026-10-10.md",
+    "evidence/WP-0A-CON-006/c0-review-2026-10-10-ntf2a.md",
     "evidence/WP-0A-CON-006/q0-a5-benchmark-2026-10-10.md",
     "evidence/WP-0A-CON-006/q0-a5-benchmark-key-2026-10-10.md",
-    "evidence/WP-0A-CON-006/q0-a5-benchmark-tasks-2026-10-10.md"
+    "evidence/WP-0A-CON-006/q0-a5-benchmark-tasks-2026-10-10.md",
+    "evidence/WP-0A-CON-006/q0-review-2026-10-10-ntf2a.md",
+    "evidence/WP-0A-CON-006/r0-review-2026-10-10-ntf2a.md"
   ],
   "files_modified": [
     ".agents/capability-profiles/cc-a5-loom.json",
@@ -111,7 +115,7 @@
     "The run's capability values in cc-a5-loom.json are still A0's declaration until its first A5 file confirms or corrects them."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H (a contract manifest, a capability profile, a test pin). Owed on the final head: C0, A1, Q0 and R0, each with its carry clause; A1 also confirms or not whether SC-2 as stated is met (disposition Q3). A0 presses only after all four pass and bootstrap is green on that exact head, under the Owner's 2026-10-09 Q3 `ให้ A0 กดทั้งชุด (Recommended)` (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md, sequence item 2). CTR-NTF-001 stays Draft; /claude/a5_loom signs nothing until this branch is on main."
+    "Full path, tier H (a contract manifest, a capability profile, a test pin). Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-CON-006/ at d361f68b: c0-review-2026-10-10-ntf2a.md (review_approved; advisories C0-1..C0-6), a1-review-2026-10-10-ntf2a.md (security_approved; SC-2 as stated in the manifest meets open_blockers[19], and counts toward the Candidate move while item (4) keeps its meaning; advisories A1-NTF2A-1..7 for A5), q0-review-2026-10-10-ntf2a.md (test_verified, 740/740 on the branch name, mutation of the pin bites), r0-review-2026-10-10-ntf2a.md (integration_verified; press conditions §4, post-merge words §5, requirements on the A5-assessment PR §5a). Main is merged in under carry clause (b) (#240, #241; mechanical, as R0 and Q0 measured). Presser: A0 (/claude/a0_atlas) on the Owner's 2026-10-09 Q3 `ให้ A0 กดทั้งชุด (Recommended)` (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md, sequence item 2), once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit. CTR-NTF-001 stays Draft; /claude/a5_loom signs only after this is on main, within C-T3."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes untestable_by_schema (4), restores the caveat pin and the integrity digest, and returns benchmark_outcome to \"None yet\"; /claude/a5_loom then cannot sign. The evidence files stay as history.",
   "recommended_next_work_packages": [
