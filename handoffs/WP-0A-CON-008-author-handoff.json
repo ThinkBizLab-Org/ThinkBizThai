@@ -4,22 +4,20 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "89b2167d9a8f62e91da666fd3e05105b3a431e1e",
-  "head_revision_or_patch_checksum": "55dedaeaedb3511bcf169b34b07be888fdd86e68",
+  "base_revision": "f0b948c78a02211805dcb22bf0922a26404a6b41",
+  "head_revision_or_patch_checksum": "7c1c04e6dc2ec9496066644f39ceadc14b61652b",
   "task_ids": [
     "WP-0A-CON-008",
-    "NTF-step4-RFC-010-status-line-2026-10-11"
+    "PR245-records-2026-10-11"
   ],
   "files_added": [
-    "evidence/WP-0A-CON-008/a1-review-2026-10-11-ntf4.md",
-    "evidence/WP-0A-CON-008/a5-reading-2026-10-11-ntf4.md",
-    "evidence/WP-0A-CON-008/c0-review-2026-10-11-ntf4.md",
-    "evidence/WP-0A-CON-008/q0-review-2026-10-11-ntf4.md",
-    "evidence/WP-0A-CON-008/r0-review-2026-10-11-ntf4.md",
-    "evidence/WP-0A-CON-008/rfc-010-status-line-2026-10-11.md"
+    "evidence/WP-0A-CON-008/a1-review-2026-10-11-pr249.md",
+    "evidence/WP-0A-CON-008/c0-review-2026-10-11-pr249.md",
+    "evidence/WP-0A-CON-008/q0-review-2026-10-11-pr249.md",
+    "evidence/WP-0A-CON-008/r0-review-2026-10-11-pr249.md",
+    "evidence/WP-0A-CON-008/records-transcription-2026-10-11.md"
   ],
   "files_modified": [
-    "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
     "handoffs/WP-0A-CON-008-author-handoff.json",
     "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-CON-008.json"
@@ -27,32 +25,20 @@
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
-    "DEC-023",
-    "DEC-025",
     "RFC-2026-010",
-    "RFC-2026-025",
-    "RFC-2026-031"
+    "RFC-2026-025"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT is NTF sequence item 4 of the Product Owner's NTF/A5 disposition of 2026-10-09: in RFC-2026-010 line 3 only \"CTR-NTF-001 is A5's and remains unassessed.\" is replaced, by A5's words verbatim (evidence/WP-0A-CON-006/a5-ntf-candidate-reading-2026-10-10.md §6) and then A0's words marked as A0's (the Owner's Q3, Candidate by PR #244 merge 89b2167d, not toward Frozen). Facts and sources: evidence/WP-0A-CON-008/rfc-010-status-line-2026-10-11.md.",
-    "A governance increment: A0 presses it only under R0's ruling that Q3 names the RFC-2026-010 status line, as an exception to RFC-2026-025 §5 item 6 for this PR only (evidence/WP-0A-CON-006/r0-review-2026-10-10-ntf3.md §4.1), on its conditions.",
-    "The same branch records R0's #237 words in open_blockers[10], the two status records in [12] (net status stays in_review), and the amendment records owed for #242, #243 and #244 in [13].",
-    "The branch is cut at PR #244's merge; refresh:handoff recomputed the range from the branch point without a hand-set citation."
+    "THIS INCREMENT records R0's post-merge words for PR #245 (r0-review-2026-10-11-ntf4.md §7), appended to open_blockers[12] with the old text whole, and the status record in_review -> integration_verified on R0's behalf as open_blockers[14]. test-kits/integrity-manifest.json is regenerated because this manifest is digested there. The branch was cut at #245's merge, so the handoff range was set to the branch point by hand and then regenerated.",
+    "Records only: every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-CON-008/records-transcription-2026-10-11.md.",
+    "Path: the full path (C0, A1, Q0, R0 on the final head, CI green), as the Owner directed for this session."
   ],
   "acceptance_results": [
     {
-      "criterion": "Only the CTR-NTF-001 clause of RFC-2026-010 line 3 changes",
-      "result": "pass for author self-check: git diff origin/main -- architecture/ shows one line, one clause replaced"
-    },
-    {
-      "criterion": "A5's words verbatim, A0's words marked as A0's",
-      "result": "pass for author self-check: extracted by script from A5's §6 blockquote"
-    },
-    {
-      "criterion": "R0's #237 words with only the named placeholders filled",
-      "result": "pass for author self-check: extracted by script from r0-recheck-2026-10-09-pr237.md §6"
+      "criterion": "Recorded words match their sources; old entries byte-equal; no status, contract, test or script change beyond what is stated",
+      "result": "pass for author self-check: extracted by script from the cited role files"
     }
   ],
   "tests": [
@@ -62,12 +48,7 @@
       "result": "valid"
     },
     {
-      "command": "npm run regenerate:manifest",
-      "exit_code": 0,
-      "result": "the RFC-2026-010 and WP-0A-CON-008 digests move"
-    },
-    {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (on branch agent/claude/WP-0A-CON-008-merge-parent-order, commit b8fa3878)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 9d1062f8)",
       "exit_code": 0,
       "result": "clean: exit 0 — tests 740, pass 740, fail 0"
     },
@@ -82,26 +63,22 @@
       "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Record text only: the RFC line now states CTR-NTF-001's Candidate status in its owner's words. No contract, permission, credential or customer data changes.",
+  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, customer data or provider call.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes: RFC-2026-010 line 3 changes one clause, and WP-0A-CON-008 records; no contract-catalog file.",
+  "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
   "known_limitations": [
-    "\"Partially approved\" stays: the RFC was approved in parts, and no role or Owner asked to reword its status.",
-    "CTR-NTF-001 is Candidate, not Frozen; A5's F-1 to F-5 and the Frozen-stage signature stay owed (WP-0A-CON-006 open_blockers[31]).",
-    "R0's #244 post-merge words go on WP-0A-CON-006's next PR."
+    "Status integration_verified is R0's, recorded by A0; WP-0A-A0-002's record of this regeneration is owed by its next PR."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H, GOVERNANCE (RFC-2026-010 line 3). Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-CON-008/ at c62954ac: c0-review-2026-10-11-ntf4.md (review_approved; advisories C0-245-1..3), a1-review-2026-10-11-ntf4.md (security_approved, no finding of any grade; R0's §4.1 exception bounded to this PR), q0-review-2026-10-11-ntf4.md (test_verified 740/740 on the branch name; the RFC digest pin bites), r0-review-2026-10-11-ntf4.md (integration_verified; §4.1 conditions met; post-merge words §7), a5-reading-2026-10-11-ntf4.md (A5 confirms the words are its own, byte for byte). Connector listing re-read before the press: every connector able to read secrets, run SQL or send mail disabled (Neon had reconnected and was turned off again first). Presser: A0 (/claude/a0_atlas), under R0's ruling (evidence/WP-0A-CON-006/r0-review-2026-10-10-ntf3.md §4.1) that the Owner's Q3 of 2026-10-09 names the RFC-2026-010 status line, an exception to RFC-2026-025 §5 item 6 for this PR only, once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
+    "Full path, as the Owner directed for this session. Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-CON-008/ at the head they read: c0-review-2026-10-11-pr249.md (review_approved), a1-review-2026-10-11-pr249.md (security_approved, no finding), q0-review-2026-10-11-pr249.md (test_verified 740/740 on the branch name), r0-review-2026-10-11-pr249.md (integration_verified; merge first, it alone touches the integrity manifest). Presser: A0 (/claude/a0_atlas) under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6); not a governance PR. Pressed once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores the clause \"CTR-NTF-001 is A5's and remains unassessed.\" — which would then be false, so a correction PR rather than a bare revert.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the appended records; nothing depends on them.",
   "recommended_next_work_packages": [
-    "WP-0A-CON-006: records PR for #244 (R0 r0-review-2026-10-10-ntf3.md §7) and any further CTR-NTF-001 work before Frozen (F-1 to F-5).",
-    "WP-0A-A0-001, WP-0A-A0-002, WP-0A-CON-001, WP-0A-CON-002: amendment records owed from #242-#244."
+    "WP-0A-A0-002: record the digest move of this records PR."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-CON-008/rfc-010-status-line-2026-10-11.md, then git diff origin/main.",
-    "Compare the new clause with evidence/WP-0A-CON-006/a5-ntf-candidate-reading-2026-10-10.md §6 and the A0 sentence with the disposition and gh pr view 244.",
-    "open_blockers[10] tail against r0-recheck-2026-10-09-pr237.md §6; [12], [13]."
+    "Read evidence/WP-0A-CON-008/records-transcription-2026-10-11.md, then git diff origin/main.",
+    "open_blockers[12] tail against r0-review-2026-10-11-ntf4.md §7; [14]; status."
   ],
   "superseded_by": null
 }
