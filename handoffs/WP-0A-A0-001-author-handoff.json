@@ -4,13 +4,17 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "f0b948c78a02211805dcb22bf0922a26404a6b41",
-  "head_revision_or_patch_checksum": "11c25d793e91c061cda77fce20ddc9e4714cf18d",
+  "base_revision": "47f178e1fe4de331461727a4ec83b0e3a33a8385",
+  "head_revision_or_patch_checksum": "a3916c8c2a8b98a0ad312f38d521e1c33ae78a47",
   "task_ids": [
     "WP-0A-A0-001",
     "amended-by-records-2026-10-11"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-001/a1-review-2026-10-11-pr250.md",
+    "evidence/WP-0A-A0-001/c0-review-2026-10-11-pr250.md",
+    "evidence/WP-0A-A0-001/q0-review-2026-10-11-pr250.md",
+    "evidence/WP-0A-A0-001/r0-review-2026-10-11-pr250.md",
     "evidence/WP-0A-A0-001/records-transcription-2026-10-11.md"
   ],
   "files_modified": [
@@ -65,9 +69,9 @@
     "WP-0A-A0-001 has a further increment queued after this one: the RFC-2026-034 fast-lane draft the Product Owner directed at 19:03:54Z (CONTRIBUTING_AGENTS.md is this package's file)."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H (ownership.amended_by). Owed on the final head: C0, A1, Q0 and R0. A0 presses under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), not a governance PR, once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
+    "Full path, as the Owner directed for this session. Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-A0-001/ at the head they read: c0-review-2026-10-11-pr250.md (review_approved), a1-review-2026-10-11-pr250.md (security_approved, no finding), q0-review-2026-10-11-pr250.md (test_verified 740/740 on the branch name), r0-review-2026-10-11-pr250.md (integration_verified; acknowledges amended_by[6], [7] and others in §6, to be recorded by this package's next PR). Presser: A0 (/claude/a0_atlas) under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6); not a governance PR. Pressed once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the appended records; nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the records this WP-0A-A0-001 branch appended (amended-by-records-2026-10-11: the acknowledgement keys of amended_by[4], [5] and entries [6], [7]); nothing depends on them.",
   "recommended_next_work_packages": [
     "WP-0A-A0-001: RFC-2026-034 (fast lane) and the CONTRIBUTING_AGENTS.md gate text, a governance PR the Product Owner merges personally."
   ],
