@@ -57,6 +57,26 @@ What this settles:
 - The validator and the capability schema are not changed (alternative (ข) was not chosen). The same reading for the
   other Claude profiles of this session is not decided here.
 
+## Third answer, after a machine restart (2026-10-10, 16:24:43Z)
+
+After the machine restarted, two connectors that had not been present when A5 and A1 measured were connected in the
+session: Neon and Sentry. Vercel then read `disabled`. A0 asked at 16:24:02Z and the Product Owner answered at
+16:24:43Z (tool call and tool result stamps in the session transcript).
+
+**Q:** "หลังเครื่อง restart มี connector ใหม่เปิดอยู่ใน session นี้ 2 ตัวที่ตอน A5/A1 วัดไม่มี: Neon (114 tools — รัน SQL, ดึง connection string, สร้าง/หมุน credential ได้) และ Sentry (15 tools — อ่าน error/log ซึ่งอาจมี PII, แก้ issue ได้) · Neon อยู่ในกลุ่มเดียวกับ Supabase ที่คุณสั่งปิดไปแล้ว ถ้าปล่อยไว้ เงื่อนไข C-2 ที่ A5 และ A1 เพิ่งยอมรับจะไม่จริงอีก (ต้องให้ทั้งสองอ่านซ้ำ) จะให้ทำอย่างไร?"
+
+- **Options shown:**
+  - "ปิดทั้ง Neon และ Sentry (Recommended)" — "ผมปิดทั้งสองใน session นี้ (และเป็นค่าเริ่มต้นของ session ใหม่) สภาพกลับไปตรงกับที่ A5 และ A1 ยอมรับไว้ ไม่ต้องอ่านซ้ำ"
+  - "ปิดเฉพาะ Neon" — "Sentry คงไว้ ต้องให้ A5 และ A1 อ่านซ้ำว่า Sentry อยู่นอกขอบเขต C-2 หรือต้องเปิดเผยเพิ่ม"
+  - "คงไว้ทั้งคู่ + เปิดเผย" — "เพิ่ม Neon และ Sentry ลงในข้อความเปิดเผยแบบเดียวกับ Vercel (ห้ามใช้/ไม่ได้ใช้) แล้วให้ A5 และ A1 อ่านซ้ำก่อนขั้นที่ 3"
+- **A:** "ปิดทั้ง Neon และ Sentry (Recommended)"
+
+A0 turned both off at 16:24:45Z. After the turn ended, the app's connector listing read `disabled` for Cloudflare,
+Gmail, Microsoft 365, Neon, Sentry, Supabase and Vercel; connected were Claude Docs, Notion, visualize, Figma and the
+local scheduled-tasks server. With Vercel now off as well, the session is stricter than the state A5
+(`a5-ntf-reread-2026-10-10.md` §3.2) and A1 (`a1-review-2026-10-10-ntf2b.md` §5) accepted: the Vercel disclosure in
+`cc-a5-loom.json` stays true (the connector is forbidden and was not used) and no longer describes a connected tool.
+
 ## What the first answer settled, read with the second
 
 - Under the first answer alone, `cc-a5-loom.json` kept `can_access_external_secrets: false` unamended, made true of the

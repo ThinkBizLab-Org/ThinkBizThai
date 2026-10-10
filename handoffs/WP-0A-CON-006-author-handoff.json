@@ -4,28 +4,29 @@
   "work_package_id": "WP-0A-CON-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "9d0751ece9ba71c6bb7812f55dd04ab3c4b96c4b",
-  "head_revision_or_patch_checksum": "a642d1ef75d8ecad880e23b3b049d0078be42d0a",
+  "base_revision": "50d9dd8a8943bb958698cd153bddd47e6964214f",
+  "head_revision_or_patch_checksum": "58fec78a03b2389d41c816996173687e81eabeb9",
   "task_ids": [
     "WP-0A-CON-006",
-    "NTF-step2b-A5-assessment-2026-10-10"
+    "NTF-step3-candidate-2026-10-10"
   ],
   "files_added": [
-    "evidence/WP-0A-CON-006/a1-review-2026-10-10-ntf2b.md",
-    "evidence/WP-0A-CON-006/a5-ntf-assessment-2026-10-10.md",
-    "evidence/WP-0A-CON-006/a5-ntf-reread-2026-10-10.md",
-    "evidence/WP-0A-CON-006/c0-review-2026-10-10-ntf2b.md",
-    "evidence/WP-0A-CON-006/product-owner-disposition-2026-10-10-a5-c2-connectors.md",
-    "evidence/WP-0A-CON-006/q0-review-2026-10-10-ntf2b.md",
-    "evidence/WP-0A-CON-006/r0-review-2026-10-10-ntf2b.md"
+    "evidence/WP-0A-CON-006/a1-review-2026-10-10-ntf3.md",
+    "evidence/WP-0A-CON-006/a5-ntf-candidate-reading-2026-10-10.md",
+    "evidence/WP-0A-CON-006/c0-review-2026-10-10-ntf3.md",
+    "evidence/WP-0A-CON-006/q0-review-2026-10-10-ntf3.md",
+    "evidence/WP-0A-CON-006/r0-review-2026-10-10-ntf3.md"
   ],
   "files_modified": [
-    ".agents/capability-profiles/cc-a5-loom.json",
     "contract-catalog/shared-kernel/ctr-ntf-001/manifest.json",
-    "contract-catalog/shared-kernel/ctr-ntf-001/schema.json",
+    "contract-catalog/shared-kernel/index.json",
+    "evidence/WP-0A-CON-006/product-owner-disposition-2026-10-10-a5-c2-connectors.md",
     "handoffs/WP-0A-CON-006-author-handoff.json",
     "test-kits/contracts/catalog-registry.test.mjs",
+    "test-kits/contracts/shared-kernel-contract-catalog.test.mjs",
+    "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs",
     "test-kits/integrity-manifest.json",
+    "test-kits/ratchets-bite.test.mjs",
     "work-packages/WP-0A-CON-006.json"
   ],
   "files_deleted": [],
@@ -38,46 +39,44 @@
     "RFC-2026-031"
   ],
   "contracts_consumed": [
-    "CTR-TEN-001",
-    "CTR-EVT-001"
+    "CTR-TEN-001"
   ],
   "contracts_produced_or_changed": [
-    "NTF A5 OWNER-DECISION INCREMENT 2026-10-10 (open_blockers[29]): CTR-NTF-001 stays Draft 1.0.0. manifest.json untestable_by_schema: items (2) and (3) reworded and items (5) (the open-time check) and (6) (the dedupe_key composition ntf:v1:<sha256 of four netstrings>) appended, each in A5's exact words (a5-ntf-assessment-2026-10-10.md OD-2, OD-4). schema.json: dedupe_key x-pii-shape and x-bound-note and notification_id x-bound-note reworded in A5's words; annotations only. No constraint, fixture, requiredness, enum, version or freeze level moves."
+    "NTF CANDIDATE INCREMENT 2026-10-10 (open_blockers[32]): CTR-NTF-001 Draft → Candidate, version 1.0.0 unchanged, on A5's owner ratification for Candidate (conditions met on PR #243), A1's SC-2 confirmation and the Product Owner's Q3 of 2026-10-09. In ctr-ntf-001/ only manifest.json \"status\" changes; schema.json and examples/ unchanged. Outside it, the CTR-NTF-001 index entry's status. No other contract changes."
   ],
   "assumptions": [
-    "THIS INCREMENT is NTF sequence item 2, second part (Owner disposition 2026-10-09). /claude/a5_loom wrote its owner assessment and its re-read on its own branches, each carried with -x; A0 did not edit the run's words. The briefs A0 gave the run are reproduced verbatim in its files (A1 R-1).",
-    "A5's disposition is RATIFY WITH CONDITIONS, for the Candidate move only. C-1 (A0 applies OD-2 and OD-4 exactly) is done in aab9a165; C-2 (connectors) is resolved by the Product Owner's two answers of 2026-10-10 (four connectors off for the session; Vercel disclosed in cc-a5-loom.json, option (ก)); C-3 is Q0's re-read against C-T3 on this PR.",
-    "open_blockers[1], [2], [19], [22] are not closed here: they close at the step-3 Candidate move, on A5's signature with its conditions met and A1's SC-2 confirmation.",
-    "cc-a5-loom.json is WP-0A-A0-001's file; its new limitations.external_connectors_disclosure is a declared amendment on this package. catalog-registry.test.mjs (WP-0A-CON-008) and integrity-manifest.json (WP-0A-A0-002) move only by the two pins and the digest.",
-    "A5 re-read (a5-ntf-reread-2026-10-10.md, 94328f1c, carried): signature stands on 936812a3; C-1 met; C-2 met on A5's side for session c2816eec (four connectors disabled, Vercel disclosure accepted), A1's acceptance owed; C-3 is Q0's."
+    "THIS INCREMENT is NTF sequence item 3 (Owner disposition 2026-10-09, Q3: \"รวมการอนุมัติ CTR-NTF-001 เป็น Candidate ตาม RFC-031 §4.1(1) เมื่อ A5 ลงนามแล้ว\", read with the question's condition that A1 confirm SC-2). It follows R0's step-3 requirements, evidence/WP-0A-CON-006/r0-review-2026-10-10-ntf2b.md §6.",
+    "open_blockers[1], [2], [19], [22] are closed in place on R0's §6 words with only the named placeholders filled; each keeps its old text whole after the closure. [13] is not closed. [30] records R0's #243 words; [31] records A5's F-1 to F-5 verbatim as owed before Frozen (F-1 naming WP-0A-DB-00); [32] records the Candidate move.",
+    "The branch is cut at #243's merge commit, so the handoff range was set by hand to the branch point 50d9dd8a and then regenerated by refresh:handoff (as on PR #241).",
+    "C-2: after a machine restart, Neon and Sentry were connected; the Product Owner chose to turn both off (third answer, 16:24:43Z, recorded in product-owner-disposition-2026-10-10-a5-c2-connectors.md). Every connector able to read secrets, run SQL or send mail is disabled in the session, Vercel included."
   ],
   "acceptance_results": [
     {
-      "criterion": "A5's owner assessment on the branch, with §0, C-T3 probes and the brief verbatim",
-      "result": "pass for author self-check: a5-ntf-assessment-2026-10-10.md, carried"
+      "criterion": "Status only: manifest status, index entry and the status pins; no caveat, annotation, constraint, fixture or version text changes",
+      "result": "pass for author self-check: git diff origin/main -- contract-catalog/ shows two \"status\" values"
     },
     {
-      "criterion": "C-1 applied in A5's exact words, nothing else in the contract changed",
-      "result": "pass for author self-check: texts extracted from A5's file by script and applied; A5's re-read confirms or not"
+      "criterion": "Q3 quoted verbatim from the disposition file, not the English gloss",
+      "result": "pass for author self-check: open_blockers[32] and the commit message"
     },
     {
-      "criterion": "C-2 resolved on the Owner's own answers, recorded verbatim with transcript times",
-      "result": "pass for author self-check: product-owner-disposition-2026-10-10-a5-c2-connectors.md"
+      "criterion": "Closures on R0's §6 words, quotes checked against their source files",
+      "result": "pass for author self-check: each quoted sentence found verbatim in a5-ntf-assessment, a1-review ntf2a §3 and ntf2b §4"
     }
   ],
   "tests": [
     {
-      "command": "node --test test-kits/contracts/catalog-registry.test.mjs",
+      "command": "node --test test-kits/contracts/*.test.mjs",
       "exit_code": 0,
-      "result": "pass 19, fail 0 after the caveat pin (78c774ae -> dfe65f16) and the annotation pin (6676c9e5 -> d41ba1c0) moved"
+      "result": "pass 83, fail 0 after the pins moved (Draft 1 → 0; census 13/1 → 14/0; registry status pins)"
     },
     {
       "command": "npm run validate:protocol",
       "exit_code": 0,
-      "result": "work packages, capability profiles and ownership valid"
+      "result": "valid"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (on branch agent/claude/WP-0A-CON-006-stale-blockers, commits aab9a165 and 936812a3)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (on branch agent/claude/WP-0A-CON-006-stale-blockers, commits bc846f5e and e07863b5)",
       "exit_code": 0,
       "result": "clean: exit 0 — tests 740, pass 740, fail 0, each"
     },
@@ -97,27 +96,26 @@
       "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Item (5) states the open-time check A1 asked about (the opener's permission on the target, in the target's workspace, from the authenticated session; no credential or identity in a delivered link). Item (6) fixes a dedupe key that carries no recipient, contact detail or raw id (a SHA-256 digest). The C-2 resolution turns four connectors off for the session and discloses the fifth (Vercel) as forbidden and unused; no capability value changes. No credential, customer data or provider call.",
-  "migration_and_data_impact": "None in this increment. A5's F-1 records that 051's per-recipient uuid notification_id and the contract's opaque string must be reconciled before Frozen.",
-  "compatibility_impact": "Contract-catalog changes are additive, in caveat and annotation text only: CTR-NTF-001 untestable_by_schema items (2), (3) reworded and (5), (6) added; three schema x- annotations reworded. No schema constraint, fixture, requiredness, enum, version or freeze-level change, so nothing a consumer builds against moves; no other contract changes.",
+  "security_privacy_cost_impact": "Status only. Candidate lets consumers build fakes, fixtures and consumer tests against CTR-NTF-001; it freezes nothing and grants no runtime access. The deep-link obligations (items (4), (5)) and the dedupe composition (item (6)) are unchanged. No credential, customer data or provider call.",
+  "migration_and_data_impact": "None. A5's F-1 (notification_id vs batch 051) stays owed before Frozen, recorded for WP-0A-DB-00.",
+  "compatibility_impact": "Contract-catalog changes are additive, in permission only: a freeze-level promotion of CTR-NTF-001 from Draft to Candidate that adds what consumers may build (fakes, fixtures and consumer tests) and removes nothing. It is not breaking; no schema, fixture, requiredness, enum or version change, and no other contract changes.",
   "known_limitations": [
-    "A5's ratification is for Candidate only; the Frozen signature needs a new Product Owner disposition (F-4).",
-    "A5's F-1 to F-5 stay owed before Frozen (notification_id vs 051; fixture keys to OD-4; the dedupe window; the Frozen signature; keys for notifications without a CTR-EVT-001 event).",
-    "For Vercel, can_access_external_secrets: false is a policy prohibition, not a fact of the tools (the Owner's option (ก)); the other Claude profiles of the session are not addressed.",
-    "schema.json is rewritten by JSON.stringify, which writes six Thai characters in properties.delivery.x-source as UTF-8 where the file had \\\\uXXXX escapes (A5 re-read O-1): the parsed value is unchanged, A5 accepted it, and it is left as is rather than adding a commit after A5's re-read."
+    "Candidate, not Frozen: A5's F-1 to F-5 (open_blockers[31]) and the Frozen-stage owner signature with its own Product Owner disposition are owed.",
+    "The catalog ratchet reversal now names CTR-USG-001 set back to Draft; it would need another target if every Candidate moved to Frozen.",
+    "The other Claude profiles of this session carry no connector disclosure (A1-NTF2B-2); every such connector is disabled in this session."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H. Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-CON-006/ at 7ee39626: c0-review-2026-10-10-ntf2b.md (review_approved; C-1 texts are A5's byte for byte; advisories C0-243-1..5), a1-review-2026-10-10-ntf2b.md (security_approved; accepts the Vercel disclosure reading for session c2816eec, so C-2 is met as the Owner's second answer defines it with A5's acceptance in a5-ntf-reread §3.2; SC-2 item (4) byte-identical to what A1 confirmed on #242; advisories A1-NTF2B-1..6), q0-review-2026-10-10-ntf2b.md (test_verified 740/740 on the branch name; C-3: C-T3 (a)-(c) met, Q0's recommendation stands), r0-review-2026-10-10-ntf2b.md (integration_verified; press conditions §5, step-3 requirements §6, post-merge words §7). Presser: A0 (/claude/a0_atlas) on the Owner's 2026-10-09 Q3 `ให้ A0 กดทั้งชุด (Recommended)` (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md, sequence item 2), once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit. CTR-NTF-001 stays Draft until the step-3 PR. Owed: records of the cc-a5-loom.json amendments on WP-0A-A0-001, of the pin moves on WP-0A-CON-008 and of the digest moves on WP-0A-A0-002 (R0-243-3); F-1 to WP-0A-DB-00 (R0-243-4); the other Claude profiles' Vercel reading, an Owner question (A1-NTF2B-2, R0-243-2)."
+    "Full path, tier H. Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-CON-006/ at 00677af9: c0-review-2026-10-10-ntf3.md (review_approved; R0 §6 items 1-8 met; advisories C0-244-1, -2), a1-review-2026-10-10-ntf3.md (security_approved; item (4) byte-identical, SC-2 confirmation stands; C-2 state stricter than accepted; advisory A1-NTF3-1: A0 re-reads the connector listing immediately before the press), q0-review-2026-10-10-ntf3.md (test_verified 740/740 on the branch name; mutation and ratchet checks bite), r0-review-2026-10-10-ntf3.md (integration_verified; press conditions §5; post-merge words §7; item-4 ruling §4.1: A0 may press the RFC-2026-010 status-line PR under Q3, which the Owner named), a5-ntf-candidate-reading-2026-10-10.md (A5 confirms as owner; gives the RFC-2026-010 line for item 4). Connector listing re-read before the press: every connector able to read secrets, run SQL or send mail disabled. Presser: A0 (/claude/a0_atlas) on the Owner's 2026-10-09 Q3 `ให้ A0 กดทั้งชุด (Recommended)` (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md, sequence item 3, whose option text names CTR-NTF-001 for Candidate once A5 has signed), once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit. Freezes nothing."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores the manifest and schema text and the two pins and removes the profile disclosure; A5's files stay as history and its signature is then not cited.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed PR sets CTR-NTF-001 back to Draft with the pins, which the catalog ratchet then names; that needs a new Owner decision, since setting a Candidate back is itself a status move.",
   "recommended_next_work_packages": [
-    "WP-0A-CON-006: NTF sequence item 3 — CTR-NTF-001 Draft -> Candidate, quoting Q3's option description verbatim, closing open_blockers[1], [2], [19], [22] on R0's words.",
-    "WP-0A-CON-008: NTF sequence item 4 — the RFC-2026-010 status line in A5's words."
+    "WP-0A-CON-008: NTF sequence item 4 — the RFC-2026-010 status line for CTR-NTF-001 in A5's words (R0-238R-1: the A5 words come from what A5 signed in item 2).",
+    "WP-0A-DB-00: record A5's F-1 (notification_id vs batch 051) on its next PR."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-CON-006/a5-ntf-assessment-2026-10-10.md, then a5-ntf-reread-2026-10-10.md, then product-owner-disposition-2026-10-10-a5-c2-connectors.md.",
-    "git diff 9d0751ec HEAD -- contract-catalog/ against A5's OD-2 and OD-4 texts.",
-    "work-packages/WP-0A-CON-006.json open_blockers[28] (R0's #242 words) and [29]; ownership.amends_without_owning (three paths)."
+    "git diff origin/main -- contract-catalog/ test-kits/ : two status values, the pins, the ratchet reversal.",
+    "work-packages/WP-0A-CON-006.json: open_blockers[1], [2], [19], [22] against r0-review-2026-10-10-ntf2b.md §6; [30] against §7; [31] against a5-ntf-assessment §6; [32].",
+    "evidence/WP-0A-CON-006/product-owner-disposition-2026-10-10-a5-c2-connectors.md, third answer."
   ],
   "superseded_by": null
 }

@@ -68,10 +68,12 @@ test('shared-kernel catalog preserves baseline IDs, versions, and freeze levels'
   // 10 → 5 when the Product Owner approved RFC-2026-010's five A0-owned promotions on
   // 2026-09-02. 5 → 2 on 2026-10-09, when A1 signed CTR-SEC-001, A6 signed CTR-AUD-001 and
   // CTR-OBS-001, and the Product Owner approved the three by name. 2 → 1 on 2026-10-09, when A6
-  // signed CTR-USG-001 and the Product Owner approved it by name (WP-0A-CON-006). The number is
-  // asserted, not derived, so it moves only when someone decides it should — which is the whole
-  // reason this line exists.
-  assert.equal(catalog.contracts.filter((entry) => entry.status === 'Draft').length, 1);
+  // signed CTR-USG-001 and the Product Owner approved it by name (WP-0A-CON-006). 1 → 0 on
+  // 2026-10-10, when A5 (/claude/a5_loom) ratified CTR-NTF-001 for Candidate and the Product
+  // Owner's 2026-10-09 Q3 had approved it by name (WP-0A-CON-006). The number is asserted, not
+  // derived, so it moves only when someone decides it should — which is the whole reason this line
+  // exists.
+  assert.equal(catalog.contracts.filter((entry) => entry.status === 'Draft').length, 0);
 });
 
 test('Candidate schemas and synthetic valid/invalid fixtures remain present and traceable', async () => {
