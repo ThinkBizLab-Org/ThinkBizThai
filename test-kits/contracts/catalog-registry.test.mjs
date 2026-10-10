@@ -118,10 +118,10 @@ const CATALOG_REGISTRY = {
   'ctr-ntf-001': {
     contract_id: "CTR-NTF-001",
     version: "1.0.0",
-    status: "Draft",
+    status: "Candidate",
     owner: "A5",
     index_owner: "A5",
-    index_status: "Draft",
+    index_status: "Candidate",
     required_before_freeze: ["locale","dedupe","permission-checked deep link"],
     consumers: ["Job","UI","Email adapter"],
   },

@@ -236,7 +236,7 @@
         "UI",
         "Email adapter"
       ],
-      "status": "Draft",
+      "status": "Candidate",
       "required_before_freeze": [
         "locale",
         "dedupe",

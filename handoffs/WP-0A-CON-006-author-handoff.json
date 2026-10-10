@@ -4,30 +4,14 @@
   "work_package_id": "WP-0A-CON-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "9d0751ece9ba71c6bb7812f55dd04ab3c4b96c4b",
-  "head_revision_or_patch_checksum": "a642d1ef75d8ecad880e23b3b049d0078be42d0a",
+  "base_revision": "50d9dd8a8943bb958698cd153bddd47e6964214f",
+  "head_revision_or_patch_checksum": "50d9dd8a8943bb958698cd153bddd47e6964214f",
   "task_ids": [
     "WP-0A-CON-006",
     "NTF-step2b-A5-assessment-2026-10-10"
   ],
-  "files_added": [
-    "evidence/WP-0A-CON-006/a1-review-2026-10-10-ntf2b.md",
-    "evidence/WP-0A-CON-006/a5-ntf-assessment-2026-10-10.md",
-    "evidence/WP-0A-CON-006/a5-ntf-reread-2026-10-10.md",
-    "evidence/WP-0A-CON-006/c0-review-2026-10-10-ntf2b.md",
-    "evidence/WP-0A-CON-006/product-owner-disposition-2026-10-10-a5-c2-connectors.md",
-    "evidence/WP-0A-CON-006/q0-review-2026-10-10-ntf2b.md",
-    "evidence/WP-0A-CON-006/r0-review-2026-10-10-ntf2b.md"
-  ],
-  "files_modified": [
-    ".agents/capability-profiles/cc-a5-loom.json",
-    "contract-catalog/shared-kernel/ctr-ntf-001/manifest.json",
-    "contract-catalog/shared-kernel/ctr-ntf-001/schema.json",
-    "handoffs/WP-0A-CON-006-author-handoff.json",
-    "test-kits/contracts/catalog-registry.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "work-packages/WP-0A-CON-006.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -99,7 +83,7 @@
   ],
   "security_privacy_cost_impact": "Item (5) states the open-time check A1 asked about (the opener's permission on the target, in the target's workspace, from the authenticated session; no credential or identity in a delivered link). Item (6) fixes a dedupe key that carries no recipient, contact detail or raw id (a SHA-256 digest). The C-2 resolution turns four connectors off for the session and discloses the fifth (Vercel) as forbidden and unused; no capability value changes. No credential, customer data or provider call.",
   "migration_and_data_impact": "None in this increment. A5's F-1 records that 051's per-recipient uuid notification_id and the contract's opaque string must be reconciled before Frozen.",
-  "compatibility_impact": "Contract-catalog changes are additive, in caveat and annotation text only: CTR-NTF-001 untestable_by_schema items (2), (3) reworded and (5), (6) added; three schema x- annotations reworded. No schema constraint, fixture, requiredness, enum, version or freeze-level change, so nothing a consumer builds against moves; no other contract changes.",
+  "compatibility_impact": "Interim: the cited range changes no contract-catalog file; the final handoff, refreshed last and alone, states the impact of the branch.",
   "known_limitations": [
     "A5's ratification is for Candidate only; the Frozen signature needs a new Product Owner disposition (F-4).",
     "A5's F-1 to F-5 stay owed before Frozen (notification_id vs 051; fixture keys to OD-4; the dedupe window; the Frozen signature; keys for notifications without a CTR-EVT-001 event).",
