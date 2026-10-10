@@ -4,29 +4,15 @@
   "work_package_id": "WP-0A-CON-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "5c812c3d9301e6cad14dbdc3e05b88ef426b882c",
-  "head_revision_or_patch_checksum": "4d6f17a7bc2c859f78d1d646cb52a06080efc8b1",
+  "base_revision": "9296877418cd0939b07829c915717bf13d571d92",
+  "head_revision_or_patch_checksum": "c9016ca4a0512442d16ed100f70cd353f0d07363",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-CON-006/a1-review-2026-10-09-pr235.md",
-    "evidence/WP-0A-CON-006/a6-candidate-signature-2026-10-09.md",
-    "evidence/WP-0A-CON-006/a6-check-2026-10-09-pr235.md",
-    "evidence/WP-0A-CON-006/author-candidate-increment-2026-10-09.md",
-    "evidence/WP-0A-CON-006/c0-review-2026-10-09-pr235.md",
-    "evidence/WP-0A-CON-006/q0-review-2026-10-09-pr235.md",
-    "evidence/WP-0A-CON-006/r0-review-2026-10-09-pr235.md"
+    "evidence/WP-0A-CON-006/q0-a5-benchmark-2026-10-10.md",
+    "evidence/WP-0A-CON-006/q0-a5-benchmark-key-2026-10-10.md",
+    "evidence/WP-0A-CON-006/q0-a5-benchmark-tasks-2026-10-10.md"
   ],
-  "files_modified": [
-    "contract-catalog/shared-kernel/ctr-usg-001/manifest.json",
-    "contract-catalog/shared-kernel/index.json",
-    "handoffs/WP-0A-CON-006-author-handoff.json",
-    "test-kits/contracts/catalog-registry.test.mjs",
-    "test-kits/contracts/shared-kernel-contract-catalog.test.mjs",
-    "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "tests/db/identity/identity-isolation.test.mjs",
-    "work-packages/WP-0A-CON-006.json"
-  ],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -104,7 +90,7 @@
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. A status move and two sentences of manifest text; no rule, fixture, provider call, credential, migration or customer data. Cost none. A6's two conditions of use bind any consumer or fake built under Candidate CTR-USG-001: reject an event whose attribution differs from tenant_context (a tenant-isolation property, undeclarable at freeze), and never parse amounts as binary floats.",
   "migration_and_data_impact": "None in this increment: no migration, persisted data or db/ path. The data follow-on of open_blockers[24] (061_metering.sql provider_key unbounded; 051_notification.sql) stays owed by WP-0A-DB-00. tests/db/identity/identity-isolation.test.mjs (WP-0A-DB-00) changes only the two assertions that read CTR-USG-001's status, Draft → Candidate.",
-  "compatibility_impact": "Contract-catalog changes are additive, in permission only: a freeze-level promotion that adds what consumers may build (fakes, fixtures and consumer tests) and removes nothing. It is not breaking under RFC-2026-031 §3.3: CTR-USG-001's accepted set is unchanged (schema.json and examples/ byte-identical to the blobs in A6's signature file, af83ccca and 3074198f). Its freeze level moves Draft → Candidate at version 1.0.0; in its directory only manifest.json \"status\" and two sentences of untestable_by_schema text change (the A6 §8 swap, no rule moved). The census moves 12 Candidate / 2 Draft → 13 / 1; CTR-NTF-001 stays Draft. No contract is Frozen.",
+  "compatibility_impact": "Interim (this commit range carries evidence only): the final handoff, refreshed last and alone, states the impact of the branch.",
   "known_limitations": [
     "CLOSED 2026-10-05 BY A0 (/claude/a0_atlas), RECORD CORRECTION, NOT A NEW FINDING: evidence/WP-0A-A0-006/blocker-re-audit.md (main @ 963990f) verdict CON-006 #01 CLOSED, re-verified at main @ 600b48b: architecture/decisions/RFC-2026-004-catalog-reference-integrity.md:3 reads the Product Owner's 2026-09-02 disposition (see the manifest for the verbatim status line). Closed in place so no later index moves; cited from evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md and evidence/g0-tracker-th.md. Text as recorded: SUPERSEDED 2026-09-06, verified against the tree rather than remembered. This entry read: 'RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.' The Status line of architecture/decisions/RFC-2026-004-catalog-reference-integrity.md now reads the Product Owner's 2026-09-02 disposition (verbatim in the manifest), so the disposition this entry was waiting for has happened. What remains is narrower and is that RFC's own Limitations section, which the approval leaves standing word for word: it does not approve Gate G0, does not authorize a merge, does not advance any contract freeze level, and does not substitute for the independent Reviewer, Tester, Security or Integration Owner evidence RFC-2026-002 requires. Every merge of this package still needs all of that separately; what it no longer needs is a disposition of RFC-2026-004.",
     "CTR-NTF-001 SHOULD NOT HAVE BEEN AUTHORED BY THIS PACKAGE. Independent review graded it High: Decision Register 4.1 reserves proposing a contract to its owner and 4.3 makes A0's role 'producer submits proposal and fixture; A0 assigns version'. A5 is the sole owner and A0 wrote the proposal. Ratification after the fact is a weaker and different control. The '14 of 14 materialized' figure therefore counts an unratified non-owner draft as coverage and must not be cited as G0 evidence without that qualification.",
