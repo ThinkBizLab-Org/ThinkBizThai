@@ -5,14 +5,21 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "5e444c5355624e442d145dbbedb0c30c7df99833",
-  "head_revision_or_patch_checksum": "2e2ace5d71d407e67eaf3b611ed475ccb24b477c",
+  "head_revision_or_patch_checksum": "03125fc8a2c758944e0907b9017f5dc78aa23c2d",
   "task_ids": [
     "WP-0A-A0-001",
     "NTF-A5-capability-profile-2026-10-09"
   ],
   "files_added": [
     ".agents/capability-profiles/cc-a5-loom.json",
-    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md"
+    "evidence/WP-0A-A0-001/a1-reread-2026-10-09-pr238.md",
+    "evidence/WP-0A-A0-001/a1-review-2026-10-09-pr238.md",
+    "evidence/WP-0A-A0-001/c0-reread-2026-10-09-pr238.md",
+    "evidence/WP-0A-A0-001/c0-review-2026-10-09-pr238.md",
+    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md",
+    "evidence/WP-0A-A0-001/q0-review-2026-10-09-pr238.md",
+    "evidence/WP-0A-A0-001/r0-reread-2026-10-09-pr238.md",
+    "evidence/WP-0A-A0-001/r0-review-2026-10-09-pr238.md"
   ],
   "files_modified": [
     "handoffs/WP-0A-A0-001-author-handoff.json",
@@ -103,8 +110,7 @@
     "SC-2's wording must be in the CTR-NTF-001 manifest before A5 ratifies; that ordering is prose in the profile and the manifest, checked by readers, not by a guard."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H (a capability profile is not a record). The rework commit e0c8ac8e is outside every role's carry clause, so C0, A1, Q0 and R0 are owed again on the final head. A0 presses only after all four have passed on that head, no security finding of any grade is open, and bootstrap is green on it (disposition, 'What this directs'; RFC-2026-025 §5 item 6). The handoff refresh is the last commit and alone.",
-    "Sequence step 2 must update cc-a5-loom.json through a WP-0A-A0-001 increment or a declared amendment on WP-0A-CON-006 (R0-238-4), or verify-branch-scope fails it."
+    "Full path, tier H (a capability profile; not governance under RFC-2026-025 §5 item 6, per r0-review). Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-A0-001/: round one at 1ebfbc5d (c0-review: changes_requested B-1; a1-review: security_changes_requested F-1; r0-review), re-reads at 835f5ee1 after the narrowing commit e0c8ac8e (c0-reread: review_approved; a1-reread: security_approved, no finding open; r0-reread: integration_verified) and Q0's full run at 835f5ee1 (q0-review: test_verified, 740/740 on the branch name). Presser: A0 (/claude/a0_atlas) presses on the Owner's 2026-10-09 answer `ให้ A0 กดทั้งชุด (Recommended)` (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md, Q3; asked 16:50:32Z, answered 16:55:57Z), which names the NTF sequence with this PR as item 1; not the 2026-10-03 delegation and not the night words. Conditions (r0-reread press conditions 1-7): bootstrap green on this exact head containing main, a true merge commit pinned with --match-head-commit. Before /claude/a5_loom signs: Q0's forward-scoped benchmark on main, the run's own confirmation of its profile values, SC-2 stated in the CTR-NTF-001 manifest; scope CTR-NTF-001 only, Frozen-stage signature excluded."
   ],
   "rollback_or_forward_fix": "Before merge: close the A5 capability-profile PR. After merge: a reviewed revert PR deletes .agents/capability-profiles/cc-a5-loom.json and removes it and cc-a6-relay.json from WP-0A-A0-001 writable_paths and outputs.files; /claude/a5_loom then has no declared role again and any signature it made stops counting under RFC-2026-013. The disposition record stays as history.",
   "recommended_next_work_packages": [
