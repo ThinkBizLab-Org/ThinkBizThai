@@ -5,12 +5,18 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "50d9dd8a8943bb958698cd153bddd47e6964214f",
-  "head_revision_or_patch_checksum": "e07863b5141379a44a3f631b0761822a16508ede",
+  "head_revision_or_patch_checksum": "58fec78a03b2389d41c816996173687e81eabeb9",
   "task_ids": [
     "WP-0A-CON-006",
     "NTF-step3-candidate-2026-10-10"
   ],
-  "files_added": [],
+  "files_added": [
+    "evidence/WP-0A-CON-006/a1-review-2026-10-10-ntf3.md",
+    "evidence/WP-0A-CON-006/a5-ntf-candidate-reading-2026-10-10.md",
+    "evidence/WP-0A-CON-006/c0-review-2026-10-10-ntf3.md",
+    "evidence/WP-0A-CON-006/q0-review-2026-10-10-ntf3.md",
+    "evidence/WP-0A-CON-006/r0-review-2026-10-10-ntf3.md"
+  ],
   "files_modified": [
     "contract-catalog/shared-kernel/ctr-ntf-001/manifest.json",
     "contract-catalog/shared-kernel/index.json",
@@ -99,7 +105,7 @@
     "The other Claude profiles of this session carry no connector disclosure (A1-NTF2B-2); every such connector is disabled in this session."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H. Owed on the final head: C0, A1, Q0 and R0, and A5 (owner of CTR-NTF-001; the Owner asked that the contract owner read). A0 presses under the Owner's Q3 once all pass and bootstrap is green on that exact head."
+    "Full path, tier H. Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-CON-006/ at 00677af9: c0-review-2026-10-10-ntf3.md (review_approved; R0 §6 items 1-8 met; advisories C0-244-1, -2), a1-review-2026-10-10-ntf3.md (security_approved; item (4) byte-identical, SC-2 confirmation stands; C-2 state stricter than accepted; advisory A1-NTF3-1: A0 re-reads the connector listing immediately before the press), q0-review-2026-10-10-ntf3.md (test_verified 740/740 on the branch name; mutation and ratchet checks bite), r0-review-2026-10-10-ntf3.md (integration_verified; press conditions §5; post-merge words §7; item-4 ruling §4.1: A0 may press the RFC-2026-010 status-line PR under Q3, which the Owner named), a5-ntf-candidate-reading-2026-10-10.md (A5 confirms as owner; gives the RFC-2026-010 line for item 4). Connector listing re-read before the press: every connector able to read secrets, run SQL or send mail disabled. Presser: A0 (/claude/a0_atlas) on the Owner's 2026-10-09 Q3 `ให้ A0 กดทั้งชุด (Recommended)` (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md, sequence item 3, whose option text names CTR-NTF-001 for Candidate once A5 has signed), once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit. Freezes nothing."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed PR sets CTR-NTF-001 back to Draft with the pins, which the catalog ratchet then names; that needs a new Owner decision, since setting a Candidate back is itself a status move.",
   "recommended_next_work_packages": [
