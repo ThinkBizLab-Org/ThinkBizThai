@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "f0b948c78a02211805dcb22bf0922a26404a6b41",
-  "head_revision_or_patch_checksum": "9a013f1eec447f7ac56857cec12b9c42512c6e5f",
+  "head_revision_or_patch_checksum": "f8bc1d4b904aa2e9979fcf476e64b74fa8b7eb80",
   "task_ids": [
     "WP-0A-DB-00",
     "F1-record-2026-10-11"
@@ -28,7 +28,7 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT appends open_blockers[206]: A5's F-1 (notification_id in CTR-NTF-001 against batch 051's per-recipient uuid key) and R0-243-4, verbatim, as R0 asked that the record reach this package.",
+    "THIS INCREMENT appends open_blockers[206]: A5's F-1 (notification_id in CTR-NTF-001 against batch 051's per-recipient uuid key) and R0-243-4, verbatim, as R0 asked that the record reach this package. FIX after the role round (C0-247-1, A1-REC-247-1, R0-247-1): A0's two closing sentences in [206] are marked \"A0'S WORDS, NOT R0'S\".",
     "Records only: every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-DB-00/records-transcription-2026-10-11.md.",
     "Path: the full path (C0, A1, Q0, R0 on the final head, CI green), as the Owner directed for this session."
   ],
@@ -45,7 +45,7 @@
       "result": "valid"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commit ae7b2a2e)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit ae7b2a2e and the fix commit)",
       "exit_code": 0,
       "result": "clean: exit 0 — tests 740, pass 740, fail 0"
     },
@@ -67,9 +67,9 @@
     "Nothing decides the reconciliation; it is owed before CTR-NTF-001 is Frozen, by A5 and this package together."
   ],
   "open_risks_or_blockers": [
-    "Records-only by the classifier; full path anyway, as the Owner directed for this session. A0 presses under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
+    "Records-only by the classifier; full path, as the Owner directed. Round one at ad094652 carried with -x (c0 changes_requested on C0-247-1, a1 security_approved, q0 test_verified, r0 integration_verified); the marker-only fix commit is outside the carry clauses, so the roles re-read it. A0 presses under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once every re-read passes and bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the appended records; nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the records this WP-0A-DB-00 branch appended (F1-record-2026-10-11); nothing depends on them.",
   "recommended_next_work_packages": [
     "WP-0A-DB-00 with A5: reconcile notification_id (contract, 051 forward fix, or both)."
   ],
