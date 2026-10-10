@@ -4,22 +4,14 @@
   "work_package_id": "WP-0A-A0-002",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "1940d7beb1039fa02252bbb5233b7ee539565f2b",
-  "head_revision_or_patch_checksum": "671256a65a51a0007ff285c905c48b355255e030",
+  "base_revision": "f0b948c78a02211805dcb22bf0922a26404a6b41",
+  "head_revision_or_patch_checksum": "a29b456d839e48f8bf063c06d604e51688923b4a",
   "task_ids": [
     "WP-0A-A0-002",
-    "G0-step-2"
+    "amended-by-records-2026-10-11"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-002/a1-recheck-2026-10-09.md",
-    "evidence/WP-0A-A0-002/a1-review-2026-10-09.md",
-    "evidence/WP-0A-A0-002/c0-recheck-2026-10-09.md",
-    "evidence/WP-0A-A0-002/c0-recheck-2026-10-09b.md",
-    "evidence/WP-0A-A0-002/light-path-reading-2026-10-09.md",
-    "evidence/WP-0A-A0-002/q0-test-2026-10-09.md",
-    "evidence/WP-0A-A0-002/q0-test-2026-10-09b.md",
-    "evidence/WP-0A-A0-002/r0-ruling-2026-10-09.md",
-    "evidence/WP-0A-A0-002/records-transcription-2026-10-09.md"
+    "evidence/WP-0A-A0-002/records-transcription-2026-10-11.md"
   ],
   "files_modified": [
     "handoffs/WP-0A-A0-002-author-handoff.json",
@@ -27,62 +19,61 @@
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "DEC-021",
-    "DEC-023",
-    "DEC-025"
+    "RFC-2026-003",
+    "RFC-2026-025"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT is the post-merge record of PR #204 (PR #220). It began on the records light path; C0 blocked it (light-path-reading-2026-10-09.md B1, B2), so R0’s ruling and C0’s re-check of 56e47b22 were carried and the PR takes the FULL path (C0, A1, Q0, R0). R0 words from evidence/WP-0A-A0-002/r0-recheck-2026-10-08.md §5 transcribed; status in_review -> integration_verified; see evidence/WP-0A-A0-002/records-transcription-2026-10-09.md.",
-    "The presser of PR #204 (A0) is A0’s record; gh mergedBy shows only the repository account."
+    "THIS INCREMENT appends amended_by[4] to [9]: the DIGESTED_FLOOR and integrity-manifest amendments of #236 and #239 (WP-0A-CON-004), #242, #243 and #244 (WP-0A-CON-006) and #245 (WP-0A-CON-008), each acknowledged by /claude/r0_steward as this package's Integration Owner, quoted from the file each cites.",
+    "Records only: every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-A0-002/records-transcription-2026-10-11.md.",
+    "Path: the full path (C0, A1, Q0, R0 on the final head, CI green), as the Owner directed for this session."
   ],
   "acceptance_results": [
     {
-      "criterion": "R0 words transcribed verbatim; merge facts match gh/git",
-      "result": "met for author self-check",
-      "evidence": "evidence/WP-0A-A0-002/records-transcription-2026-10-09.md"
+      "criterion": "Recorded words match their sources; old entries byte-equal; no status, contract, test or script change beyond what is stated",
+      "result": "pass for author self-check: extracted by script from the cited role files"
     }
   ],
   "tests": [
     {
-      "command": "npm run check (Q0, on the branch name at fe8d0b22)",
+      "command": "npm run validate:protocol",
       "exit_code": 0,
-      "result": "735 tests, 735 pass (evidence/WP-0A-A0-002/q0-test-2026-10-09b.md)"
+      "result": "valid"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (this refresh)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit a29b456d)",
       "exit_code": 0,
-      "result": "see this commit"
+      "result": "clean: exit 0 — tests 740, pass 740, fail 0"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-002",
       "exit_code": 0,
-      "result": "all changed paths declared"
+      "result": "every changed path declared, every amendment explains one"
+    },
+    {
+      "command": "npm run check:handoff",
+      "exit_code": 0,
+      "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "None. Records only: one transcription, the manifest and this handoff.",
+  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, customer data or provider call.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "None. No code, test or generated file changes.",
+  "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
   "known_limitations": [
-    "open_blockers[10] and [11] stay open (R0). A1 N5 (Low) to be named in [11] at its next edit (C0 A2, A1).",
-    "R19 (R0, process, recorded not excused): PR #204 was pressed before R0 condition 2 and C0 condition 4 re-checks existed; harmless as measured afterwards (r0-ruling-2026-10-09.md).",
-    "R22 (advisory): records-transcription-2026-10-09.md §2 item 2 does not say the integrity manifest moved; [13] and [14] now say so.",
-    "A5 (C0): [13] older text dates the overnight words 2026-10-07/08; their source says 2026-10-06 night. For a later records edit.",
-    "R5 for WP-0A-DB-00 is owed on that package’s branch."
+    "Older amendments not named (for example #229's for RFC-2026-031) are not recorded here.",
+    "The records PRs of 2026-10-11 regenerate the integrity manifest again (WP-0A-CON-008); their record is owed by this package's next PR."
   ],
   "open_risks_or_blockers": [
-    "Full path, not governance. Final-head readings at fe8d0b22, carried with -x: C0 review_approved (c0-recheck-2026-10-09b.md), A1 security_approved, no condition (a1-recheck-2026-10-09.md; R19 not a security finding), Q0 test_verified 735/735 on the branch name (q0-test-2026-10-09b.md); R0 integration_conditional at 258ff248 with conditions 1-6 (r0-ruling-2026-10-09.md §4), the commits since being those conditions. A0 presses under the Owner’s standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once bootstrap is green on this exact head, pinned with --match-head-commit."
+    "Full path, tier H (ownership.amended_by). Owed on the final head: C0, A1, Q0 and R0. A0 presses under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), not a governance PR, once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert returns WP-0A-A0-002 to in_review and reopens open_blockers[9] and [13] as their old text; no code, digest or external state is involved.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the appended records; nothing depends on them.",
   "recommended_next_work_packages": [
-    "WP-0A-DB-00: record R5 (r0-recheck-2026-10-08.md §5, last line).",
-    "Post-merge records for A0-004, A0-006..009, CON-004."
+    "WP-0A-A0-002: records of later digest moves."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-002/records-transcription-2026-10-09.md first.",
-    "Compare open_blockers as parsed JSON: [9] and [13] keep their old text whole; [14] matches R0 §5 verbatim; [15] quotes the Owner words from the DB-00 disposition §6 item 5.",
-    "Run node scripts/db/classify-records-only.mjs origin/main <head>."
+    "Read evidence/WP-0A-A0-002/records-transcription-2026-10-11.md, then git diff origin/main.",
+    "amended_by[4] to [9]: each quoted acknowledgement against its R0 file."
   ],
   "superseded_by": "Earlier versions of this handoff described earlier heads, most recently 56e47b22 (the E4 code increment, merged in PR #204 at ae163ed8). This version describes the post-merge records increment of PR #220 at the head it cites."
 }
