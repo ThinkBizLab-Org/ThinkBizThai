@@ -4,13 +4,17 @@
   "work_package_id": "WP-0A-A0-002",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "f0b948c78a02211805dcb22bf0922a26404a6b41",
-  "head_revision_or_patch_checksum": "a29b456d839e48f8bf063c06d604e51688923b4a",
+  "base_revision": "b83f420b5691360bfbef83d8e46bbc15f6edad53",
+  "head_revision_or_patch_checksum": "8b950acf83de3137616b26349049fad70dd2222e",
   "task_ids": [
     "WP-0A-A0-002",
     "amended-by-records-2026-10-11"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-002/a1-review-2026-10-11-pr246.md",
+    "evidence/WP-0A-A0-002/c0-review-2026-10-11-pr246.md",
+    "evidence/WP-0A-A0-002/q0-review-2026-10-11-pr246.md",
+    "evidence/WP-0A-A0-002/r0-review-2026-10-11-pr246.md",
     "evidence/WP-0A-A0-002/records-transcription-2026-10-11.md"
   ],
   "files_modified": [
@@ -65,9 +69,9 @@
     "The records PRs of 2026-10-11 regenerate the integrity manifest again (WP-0A-CON-008); their record is owed by this package's next PR."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H (ownership.amended_by). Owed on the final head: C0, A1, Q0 and R0. A0 presses under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), not a governance PR, once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
+    "Full path, as the Owner directed for this session. Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-A0-002/ at the head they read: c0-review-2026-10-11-pr246.md (review_approved), a1-review-2026-10-11-pr246.md (security_approved, no finding), q0-review-2026-10-11-pr246.md (test_verified 740/740 on the branch name), r0-review-2026-10-11-pr246.md (integration_verified). Presser: A0 (/claude/a0_atlas) under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6); not a governance PR. Pressed once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the appended records; nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the records this WP-0A-A0-002 branch appended (amended-by-records-2026-10-11: amended_by[4] to [9]); nothing depends on them.",
   "recommended_next_work_packages": [
     "WP-0A-A0-002: records of later digest moves."
   ],
