@@ -5,46 +5,78 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "db267dc77eb085063c302becda79333ae6e3b6a8",
-  "head_revision_or_patch_checksum": "db267dc77eb085063c302becda79333ae6e3b6a8",
+  "head_revision_or_patch_checksum": "21af6654020e2be8d37ba9a8965a3ab10f09d6d1",
   "task_ids": [
     "WP-0A-A0-001",
-    "amended-by-records-2026-10-11"
+    "RFC-2026-034-fast-lane-2026-10-11"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "architecture/decisions/RFC-2026-034-fast-lane.md",
+    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-11-fast-lane.md"
+  ],
+  "files_modified": [
+    "CONTRIBUTING_AGENTS.md",
+    "handoffs/WP-0A-A0-001-author-handoff.json",
+    "scripts/verify-test-coverage-floor.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/repository-json.test.mjs",
+    "work-packages/WP-0A-A0-001.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-002",
-    "RFC-2026-025"
+    "RFC-2026-025",
+    "RFC-2026-030",
+    "RFC-2026-031"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT records R0's acknowledgement of amended_by[4] and [5] in R0's words (r0-review-2026-10-10-pr240.md §6), and appends amended_by[6] and [7], WP-0A-CON-006's amendments of .agents/capability-profiles/cc-a5-loom.json in PRs #242 and #243, pending acknowledgement.",
-    "Records only: every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-A0-001/records-transcription-2026-10-11.md.",
-    "Path: the full path (C0, A1, Q0, R0 on the final head, CI green), as the Owner directed for this session."
+    "WRITER DISCLOSURE: written by /claude/a0_atlas (A0). agent_run_id reads /root because handoff-conformance requires it to equal the manifest author_agent_run_id, which this increment does not change.",
+    "THIS INCREMENT drafts RFC-2026-034 'fast lane' (status Proposed) on the Product Owner's choice of 2026-10-10 (asked 19:02:50Z, answered 19:03:54Z, `ทางกลาง (Recommended)`; evidence/WP-0A-A0-001/product-owner-disposition-2026-10-11-fast-lane.md) and applies its two CONTRIBUTING_AGENTS.md passages, this package's file. DECISION_RECORDS (own file), DIGESTED_FLOOR and the integrity manifest (WP-0A-A0-002, declared amendments) register it.",
+    "A governance PR under RFC-2026-025 §5 item 6: the Product Owner merges it personally. Its questions Q-034-1 to Q-034-3 are his to answer; A0 does not answer them from any broad delegation and does not press this PR.",
+    "The branch is cut at #250's merge; the handoff range was set to the branch point by hand and then regenerated."
   ],
   "acceptance_results": [
     {
-      "criterion": "Recorded words match their sources; old entries byte-equal; no status, contract, test or script change beyond what is stated",
-      "result": "pass for author self-check: extracted by script from the cited role files"
+      "criterion": "The two CONTRIBUTING_AGENTS.md passages equal RFC-2026-034 §7 word for word, and nothing else in the file changes",
+      "result": "pass for author self-check: applied by script from the RFC text"
+    },
+    {
+      "criterion": "The RFC is registered where every decision record is (DECISION_RECORDS, DIGESTED_FLOOR, integrity manifest)",
+      "result": "pass for author self-check: repository-json.test.mjs 8/8, coverage floor exit 0"
     }
   ],
   "tests": [
+    {
+      "command": "node --test test-kits/repository-json.test.mjs",
+      "exit_code": 0,
+      "result": "pass 8, fail 0"
+    },
+    {
+      "command": "node scripts/verify-test-coverage-floor.mjs",
+      "exit_code": 0,
+      "result": "floor holds; the RFC digested"
+    },
     {
       "command": "npm run validate:protocol",
       "exit_code": 0,
       "result": "valid"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 11c25d79)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 21af6654)",
       "exit_code": 0,
       "result": "clean: exit 0 — tests 740, pass 740, fail 0"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-001",
       "exit_code": 0,
-      "result": "every changed path declared, every amendment explains one"
+      "result": "all 8 changed paths declared"
+    },
+    {
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD",
+      "exit_code": 0,
+      "result": "tier H (RFC, CONTRIBUTING_AGENTS.md, scripts, test kits)"
     },
     {
       "command": "npm run check:handoff",
@@ -52,22 +84,23 @@
       "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, customer data or provider call.",
+  "security_privacy_cost_impact": "Changes the review and gate rules once the Owner merges it: fast-lane PRs would merge on green CI without a role reading them first, with round audits as the compensating control; risk-lane paths (migrations/RLS, auth, secrets, payment, publishing, CI and guards) keep A1 + Q0 before merge; no real customer data until PDPA; Frozen before production use. No code, credential or customer data changes on this PR.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "Interim: the cited range changes no contract-catalog file; the final handoff states the branch's impact.",
+  "compatibility_impact": "No contract changes: an RFC and two CONTRIBUTING_AGENTS.md passages; no contract-catalog file.",
   "known_limitations": [
-    "amended_by[0] to [3], [6] and [7] stay pending acknowledgement.",
-    "WP-0A-A0-001 has a further increment queued after this one: the RFC-2026-034 fast-lane draft the Product Owner directed at 19:03:54Z (CONTRIBUTING_AGENTS.md is this package's file)."
+    "Proposed only. Not in effect until the Owner answers Q-034-1 to Q-034-3 and merges this PR personally.",
+    "The lane is decided by A0 from paths until the classifier prints it (RFC §8 item 2, WP-0A-A0-004).",
+    "RFC-2026-030 and RFC-2026-031 status lines are not touched here (RFC §8 item 3)."
   ],
   "open_risks_or_blockers": [
-    "Full path, as the Owner directed for this session. Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-A0-001/ at the head they read: c0-review-2026-10-11-pr250.md (review_approved), a1-review-2026-10-11-pr250.md (security_approved, no finding), q0-review-2026-10-11-pr250.md (test_verified 740/740 on the branch name), r0-review-2026-10-11-pr250.md (integration_verified; acknowledges amended_by[6], [7] and others in §6, to be recorded by this package's next PR). Presser: A0 (/claude/a0_atlas) under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6); not a governance PR. Pressed once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
+    "GOVERNANCE, tier H, full path: C0, A1, Q0 and R0 read the final head. Not pressed by A0: the Product Owner answers Q-034-1 to Q-034-3 and merges it personally (RFC-2026-025 §5 item 6)."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the records this WP-0A-A0-001 branch appended (amended-by-records-2026-10-11: the acknowledgement keys of amended_by[4], [5] and entries [6], [7]); nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed PR reverting RFC-2026-034 and the two CONTRIBUTING_AGENTS.md passages restores RFC-2026-030's tiers and the earlier gate text (RFC §10).",
   "recommended_next_work_packages": [
-    "WP-0A-A0-001: RFC-2026-034 (fast lane) and the CONTRIBUTING_AGENTS.md gate text, a governance PR the Product Owner merges personally."
+    "After the Owner merges: the first round audit within seven days; the classifier change that prints the lane (WP-0A-A0-004); then application code on Candidate contracts (G1)."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-001/records-transcription-2026-10-11.md, then git diff origin/main.",
-    "amended_by[4], [5] acknowledgement keys against r0-review-2026-10-10-pr240.md §6; [6], [7] against WP-0A-CON-006 amends_without_owning and git log of cc-a5-loom.json."
+    "Read the disposition, then architecture/decisions/RFC-2026-034-fast-lane.md, then git diff origin/main -- CONTRIBUTING_AGENTS.md against RFC §7.",
+    "Check that the RFC states the Owner's chosen option faithfully and marks what goes beyond it as a question (Q-034-1..3)."
   ]
 }
