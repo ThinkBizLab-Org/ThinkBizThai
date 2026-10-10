@@ -4,7 +4,8 @@ Status: **Proposed.** The Product Owner chose the direction on 2026-10-10, answe
 19:02:50Z, session `c2816eec`) with `ทางกลาง (Recommended)`; the question, its options and the answer are transcribed in
 `evidence/WP-0A-A0-001/product-owner-disposition-2026-10-11-fast-lane.md`. The text below is A0's drafting of that
 direction, revised twice after role rounds (round one: C0-251-1..11, A1-251-1..10, R0-251-1..9, Q0-251-2..6; re-read:
-C0-251r-1..9, A1-251r-1..6, R0-251-10..15 and -2r, -3r, Q0-251-7..11). It is not in effect until the Order of §10 is complete: the
+C0-251r-1..9, A1-251r-1..6, R0-251-10..15 and -2r, -3r, Q0-251-7..11; second re-read: C0-251r2-1..9,
+A1-251r2-1..7, R0-251-16..23, Q0-251-12..14). It is not in effect until the Order of §10 is complete: the
 Owner answers §9 himself, A0 records his answers and sets the status line, the roles re-read, and the Owner merges this
 PR personally (a governance PR under RFC-2026-025 §5 item 6). Where the Owner chooses an alternative in §9, §2 to §4
 and §7 change to match before he merges.
@@ -12,9 +13,9 @@ Date: 2026-10-11
 Author: `/claude/a0_atlas` (A0), as an increment of `WP-0A-A0-001`, which owns `CONTRIBUTING_AGENTS.md`
 Owner: the Product Owner
 Protocol version: `1.0.0`
-Amends, once in effect (each named in §3): `CONTRIBUTING_AGENTS.md` (five passages, §7); RFC-2026-030 §2 bullets 1 and
-4, §3, §3.1, §3.2 and §3.3; RFC-2026-025 §5 and §6.4 as they require four roles on each pull request; RFC-2026-002's
-per-merge evidence clause; RFC-2026-031 §3.3 "Consumers", §6 item 2 and §9; Decision Register line 373 and §5.1 lines
+Amends, once in effect (each named in §3): `CONTRIBUTING_AGENTS.md` (six passages, §7); RFC-2026-030 §2 bullets 1 and
+4, §3, §3.1, §3.2 and §3.3; RFC-2026-025 §5 and §6.4 as they require four roles on each pull request, and §6.1 item 2 for audit
+pull requests if Q-034-5 (a) is chosen; RFC-2026-002 Decision items 1 to 3 and its "Evidence and review" list; RFC-2026-031 §3.3 "Consumers", §6 item 2 and §9; Decision Register line 373 and §5.1 lines
 190–191, and the 2026-10-08 disposition §10.3, as to writing and merging application code only.
 
 ---
@@ -51,8 +52,8 @@ Before the G0 exit closes, agents may write application code, fakes and consumer
 `Candidate` or above, and merge them to `main`, **as reversible work**:
 
 - **Synthetic data only.** No real customer data until the PDPA work passes (D0 of the plan approved 2026-10-08).
-- **No production schema.** Migrations run on local databases only; nothing is applied to a hosted or production
-  project.
+- **No production schema.** Migrations run on local databases and on CI's throwaway service-container database only;
+  nothing is applied to a hosted or production project.
 - **No external provider bound.** Providers are faked; no provider account, sandbox or test accounts included, is bound,
   and no credential of any provider is used, exactly as the gate says today (Q0-251-8). Hosted staging and provider
   sandboxes are a later decision, outside this RFC.
@@ -78,22 +79,26 @@ unchanged). The lane follows the tier and the paths:
 
 | Lane | What it covers | Before merge | Integration Owner (R0) | Who presses |
 |---|---|---|---|---|
-| **Governance** | any change to: `architecture/decisions/**`, `CONTRIBUTING_AGENTS.md`, `docs/**`, `.github/**`, `package.json`, any lockfile or tool configuration, either classifier, any script or test file CI runs as a guard (`scripts/verify-*.mjs`, `scripts/scan-repository-secrets.mjs`, `scripts/refresh-author-handoff.mjs`, `scripts/run-test-suite.mjs`, `scripts/db/classify-*.mjs`), and a hand edit of which files `test-kits/integrity-manifest.json` digests. **If it is unclear whether a path is a guard, it is governance.** | as today: every role | as today, per PR | the Owner personally (RFC-2026-025 §5 item 6), or A0 for a PR the Owner names in his own words, as in the 2026-10-08 disposition §10.2 |
+| **Governance** | any change to: `architecture/decisions/**`, `CONTRIBUTING_AGENTS.md`, `docs/**`, `.agents/**`, `.github/**`, `package.json`, any lockfile or tool configuration, either classifier, and any script or test CI runs as a guard or runner: `scripts/verify-*.mjs`, `scripts/validate-*.mjs`, `scripts/*-contract.mjs`, `scripts/scan-repository-secrets.mjs`, `scripts/refresh-author-handoff.mjs`, `scripts/run-test-suite.mjs`, `scripts/record-verification.mjs`, `scripts/db/classify-*.mjs`, `scripts/db/run.mjs` and the database test harness CI invokes, the top-level `test-kits/*.test.mjs` guard tests, and a hand edit of which files `test-kits/integrity-manifest.json` digests. **If it is unclear whether a path is a guard or runner, it is governance.** Test cases a runner executes (`tests/**`, `test-kits/db/**`, `test-kits/contracts/**`) are not guards. | as today: every role | as today, per PR | the Owner personally (RFC-2026-025 §5 item 6, never by delegation) |
 | **Records** | RFC-2026-025 §6.1 | as today: one independent reading (§6.2) | as §6.2 says | as §6 says |
 | **Risk** | every other tier H pull request: migrations, RLS, grants, schema; auth, sessions, identity, tenancy, roles; secrets, OAuth, credentials; billing, payments, webhooks; publishing, jobs, queues, storage and deletion, provider adapters, mail and notifications; contracts; other scripts and test kits; work-package scope, roles and status moves; any module not on the allowlist; anything unplaced | **A1 (Security/Privacy) and Q0 (Tester)** pass on the final head; a stop-the-line or security finding adds C0 and R0 at once | in the round audit (§2.3) | A0 (Q-034-1) |
 | **Fast** | tier M and L only | green CI **and one independent Reviewer (C0)** who confirms in writing what the classifier cannot: for L, behind a feature flag and no data path; for M, the test exercises the changed code (RFC-2026-030 §2 bullet 4) (Q-034-4) | in the round audit (§2.3) | A0 (Q-034-1) |
+| **Audit** | a pull request that holds only the round audit's files under `evidence/audits/<date>/` (§2.3) | each file carried with `cherry-pick -x` from its auditor's own commit, blob-equal, touching no other path, and green CI (Q-034-5 (a)); or one more independent reading (Q-034-5 (b)) | the audit is R0's reading | A0 |
 
 - A regeneration of `test-kits/integrity-manifest.json` that only records the digests of files the pull request itself
   adds or changes follows those files' lane; anything else in that file is governance.
 - A pull request never drops lane during its life; a security finding raises it to tier H's full reading.
-- **Module code.** A module is on the allowlist only by a governance PR, and RFC-2026-030 §4.2 item 6 never admits
-  modules that own tenancy, identity, secrets, jobs or provider calls. First-Slice platform code lives in such a module
+- **Module code.** A module is on the allowlist only by a governance PR, and RFC-2026-030 §4.2 item 6 never admits a
+  module that owns identity, tenancy, IAM, sessions, secrets, billing, entitlement, publishing, connectors, uploads, jobs
+  or provider calls, and requires a test per module class. First-Slice platform code lives in such a module
   (RFC-2026-029's `src/modules/platform-kernel`), so it takes the risk lane. Q-034-2 asks only about modules item 6
   admits.
 - **Pressing is not integrating.** Under this RFC A0 presses the merge of risk-lane and fast-lane pull requests it
   authored, once the lane's readers have passed and CI is green on the exact head. The independent Integration Owner's
   verdict is given in the audit (§2.3), and a package moves past `in_review` only on it. This reverses the Owner's
-  answer to Q-030-5 of 2026-10-08 ((a): the presser of an M or L merge is not its Author); Q-034-1 puts that to him.
+  answer to Q-030-5 of 2026-10-08 ((a): the presser of an M or L merge is not its Author) and goes beyond its option
+  (b) (the Author presses an M or L merge on recorded Reviewer and Tester verdicts), because it also covers tier H outside
+  governance; Q-034-1 puts that to him.
 
 ### 2.3 Audits in rounds
 
@@ -102,8 +107,9 @@ unchanged). The lane follows the tier and the paths:
 - **Who.** C0, A1, Q0 and R0, each a run other than the Author's, read the cumulative diff on `main` since the last
   audit, every PR's tier output and lane, and CI on `main`. Each writes its file under `evidence/audits/<date>/`, a path
   this PR gives to `WP-0A-A0-001`. **The audit pull request** holds only the auditors' own files on WP-0A-A0-001's
-  branch; each file is its own reading, so no further reader is needed, and A0 presses it once CI is green on its exact
-  head (Q0-251-9). An audit pull request that changes anything else takes that change's lane.
+  branch and takes the Audit lane of §2.2 (Q-034-5). An audit pull request that changes anything else takes that
+  change's lane. Its files are role verdicts, not records (RFC-2026-025 §6.1 item 2), which is why it has a lane of its
+  own.
 - **What they decide.** C0's audit verdict is the `review_approved`, Q0's the `test_verified`, and R0's the
   `integration_verified` for the risk-lane and fast-lane work each covers; A1's audit finding of any grade blocks those
   moves until fixed. Findings become fix PRs, each laned on its own; a lane error is itself a finding. A stop-the-line
@@ -116,7 +122,9 @@ unchanged). The lane follows the tier and the paths:
   `--match-head-commit`, green CI on that head, the head containing current `main`.
 - Separate roles exist and are held by runs other than the Author's; the Author never writes another role's verdict.
 - Ownership, `writable_paths`, amendment declarations, `verify-branch-scope`, and the classifier itself.
-- Governance and records pull requests, and who presses them.
+- Records pull requests and who presses them; governance pull requests and who presses them (the Owner personally),
+  except that §2.2 now names governance by path, adding `docs/**`, `.agents/**`, package files, lockfiles and the guards
+  and runners CI uses, which narrows what any other lane may touch.
 - Pull requests opened before this RFC takes effect finish under the rules they started under.
 
 ## 3. What it amends, exactly
@@ -126,7 +134,9 @@ unchanged). The lane follows the tier and the paths:
 | `CONTRIBUTING_AGENTS.md` "Current gate constraint" | §7 (a) |
 | `CONTRIBUTING_AGENTS.md` "Separation of duties" ¶1 | §7 (b) |
 | `CONTRIBUTING_AGENTS.md` "Verification and handoff" ¶2 | §7 (c) |
-| `CONTRIBUTING_AGENTS.md` "Temporary manual merge control", bullets 2 and 4 | §7 (d), (e) |
+| `CONTRIBUTING_AGENTS.md` "Temporary manual merge control", bullets 2 and 4 | §7 (d), (e); bullets 1, 3 and 5 unchanged |
+| `CONTRIBUTING_AGENTS.md` "Work and evidence flow", the evidence-location sentence | §7 (f) |
+| RFC-2026-030 §3.2's cadence ("10 merged M or L PRs or 7 days", the Owner's Q-030-2 answer) | replaced by §2.3's cadence (Q-034-3) |
 | RFC-2026-030 §2 bullet 1 ("the merge of an M or L PR is pressed by a run that is not the Author's") and §3.1 "Who presses the merge" | A0 may press per §2.2 (Q-034-1); pressing is not integrating |
 | RFC-2026-030 §2 bullet 4 and §3.3 | the fast lane keeps one Reviewer's written confirmation and drops the per-PR Tester (Q-034-4) |
 | RFC-2026-030 §3 table, "Per-PR review" and "Integration Owner" columns | as §2.2's table |
@@ -136,8 +146,9 @@ unchanged). The lane follows the tier and the paths:
 | RFC-2026-031 §3.3 "Consumers" and §9 ("binds unchanged until §6 holds"); Decision Register line 373 and §5.1 lines 190–191; 2026-10-08 disposition §10.3 | as to writing and merging application code only, §2.1 |
 | RFC-2026-031 §6 item 2 | narrowed: this PR does not count as the PR that amends the gate text; a later PR that says the exit has closed does |
 
-Not amended: RFC-2026-030 §2 bullets 2 and 3, §4, §5 (misclassification), §6 (stop-the-line at any tier), §9; RFC-2026-031
-§2, §4, §5, §6 item 1, §7; RFC-2026-025 §5 item 6 and §6.
+Not amended: RFC-2026-030 §2 bullets 2 and 3, §4 (except that §4.1's "the Tester confirms" for M moves to the
+fast-lane Reviewer), §5 (misclassification), §6 (stop-the-line at any tier), §9; RFC-2026-031 §2, §4, §5, §6 item 1, §7;
+RFC-2026-025 §5 item 6 and §6.1 to §6.3 (§6.1 item 2 only as Q-034-5 (a) says).
 
 ## 4. Risks, stated
 
@@ -161,15 +172,15 @@ exit. Its §6 item 2 is narrowed as §3 says.
 
 (a) "Current gate constraint" becomes:
 
-> Sprint 0A is **Specification Baseline Complete / External Verification Pending**; the G0 exit is decided and conditional, and closes only as [`RFC-2026-031`](architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md) §6 says, as narrowed by [`RFC-2026-034`](architecture/decisions/RFC-2026-034-fast-lane.md). Until then agents may build application code, fakes, consumer tests, fixtures, spikes and prototypes against contracts at `Candidate` or above (RFC-2026-034 §2.1), as reversible work only: synthetic data; migrations on local databases only, never on a hosted or production project; and no external provider account, sandbox included, bound and no provider credential used. Every contract a deploy uses is `Frozen` (RFC-2026-031) before any paid beta, real customer data, or production deploy that serves users. Do not represent a package as `Ready`, `Integrated`, `Verified`, or `Done` without the evidence and independent roles required by the package.
+> Sprint 0A is **Specification Baseline Complete / External Verification Pending**; the G0 exit is decided and conditional, and closes only as [`RFC-2026-031`](architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md) §6 says, as narrowed by [`RFC-2026-034`](architecture/decisions/RFC-2026-034-fast-lane.md). Until then agents may build application code, fakes, consumer tests, fixtures, spikes and prototypes against contracts at `Candidate` or above (RFC-2026-034 §2.1), as reversible work only: synthetic data; migrations on local and CI service-container databases only, never on a hosted or production project; and no external provider account, sandbox included, bound and no provider credential used. Every contract a deploy uses is `Frozen` (RFC-2026-031) before any paid beta, real customer data, or production deploy that serves users. Do not represent a package as `Ready`, `Integrated`, `Verified`, or `Done` without the evidence and independent roles required by the package.
 
 (b) "Separation of duties", first paragraph, becomes:
 
-> Every implementation package has distinct Author, Independent Reviewer, Independent Tester, and Integration Owner, and no role is ever held by the Author's run. When they read each pull request follows its lane under [`RFC-2026-034`](architecture/decisions/RFC-2026-034-fast-lane.md) §2.2, which keeps the tiers of [`RFC-2026-030`](architecture/decisions/RFC-2026-030-risk-tiered-review.md), decided by the base's copy of `scripts/db/classify-review-tier.mjs` and never lowered by hand: governance pull requests (RFCs, this guide, gates, CI and the guards it runs, either classifier, `package.json`, lockfiles and tool configuration) are read by every role and merged by the Product Owner under RFC-2026-025 §5; records-only pull requests follow RFC-2026-025 §6; every other tier H pull request (migrations and RLS, auth and tenancy, secrets and OAuth, billing, publishing, jobs and provider adapters, contracts, scripts and test kits, every module not on the reviewed module allowlist, and anything the classifier cannot place) is read by the Security/Privacy reviewer and the Tester on its final head before merge; tier M and L pull requests are read by one independent Reviewer, who confirms in writing what the classifier cannot. The Reviewer, Tester, Security/Privacy reviewer and Integration Owner read all merged risk-lane and fast-lane work in the round audits of RFC-2026-034 §2.3, whose verdicts move a package past `in_review`. A stop-the-line or security finding raises any pull request to tier H and its full reading. The Author may move work only through `in_review`; an Author must never approve, test-verify, integrate, or gate-approve their own work; pressing the merge of a risk-lane or fast-lane pull request after its lane's readers have passed is not integrating it (RFC-2026-034 §2.2). Critical work additionally requires the appropriate independent Security/Privacy, Product/UX, Domain, or SRE reviewer.
+> Every implementation package has distinct Author, Independent Reviewer, Independent Tester, and Integration Owner, and no role is ever held by the Author's run. When they read each pull request follows its lane under [`RFC-2026-034`](architecture/decisions/RFC-2026-034-fast-lane.md) §2.2, which keeps the tiers of [`RFC-2026-030`](architecture/decisions/RFC-2026-030-risk-tiered-review.md), decided by the base's copy of `scripts/db/classify-review-tier.mjs` and never lowered by hand: governance pull requests (RFCs, this guide, `docs/**`, `.agents/**`, gates, CI and the guards and runners it uses, either classifier, `package.json`, lockfiles and tool configuration) are read by every role and merged by the Product Owner personally under RFC-2026-025 §5; records-only pull requests follow RFC-2026-025 §6; every other tier H pull request (migrations and RLS, auth and tenancy, secrets and OAuth, billing, publishing, jobs and provider adapters, contracts, whose freeze pull requests also keep RFC-2026-031's roles, other scripts and test kits, every module not on the reviewed module allowlist, and anything the classifier cannot place) is read by the Security/Privacy reviewer and the Tester on its final head before merge; tier M and L pull requests are read by one independent Reviewer, who confirms in writing what the classifier cannot; a round audit's pull request takes the audit lane of RFC-2026-034 §2.2. The Reviewer, Tester, Security/Privacy reviewer and Integration Owner read all merged risk-lane and fast-lane work in the round audits of RFC-2026-034 §2.3, whose verdicts move a package past `in_review`. A stop-the-line or security finding raises any pull request to tier H and its full reading. The Author may move work only through `in_review`; an Author must never approve, test-verify, integrate, or gate-approve their own work; pressing the merge of a risk-lane or fast-lane pull request after its lane's readers have passed is not integrating it (RFC-2026-034 §2.2). Critical work additionally requires the appropriate independent Security/Privacy, Product/UX, Domain, or SRE reviewer.
 
 (c) "Verification and handoff", second paragraph, becomes:
 
-> Before any commit or push, the Author must provide a clean diff and self-test evidence. What must pass before a merge follows the lane of RFC-2026-034 §2.2: for a governance pull request, the independent Reviewer, Tester and Security/Privacy reviewer complete their checks and the Integration Owner verifies the final state and CI; for a risk-lane pull request, the Security/Privacy reviewer and the Tester; for a fast-lane pull request, one independent Reviewer; for a records-only pull request, RFC-2026-025 §6. Every merge needs green required CI on its exact head. Pushing branch-protection settings or production configuration requires authorized repository/operations ownership and must not be inferred from this guide.
+> Before any commit or push, the Author must provide a clean diff and self-test evidence. What must pass before a merge follows the lane of RFC-2026-034 §2.2: for a governance pull request, the independent Reviewer, Tester and Security/Privacy reviewer complete their checks and the Integration Owner verifies the final state and CI; for a risk-lane pull request, the Security/Privacy reviewer and the Tester; for a fast-lane pull request, one independent Reviewer; for an audit pull request, RFC-2026-034 §2.2's audit lane; for a records-only pull request, RFC-2026-025 §6. Every merge needs green required CI on its exact head. Pushing branch-protection settings or production configuration requires authorized repository/operations ownership and must not be inferred from this guide.
 
 (d) "Temporary manual merge control", second bullet, becomes:
 
@@ -178,6 +189,10 @@ exit. Its §6 item 2 is narrowed as §3 says.
 (e) "Temporary manual merge control", fourth bullet, becomes:
 
 > - The Author never approves, test-verifies, integrates, or authorizes their own work; pressing the merge of a risk-lane or fast-lane pull request after its lane's readers have passed is not integrating it (RFC-2026-034 §2.2). A manual merge cannot waive an unresolved stop-the-line risk.
+
+(f) "Work and evidence flow", second paragraph, first two sentences become (the rest unchanged):
+
+> Use the schemas in `.agents/` for capability profiles, work packages, status updates, and handoffs. Keep canonical evidence under `evidence/<work-package-id>/`, and round-audit evidence under `evidence/audits/` (RFC-2026-034 §2.3); it must contain no secrets or real customer data.
 
 ## 8. Owed after the Owner merges
 
@@ -197,14 +212,18 @@ exit. Its §6 item 2 is narrowed as §3 says.
 
 - **Q-034-1. Who presses.** In the risk and fast lanes, A0 presses the merge, including pull requests A0 authored, once
   the lane's readers have passed and CI is green; R0 gives the integration verdict in the audit. This reverses your
-  answer to Q-030-5 of 2026-10-08 ((a), the presser is not the Author). A0 recommends yes, for speed. The alternative
+  answer to Q-030-5 of 2026-10-08 ((a), the presser is not the Author) and goes beyond its option (b), since it also
+  covers tier H outside governance. A0 recommends yes, for speed. The alternative
   keeps Q-030-5 (a): a run other than the Author presses, which needs a second run awake for every merge.
 - **Q-034-2. Naming modules.** When RFC-2026-029's layout lands, name in `M_ELIGIBLE_MODULES`, in one governance PR,
-  every module that RFC-2026-030 §4.2 item 6 admits (none that owns tenancy, identity, secrets, jobs or provider calls),
+  every module that RFC-2026-030 §4.2 item 6 admits (none that owns identity, tenancy, IAM, sessions, secrets, billing,
+  entitlement, publishing, connectors, uploads, jobs or provider calls), by name, with `audit-observability-ops` kept off
+  the list (A1-251r2-4),
   so ordinary code in them takes the fast lane, **but only after CI runs application tests (§8 item 4)**, so a module's
   own tests run on every fast-lane head (Q0-251-10). A0 recommends yes. The alternative is to name them one by one.
 - **Q-034-3. Audit cadence.** Weekly; before each gate; and before the first real customer data and the first
-  production deploy that serves users. A0 recommends this. The alternative is every 10 merged risk-lane or fast-lane PRs.
+  production deploy that serves users. This replaces your Q-030-2 answer of 2026-10-08 (R0 after 10 merged M or L PRs
+  or 7 days, whichever first). A0 recommends this. The alternative is every 10 merged risk-lane or fast-lane PRs.
 - **Q-034-4. The fast lane's reading.** Your chosen option said fast-lane pull requests pass on automatic CI. A0
   recommends keeping **one independent Reviewer** per fast-lane pull request, because the classifier cannot tell
   whether web code is behind a feature flag and has no data path (A1 measured four component diffs, including
@@ -212,9 +231,14 @@ exit. Its §6 item 2 is narrowed as §3 says.
   confirmation. The alternative is CI only, as your option text said, with the Author recording those confirmations
   and the audit checking them.
 
+- **Q-034-5. The audit pull request.** (a) Each audit file is carried with `cherry-pick -x` from its auditor's own
+  commit, blob-equal, touching no other path; A0 presses on green CI with no further reader, since each file is itself
+  an independent reading. This amends RFC-2026-025 §6.1 item 2 for audit files only. A0 recommends (a). (b) One more
+  independent run, not one of the auditors, reads the audit pull request before A0 presses it.
+
 ## 10. Order before the merge
 
-1. The Owner answers Q-034-1 to Q-034-4 himself, in chat; no broad delegation answers them.
+1. The Owner answers Q-034-1 to Q-034-5 himself, in chat; no broad delegation answers them.
 2. A0, in one commit: transcribes his answers with transcript times into the disposition; amends §2, §3, §4 and §7 to
    match any alternative he chose; sets the status line to Approved.
 3. C0, A1, Q0 and R0 re-read that commit on the final head.
@@ -222,5 +246,5 @@ exit. Its §6 item 2 is narrowed as §3 says.
 
 ## 11. Rollback
 
-A reviewed governance PR that reverts this RFC and the five `CONTRIBUTING_AGENTS.md` passages restores RFC-2026-030's
+A reviewed governance PR that reverts this RFC and the six `CONTRIBUTING_AGENTS.md` passages restores RFC-2026-030's
 review depth and the earlier gate text. Work merged under the risk or fast lane stays; the next audit covers it.
