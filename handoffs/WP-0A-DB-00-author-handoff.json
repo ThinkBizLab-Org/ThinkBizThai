@@ -3,71 +3,75 @@
   "protocol_version": "1.0.0",
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
-  "final_status": "author_complete",
+  "final_status": "in_review",
   "base_revision": "f0b948c78a02211805dcb22bf0922a26404a6b41",
-  "head_revision_or_patch_checksum": "f0b948c78a02211805dcb22bf0922a26404a6b41",
-  "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "head_revision_or_patch_checksum": "ae7b2a2e9f82ddba407876a8eb060b36c30fea9d",
+  "task_ids": [
+    "WP-0A-DB-00",
+    "F1-record-2026-10-11"
+  ],
+  "files_added": [
+    "evidence/WP-0A-DB-00/records-transcription-2026-10-11.md"
+  ],
+  "files_modified": [
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
-    "RFC-2026-025 §6 (records light path)"
+    "RFC-2026-025"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT (2026-10-09) is a records-only PR (RFC-2026-025 §6) with two appends to work-packages/WP-0A-DB-00.json: open_blockers[205] acknowledges R0's R5 (evidence/WP-0A-A0-002/r0-review-2026-10-07.md §3, quoted verbatim), owed to this package after PR #204 merged at ae163ed8; and open_blockers[203] gets a sentence marking that its closing sentence is A0's, not R0's (C0 advisory LP219-1). See evidence/WP-0A-DB-00/records-transcription-2026-10-09.md.",
-    "R5 is advisory and moves no status. R0 kept it owed after PR #204 in r0-recheck-2026-10-08.md and in r0-ruling-2026-10-09.md §6."
+    "THIS INCREMENT appends open_blockers[206]: A5's F-1 (notification_id in CTR-NTF-001 against batch 051's per-recipient uuid key) and R0-243-4, verbatim, as R0 asked that the record reach this package.",
+    "Records only: every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-DB-00/records-transcription-2026-10-11.md.",
+    "Path: the full path (C0, A1, Q0, R0 on the final head, CI green), as the Owner directed for this session."
   ],
   "acceptance_results": [
     {
-      "criterion": "R5 quoted verbatim from its source on main; merge facts for #204 and #220 match gh/git",
-      "result": "met for author self-check",
-      "evidence": "evidence/WP-0A-DB-00/records-transcription-2026-10-09.md §1-§2"
-    },
-    {
-      "criterion": "[203] old text whole as prefix; [205] appended at the end; status unchanged; audit-coverage-map line pins hold",
-      "result": "met for author self-check",
-      "evidence": "work-packages/WP-0A-DB-00.json; node --test --test-name-pattern \"batch 141 prep\" test-kits/db/foundation-contract.test.mjs exit 0 (4/4)"
+      "criterion": "Recorded words match their sources; old entries byte-equal; no status, contract, test or script change beyond what is stated",
+      "result": "pass for author self-check: extracted by script from the cited role files"
     }
   ],
   "tests": [
     {
-      "command": "node --test --test-name-pattern \"batch 141 prep\" test-kits/db/foundation-contract.test.mjs",
+      "command": "npm run validate:protocol",
       "exit_code": 0,
-      "result": "4 tests, 4 pass: audit-coverage-map blocker pins hold after the appends"
+      "result": "valid"
     },
     {
-      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit ae7b2a2e)",
       "exit_code": 0,
-      "result": "records-only: all 2 changed paths are records (before this handoff refresh)"
+      "result": "clean: exit 0 — tests 740, pass 740, fail 0"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (on branch agent/claude/WP-0A-DB-00-batch-rfc-030-risk-tiered-review)",
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
       "exit_code": 0,
-      "result": "see this commit"
+      "result": "every changed path declared, every amendment explains one"
+    },
+    {
+      "command": "npm run check:handoff",
+      "exit_code": 0,
+      "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "None. Records only: one new manifest string, one appended sentence, one transcription file and this handoff. No personal data, credential or private URL.",
+  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, customer data or provider call.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "None. No test, map, script or generated file changes. open_blockers grows by one line after the last pinned entry; no pinned line moves.",
+  "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
   "known_limitations": [
-    "C0, A1 and Q0 final-round words for PR #211 are still owed from their own role files; C0-218-3 and R-17 are not attempted here.",
-    "R19 (r0-ruling-2026-10-09.md §6): PR #204 was pressed before R0 condition 2 and C0 condition 4 re-checks existed. R5 is advisory and R0 kept it owed after that ruling, so this record does not rest on the tripped clause. The reader judges.",
-    "The acknowledgement states a duty for future DB-00 edits to the thirteen modules. It changes no module, digest or ownership field."
+    "Nothing decides the reconciliation; it is owed before CTR-NTF-001 is Frozen, by A5 and this package together."
   ],
   "open_risks_or_blockers": [
-    "Records light path: C0 read 65261088 in R0’s place (evidence/WP-0A-DB-00/light-path-reading-2026-10-09-pr225.md, carried with -x): no blocking finding; advisories LP225-1 to LP225-3. A0 presses under RFC-2026-025 §6.2 item 3 once bootstrap is green on the final head, pinned with --match-head-commit."
+    "Records-only by the classifier; full path anyway, as the Owner directed for this session. A0 presses under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: revert the 2026-10-09 R5 acknowledgement ([205]) and the LP219-1 boundary sentence on [203] with a reviewed revert PR on the WP-0A-DB-00 branch. Records only, no code or digest to restore.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the appended records; nothing depends on them.",
   "recommended_next_work_packages": [
-    "WP-0A-DB-00: transcribe C0, A1 and Q0 final-round words for PR #211 from commit-pinned sources (R-17) in a later records PR.",
-    "WP-0A-A0-005: R0 ruling on the presser clause (r0-review-2026-10-08-pr218.md §6)."
+    "WP-0A-DB-00 with A5: reconcile notification_id (contract, 051 forward fix, or both)."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-DB-00/records-transcription-2026-10-09.md first.",
-    "Compare open_blockers as parsed JSON with origin/main: entries 0-202 and 204 are unchanged; the old [203] is a prefix of the new [203]; [205] is new and quotes r0-review-2026-10-07.md §3 R5 verbatim (line breaks joined by single spaces).",
-    "Run node scripts/db/classify-records-only.mjs origin/main <head> and node --test --test-name-pattern \"batch 141 prep\" test-kits/db/foundation-contract.test.mjs."
+    "Read evidence/WP-0A-DB-00/records-transcription-2026-10-11.md, then git diff origin/main.",
+    "open_blockers[206] against a5-ntf-assessment-2026-10-10.md §6 F-1 and r0-review-2026-10-10-ntf2b.md R0-243-4."
   ],
   "superseded_by": null
 }
