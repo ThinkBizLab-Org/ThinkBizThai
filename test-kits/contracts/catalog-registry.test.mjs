@@ -320,7 +320,9 @@ const CAVEAT_DIGESTS = {
   'ctr-mod-001': { freeze_boundary: '22314a6d0c859d81', untestable_by_fixture: '8053ad9e74ea24fd' },
   // 2026-10-10, WP-0A-CON-006 SC-2 increment: ctr-ntf-001 untestable_by_schema gains (4), whose permission the
   // deep link checks and when (A1's SC-2, WP-0A-CON-006 open_blockers[19]); was 7c05ce2b6365a50e.
-  'ctr-ntf-001': { freeze_boundary: 'dfe64a502dd9efb6', untestable_by_fixture: '1c65be26c333c651', untestable_by_schema: '78c774aedcb5bdbc' },
+  // 2026-10-10, WP-0A-CON-006 A5 owner-decision increment: untestable_by_schema items (2) and (3) reworded and (5), (6)
+  // appended in A5's exact words (evidence/WP-0A-CON-006/a5-ntf-assessment-2026-10-10.md OD-2, OD-4); was 78c774aedcb5bdbc.
+  'ctr-ntf-001': { freeze_boundary: 'dfe64a502dd9efb6', untestable_by_fixture: '1c65be26c333c651', untestable_by_schema: 'dfe65f16b2f36949' },
   'ctr-obs-001': { freeze_boundary: 'f29d8f232d3ce4eb', untestable_by_fixture: 'bbdf43f4298434e5', untestable_by_schema: '5f8f6304b630de9e' },
   'ctr-pag-001': { freeze_boundary: '7cc50c9d8daf646d', untestable_by_fixture: 'd5b82746b3379dcd', untestable_by_schema: '632e77c7c5fd5e87' },
   'ctr-sec-001': { freeze_boundary: '76d856658740ce9c', untestable_by_fixture: '1ffa2979d8f056c7', untestable_by_schema: 'c4809fecbc249148' },
@@ -453,7 +455,9 @@ const ANNOTATION_DIGESTS = {
   'ctr-idm-001': { count: 8, digest: '651b5e5ef2e84103' },
   'ctr-job-001': { count: 8, digest: 'b374d6bd002c3ad4' },
   'ctr-mod-001': { count: 20, digest: '29985bb8dcd4186c' },
-  'ctr-ntf-001': { count: 20, digest: '6676c9e55382b076' },
+  // 2026-10-10, WP-0A-CON-006 A5 owner-decision increment: dedupe_key x-pii-shape and x-bound-note and notification_id
+  // x-bound-note reworded in A5's exact words (a5-ntf-assessment-2026-10-10.md OD-4); count unchanged; was 6676c9e55382b076.
+  'ctr-ntf-001': { count: 20, digest: 'd41ba1c066871f44' },
   'ctr-obs-001': { count: 32, digest: 'e76885c679b414cd' },
   'ctr-pag-001': { count: 8, digest: 'b69a983bac7678fb' },
   'ctr-sec-001': { count: 29, digest: '72897b3ec02f0bbe' },

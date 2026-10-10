@@ -34,7 +34,8 @@
     ],
     "network_note": "Network and browser tools are present in the harness, so both booleans are declared true rather than understated. An A5 assessment reads the repository and runs repository-declared commands; it needs neither.",
     "verification_scope": "Repository-local reading and deterministic probes against the shipped contract, schemas and fixtures. Provider behaviour and any external system must be verified from their own authoritative systems; this run cannot verify them.",
-    "evidence": "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md"
+    "evidence": "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md",
+    "external_connectors_disclosure": "Recorded 2026-10-10 by A0 (/claude/a0_atlas) on the Product Owner's answers of that date (evidence/WP-0A-CON-006/product-owner-disposition-2026-10-10-a5-c2-connectors.md), for A5's condition C-2 (evidence/WP-0A-CON-006/a5-ntf-assessment-2026-10-10.md §0.1). The run measured connectors in the harness able to read hosting environment variables (Vercel), run SQL (Supabase) and send mail or chat (Microsoft 365, Gmail), with Cloudflare also connected. Supabase, Microsoft 365, Gmail and Cloudflare are turned off for the session (first answer). The Vercel connector stays present in the harness (second answer, option (ก)): this run is FORBIDDEN to use it, did not use it for the A5 assessment, and can_access_external_secrets: false is, for Vercel, a policy prohibition rather than a fact of the tools. The unavailable_tools entry \"any production database or provider credential\" is read the same way for Vercel. A1 and A5 accept or refuse this reading before this run's signature is cited. No capability value changes."
   },
   "accepted_work_package": null
 }
