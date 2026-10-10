@@ -4,17 +4,11 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "d44dbdbb1efebc9d891e3d31fdf01a8a8060c59a",
-  "head_revision_or_patch_checksum": "9129372fab2a45c1aecfe562c06b23b700347504",
+  "base_revision": "f0b948c78a02211805dcb22bf0922a26404a6b41",
+  "head_revision_or_patch_checksum": "f0b948c78a02211805dcb22bf0922a26404a6b41",
   "task_ids": [],
-  "files_added": [
-    "evidence/WP-0A-DB-00/light-path-reading-2026-10-09-pr225.md",
-    "evidence/WP-0A-DB-00/records-transcription-2026-10-09.md"
-  ],
-  "files_modified": [
-    "handoffs/WP-0A-DB-00-author-handoff.json",
-    "work-packages/WP-0A-DB-00.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025 §6 (records light path)"
