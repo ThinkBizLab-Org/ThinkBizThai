@@ -4,19 +4,24 @@
   "work_package_id": "WP-0A-CON-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "5e444c5355624e442d145dbbedb0c30c7df99833",
-  "head_revision_or_patch_checksum": "e1c360acd31fcbba2f344065fdf0b0b9b0b64ec1",
+  "base_revision": "82fafb3fd0ec2f991853bc7374738717ad6ea152",
+  "head_revision_or_patch_checksum": "087913962aabce8b08e065f34a1a55597d3c0967",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-033-obs-label-cardinality.md",
+    "evidence/WP-0A-CON-004/a1-h2-reread-2026-10-10-pr239.md",
     "evidence/WP-0A-CON-004/a1-reread-2026-10-09-pr239.md",
     "evidence/WP-0A-CON-004/a1-review-2026-10-09-pr239.md",
+    "evidence/WP-0A-CON-004/a6-rfc033-h2-reread-2026-10-10.md",
     "evidence/WP-0A-CON-004/a6-rfc033-reading-2026-10-09.md",
     "evidence/WP-0A-CON-004/a6-rfc033-reread-2026-10-09.md",
+    "evidence/WP-0A-CON-004/c0-h2-reread-2026-10-10-pr239.md",
     "evidence/WP-0A-CON-004/c0-reread-2026-10-09-pr239.md",
     "evidence/WP-0A-CON-004/c0-review-2026-10-09-pr239.md",
     "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-night-delegation.md",
     "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-10-rfc033-answers.md",
+    "evidence/WP-0A-CON-004/q0-review-2026-10-10-pr239.md",
+    "evidence/WP-0A-CON-004/r0-h2-reread-2026-10-10-pr239.md",
     "evidence/WP-0A-CON-004/r0-reread-2026-10-09-pr239.md",
     "evidence/WP-0A-CON-004/r0-review-2026-10-09-pr239.md"
   ],
@@ -104,9 +109,7 @@
     "The amendments to test-kits/repository-json.test.mjs (WP-0A-A0-001), scripts/verify-test-coverage-floor.mjs and test-kits/integrity-manifest.json (WP-0A-A0-002) are owed a record on those owners' manifests by their next PRs (R0 R-239-6)."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H, GOVERNANCE. At a77b8a66: C0 review_approved, A1 security_approved_with_conditions (C-1′ now met by the Owner's own answers, pending A1's re-read; C-2′ for the records PR; C-3 for the §8 increment), R0 integration_verified on r0-reread-2026-10-09-pr239.md §4 and §5, A6 signed §2 to §4 as amended. Q0 has not yet run.",
-    "The press of #239 still waits for: C0, A1 and R0 delta re-reads of the Owner-answers commit and the Accepted commit; Q0's full run on the branch name at a head containing them; A6's re-read of the Accepted commit; CI green on the exact head pressed (open_blockers[28], R0 P1 to P8).",
-    "The night-delegation file cites evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md, which reaches main only with PR #238."
+    "Full path, tier H, GOVERNANCE (RFC-2026-033, Accepted on 2026-10-10). Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-CON-004/: round one at c3039031 (c0-review, a1-review, r0-review, a6-rfc033-reading), re-reads at a77b8a66 (c0-reread, a1-reread, r0-reread, a6-rfc033-reread), and the H1/H2 re-reads at e4425df1 (c0-h2-reread: review_approved; a1-h2-reread: security_approved, no finding open; r0-h2-reread: integration_verified as Accepted; a6-rfc033-h2-reread: signature stands; q0-review-2026-10-10: full run on the branch name). Presser: A0 (/claude/a0_atlas) presses this governance PR on the Owner's 2026-10-09 answer `ให้ A0 กดทั้ง 3 (Recommended)` (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md, item 3), whose condition that the Owner answer the RFC's questions himself is met by evidence/WP-0A-CON-004/product-owner-disposition-2026-10-10-rfc033-answers.md (asked 03:14:07Z, answered 03:21:40Z); not the night words of 2026-10-09 (superseded by open_blockers[27], [28]) and not the 2026-10-03 delegation. Conditions (r0-h2-reread P1-P8): bootstrap green on this exact head containing main, no security finding open, a true merge commit pinned with --match-head-commit. Owed after the merge: R0's §6 words, A1 C-2′ in the records PR, C-3 and C-4 and R-239-13/14 on the §8 increment."
   ],
   "rollback_or_forward_fix": "WP-0A-CON-004 RFC-2026-033 OBS-label-cardinality increment, Accepted 2026-10-10 on the Owner's own §9 answers: before the merge, revert the Accepted commit to return the RFC to Proposed (status paragraph, §9 answer lines, Order item 3, open_blockers[28], RFC digest), and the answers commit to drop the Owner-answers file; earlier commits revert as before (dropping c2096f79 removes the RFC, the night-delegation disposition, the DECISION_RECORDS and DIGESTED_FLOOR lines, open_blockers[26] and the last required_human_authorities entry; regenerate test-kits/integrity-manifest.json). Cherry-picked role files are evidence and are dropped only with the head they read. After the merge the Accepted RFC stays on record; a wrong list or budget is fixed forward by an amendment with A6's words and the Owner's answer, and a withdrawn RFC by a superseding one.",
   "recommended_next_work_packages": [
