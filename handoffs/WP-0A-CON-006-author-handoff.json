@@ -4,16 +4,20 @@
   "work_package_id": "WP-0A-CON-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "f0b948c78a02211805dcb22bf0922a26404a6b41",
-  "head_revision_or_patch_checksum": "36793ad41cf9ac9b8767a1c959055df7f478992e",
+  "base_revision": "35ad47cdabbc6d3b545e1e06566327b3813cc5aa",
+  "head_revision_or_patch_checksum": "bd154b95b6057c21d836c5984a4ee5ccf5476f2a",
   "task_ids": [
     "WP-0A-CON-006",
     "PR244-records-2026-10-11"
   ],
   "files_added": [
+    "evidence/WP-0A-CON-006/a1-reread-2026-10-11-pr248.md",
     "evidence/WP-0A-CON-006/a1-review-2026-10-11-pr248.md",
+    "evidence/WP-0A-CON-006/c0-reread-2026-10-11-pr248.md",
     "evidence/WP-0A-CON-006/c0-review-2026-10-11-pr248.md",
+    "evidence/WP-0A-CON-006/q0-reread-2026-10-11-pr248.md",
     "evidence/WP-0A-CON-006/q0-review-2026-10-11-pr248.md",
+    "evidence/WP-0A-CON-006/r0-reread-2026-10-11-pr248.md",
     "evidence/WP-0A-CON-006/r0-review-2026-10-11-pr248.md",
     "evidence/WP-0A-CON-006/records-transcription-2026-10-11.md"
   ],
@@ -72,9 +76,9 @@
     "Neon is connected by the Owner's answer while every Claude profile states can_access_external_secrets: false; A1-NTF2B-2 / R0-248-2 is open for the Owner."
   ],
   "open_risks_or_blockers": [
-    "Full path. Round one at 37e2bb86 carried with -x (c0, a1, q0, r0 *-review-2026-10-11-pr248.md); the fix commit answers R0-248-1, C0-248-1 and C0-248-2, A1-REC-248-1, and is outside every carry clause, so C0, A1, Q0 and R0 re-read it. A0 presses under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), not a governance PR, once every re-read passes and bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
+    "Full path, as the Owner directed for this session. Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-CON-006/: round one at 37e2bb86 (c0-review changes_requested on C0-248-1/2; a1-review security_changes_requested on A1-REC-248-1; q0-review test_verified; r0-review not integration_verified on R0-248-1) and re-reads of the fix at f51168ef (c0-reread review_approved, C0-248-1/2/3 closed; a1-reread security_approved, A1-REC-248-1 closed; q0-reread test_verified 740/740 on the branch name; r0-reread integration_verified, R0-248-1 closed). Merged last of the records round, as R0 ordered. Presser: A0 (/claude/a0_atlas) under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6); not a governance PR. Pressed once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit. Owed to the Owner: whether Neon's new-session default is back on (R0-248-5)."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the appended records; nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes WP-0A-CON-006 open_blockers[33] (PR244-records-2026-10-11) and the fourth-answer section of the C-2 disposition, and restores the six amends_without_owning paths; nothing depends on them.",
   "recommended_next_work_packages": [
     "WP-0A-CON-006: CTR-NTF-001 work before Frozen (F-1 to F-5)."
   ],
