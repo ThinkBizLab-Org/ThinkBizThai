@@ -4,13 +4,17 @@
   "work_package_id": "WP-0A-CON-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "9296877418cd0939b07829c915717bf13d571d92",
-  "head_revision_or_patch_checksum": "3e6492618f6c77816ca1fea9028f141992cd7c27",
+  "base_revision": "4a0a8bd602e2845d1ffc7e4ed5581c9b41370ebe",
+  "head_revision_or_patch_checksum": "4aa642e6f135ea557d27e5a35148d27c236aea0b",
   "task_ids": [
     "WP-0A-CON-004",
     "PR239-records-2026-10-10"
   ],
   "files_added": [
+    "evidence/WP-0A-CON-004/a1-review-2026-10-10-pr241.md",
+    "evidence/WP-0A-CON-004/c0-review-2026-10-10-pr241.md",
+    "evidence/WP-0A-CON-004/q0-review-2026-10-10-pr241.md",
+    "evidence/WP-0A-CON-004/r0-review-2026-10-10-pr241.md",
     "evidence/WP-0A-CON-004/records-transcription-2026-10-10.md"
   ],
   "files_modified": [
@@ -86,7 +90,7 @@
     "gh mergedBy for PR #239 is the repository account; who pressed rests on the session record."
   ],
   "open_risks_or_blockers": [
-    "Records-only by the classifier; full path anyway, as the Owner directed for this session. Owed on the final head: C0, A1, Q0 and R0, each with its carry clause. A0 presses only after all four pass and bootstrap is green on that exact head with main contained, under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), as for the earlier records PRs. open_blockers[4] stays open until the RFC-2026-033 §8 increment (enum, obs-label-budget.test.mjs, 54 fixtures to provider; A1 C-3, C-4; R-239-13, R-239-14)."
+    "Records-only by the classifier; full path, as the Owner directed for this session. Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-CON-004/ at a5ad2314: c0-review-2026-10-10-pr241.md (review_approved; advisories C0-241-A1..A3), a1-review-2026-10-10-pr241.md (security_approved, C-2′ met and closed), q0-review-2026-10-10-pr241.md, r0-review-2026-10-10-pr241.md (integration_verified; handoff range move ruled sound). Presser: A0 (/claude/a0_atlas) under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), once bootstrap is green on this exact head with main contained, as a true merge commit pinned with --match-head-commit. open_blockers[4] stays open until the RFC-2026-033 §8 increment (enum, obs-label-budget.test.mjs, 54 fixtures to provider; A1 C-3, C-4; R-239-13, R-239-14)."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[29] and restores the three amends_without_owning paths.",
   "recommended_next_work_packages": [
