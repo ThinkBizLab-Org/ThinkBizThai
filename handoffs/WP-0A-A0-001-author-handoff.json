@@ -5,7 +5,7 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "b4aa4fcddf7b0a71fad6eb1fd280b0282eba1680",
-  "head_revision_or_patch_checksum": "2b0bf9f3b4f00b65f3769b08db3864d6a48f53d2",
+  "head_revision_or_patch_checksum": "50ff2027f4264785b5c2b2bdd15ef8bd344d2ed7",
   "task_ids": [
     "WP-0A-A0-001",
     "RFC-2026-034-fast-lane-2026-10-11"
@@ -41,15 +41,14 @@
   "contracts_produced_or_changed": [],
   "assumptions": [
     "WRITER DISCLOSURE: written by /claude/a0_atlas (A0). agent_run_id reads /root because handoff-conformance requires it to equal the manifest author_agent_run_id, which this increment does not change.",
-    "THIS INCREMENT drafts RFC-2026-034 'fast lane' (status Proposed) on the Product Owner's choice of 2026-10-10 (asked 19:02:50Z, answered 19:03:54Z, `ทางกลาง (Recommended)`; evidence/WP-0A-A0-001/product-owner-disposition-2026-10-11-fast-lane.md) and applies its two CONTRIBUTING_AGENTS.md passages, this package's file. DECISION_RECORDS (own file), DIGESTED_FLOOR and the integrity manifest (WP-0A-A0-002, declared amendments) register it.",
+    "THIS INCREMENT drafts RFC-2026-034 'fast lane' (status Proposed) on the Product Owner's choice of 2026-10-10 (asked 19:02:50Z, answered 19:03:54Z, `ทางกลาง (Recommended)`; evidence/WP-0A-A0-001/product-owner-disposition-2026-10-11-fast-lane.md) and applies its five CONTRIBUTING_AGENTS.md passages (RFC §7), this package's file. DECISION_RECORDS (own file), DIGESTED_FLOOR and the integrity manifest (WP-0A-A0-002, declared amendments) register it.",
     "A governance PR under RFC-2026-025 §5 item 6: the Product Owner merges it personally. Its questions Q-034-1 to Q-034-3 are his to answer; A0 does not answer them from any broad delegation and does not press this PR.",
     "The branch is cut at #250's merge; the handoff range was set to the branch point by hand and then regenerated.",
-    "REVISED after the first role round (C0, A1 and R0 changes requested; Q0 test_verified with Q0-251-1 the sync): see the rework commit and open_blockers[7]. Round-one role files carried with -x; origin/main merged mechanically.",
     "REVISED TWICE after role rounds (round one at 6046e46e; re-read at 5cb6d727), each round's files carried with -x; see open_blockers[7] and the two rework commits."
   ],
   "acceptance_results": [
     {
-      "criterion": "The two CONTRIBUTING_AGENTS.md passages equal RFC-2026-034 §7 word for word, and nothing else in the file changes",
+      "criterion": "The five CONTRIBUTING_AGENTS.md passages equal RFC-2026-034 §7 word for word, and nothing else in the file changes",
       "result": "pass for author self-check: applied by script from the RFC text"
     },
     {
@@ -74,14 +73,14 @@
       "result": "valid"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 21af6654)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commits 21af6654, b2e6fbf4 and the second rework commit)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 740, pass 740, fail 0"
+      "result": "clean: exit 0 — tests 740, pass 740, fail 0, each"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-001",
       "exit_code": 0,
-      "result": "all 8 changed paths declared"
+      "result": "every changed path declared"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD",
@@ -94,18 +93,18 @@
       "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Changes the review and gate rules once the Owner merges it: fast-lane PRs would merge on green CI without a role reading them first, with round audits as the compensating control; risk-lane paths (migrations/RLS, auth, secrets, payment, publishing, CI and guards) keep A1 + Q0 before merge; no real customer data until PDPA; Frozen before production use. No code, credential or customer data changes on this PR.",
+  "security_privacy_cost_impact": "Changes the review and gate rules once the Owner merges it: application code on Candidate contracts as reversible, synthetic, provider-free work; governance (CI, guards and classifiers included) and records unchanged; other tier H read by A1 and Q0 before merge; tier M and L by one Reviewer; all four audit in rounds; A0 may press its own risk- and fast-lane PRs (Q-034-1). No code, credential or customer data changes on this PR.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes: an RFC and two CONTRIBUTING_AGENTS.md passages; no contract-catalog file.",
+  "compatibility_impact": "No contract changes: an RFC and five CONTRIBUTING_AGENTS.md passages; no contract-catalog file.",
   "known_limitations": [
     "Proposed only. Not in effect until the Owner answers Q-034-1 to Q-034-3 and merges this PR personally.",
-    "The lane is decided by A0 from paths until the classifier prints it (RFC §8 item 2, WP-0A-A0-004).",
+    "Until CI prints the tier (RFC §8 item 2; ci.yml is WP-0A-A0-004's, the classifier WP-0A-DB-00's), every PR is tier H, so the fast lane stays closed.",
     "RFC-2026-030 and RFC-2026-031 status lines are not touched here (RFC §8 item 3)."
   ],
   "open_risks_or_blockers": [
     "GOVERNANCE, tier H, full path. Round one at 6046e46e and re-read at 5cb6d727 (carried): changes asked by C0, A1 and R0; Q0 test_verified. The second rework commit is outside every carry clause, so C0, A1, Q0 and R0 re-read it. Not pressed by A0. RFC §10 sets the order: the Product Owner answers Q-034-1 to Q-034-4 in chat; A0 transcribes them and changes the status line in one commit; the roles re-read; the Owner merges it personally."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed PR reverting RFC-2026-034 and the two CONTRIBUTING_AGENTS.md passages restores RFC-2026-030's tiers and the earlier gate text (RFC §10).",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed PR reverting RFC-2026-034 and the two CONTRIBUTING_AGENTS.md passages restores RFC-2026-030's review depth and the earlier gate text (RFC §11).",
   "recommended_next_work_packages": [
     "After the Owner merges: the first round audit within seven days; the classifier change that prints the lane (WP-0A-A0-004); then application code on Candidate contracts (G1)."
   ],
