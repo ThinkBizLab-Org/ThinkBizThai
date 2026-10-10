@@ -4,124 +4,104 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "5e444c5355624e442d145dbbedb0c30c7df99833",
-  "head_revision_or_patch_checksum": "03125fc8a2c758944e0907b9017f5dc78aa23c2d",
+  "base_revision": "9296877418cd0939b07829c915717bf13d571d92",
+  "head_revision_or_patch_checksum": "37e3e1c1728cd5b0f0ade9ce4bdd2034beac1a3c",
   "task_ids": [
     "WP-0A-A0-001",
-    "NTF-A5-capability-profile-2026-10-09"
+    "PR238-records-2026-10-10"
   ],
   "files_added": [
-    ".agents/capability-profiles/cc-a5-loom.json",
-    "evidence/WP-0A-A0-001/a1-reread-2026-10-09-pr238.md",
-    "evidence/WP-0A-A0-001/a1-review-2026-10-09-pr238.md",
-    "evidence/WP-0A-A0-001/c0-reread-2026-10-09-pr238.md",
-    "evidence/WP-0A-A0-001/c0-review-2026-10-09-pr238.md",
-    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md",
-    "evidence/WP-0A-A0-001/q0-review-2026-10-09-pr238.md",
-    "evidence/WP-0A-A0-001/r0-reread-2026-10-09-pr238.md",
-    "evidence/WP-0A-A0-001/r0-review-2026-10-09-pr238.md"
+    "evidence/WP-0A-A0-001/records-transcription-2026-10-10.md"
   ],
   "files_modified": [
-    "handoffs/WP-0A-A0-001-author-handoff.json",
     "work-packages/WP-0A-A0-001.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-002",
     "RFC-2026-013",
-    "RFC-2026-024",
     "RFC-2026-025",
-    "RFC-2026-031"
+    "RFC-2026-032",
+    "RFC-2026-033"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "WRITER DISCLOSURE: this increment was written by /claude/a0_atlas (A0), through a subagent of A0's run. The agent_run_id field reads /root because test-kits/handoff-conformance.test.mjs requires it to equal the manifest author_agent_run_id of WP-0A-A0-001, which this increment does not change. /root did not write it.",
-    "THIS INCREMENT adds .agents/capability-profiles/cc-a5-loom.json, declaring the Claude run /claude/a5_loom for A5 (Loom) owner assessment and ratification of CTR-NTF-001 only; any other A5-owned contract, and any owed A5 review (e.g. batch 091 in WP-0A-DB-00), needs its own Owner disposition and an amendment of this profile. That is what the Product Owner directed on 2026-10-09 (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md, Q1, option (ข)). RFC-2026-013 counts a run's assessment as a signature only for a role its capability profile declares, and no profile on main declared a run A5 could be dispatched as.",
-    "REWORK on the PR #238 role findings (C0 B-1 and A-4; A1 F-1, A-2, A-3 and A-4; R0-238-1, -2 and -4): the scope above is narrowed in role_scope, the manifest rationale sentence and the new open_blockers entry (both new on this branch, not on main); the profile and the open_blockers entry state that SC-2's wording must be in the CTR-NTF-001 manifest before A5 ratifies, that the Frozen-stage owner signature (RFC-2026-031 §3.2 item 2) is out of scope until a new disposition, and that the step-2 PR updating cc-a5-loom.json must be a WP-0A-A0-001 increment or a declared amendment on WP-0A-CON-006.",
-    "The profile values were declared by A0 from the harness A0 dispatches from, not supplied by the run, as cc-a6-relay.json was on 2026-09-02. The profile says so in declaration_origin and asks the run to confirm or correct them in its first A5 file.",
-    "The disposition file was a byte-for-byte copy of the record A0 wrote of the Owner's answers in session 3ecec68b (cmp exit 0 at 41696e82). This rework changes it in two places only: the answer time now gives the transcript's 16:55:57Z with A0's dated correction note (R0-238-1), and Q3's option description is quoted verbatim under answer 3, with a sentence that the step-3 PR will quote it verbatim from the source (R0-238-2). It is therefore no longer cmp-identical to the scratch record.",
-    "cc-a6-relay.json had no owning manifest: 790f0f36 created it under this package's amends_without_owning, which later increments narrowed. It is added back to this package's writable_paths and outputs.files; its content is unchanged."
+    "WRITER DISCLOSURE: this increment was written by /claude/a0_atlas (A0). The agent_run_id field reads /root because test-kits/handoff-conformance.test.mjs requires it to equal the manifest author_agent_run_id of WP-0A-A0-001, which this increment does not change. /root did not write it.",
+    "THIS INCREMENT is a records branch after PR #238 merged as 82fafb3fd0ec2f991853bc7374738717ad6ea152 (final head 5f79a4b6, bootstrap run 38022481923). It appends R0's post-merge words from evidence/WP-0A-A0-001/r0-reread-2026-10-09-pr238.md §4 as open_blockers[6], with only the four placeholders R0 named filled from gh and git, and appends two ownership.amended_by records owed by R0 R-239-6: WP-0A-CON-004's one-line DECISION_RECORDS amendments of test-kits/repository-json.test.mjs for RFC-2026-032 (PR #236) and RFC-2026-033 (PR #239), acknowledgement pending from /root/r0_steward.",
+    "The facts and their sources are in evidence/WP-0A-A0-001/records-transcription-2026-10-10.md §1 and §2. open_blockers[0] to [5] are byte-equal to main; the amends_without_owning rationale on main is an exact prefix of this branch's.",
+    "Path: full (C0, A1, Q0, R0 on the final head, CI green), as the Owner directed for this session; stricter than the RFC-2026-025 §6 records light path."
   ],
   "acceptance_results": [
     {
-      "criterion": "cc-a5-loom.json passes the capability validator (required fields, protocol_version 1.0.0, can_access_external_secrets false, unique agent_run_id)",
-      "result": "pass for author self-check: node scripts/validate-capability-profiles.mjs exit 0"
+      "criterion": "open_blockers[6] is R0's §4 wording verbatim with only <final head>, <run id>, <main sha> and <merge sha> filled",
+      "result": "pass for author self-check: extracted from the blockquote of r0-reread-2026-10-09-pr238.md §4 by script, placeholders replaced, none left"
     },
     {
-      "criterion": "The profile states its scope (CTR-NTF-001 only), the SC-2 ordering, the Frozen-stage exclusion, its missing benchmark, its origin, the batch 090 history, the distinction from /root/a5_loom and the same-lineage disclosure",
-      "result": "pass for author self-check: limitations.role_scope, benchmark_outcome, declaration_origin and same_lineage_disclosure; no 'starting with' or 'A5-owned contracts' scope wording remains in the profile, manifest or handoff"
+      "criterion": "amended_by records the RFC-2026-032 and RFC-2026-033 amendments of repository-json.test.mjs with /root/r0_steward as acknowledger (R-239-6)",
+      "result": "pass for author self-check: amended_by[4] and [5], acknowledgement_status pending"
     },
     {
-      "criterion": "The disposition is on the branch with the transcript's answer time and Q3's option description verbatim, and every owned path is declared",
-      "result": "pass for author self-check: the Q3 description string matches the session transcript byte for byte; node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-001 exit 0"
+      "criterion": "status, capability profiles, contracts, tests and scripts unchanged",
+      "result": "pass for author self-check: git diff origin/main touches only the manifest, one evidence file and this handoff"
     }
   ],
   "tests": [
-    {
-      "command": "node scripts/validate-capability-profiles.mjs",
-      "exit_code": 0,
-      "result": "every profile valid, run ids unique, every role run declared"
-    },
     {
       "command": "node scripts/validate-work-packages.mjs",
       "exit_code": 0,
       "result": "valid; open_blockers on origin/main are a byte-equal prefix of the branch's, and the main rationale is an exact prefix"
     },
     {
-      "command": "node scripts/db/classify-records-only.mjs --sync e0c8ac8e 2e2ace5d",
+      "command": "npm run validate:protocol",
       "exit_code": 0,
-      "result": "mechanical sync of origin/main 5e444c53, no conflict inside the PR's paths; npm run regenerate:manifest and npm run record:verification cmp-clean"
+      "result": "work packages, capability profiles and ownership valid"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (on branch agent/root/WP-0A-A0-001-repository-bootstrap-2026-10-07)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (on branch agent/root/WP-0A-A0-001-repository-bootstrap-2026-10-07, commit 37e3e1c1)",
       "exit_code": 0,
-      "result": "clean: full suite, see the commit-when-clean output for this head"
+      "result": "clean: exit 0 — tests 740, pass 740, fail 0, skipped 0, todo 0"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-001",
       "exit_code": 0,
-      "result": "all 4 changed paths declared, every amendment explains one"
+      "result": "all 2 changed paths declared (before this handoff refresh), every amendment explains one"
     },
     {
       "command": "node scripts/db/classify-records-only.mjs origin/main HEAD",
       "exit_code": 1,
-      "result": "NOT records-only: a capability profile, an Owner disposition, and writable_paths and outputs changed; full path"
+      "result": "NOT records-only: ownership.amended_by entries added and amended_by_shape_note changed; full path"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD",
       "exit_code": 0,
-      "result": "tier H (a capability profile and ownership change; base classifier copy)"
+      "result": "tier H (ownership.amended_by; the base's classifier copy)"
     },
     {
       "command": "npm run check:handoff",
       "exit_code": 0,
-      "result": "describes the branch"
+      "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Protocol declaration only. The one authority this profile grants is an owner signature, as A5, on a contract A0's lineage wrote: CTR-NTF-001 only, not its Frozen-stage signature, and only after Q0's benchmark is on main and recommends the run. The compensating control is the Owner's Q4 condition: a §0 same-lineage disclosure in every A5 file, and A1, C0 and Q0 re-reading the result. The profile denies external-secret access (validator-enforced) and grants no Author, Reviewer, Tester, Integration Owner, Product Owner, merge or G0 authority. No code, test, schema, CI, credential or customer data changes.",
+  "security_privacy_cost_impact": "Records only. No authority is granted or widened: the R0 words restate the limits of /claude/a5_loom already on main, and the amendment records add no permission. No code, test, schema, CI, credential or customer data changes.",
   "migration_and_data_impact": "None. No database migration, RLS change, object-storage operation or external state change.",
-  "compatibility_impact": "Additive. One capability profile added; /claude/a5_loom joins the run ids test-kits/handoff-conformance.test.mjs enumerates, and the full suite passes with it. No contract, test, script or integrity-manifest change.",
+  "compatibility_impact": "None. Two arrays in this package's manifest gain elements; no contract, test, script or integrity-manifest change.",
   "known_limitations": [
-    "No capability benchmark exists for /claude/a5_loom yet. Q0's short forward-scoped benchmark (disposition Q2) is owed before the run signs as A5, and benchmark_outcome reads none until a later increment records it.",
-    "The capability values are A0's declaration, not the run's own; .agents/capability-profiles/README.md asks for run-supplied values when A0 transcribes a declaration.",
-    "This increment assesses nothing and moves no contract. The A5 assessment and the CTR-NTF-001 Draft -> Candidate move are WP-0A-CON-006 PRs (disposition, sequence items 2 and 3).",
-    "The scope is CTR-NTF-001 only. Any other A5-owned contract, any owed A5 review (e.g. batch 091 in WP-0A-DB-00), and the Frozen-stage owner signature on CTR-NTF-001 each need a new Product Owner disposition and an amendment of this profile.",
-    "SC-2's wording must be in the CTR-NTF-001 manifest before A5 ratifies; that ordering is prose in the profile and the manifest, checked by readers, not by a guard."
+    "The two amendment records are pending acknowledgement by /root/r0_steward.",
+    "DECISION_RECORDS lines for RFC-2026-015 to RFC-2026-031, added by other packages, are not recorded on this manifest (records-transcription §3); they stay in the backlog of owner-manifest amendment records.",
+    "gh mergedBy for PR #238 is the repository account; who pressed rests on the session record."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H (a capability profile; not governance under RFC-2026-025 §5 item 6, per r0-review). Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-A0-001/: round one at 1ebfbc5d (c0-review: changes_requested B-1; a1-review: security_changes_requested F-1; r0-review), re-reads at 835f5ee1 after the narrowing commit e0c8ac8e (c0-reread: review_approved; a1-reread: security_approved, no finding open; r0-reread: integration_verified) and Q0's full run at 835f5ee1 (q0-review: test_verified, 740/740 on the branch name). Presser: A0 (/claude/a0_atlas) presses on the Owner's 2026-10-09 answer `ให้ A0 กดทั้งชุด (Recommended)` (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md, Q3; asked 16:50:32Z, answered 16:55:57Z), which names the NTF sequence with this PR as item 1; not the 2026-10-03 delegation and not the night words. Conditions (r0-reread press conditions 1-7): bootstrap green on this exact head containing main, a true merge commit pinned with --match-head-commit. Before /claude/a5_loom signs: Q0's forward-scoped benchmark on main, the run's own confirmation of its profile values, SC-2 stated in the CTR-NTF-001 manifest; scope CTR-NTF-001 only, Frozen-stage signature excluded."
+    "Full path, tier H (the classifier reads the amended_by records as an ownership change). Owed on the final head: C0, A1, Q0 and R0, each with its carry clause; A0 presses only after all four pass and bootstrap is green on that exact head, under the Owner's 2026-10-09 Q3 `ให้ A0 กดทั้งชุด (Recommended)` (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md), which names the NTF sequence this records PR closes the first item of."
   ],
-  "rollback_or_forward_fix": "Before merge: close the A5 capability-profile PR. After merge: a reviewed revert PR deletes .agents/capability-profiles/cc-a5-loom.json and removes it and cc-a6-relay.json from WP-0A-A0-001 writable_paths and outputs.files; /claude/a5_loom then has no declared role again and any signature it made stops counting under RFC-2026-013. The disposition record stays as history.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[6] and amended_by[4] and [5]; nothing else depends on them.",
   "recommended_next_work_packages": [
-    "WP-0A-CON-006: Q0's forward-scoped benchmark of /claude/a5_loom, then the A5 assessment of CTR-NTF-001 with its §0 disclosure (disposition sequence item 2).",
-    "WP-0A-A0-001: record the benchmark outcome in cc-a5-loom.json, and any correction the run makes to its capability values.",
-    "WP-0A-CON-006 then WP-0A-CON-008: CTR-NTF-001 Draft -> Candidate on A5's signature and A1's SC-2 confirmation, then the RFC-2026-010 status line (sequence items 3 and 4)."
+    "WP-0A-CON-004: the PR #239 records branch (R0 h2-reread §6, A1 C-2′).",
+    "WP-0A-CON-006: NTF sequence item 2 — SC-2 in the CTR-NTF-001 manifest first, then Q0's forward-scoped benchmark of /claude/a5_loom, then its A5 assessment."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md first, then .agents/capability-profiles/cc-a5-loom.json beside cc-a6-relay.json (the precedent, 790f0f36).",
-    "For the rework, git diff 1ebfbc5d e0c8ac8e shows the content changes: role_scope and benchmark_outcome in the profile, the CAPABILITY INCREMENT rationale sentence and open_blockers[5] in the manifest, and the answer time, Q3 description and correction note in the disposition. Check them against C0 B-1, A1 F-1 and A-2 to A-4, and R0-238-1, -2 and -4.",
-    "git diff origin/main -- work-packages/WP-0A-A0-001.json must show only: two profile paths in writable_paths and outputs.files, the disposition in outputs.files, amends_without_owning.paths narrowed to [] with a rationale sentence appended, and one appended open_blockers entry.",
-    "2e2ace5d is a merge of origin/main 5e444c53 (PR #236): its delta against its first parent touches none of this PR's paths."
+    "Read evidence/WP-0A-A0-001/records-transcription-2026-10-10.md, then git diff origin/main -- work-packages/WP-0A-A0-001.json.",
+    "Compare open_blockers[6] after its prefix with the blockquote in evidence/WP-0A-A0-001/r0-reread-2026-10-09-pr238.md §4; only the four placeholders may differ. Check each filled value against gh pr view 238 and gh run list --commit 5f79a4b6.",
+    "Check amended_by[4] and [5] against WP-0A-CON-004 ownership.amends_without_owning (RFC-2026-032 and RFC-2026-033 INCREMENT) and git blame of test-kits/repository-json.test.mjs lines 129 and 130."
   ]
 }
