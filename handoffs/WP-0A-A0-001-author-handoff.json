@@ -4,23 +4,14 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "9296877418cd0939b07829c915717bf13d571d92",
-  "head_revision_or_patch_checksum": "f2b6f85971e8a32f9fa8720c59e00582e56601c0",
+  "base_revision": "f0b948c78a02211805dcb22bf0922a26404a6b41",
+  "head_revision_or_patch_checksum": "f0b948c78a02211805dcb22bf0922a26404a6b41",
   "task_ids": [
     "WP-0A-A0-001",
     "PR238-records-2026-10-10"
   ],
-  "files_added": [
-    "evidence/WP-0A-A0-001/a1-review-2026-10-10-pr240.md",
-    "evidence/WP-0A-A0-001/c0-review-2026-10-10-pr240.md",
-    "evidence/WP-0A-A0-001/q0-review-2026-10-10-pr240.md",
-    "evidence/WP-0A-A0-001/r0-review-2026-10-10-pr240.md",
-    "evidence/WP-0A-A0-001/records-transcription-2026-10-10.md"
-  ],
-  "files_modified": [
-    "handoffs/WP-0A-A0-001-author-handoff.json",
-    "work-packages/WP-0A-A0-001.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-002",
