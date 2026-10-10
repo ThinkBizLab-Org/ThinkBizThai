@@ -81,12 +81,10 @@ local scheduled-tasks server. With Vercel now off as well, the session is strict
 
 After the NTF sequence had merged (#245, `f0b948c7`), Neon read `connected` again and A0 set it off once more at the
 start of the overnight run. The Product Owner then wrote, at 18:45:44Z (session transcript), verbatim:
-"ไม่ปิด Neon ได้ไหม กระทบงาน session อื่น". A0 turned Neon back on in the same turn; the listing read `connected`.
+"ไม่ปิด Neon ได้ไหม กระทบงาน session อื่น". A0 then called the connector switch to turn Neon on (18:45:55Z). It answered "Neon is already enabled for this session; nothing changed": the disable call of 18:43:15Z had not yet taken effect in the session, so nothing was turned back on, and that call's other effect ("It is also now off by default for new sessions") is not shown to be undone. The listing read Neon `connected`. The Owner's words were about his other sessions, so A0 reports the new-session default to him rather than claiming it restored.
 
 What this settles: Neon stays connected in this session, because turning a connector off here also changes the default
-for the Owner's other sessions. The NTF sequence is complete, so no A5 signature is cited after this point; the
-connector state that A5 and A1 accepted for C-2 held at every press of #242 to #245
-(`.claude/ntf-session/connector-checks.log`). Whether the capability profiles of the Claude runs should disclose Neon
+for the Owner's other sessions. The NTF sequence is complete, so no A5 signature is cited after this point. The connector listing read every connector able to read secrets, run SQL or send mail `disabled` at 17:19:04Z and 18:10:35Z, before the presses of #244 (17:43:55Z) and #245 (18:26:12Z) (`.claude/ntf-session/connector-checks.log`, A0's local log, not on `main`); the state at the moment of each press was not read, and Neon came back `connected` without an enable call at least twice that evening. At #242's press (08:32:26Z), Vercel, Supabase, Microsoft 365, Gmail and Cloudflare were connected (before the Owner's first answer at 10:03:03Z); at #243's press (13:11:06Z), Vercel was connected under the second answer's disclosure, with no listing logged. Whether the capability profiles of the Claude runs should disclose Neon
 (A1-NTF2B-2) is open for the Owner. Vercel, Supabase, Microsoft 365, Gmail, Cloudflare and Sentry stay off until the
 Owner says otherwise.
 
