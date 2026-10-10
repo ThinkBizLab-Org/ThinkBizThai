@@ -506,6 +506,7 @@ export const DIGESTED_FLOOR = [
   'architecture/decisions/RFC-2026-030-risk-tiered-review.md',
   'architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md',
   'architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md',
+  'architecture/decisions/RFC-2026-033-obs-label-cardinality.md',
   'contract-catalog/README.md',
   'contract-catalog/shared-kernel/index.json',
   'docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md',

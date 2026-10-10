@@ -127,6 +127,7 @@ const DECISION_RECORDS = [
   'RFC-2026-030-risk-tiered-review.md',
   'RFC-2026-031-first-slice-contract-freeze.md',
   'RFC-2026-032-secret-handle-syntax-ownership.md',
+  'RFC-2026-033-obs-label-cardinality.md',
 ];
 
 test('the set of decision records is what it was, and each is digested', async () => {

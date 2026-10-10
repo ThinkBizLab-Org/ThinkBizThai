@@ -4,16 +4,26 @@
   "work_package_id": "WP-0A-CON-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "b10e20a50b92904431e313b7fb6f0dea883ef5ef",
-  "head_revision_or_patch_checksum": "72ad42f66bacdecbc2818de1abf277eaaad81001",
+  "base_revision": "82fafb3fd0ec2f991853bc7374738717ad6ea152",
+  "head_revision_or_patch_checksum": "087913962aabce8b08e065f34a1a55597d3c0967",
   "task_ids": [],
   "files_added": [
-    "architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md",
-    "evidence/WP-0A-CON-004/a1-review-2026-10-09-pr236.md",
-    "evidence/WP-0A-CON-004/c0-review-2026-10-09-pr236.md",
-    "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md",
-    "evidence/WP-0A-CON-004/q0-review-2026-10-09-pr236.md",
-    "evidence/WP-0A-CON-004/r0-review-2026-10-09-pr236.md"
+    "architecture/decisions/RFC-2026-033-obs-label-cardinality.md",
+    "evidence/WP-0A-CON-004/a1-h2-reread-2026-10-10-pr239.md",
+    "evidence/WP-0A-CON-004/a1-reread-2026-10-09-pr239.md",
+    "evidence/WP-0A-CON-004/a1-review-2026-10-09-pr239.md",
+    "evidence/WP-0A-CON-004/a6-rfc033-h2-reread-2026-10-10.md",
+    "evidence/WP-0A-CON-004/a6-rfc033-reading-2026-10-09.md",
+    "evidence/WP-0A-CON-004/a6-rfc033-reread-2026-10-09.md",
+    "evidence/WP-0A-CON-004/c0-h2-reread-2026-10-10-pr239.md",
+    "evidence/WP-0A-CON-004/c0-reread-2026-10-09-pr239.md",
+    "evidence/WP-0A-CON-004/c0-review-2026-10-09-pr239.md",
+    "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-night-delegation.md",
+    "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-10-rfc033-answers.md",
+    "evidence/WP-0A-CON-004/q0-review-2026-10-10-pr239.md",
+    "evidence/WP-0A-CON-004/r0-h2-reread-2026-10-10-pr239.md",
+    "evidence/WP-0A-CON-004/r0-reread-2026-10-09-pr239.md",
+    "evidence/WP-0A-CON-004/r0-review-2026-10-09-pr239.md"
   ],
   "files_modified": [
     "handoffs/WP-0A-CON-004-author-handoff.json",
@@ -35,37 +45,38 @@
     "CTR-ERR-001",
     "CTR-MOD-001"
   ],
-  "contracts_produced_or_changed": [
-    "CTR-SEC-001: Draft → Candidate, version 1.0.0; only manifest.json \"status\" changes (A1 K1)",
-    "CTR-AUD-001: Draft → Candidate, version 1.0.0; only manifest.json \"status\" changes (A6 §8)",
-    "CTR-OBS-001: Draft → Candidate, version 1.0.0; only manifest.json \"status\" changes (A6 §8)"
-  ],
+  "contracts_produced_or_changed": [],
   "assumptions": [
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending. Nothing in this increment authorizes production schema, migration, provider call or a G0 item.",
-    "This increment continues PR #236 on agent/claude/WP-0A-CON-004-security-audit-observability-2026-10-09 from 2e1ca571 (RFC text at 27a24c27, branched from origin/main a4eed0e8). It records the Owner's answers to RFC-2026-032 §9 and nothing else.",
-    "The Owner answered in one multiple-choice call on 2026-10-09 (asked 13:48:23Z, answered 14:46:47Z). The questions were A0's Thai summaries of Q-032-1 to Q-032-4, with Q-032-3 and Q-032-4 put as one question; evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md transcribes them, their options and the answers verbatim, generated from the tool call and checked byte for byte.",
-    "CTR-SEC-001 and CTR-MOD-001 are both Candidate at a4eed0e8; their schemas are unchanged by this increment."
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending. Nothing in this increment authorizes production schema, migration, provider call, metric backend or a G0 item.",
+    "This increment runs on agent/claude/WP-0A-CON-004-security-audit-observability-2026-10-09 from origin/main 5e444c53 (PR #236). After the roles re-read head a77b8a66, it carries the C0, A1, R0 and A6 re-read files with cherry-pick -x, then adds two commits: the Product Owner's own answers to Q-033-1 to Q-033-4, and the commit that sets RFC-2026-033 to Accepted. Q0 has not yet read this PR.",
+    "The Product Owner answered Q-033-1 to Q-033-4 himself on 2026-10-10 (asked 03:14:07Z, answered 03:21:40Z), each with the recommended option; his words are transcribed verbatim in evidence/WP-0A-CON-004/product-owner-disposition-2026-10-10-rfc033-answers.md. The questions were put as the RFC reads at a77b8a66: Q-033-2 named the four outcome values, and Q-033-3 was put as the cost question per metric name.",
+    "Because every answer is the recommended option, the RFC body (§1 to §8) is unchanged; the Accepted commit touches only what r0-reread-2026-10-09-pr239.md §4 S3 and §5 P3 allow. CTR-OBS-001 and CTR-ERR-001 stay Candidate; their schemas, manifests and fixtures are unchanged."
   ],
   "acceptance_results": [
     {
-      "criterion": "The Owner's answers to RFC-2026-032 §9 are transcribed verbatim, with the questions' nature (A0's Thai summaries of §9) stated.",
+      "criterion": "The Product Owner's own answers to Q-033-1 to Q-033-4 are transcribed verbatim, with the questions and options as put.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md §1, §2"
+      "evidence": "evidence/WP-0A-CON-004/product-owner-disposition-2026-10-10-rfc033-answers.md"
     },
     {
-      "criterion": "The RFC's status line cites the disposition, and §9 keeps its questions and gains an answers block.",
+      "criterion": "RFC-2026-033 reads Accepted, citing the Owner's answers file, A6's two files and the C0, A1 and R0 files with the heads they read, and naming what remains before the press.",
       "result": "pass",
-      "evidence": "architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md status line and §9 \"The Owner's answers (appended 2026-10-09)\"; the text otherwise equals 27a24c27"
+      "evidence": "architecture/decisions/RFC-2026-033-obs-label-cardinality.md status paragraph"
     },
     {
-      "criterion": "The RFC's integrity digest is regenerated and only that digest moves.",
+      "criterion": "Each §9 answer line names the Owner's answer and the file it is in; §9 Order item 3 is marked done.",
       "result": "pass",
-      "evidence": "npm run -s regenerate:manifest; git diff of test-kits/integrity-manifest.json is one line, the RFC-2026-032 entry"
+      "evidence": "architecture/decisions/RFC-2026-033-obs-label-cardinality.md §9"
     },
     {
-      "criterion": "The answers are recorded on the manifest without moving status.",
+      "criterion": "The Accepted commit changes nothing in RFC §1 to §8 and moves only the RFC-2026-033 digest in the integrity manifest.",
       "result": "pass",
-      "evidence": "work-packages/WP-0A-CON-004.json open_blockers, last entry (append only); status stays in_review"
+      "evidence": "git diff of the Accepted commit: the RFC status paragraph and §9 only; test-kits/integrity-manifest.json one line"
+    },
+    {
+      "criterion": "The manifest records the Owner's answers and the remaining press conditions append-only, without moving status.",
+      "result": "pass",
+      "evidence": "work-packages/WP-0A-CON-004.json open_blockers[28] appended, [0] to [27] unchanged, status in_review"
     }
   ],
   "tests": [
@@ -78,37 +89,44 @@
     {
       "command": "npm run -s regenerate:manifest",
       "exit_code": 0,
-      "result": "rebuilt 110 digests; only the RFC-2026-032 digest changed",
+      "result": "the RFC-2026-033 digest moved with the Accepted commit; nothing else",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-004",
+      "exit_code": 0,
+      "result": "all changed paths declared, every amendment explains one",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
-  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. Documentation only: one Owner disposition, the RFC's status line and appended answers, and one manifest entry. No contract, fixture, test, credential, provider call, migration or customer-data effect. The answers fix CTR-MOD-001 gaining maxLength 128 (a narrowing) rather than widening CTR-SEC-001, so the security contract's bound stays as signed. Cost impact none.",
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. Documentation only: the RFC moves to Accepted, one Owner-answers disposition and four role re-read files are added, and one manifest entry is appended. No contract, fixture, test, credential, provider call, migration or customer-data effect. The Owner accepted the cost ceiling: at most 24,480 series per metric name per environment; the number of metric names is not bounded by this RFC and comes back to the Owner, as does any budget increase. Nothing is emitted today, and no consumer emits sli_tags to a real metric backend before the §8 increment lands.",
   "migration_and_data_impact": "None. No migration, database object or persisted data is touched; Gate G0 forbids them.",
-  "compatibility_impact": "Additive. No contract schema, fixture or status changes in this increment, so no accepted set moves. The Owner's Q-032-2 answer selects the RFC §7 narrowing of CTR-MOD-001 (maxLength 128, rejecting no shipped fixture) for the later §8 increment; that increment carries the compatibility change and its own round.",
+  "compatibility_impact": "Additive. No contract schema, fixture or status changes in this increment, so no accepted set moves. Accepting RFC-2026-033 binds the later §8 edits, which RFC §7 classifies: both enums (error_code 8, outcome 4) narrow CTR-OBS-001, breaking by RFC-2026-031 §3.3's definition and not bound by it at Candidate, rejecting only the accepted-gap fixture; that increment carries the change and its own round.",
   "known_limitations": [
-    "The §8 contract, fixture and test edits of RFC-2026-032 are not made here. open_blockers[0] stays OPEN until that later increment merges with the §5 test green.",
-    "A1's handle issuance format (C2) is not specified; the Owner's answer fixes only its route (an amendment to RFC-2026-032 §6). open_blockers[1] and accepted-gap-structureless-handle-body.json stay.",
-    "The amendments to test-kits/repository-json.test.mjs (WP-0A-A0-001), scripts/verify-test-coverage-floor.mjs and test-kits/integrity-manifest.json (WP-0A-A0-002) are owed a record on those owners' manifests by their next PRs."
+    "The §8 contract, fixture and test edits of RFC-2026-033 are not made here. open_blockers[4] stays OPEN until that later increment merges with the §6.2 test green; the follow-ups that increment carries are listed in RFC §8, together with A6R-1, C0 R-2 and A1-239R-4 (the 'It' in §6.2, left alone on this PR per r0-reread-2026-10-09-pr239.md S3).",
+    "The §9 preamble still says each question carries A0's recommendation and none is answered yet, and Order item 4 still reads as a future step; the Accepted commit is confined to the status paragraph, the four answer lines and Order item 3 (R0 S3), so those sentences stand as the history of the question and the answer lines below them give the answers.",
+    "open_blockers[26] and required_human_authorities[6] still say the §9 answers rest on the night delegation; both are append-only and stand as recorded, superseded by open_blockers[27] and [28].",
+    "The amendments to test-kits/repository-json.test.mjs (WP-0A-A0-001), scripts/verify-test-coverage-floor.mjs and test-kits/integrity-manifest.json (WP-0A-A0-002) are owed a record on those owners' manifests by their next PRs (R0 R-239-6)."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H, GOVERNANCE. Role verdicts at 2b99839f, carried with -x: c0-review-2026-10-09-pr236.md, a1-review-2026-10-09-pr236.md (security_approved_with_conditions; S-1: the press-direction file on main and contained in the pressed head — met once PR #237 is merged and synced), q0-review-2026-10-09-pr236.md (740/740 on the branch name), r0-review-2026-10-09-pr236.md (press conditions 1-8); each role's verdict and carry clause are in its own file. The Owner answered RFC-2026-032 §9 (evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md). Presser: A0 (/claude/a0_atlas) presses this governance PR on the Owner's 2026-10-09 answer `ให้ A0 กดทั้ง 3 (Recommended)` (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md, on main via PR #237), an exception to RFC-2026-025 §5 item 6 for the three PRs it names only. The RFC header and open_blockers[24]/[25] say that file was \"not yet on main\" when written; R0's post-merge entry supersedes those dated sentences. Conditions: this head contains PR #237's merge via a mechanical sync, bootstrap green on this exact head, no security finding open, a true merge commit pinned with --match-head-commit."
+    "Full path, tier H, GOVERNANCE (RFC-2026-033, Accepted on 2026-10-10). Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-CON-004/: round one at c3039031 (c0-review, a1-review, r0-review, a6-rfc033-reading), re-reads at a77b8a66 (c0-reread, a1-reread, r0-reread, a6-rfc033-reread), and the H1/H2 re-reads at e4425df1 (c0-h2-reread: review_approved; a1-h2-reread: security_approved, no finding open; r0-h2-reread: integration_verified as Accepted; a6-rfc033-h2-reread: signature stands; q0-review-2026-10-10: full run on the branch name). Presser: A0 (/claude/a0_atlas) presses this governance PR on the Owner's 2026-10-09 answer `ให้ A0 กดทั้ง 3 (Recommended)` (evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md, item 3), whose condition that the Owner answer the RFC's questions himself is met by evidence/WP-0A-CON-004/product-owner-disposition-2026-10-10-rfc033-answers.md (asked 03:14:07Z, answered 03:21:40Z); not the night words of 2026-10-09 (superseded by open_blockers[27], [28]) and not the 2026-10-03 delegation. Conditions (r0-h2-reread P1-P8): bootstrap green on this exact head containing main, no security finding open, a true merge commit pinned with --match-head-commit. Owed after the merge: R0's §6 words, A1 C-2′ in the records PR, C-3 and C-4 and R-239-13/14 on the §8 increment."
   ],
-  "rollback_or_forward_fix": "WP-0A-CON-004 RFC-2026-032 Owner-answers increment of 2026-10-09: before the merge, revert commit-by-commit on this branch (delete evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md, restore the RFC's Proposed status line and drop §9's appended answers block, regenerate test-kits/integrity-manifest.json, drop the last open_blockers entry). After the merge the Owner's answers stand; a wrong transcription is fixed forward by a correcting disposition against the session transcript, and changing an answer needs the Owner's word and an amendment. No contract, fixture, persisted data or provider state is involved.",
+  "rollback_or_forward_fix": "WP-0A-CON-004 RFC-2026-033 OBS-label-cardinality increment, Accepted 2026-10-10 on the Owner's own §9 answers: before the merge, revert the Accepted commit to return the RFC to Proposed (status paragraph, §9 answer lines, Order item 3, open_blockers[28], RFC digest), and the answers commit to drop the Owner-answers file; earlier commits revert as before (dropping c2096f79 removes the RFC, the night-delegation disposition, the DECISION_RECORDS and DIGESTED_FLOOR lines, open_blockers[26] and the last required_human_authorities entry; regenerate test-kits/integrity-manifest.json). Cherry-picked role files are evidence and are dropped only with the head they read. After the merge the Accepted RFC stays on record; a wrong list or budget is fixed forward by an amendment with A6's words and the Owner's answer, and a withdrawn RFC by a superseding one.",
   "recommended_next_work_packages": [
     "WP-0A-CON-004",
-    "WP-0A-CON-003",
+    "WP-0A-A6-001",
     "WP-0A-CON-008",
+    "WP-0A-CON-003",
     "WP-0A-A0-002",
     "WP-0A-A0-001"
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-CON-004/product-owner-disposition-2026-10-09-rfc-032-answers.md; check that its §2 quotes are the questions, options and answers of one multiple-choice call (the Author has the session transcript; a reader on main sees the quotes and times).",
-    "Check that each §2 question summarises the matching §9 question of architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md as committed at 27a24c27, and that Q-032-3 and Q-032-4 are put as one.",
-    "git diff 2e1ca571..HEAD -- architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md: only the status line and the appended answers block change.",
-    "git diff 2e1ca571..HEAD -- test-kits/integrity-manifest.json: one line, the RFC-2026-032 digest.",
-    "work-packages/WP-0A-CON-004.json: one open_blockers entry appended, status still in_review.",
-    "The presser source is described as on PR #237 and NOT YET ON main.",
-    "git diff origin/main...HEAD must show no change under contract-catalog/ and no test added; verify-branch-scope must exit 0."
+    "git diff a77b8a66..HEAD: four role re-read files by cherry-pick -x (each touches only itself), then the Owner-answers commit (one new file) and the Accepted commit, then this handoff.",
+    "C0: the status paragraph and the four §9 answer lines against evidence/WP-0A-CON-004/product-owner-disposition-2026-10-10-rfc033-answers.md; Order item 3; C0-239-2 resolved in your own words.",
+    "A1: no authority widened; C-1′ met by the Owner's own answers (questions as put: four outcome values, Q-033-3 per metric name, metric-name count unbounded); A1-239-1 closed.",
+    "R0: S1 to S4 of r0-reread-2026-10-09-pr239.md and that the Accepted commit is confined as S3 says (RFC status paragraph, §9 answer lines, Order item 3, integrity-manifest RFC-2026-033 digest, open_blockers[28]).",
+    "A6: the Accepted commit changes nothing in §2 to §4 as signed.",
+    "Q0: a full run on the branch name at the final head: check, check:handoff, verify-branch-scope, classify-records-only, regenerate:manifest and record:verification, cmp-clean."
   ],
   "superseded_by": null
 }
