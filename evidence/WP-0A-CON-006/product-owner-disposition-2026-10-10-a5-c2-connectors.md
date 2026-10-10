@@ -77,6 +77,19 @@ local scheduled-tasks server. With Vercel now off as well, the session is strict
 (`a5-ntf-reread-2026-10-10.md` §3.2) and A1 (`a1-review-2026-10-10-ntf2b.md` §5) accepted: the Vercel disclosure in
 `cc-a5-loom.json` stays true (the connector is forbidden and was not used) and no longer describes a connected tool.
 
+## Fourth answer, Neon kept on (2026-10-10, 18:45:44Z)
+
+After the NTF sequence had merged (#245, `f0b948c7`), Neon read `connected` again and A0 set it off once more at the
+start of the overnight run. The Product Owner then wrote, at 18:45:44Z (session transcript), verbatim:
+"ไม่ปิด Neon ได้ไหม กระทบงาน session อื่น". A0 turned Neon back on in the same turn; the listing read `connected`.
+
+What this settles: Neon stays connected in this session, because turning a connector off here also changes the default
+for the Owner's other sessions. The NTF sequence is complete, so no A5 signature is cited after this point; the
+connector state that A5 and A1 accepted for C-2 held at every press of #242 to #245
+(`.claude/ntf-session/connector-checks.log`). Whether the capability profiles of the Claude runs should disclose Neon
+(A1-NTF2B-2) is open for the Owner. Vercel, Supabase, Microsoft 365, Gmail, Cloudflare and Sentry stay off until the
+Owner says otherwise.
+
 ## What the first answer settled, read with the second
 
 - Under the first answer alone, `cc-a5-loom.json` kept `can_access_external_secrets: false` unamended, made true of the
