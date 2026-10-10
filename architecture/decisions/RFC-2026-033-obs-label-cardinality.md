@@ -1,10 +1,18 @@
 # RFC-2026-033: CTR-OBS-001 label cardinality — closed lists and a budget per label
 
-Status: **Proposed (in review).** The Owner questions of §9 carry A0's recommendations, each awaiting the Product
-Owner's own answer, which item 3 of
-`evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md` requires before the press (C0-239-2,
-A1-239-1). This RFC is not Accepted: the four roles and A6 read it first, and A0 sets the status only in a later step
-after they pass. A6's amendments A-1 to A-7 (`evidence/WP-0A-CON-004/a6-rfc033-reading-2026-10-09.md` §6) are applied.
+Status: **Accepted on 2026-10-10.** The Product Owner answered Q-033-1 to Q-033-4 himself on 2026-10-10, each
+with the option A0 recommended
+(`evidence/WP-0A-CON-004/product-owner-disposition-2026-10-10-rfc033-answers.md`). That meets the condition of item 3
+of `evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md` (C0-239-2, A1-239-1). A6, as
+observability co-owner, signed §2, the §4.1 numbers, §4.2 and §5 to §7 in
+`evidence/WP-0A-CON-004/a6-rfc033-reading-2026-10-09.md` (head `c3039031`), and §2 to §4 as amended in
+`evidence/WP-0A-CON-004/a6-rfc033-reread-2026-10-09.md` (head `a77b8a66`); A6's amendments A-1 to A-7 are applied.
+The role files, in `evidence/WP-0A-CON-004/`: C0 `c0-review-2026-10-09-pr239.md` (`c3039031`) and
+`c0-reread-2026-10-09-pr239.md` (`a77b8a66`); A1 `a1-review-2026-10-09-pr239.md` (`c3039031`) and
+`a1-reread-2026-10-09-pr239.md` (`a77b8a66`); R0 `r0-review-2026-10-09-pr239.md` (`c3039031`) and
+`r0-reread-2026-10-09-pr239.md` (`a77b8a66`). Q0 has not yet read PR #239. Before the press: the roles' re-reads of the
+commit carrying the Owner's answers and of this commit (Q0's as a full run), A6's re-read of this commit, and CI green
+on the exact head (`r0-reread-2026-10-09-pr239.md` §4, §5).
 Date: 2026-10-09
 Author: `/claude/a0_atlas` (A0, owner of CTR-OBS-001 and of CTR-ERR-001), as an increment of `WP-0A-CON-004`
 Owner: A0 with A6 (`/claude/a6_relay`) as observability co-owner of CTR-OBS-001 (index `owner` "A0+A6"), on the Product
@@ -305,36 +313,37 @@ verbatim in a `product-owner-disposition-*` file under `evidence/WP-0A-CON-004/`
   (b) a new ERR code registry with a published count under 64; (c) drop the `error_code` label. **A0 recommends (a).** It
   has a source today, sits well inside A6's ceiling, and is A6's own preferred closure; (b) holds the freeze on ERR work
   that does not exist; (c) loses the one failure dimension SLO alerting needs.
-  **Proposed answer: (a). A0's recommendation — awaiting the Product Owner's own answer, which
-  item 3 of the 2026-10-09 three-governance-PRs disposition requires before the press.**
+  **Answered by the Product Owner on 2026-10-10: (a).** Transcribed verbatim in
+  `evidence/WP-0A-CON-004/product-owner-disposition-2026-10-10-rfc033-answers.md`, item 1.
 - **Q-033-2. How is `outcome` closed?** (a) seed it with the three values the contract's valid fixtures use (`success`,
   `provider_unavailable`, `down`), budget 4, A6 to confirm or replace within the budget before acceptance (§3); (b) leave
   it open until A6 proposes a full vocabulary, which keeps the freeze blocked. **A0 recommends (a).** It invents nothing,
   rejects no valid fixture, and leaves the vocabulary A6's. A6 has since signed the three and added `error` within the
   budget (§3); A6 records that this reopens no answer (`a6-rfc033-reading-2026-10-09.md` §5).
-  **Proposed answer: (a). A0's recommendation — awaiting the Product Owner's own answer, which
-  item 3 of the 2026-10-09 three-governance-PRs disposition requires before the press.**
+  **Answered by the Product Owner on 2026-10-10: (a), closing `outcome` at the four values of §3.** Transcribed
+  verbatim in `evidence/WP-0A-CON-004/product-owner-disposition-2026-10-10-rfc033-answers.md`, item 2.
 - **Q-033-3. Accept the budget and its cost ceiling?** A6's per-label numbers (§4.1: environment 4, module_key 32,
   capability_key 16 per module, outcome 4, error_code 8 enforced with a cap of 64), giving at most 24,480 series per
   metric name per environment, and any increase coming back to the Owner. The number of metric names is not bounded by
   this RFC (§4.1, §8 follow-ups). **A0 recommends accepting them.** They are the observability co-owner's
   numbers, unchanged since 2026-09-02; the ceiling is an upper bound far above the First Slice's expected series; and an
   increase stays an Owner decision.
-  **Proposed answer: accept. A0's recommendation — awaiting the Product Owner's own answer, which
-  item 3 of the 2026-10-09 three-governance-PRs disposition requires before the press.**
+  **Answered by the Product Owner on 2026-10-10: accept.** Transcribed verbatim in
+  `evidence/WP-0A-CON-004/product-owner-disposition-2026-10-10-rfc033-answers.md`, item 3.
 - **Q-033-4. Land it before the freeze?** The §8 increment lands while CTR-OBS-001 is Candidate, and CTR-OBS-001 does not
   enter its freeze review until §7's freeze gate holds; until then no consumer emits `sli_tags` to a real metric backend.
   **A0 recommends yes.** "bounded cardinality" cannot be declared (RFC-2026-031 §5.5 (1)), and landing the narrowing at
   Candidate avoids a version 2.0.0.
-  **Proposed answer: yes. A0's recommendation — awaiting the Product Owner's own answer, which
-  item 3 of the 2026-10-09 three-governance-PRs disposition requires before the press.**
+  **Answered by the Product Owner on 2026-10-10: yes.** Transcribed verbatim in
+  `evidence/WP-0A-CON-004/product-owner-disposition-2026-10-10-rfc033-answers.md`, item 4.
 
 **Order before acceptance and the merge.**
 1. The four roles read this head; A1 as the security reviewer; A6 reads §3 and §4 as observability co-owner and signs,
    changes or refuses the `outcome` seed and the numbers in its own words.
 2. If A6 changes a value, this RFC is amended to A6's words and the roles re-read the changed head. (Done for A6's
    A-1 to A-7: A6 added `error` to §3; the roles re-read the amended head, and A6 re-reads that its words landed.)
-3. The Product Owner answers Q-033-1 to Q-033-4 himself, and A0 transcribes the answers verbatim.
+3. The Product Owner answers Q-033-1 to Q-033-4 himself, and A0 transcribes the answers verbatim. (Done on 2026-10-10:
+   `evidence/WP-0A-CON-004/product-owner-disposition-2026-10-10-rfc033-answers.md`.)
 4. A0 sets the status to Accepted in a later step, after the roles pass, citing their files and the Owner's answers.
 5. A0 presses the PR on a green head containing current `main` (Owner disposition item 3).
 
