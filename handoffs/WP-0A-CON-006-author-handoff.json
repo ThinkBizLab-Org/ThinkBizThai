@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "f0b948c78a02211805dcb22bf0922a26404a6b41",
-  "head_revision_or_patch_checksum": "ca8adf7b9e55049eabb0c88065886895e1a97e60",
+  "head_revision_or_patch_checksum": "36793ad41cf9ac9b8767a1c959055df7f478992e",
   "task_ids": [
     "WP-0A-CON-006",
     "PR244-records-2026-10-11"
@@ -31,7 +31,7 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT records R0's post-merge words for PR #244 (r0-review-2026-10-10-ntf3.md §7) as open_blockers[33], empties amends_without_owning.paths (the six amended paths reached main with #244), and appends the Product Owner's fourth answer on connectors (Neon kept on, 18:45:44Z) to product-owner-disposition-2026-10-10-a5-c2-connectors.md.",
+    "THIS INCREMENT records R0's post-merge words for PR #244 (r0-review-2026-10-10-ntf3.md §7) as open_blockers[33], empties amends_without_owning.paths (the six amended paths reached main with #244), and appends the Product Owner's fourth answer on connectors (Neon kept on, 18:45:44Z) to product-owner-disposition-2026-10-10-a5-c2-connectors.md. FIX after the role round (R0-248-1, C0-248-1/2/3, A1-REC-248-1): the connector-state sentences now say what was measured (listing times before the #244 and #245 presses; the state at each press not read; #242 and #243 as they were), and the Neon sentence says what the switch answered; the new-session default for Neon is reported to the Owner, not claimed restored.",
     "Records only: every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-CON-006/records-transcription-2026-10-11.md.",
     "Path: the full path (C0, A1, Q0, R0 on the final head, CI green), as the Owner directed for this session."
   ],
@@ -48,7 +48,7 @@
       "result": "valid"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 1d0cd298 and the disposition commit)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 1d0cd298, the disposition commit and the fix commit)",
       "exit_code": 0,
       "result": "clean: exit 0 — tests 740, pass 740, fail 0"
     },
@@ -67,10 +67,12 @@
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
   "known_limitations": [
-    "CTR-NTF-001 stays Candidate; F-1 to F-5 and the Frozen-stage signature stay owed (open_blockers[31])."
+    "CTR-NTF-001 stays Candidate; F-1 to F-5 and the Frozen-stage signature stay owed (open_blockers[31]).",
+    "The disposition's narrative around the Owner's quoted words is A0's (C0-248-6); the connector log it cites is A0's local file, not on main (C0-248-5).",
+    "Neon is connected by the Owner's answer while every Claude profile states can_access_external_secrets: false; A1-NTF2B-2 / R0-248-2 is open for the Owner."
   ],
   "open_risks_or_blockers": [
-    "Records-only by the classifier for the manifest entry; the disposition file is evidence. Full path anyway, as the Owner directed for this session: C0, A1, Q0 and R0 on the final head; A0 presses under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
+    "Full path. Round one at 37e2bb86 carried with -x (c0, a1, q0, r0 *-review-2026-10-11-pr248.md); the fix commit answers R0-248-1, C0-248-1 and C0-248-2, A1-REC-248-1, and is outside every carry clause, so C0, A1, Q0 and R0 re-read it. A0 presses under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), not a governance PR, once every re-read passes and bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the appended records; nothing depends on them.",
   "recommended_next_work_packages": [
