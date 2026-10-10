@@ -4,16 +4,20 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "f0b948c78a02211805dcb22bf0922a26404a6b41",
-  "head_revision_or_patch_checksum": "f8bc1d4b904aa2e9979fcf476e64b74fa8b7eb80",
+  "base_revision": "db267dc77eb085063c302becda79333ae6e3b6a8",
+  "head_revision_or_patch_checksum": "c846a087ec76c2cbf9e38c99e528ddcf12833428",
   "task_ids": [
     "WP-0A-DB-00",
     "F1-record-2026-10-11"
   ],
   "files_added": [
+    "evidence/WP-0A-DB-00/a1-reread-2026-10-11-pr247.md",
     "evidence/WP-0A-DB-00/a1-review-2026-10-11-pr247.md",
+    "evidence/WP-0A-DB-00/c0-reread-2026-10-11-pr247.md",
     "evidence/WP-0A-DB-00/c0-review-2026-10-11-pr247.md",
+    "evidence/WP-0A-DB-00/q0-reread-2026-10-11-pr247.md",
     "evidence/WP-0A-DB-00/q0-review-2026-10-11-pr247.md",
+    "evidence/WP-0A-DB-00/r0-reread-2026-10-11-pr247.md",
     "evidence/WP-0A-DB-00/r0-review-2026-10-11-pr247.md",
     "evidence/WP-0A-DB-00/records-transcription-2026-10-11.md"
   ],
@@ -67,9 +71,9 @@
     "Nothing decides the reconciliation; it is owed before CTR-NTF-001 is Frozen, by A5 and this package together."
   ],
   "open_risks_or_blockers": [
-    "Records-only by the classifier; full path, as the Owner directed. Round one at ad094652 carried with -x (c0 changes_requested on C0-247-1, a1 security_approved, q0 test_verified, r0 integration_verified); the marker-only fix commit is outside the carry clauses, so the roles re-read it. A0 presses under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once every re-read passes and bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
+    "Full path, as the Owner directed for this session. Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-DB-00/: round one at ad094652 (c0-review-2026-10-11-pr247.md changes_requested on C0-247-1; a1-review security_approved; q0-review test_verified; r0-review integration_verified) and re-reads of the marker fix at cd0797ee (c0-reread review_approved, C0-247-1 closed; a1-reread security_approved; q0-reread test_verified 740/740 on the branch name; r0-reread integration_verified). Presser: A0 (/claude/a0_atlas) under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6); not a governance PR. Pressed once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the records this WP-0A-DB-00 branch appended (F1-record-2026-10-11); nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes WP-0A-DB-00 open_blockers[206] (A5's F-1 record, F1-record-2026-10-11); nothing depends on it.",
   "recommended_next_work_packages": [
     "WP-0A-DB-00 with A5: reconcile notification_id (contract, 051 forward fix, or both)."
   ],
