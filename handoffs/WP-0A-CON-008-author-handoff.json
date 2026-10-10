@@ -4,27 +4,11 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "a4eed0e8d6f01fa341c3314052d14695bbdc59e7",
-  "head_revision_or_patch_checksum": "9486bf7e8756074827ae074e4269bd435aaed3e4",
+  "base_revision": "89b2167d9a8f62e91da666fd3e05105b3a431e1e",
+  "head_revision_or_patch_checksum": "89b2167d9a8f62e91da666fd3e05105b3a431e1e",
   "task_ids": [],
-  "files_added": [
-    "evidence/WP-0A-CON-008/a1-recheck-2026-10-09-pr237.md",
-    "evidence/WP-0A-CON-008/a1-review-2026-10-09-pr237.md",
-    "evidence/WP-0A-CON-008/c0-recheck-2026-10-09-pr237.md",
-    "evidence/WP-0A-CON-008/c0-review-2026-10-09-pr237.md",
-    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-three-governance-prs.md",
-    "evidence/WP-0A-CON-008/q0-recheck-2026-10-09-pr237.md",
-    "evidence/WP-0A-CON-008/q0-review-2026-10-09-pr237.md",
-    "evidence/WP-0A-CON-008/r0-recheck-2026-10-09-pr237.md",
-    "evidence/WP-0A-CON-008/r0-review-2026-10-09-pr237.md",
-    "evidence/WP-0A-CON-008/rfc-010-status-line-2026-10-09.md"
-  ],
-  "files_modified": [
-    "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
-    "handoffs/WP-0A-CON-008-author-handoff.json",
-    "test-kits/integrity-manifest.json",
-    "work-packages/WP-0A-CON-008.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
