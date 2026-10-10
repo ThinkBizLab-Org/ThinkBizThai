@@ -4,31 +4,14 @@
   "work_package_id": "WP-0A-CON-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "50d9dd8a8943bb958698cd153bddd47e6964214f",
-  "head_revision_or_patch_checksum": "58fec78a03b2389d41c816996173687e81eabeb9",
+  "base_revision": "f0b948c78a02211805dcb22bf0922a26404a6b41",
+  "head_revision_or_patch_checksum": "f0b948c78a02211805dcb22bf0922a26404a6b41",
   "task_ids": [
     "WP-0A-CON-006",
     "NTF-step3-candidate-2026-10-10"
   ],
-  "files_added": [
-    "evidence/WP-0A-CON-006/a1-review-2026-10-10-ntf3.md",
-    "evidence/WP-0A-CON-006/a5-ntf-candidate-reading-2026-10-10.md",
-    "evidence/WP-0A-CON-006/c0-review-2026-10-10-ntf3.md",
-    "evidence/WP-0A-CON-006/q0-review-2026-10-10-ntf3.md",
-    "evidence/WP-0A-CON-006/r0-review-2026-10-10-ntf3.md"
-  ],
-  "files_modified": [
-    "contract-catalog/shared-kernel/ctr-ntf-001/manifest.json",
-    "contract-catalog/shared-kernel/index.json",
-    "evidence/WP-0A-CON-006/product-owner-disposition-2026-10-10-a5-c2-connectors.md",
-    "handoffs/WP-0A-CON-006-author-handoff.json",
-    "test-kits/contracts/catalog-registry.test.mjs",
-    "test-kits/contracts/shared-kernel-contract-catalog.test.mjs",
-    "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "test-kits/ratchets-bite.test.mjs",
-    "work-packages/WP-0A-CON-006.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
