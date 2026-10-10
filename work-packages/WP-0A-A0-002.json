@@ -154,11 +154,65 @@
         "acknowledgement_status": "acknowledged",
         "acknowledgement_record": "evidence/WP-0A-A0-002/r0-integration-verdict-2026-10-05.md §5",
         "acknowledgement_note": "The acknowledgement is /claude/r0_steward's, given in its own file (evidence/WP-0A-A0-002/r0-integration-verdict-2026-10-05.md §5, \"Pending, and sound. Acknowledged by /claude/r0_steward.\"). This entry was missing (R0 §4 item 7) and was added 2026-10-06 by this package's Author /claude/a0_atlas, recording R0's acknowledgement; the Author gives none. It covers the integrity-manifest change only, not WP-0A-CON-005's amendments to WP-0A-CON-001's contract, fixtures or test."
+      },
+      {
+        "work_package_id": "WP-0A-CON-004",
+        "decision_record": "architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md",
+        "change": "PR #236 (merged as 5e444c53): scripts/verify-test-coverage-floor.mjs DIGESTED_FLOOR gained RFC-2026-032, one line, and test-kits/integrity-manifest.json gained the RFC as one key and was regenerated. Ownership stays with this package.",
+        "acknowledgement_required_from": "/claude/r0_steward",
+        "acknowledgement_status": "acknowledged",
+        "acknowledgement_record": "evidence/WP-0A-CON-004/r0-review-2026-10-09-pr236.md §2",
+        "acknowledgement_note": "The acknowledgement is /claude/r0_steward's, as this package's Integration Owner, given in its own file; transcribed 2026-10-11 by /claude/a0_atlas, who gives none: \"**As Integration Owner of `WP-0A-A0-002`, I acknowledge** the first two: they are the mechanical registration of a new decision record, the same as #229's for RFC-2026-031. The record of them on `work-packages/WP-0A-A0-002.json` is owed by that package's next PR, naming `/claude/r0_steward` as acknowledger and citing this file §2.\""
+      },
+      {
+        "work_package_id": "WP-0A-CON-004",
+        "decision_record": "architecture/decisions/RFC-2026-033-obs-label-cardinality.md",
+        "change": "PR #239 (merged as 92968774): DIGESTED_FLOOR gained RFC-2026-033, one line, and integrity-manifest.json gained the RFC as one key and was regenerated, moving the two amended files' digests. Ownership stays with this package.",
+        "acknowledgement_required_from": "/claude/r0_steward",
+        "acknowledgement_status": "acknowledged",
+        "acknowledgement_record": "evidence/WP-0A-CON-004/r0-review-2026-10-09-pr239.md §2",
+        "acknowledgement_note": "The acknowledgement is /claude/r0_steward's, as this package's Integration Owner, given in its own file; transcribed 2026-10-11 by /claude/a0_atlas, who gives none: \"**As Integration Owner of `WP-0A-A0-002`, I acknowledge** the first two amendments. They are the mechanical registration of a new decision record. The record of them on `work-packages/WP-0A-A0-002.json` is owed by that package's next PR, which cites this file §2.\""
+      },
+      {
+        "work_package_id": "WP-0A-CON-006",
+        "decision_record": "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md",
+        "change": "PR #242 (merged as 9d0751ec): integrity-manifest.json regenerated for the catalog-registry.test.mjs digest after the ctr-ntf-001 caveat pin moved (SC-2). Ownership stays with this package.",
+        "acknowledgement_required_from": "/claude/r0_steward",
+        "acknowledgement_status": "acknowledged",
+        "acknowledgement_record": "evidence/WP-0A-CON-006/r0-review-2026-10-10-ntf2a.md §3 R0-242-4",
+        "acknowledgement_note": "The acknowledgement is /claude/r0_steward's, as this package's Integration Owner, given in its own file; transcribed 2026-10-11 by /claude/a0_atlas, who gives none: \"I acknowledge, as Integration Owner of WP-0A-CON-008 and WP-0A-A0-002, the pin move `7c05ce2b6365a50e` → `78c774aedcb5bdbc` and the one digest move as measured in §1.1.\""
+      },
+      {
+        "work_package_id": "WP-0A-CON-006",
+        "decision_record": "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md",
+        "change": "PR #243 (merged as 50d9dd8a): integrity-manifest.json regenerated for the catalog-registry.test.mjs digest after A5's OD-2/OD-4 text moved the caveat and annotation pins. Ownership stays with this package.",
+        "acknowledgement_required_from": "/claude/r0_steward",
+        "acknowledgement_status": "acknowledged",
+        "acknowledgement_record": "evidence/WP-0A-CON-006/r0-review-2026-10-10-ntf2b.md R0-243-3",
+        "acknowledgement_note": "The acknowledgement is /claude/r0_steward's, as this package's Integration Owner, given in its own file; transcribed 2026-10-11 by /claude/a0_atlas, who gives none: \"As Integration Owner of WP-0A-CON-008 and WP-0A-A0-002, I acknowledge the moves measured in §1.1: `ctr-ntf-001.untestable_by_schema` `78c774aedcb5bdbc` → `dfe65f16b2f36949`, `ctr-ntf-001` annotations count 20, `6676c9e55382b076` → `d41ba1c066871f44`, and the one integrity digest `fc079471…` → `e6dca3dc…`.\""
+      },
+      {
+        "work_package_id": "WP-0A-CON-006",
+        "decision_record": "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md",
+        "change": "PR #244 (merged as 89b2167d): integrity-manifest.json regenerated for five digests moved by the CTR-NTF-001 Draft → Candidate status change (index.json and four test files). Ownership stays with this package.",
+        "acknowledgement_required_from": "/claude/r0_steward",
+        "acknowledgement_status": "acknowledged",
+        "acknowledgement_record": "evidence/WP-0A-CON-006/r0-review-2026-10-10-ntf3.md R0-244-3",
+        "acknowledgement_note": "The acknowledgement is /claude/r0_steward's, as this package's Integration Owner, given in its own file; transcribed 2026-10-11 by /claude/a0_atlas, who gives none: \"As Integration Owner of WP-0A-CON-002, WP-0A-CON-008 and WP-0A-A0-002, I acknowledge the moves measured in §1.1.\""
+      },
+      {
+        "work_package_id": "WP-0A-CON-008",
+        "decision_record": "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
+        "change": "PR #245 (merged as f0b948c7): integrity-manifest.json regenerated for RFC-2026-010's digest (its status line) and WP-0A-CON-008.json's digest. Ownership stays with this package.",
+        "acknowledgement_required_from": "/claude/r0_steward",
+        "acknowledgement_status": "acknowledged",
+        "acknowledgement_record": "evidence/WP-0A-CON-008/r0-review-2026-10-11-ntf4.md R0-245-4",
+        "acknowledgement_note": "The acknowledgement is /claude/r0_steward's, as this package's Integration Owner, given in its own file; transcribed 2026-10-11 by /claude/a0_atlas, who gives none: \"As Integration Owner of WP-0A-A0-002 I acknowledge both moves measured in §1.1 (RFC-2026-010 `6573c822…` → `e7aff6df…`, `WP-0A-CON-008.json` `d52fd3ec…` → `836ec23e…`).\""
       }
     ],
     "amends_without_owning": {
       "paths": [],
-      "rationale": "INCREMENT 2026-10-07 (E4 code increment, open_blockers[9]). Every other path this branch changes is in this package's writable_paths: scripts/verify-test-coverage-floor.mjs, scripts/run-test-suite.mjs, scripts/test-suite-contract.mjs, test-kits/test-coverage-floor.test.mjs, test-kits/integrity-manifest.json, this manifest, evidence/WP-0A-A0-002/** and handoffs/WP-0A-A0-002-*.json. evidence/VERIFICATION.md is owned by WP-0A-CON-008 and is regenerated by npm run record:verification because the eight added tests change the suite count (705 to 713); scripts/commit-when-clean.mjs and assertVerificationRecord (exit 89) refuse a commit or a run whose record is stale, so the amendment is structural, not discretionary. No byte of it is hand-written. test-kits/branch-identity.test.mjs (also WP-0A-CON-008's) pins the whole branch-to-package mapping; this increment moves ownership.branch to the dated slot because the old slot is held by open PR #199, so exactly two strings change from agent/claude/WP-0A-A0-002-contract-test-coverage to agent/claude/WP-0A-A0-002-contract-test-coverage-2026-10-07 and nothing else, as WP-0A-DB-00 does for each of its batch branches. The manifest now DIGESTS thirteen modules this package does not own (db/foundation/test-helpers/rls-assertions.mjs, nine scripts/db/*.mjs (CORRECTED 2026-10-07 by A0 on R0 R4 / Q0 R-1 from 'ten'; 1 + 9 + 1 + 2 = 13), test-kits/db/ws905-fixture.mjs, two tests/db/identity/*.mjs); it does not edit them. That is an edit to test-kits/integrity-manifest.json, which this package owns, and is recorded as a consequence for their owners in open_blockers. RECORDS BRANCH 2026-10-09 (evidence/WP-0A-A0-002/records-transcription-2026-10-09.md): the PR #204 increment that declared evidence/VERIFICATION.md, test-kits/branch-identity.test.mjs reached main at ae163ed8bb2473228b6d68dd8e764d55048857db. This records branch, recreated from main 1940d7be, changes neither, so both are dropped from paths. A later increment that touches one of them must declare it again.",
+      "rationale": "INCREMENT 2026-10-07 (E4 code increment, open_blockers[9]). Every other path this branch changes is in this package's writable_paths: scripts/verify-test-coverage-floor.mjs, scripts/run-test-suite.mjs, scripts/test-suite-contract.mjs, test-kits/test-coverage-floor.test.mjs, test-kits/integrity-manifest.json, this manifest, evidence/WP-0A-A0-002/** and handoffs/WP-0A-A0-002-*.json. evidence/VERIFICATION.md is owned by WP-0A-CON-008 and is regenerated by npm run record:verification because the eight added tests change the suite count (705 to 713); scripts/commit-when-clean.mjs and assertVerificationRecord (exit 89) refuse a commit or a run whose record is stale, so the amendment is structural, not discretionary. No byte of it is hand-written. test-kits/branch-identity.test.mjs (also WP-0A-CON-008's) pins the whole branch-to-package mapping; this increment moves ownership.branch to the dated slot because the old slot is held by open PR #199, so exactly two strings change from agent/claude/WP-0A-A0-002-contract-test-coverage to agent/claude/WP-0A-A0-002-contract-test-coverage-2026-10-07 and nothing else, as WP-0A-DB-00 does for each of its batch branches. The manifest now DIGESTS thirteen modules this package does not own (db/foundation/test-helpers/rls-assertions.mjs, nine scripts/db/*.mjs (CORRECTED 2026-10-07 by A0 on R0 R4 / Q0 R-1 from 'ten'; 1 + 9 + 1 + 2 = 13), test-kits/db/ws905-fixture.mjs, two tests/db/identity/*.mjs); it does not edit them. That is an edit to test-kits/integrity-manifest.json, which this package owns, and is recorded as a consequence for their owners in open_blockers. RECORDS BRANCH 2026-10-09 (evidence/WP-0A-A0-002/records-transcription-2026-10-09.md): the PR #204 increment that declared evidence/VERIFICATION.md, test-kits/branch-identity.test.mjs reached main at ae163ed8bb2473228b6d68dd8e764d55048857db. This records branch, recreated from main 1940d7be, changes neither, so both are dropped from paths. A later increment that touches one of them must declare it again. RECORDS BRANCH 2026-10-11: paths stay empty. This branch edits only this manifest (ownership.amended_by[4] to [9], the records of six amendments by WP-0A-CON-004 (#236, #239), WP-0A-CON-006 (#242, #243, #244) and WP-0A-CON-008 (#245), each acknowledged by /claude/r0_steward in the file it cites), its evidence folder and its author handoff.",
       "recorded_on": [
         "work-packages/WP-0A-CON-008.json"
       ]
