@@ -5,15 +5,20 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "9296877418cd0939b07829c915717bf13d571d92",
-  "head_revision_or_patch_checksum": "37e3e1c1728cd5b0f0ade9ce4bdd2034beac1a3c",
+  "head_revision_or_patch_checksum": "f2b6f85971e8a32f9fa8720c59e00582e56601c0",
   "task_ids": [
     "WP-0A-A0-001",
     "PR238-records-2026-10-10"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-001/a1-review-2026-10-10-pr240.md",
+    "evidence/WP-0A-A0-001/c0-review-2026-10-10-pr240.md",
+    "evidence/WP-0A-A0-001/q0-review-2026-10-10-pr240.md",
+    "evidence/WP-0A-A0-001/r0-review-2026-10-10-pr240.md",
     "evidence/WP-0A-A0-001/records-transcription-2026-10-10.md"
   ],
   "files_modified": [
+    "handoffs/WP-0A-A0-001-author-handoff.json",
     "work-packages/WP-0A-A0-001.json"
   ],
   "files_deleted": [],
@@ -92,7 +97,7 @@
     "gh mergedBy for PR #238 is the repository account; who pressed rests on the session record."
   ],
   "open_risks_or_blockers": [
-    "Full path, tier H (the classifier reads the amended_by records as an ownership change). Owed on the final head: C0, A1, Q0 and R0, each with its carry clause; A0 presses only after all four pass and bootstrap is green on that exact head, under the Owner's 2026-10-09 Q3 `ให้ A0 กดทั้งชุด (Recommended)` (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-09-ntf-a5.md), which names the NTF sequence this records PR closes the first item of."
+    "Full path, tier H (the classifier exits 1 on the amended_by records, so the full path is required, not only directed). Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-A0-001/ at 14a4f314: c0-review-2026-10-10-pr240.md (review_approved; advisories C0-240-A1..A5), a1-review-2026-10-10-pr240.md (security_approved, no finding open), q0-review-2026-10-10-pr240.md, r0-review-2026-10-10-pr240.md (integration_verified; R0 acknowledges amended_by[4] and [5] in its §6, to be recorded by WP-0A-A0-001's next records PR, not on this branch). Presser: A0 (/claude/a0_atlas) under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), as R0 rules (this records PR is not one of the four NTF PRs Q3 names; C0-240-A1), once bootstrap is green on this exact head with main contained, as a true merge commit pinned with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[6] and amended_by[4] and [5]; nothing else depends on them.",
   "recommended_next_work_packages": [
