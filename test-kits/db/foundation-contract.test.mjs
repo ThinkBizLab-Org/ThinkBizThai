@@ -6653,8 +6653,8 @@ test('the review-tier classifier fails closed to H and only ever raises, each ru
 // shown below, in pure form and through the CLI on a throwaway repository. The four tests after the first two pin the
 // first fix round on PR #255 (C0, A1, Q0 and R0 at 7c4d5764), one finding group each.
 import {
-  AUDIT_PACKAGE_MANIFEST, GOVERNANCE_IMPORT_ROOTS, GOVERNANCE_PATTERNS, LANES, formatLane, governanceClosure, importClosure,
-  jsRefs, laneOf,
+  AUDIT_PACKAGE_MANIFEST, GOVERNANCE_IMPORT_ROOTS, GOVERNANCE_PATTERNS, LANES, LINK_MODES, formatLane, governanceClosure,
+  importClosure, jsRefs, laneOf,
 } from '../../scripts/db/classify-review-tier.mjs';
 
 // The changes an audit pull request makes, as the raw diff gives them: each path added as a regular file.
@@ -6989,7 +6989,9 @@ test('the governance patterns read tool configuration, bare agent paths, any cas
   for (const p of ['CODEOWNERS', '.github/CODEOWNERS', 'docs/CODEOWNERS', 'apps/web/CODEOWNERS', 'mise.toml', '.mise.toml', 'mise.local.toml',
     '.tool-versions', '.envrc', '.editorconfig', 'Dockerfile', 'Dockerfile.dev', 'apps/api/Dockerfile', 'web.dockerfile', '.dockerignore',
     'docker-compose.yml', 'docker-compose.override.yaml', 'compose.yaml', 'compose.dev.yml', 'supabase/config.toml', 'apps/x/supabase/config.toml',
-    '.pre-commit-config.yaml', 'renovate.json', 'renovate.json5', '.renovaterc', '.renovaterc.json', 'vitest.workspace.ts']) {
+    '.pre-commit-config.yaml', 'renovate.json', 'renovate.json5', '.renovaterc', '.renovaterc.json', 'vitest.workspace.ts',
+    // C0-255r-5 (round two): git-hook and task runners.
+    'lefthook.yml', 'lefthook.yaml', '.lefthook.yml', 'Taskfile.yml', 'Taskfile.yaml', 'justfile', 'Justfile', '.justfile', 'tools/justfile']) {
     gov(p, false, /tool configuration|docs\/\*\*|\.github\/\*\*/);
   }
   // A1 I-2: a bare agent-tool, `.github`, `.agents` or `docs` path (a file or a symlink, no trailing slash).
@@ -7103,4 +7105,180 @@ test('the lane scanner reads in linear time: the comment run that backtracked ex
   }
   assert.ok(jsRefs('re\\u0071uire("./x.mjs");').problems.some((x) => /an escaped identifier/.test(x)));
   assert.ok(jsRefs('const s = `unterminated').problems.some((x) => /unterminated template/.test(x)));
+});
+
+// The second review round on PR #255 (A1 and Q0 at d50a6036). A1-255r2-1: behind a scanner misread, an import named by
+// a string still hid from the walk's raw backstop as a backtick specifier, a parenthesized one or one after a `//`
+// comment, and a symbolic link hid the module it points at. Q0-255R-1: five mutations survived (L9, N26, N27, N31, N33).
+// One test per group, each named for the lane so the reviewers' runner selects it.
+const A1_MISREAD = 'if (true) /`/.test("x");';
+const A1_MISREAD_END = '// `';
+// A module body with `lines` between A1's misread line and the comment that closes the stretch it hides.
+const behind = (...lines) => [A1_MISREAD, ...lines, A1_MISREAD_END, ''].join('\n');
+const evilLane = (head, extra = {}) => laneOf({ paths: ['src/lib/evil.mjs'], tier: 'H', recordsOnly: false,
+  files: new Set(Object.keys(head)), readHead: (p) => { if (!(p in head)) throw new Error(`no ${p}`); return head[p]; }, ...extra });
+
+test('the lane follows a guard\'s import named by a string behind a scanner misread: backtick, parenthesized, after a comment, require, escaped or percent-encoded (PR #255 round two: A1-255r2-1, Q0-255R-1 N27, N31, N33)', () => {
+  // A1's probes, exactly: a planted guard `scripts/verify-a1-probe.mjs` and a pull request that edits only
+  // `src/lib/evil.mjs`. Each must print governance; A1 measured the three misread rows as risk at d50a6036.
+  // Bodies are joined from plain strings: the coverage floor's own walk refuses a template literal that names a module
+  // loader after an interpolation.
+  const probes = [
+    ['control', 'import "../src/lib/evil.mjs";\n', false],
+    ['a backtick specifier, no misread', 'await import(`../src/lib/evil.mjs`);\n', false],
+    ['a // comment before the specifier, no misread', 'await import( // c\n"../src/lib/evil.mjs");\n', false],
+    ['a backtick specifier behind a misread', behind('await import(`../src/lib/evil.mjs`);'), true],
+    ['a parenthesized specifier behind a misread', behind('await import(("../src/lib/evil.mjs"));'), true],
+    ['a // comment before the specifier behind a misread', behind('await import( // c', '"../src/lib/evil.mjs");'), true],
+    // Q0-255R-1 N31: `require('…')` behind a misread (the raw scan reads `require(`, not a bare `require`).
+    ['require behind a misread', behind('import { createRequire } from "node:module";', 'const require = createRequire(import.meta.url);',
+      "require('../src/lib/evil.mjs');"), true],
+    // The same class, spelled so the text differs from the path: an escape in the string, an escape in the keyword,
+    // percent-encoding (an ES module specifier is a URL), a /* */ comment and an `export … from` after a // comment.
+    ['an escaped specifier behind a misread', behind('await import("../src/lib/\\x65vil.mjs");'), true],
+    ['an escaped keyword behind a misread', behind('await \\u0069mport("../src/lib/evil.mjs");'), true],
+    ['a percent-encoded specifier behind a misread', behind('await import("../src/lib/%65vil.mjs");'), true],
+    ['a block comment and parentheses behind a misread', behind('await import /* a */ ( /* b */ ( "../src/lib/evil.mjs" ));'), true],
+    ['export from after a // comment behind a misread', behind('export { x } from // c', '  `../src/lib/evil.mjs`;'), true],
+  ];
+  for (const [what, body, misread] of probes) {
+    // The misread is real: the scanner reads no import from the code (Q0-255R-1 N27: only the backstop finds it).
+    if (misread) assert.deepEqual(jsRefs(body).specs.filter((s) => s.includes('vil')), [], `${what}: ${JSON.stringify(jsRefs(body))}`);
+    const l = evilLane({ 'scripts/verify-a1-probe.mjs': body, 'src/lib/evil.mjs': 'export {};\n' });
+    assert.equal(l.lane, 'governance', `${what}: ${JSON.stringify(l)}`);
+    assert.ok(l.reasons.some((x) => /"src\/lib\/evil\.mjs" \(a module scripts\/verify-a1-probe\.mjs imports, read at the head: reached from a guard/.test(x)),
+      `${what}: ${JSON.stringify(l.reasons)}`);
+    assert.equal(l.additiveEligible, false, what);
+  }
+  // The residual RFC-2026-007 Amendment 2026-10-11 §D names: behind a misread, a specifier computed from an expression
+  // (here a concatenation, and a template literal with a `${`) is not read, and the edit prints the lane its tier gives.
+  for (const body of [behind('await import("../src/lib/" + "evil.mjs");'), behind('const d = "lib";', 'await import(`../src/${d}/evil.mjs`);')]) {
+    assert.equal(evilLane({ 'scripts/verify-a1-probe.mjs': body, 'src/lib/evil.mjs': 'export {};\n' }).lane, 'risk', body);
+  }
+  // Q0-255R-1 N33: a double-quoted specifier is read by the tier's import scan, which keeps the narrow form (no
+  // backtick, no // comment, no extra parentheses), so its output on real code is what it was.
+  assert.deepEqual(importSpecs(['import x from "./a.mjs";', 'export * from "./b.mjs";', 'import "./c.mjs";']), ['./a.mjs', './b.mjs', './c.mjs']);
+  assert.deepEqual(importSpecs(['import x from `./a.mjs`;', 'export * from // c\n"./b.mjs";', 'import(("./c.mjs"));']), []);
+});
+
+test('the lane counts a symbolic link or gitlink the walk reaches, the harness names or a governance pattern names as governance, in pure form and through the CLI (PR #255 round two: A1-255r2-1)', async () => {
+  assert.deepEqual(LINK_MODES, ['120000', '160000']);
+  // Pure form. A1's probe: the guard imports `./lib/h.mjs`, a symbolic link to the edited module; its text is the target.
+  const linked = { 'scripts/verify-a1-probe.mjs': 'import "./lib/h.mjs";\n', 'scripts/lib/h.mjs': '../../src/lib/evil.mjs', 'src/lib/evil.mjs': 'export {};\n' };
+  assert.equal(evilLane(linked).lane, 'risk', 'without the modes the link reads as a module that imports nothing');
+  for (const mode of LINK_MODES) {
+    const l = evilLane(linked, { modes: new Map([['scripts/lib/h.mjs', mode]]) });
+    assert.equal(l.lane, 'governance', `${mode}: ${JSON.stringify(l)}`);
+    assert.ok(l.reasons.some((x) => new RegExp(`"scripts/lib/h\\.mjs" is a (?:symbolic link|gitlink \\(submodule\\)) \\(mode ${mode}\\) the walk reaches from scripts/verify-a1-probe\\.mjs.*\\(fail closed\\)$`).test(x)), JSON.stringify(l.reasons));
+    assert.equal(l.additiveEligible, false);
+  }
+  // A regular file's mode changes nothing; a link nothing reaches or names changes nothing.
+  assert.equal(evilLane(linked, { modes: new Map([['scripts/lib/h.mjs', '100644'], ['scripts/verify-a1-probe.mjs', '100755']]) }).lane, 'risk');
+  assert.equal(evilLane({ ...linked, 'notes/link.md': 'x' }, { modes: new Map([['notes/link.md', '120000']]) }).lane, 'risk');
+  // A link a governance pattern names (a guard that is itself a link, a bare agent directory) makes every pull request
+  // governance, even one that touches neither; so does a link the harness names by a path literal.
+  for (const [p, why] of [['scripts/verify-link.mjs', /a guard/], ['.cursor', /an agent adapter/], ['docs', /docs\/\*\*/]]) {
+    const l = evilLane({ 'src/lib/evil.mjs': 'export {};\n', [p]: 'somewhere' }, { modes: new Map([[p, '120000']]) });
+    assert.equal(l.lane, 'governance', p);
+    assert.ok(l.reasons.some((x) => x.includes(`${JSON.stringify(p)} is a symbolic link (mode 120000) that a governance pattern names`) && why.test(x)), JSON.stringify(l.reasons));
+  }
+  const harness = { 'scripts/db/run.mjs': "export const F = 'contract-catalog/data.json';\n", 'contract-catalog/data.json': 'x', 'src/lib/evil.mjs': '' };
+  const h = evilLane(harness, { modes: new Map([['contract-catalog/data.json', '120000']]) });
+  assert.equal(h.lane, 'governance');
+  assert.ok(h.reasons.some((x) => /"contract-catalog\/data\.json" is a symbolic link \(mode 120000\) that the database harness names \(scripts\/db\/run\.mjs\)/.test(x)), JSON.stringify(h.reasons));
+  // A test that is a link is not read as a module: its subject is unknown, so governance.
+  const t = laneOf({ paths: ['tests/x.test.mjs'], tier: 'H', recordsOnly: false, files: new Set(['tests/x.test.mjs']), readHead: () => 'x',
+    modes: new Map([['tests/x.test.mjs', '120000']]) });
+  assert.equal(t.lane, 'governance');
+  assert.ok(t.reasons.some((x) => /"tests\/x\.test\.mjs" is a test that could not be read at the head/.test(x)), JSON.stringify(t.reasons));
+
+  // Through the CLI on a throwaway repository, as A1 built it: a planted base (as if a governance pull request had merged
+  // it), then a pull request that edits only src/lib/evil.mjs. The head's modes come from git.
+  const cli = join(process.cwd(), 'scripts/db/classify-review-tier.mjs');
+  const dir = await mkdtemp(join(tmpdir(), 'review-lane-link-'));
+  try {
+    const env = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 'review-lane-test', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 'review-lane-test', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' };
+    delete env.GIT_DIR;
+    delete env.GIT_WORK_TREE;
+    delete env.GIT_INDEX_FILE;
+    const g = (...a) => run('git', ['-c', 'commit.gpgsign=false', '-c', 'init.defaultBranch=main', ...a], { cwd: dir, env });
+    const put = (p, c) => mkdir(join(dir, p, '..'), { recursive: true }).then(() => writeFile(join(dir, p), c));
+    const lane = async (head) => (await run(process.execPath, [cli, 'main', head, '--lane'], { cwd: dir, env })).stdout;
+    await g('init', '-q');
+    for (const p of ['scripts/db/classify-review-tier.mjs', 'scripts/db/classify-records-only.mjs']) await put(p, await readFile(join(process.cwd(), p)));
+    await put('src/lib/evil.mjs', 'export {};\n');
+    await g('add', '-A');
+    await g('commit', '-q', '-m', 'base');
+    const plant = async (name, files, after = async () => {}) => {
+      await g('checkout', '-q', '-b', `${name}-base`, 'main');
+      for (const [p, c] of Object.entries(files)) await put(p, c);
+      await g('add', '-A');
+      await after();
+      await g('commit', '-q', '-m', `${name} planted`);
+      await g('checkout', '-q', '-b', name);
+      await put('src/lib/evil.mjs', `export const changed = ${JSON.stringify(name)};\n`);
+      await g('add', 'src/lib/evil.mjs');
+      await g('commit', '-q', '-m', `${name} edit`);
+      return lane(name);
+    };
+    // The symbolic link (A1's last row).
+    await mkdir(join(dir, 'scripts/lib'), { recursive: true });
+    await symlink('../../src/lib/evil.mjs', join(dir, 'scripts/lib/h.mjs'));
+    let o = await plant('link', { 'scripts/verify-a1-probe.mjs': 'import "./lib/h.mjs";\n' });
+    assert.match(o, /^lane: governance$/m, o);
+    assert.match(o, /"scripts\/lib\/h\.mjs" is a symbolic link \(mode 120000\) the walk reaches from scripts\/verify-a1-probe\.mjs/, o);
+    // A backtick specifier behind a misread (A1's fourth row), through git.
+    await g('checkout', '-q', 'main');
+    await rm(join(dir, 'scripts/lib'), { recursive: true, force: true });
+    o = await plant('misread', { 'scripts/verify-a1-probe.mjs': behind('await import(`../src/lib/evil.mjs`);') });
+    assert.match(o, /^lane: governance$/m, o);
+    assert.match(o, /"src\/lib\/evil\.mjs" \(a module scripts\/verify-a1-probe\.mjs imports, read at the head: reached from a guard/, o);
+    // A gitlink a governance pattern names (a `.husky` submodule): every pull request is governance while it stands.
+    await g('checkout', '-q', 'main');
+    const commitSha = (await g('rev-parse', 'HEAD')).stdout.trim();
+    o = await plant('gitlink', {}, () => g('update-index', '--add', '--cacheinfo', `160000,${commitSha},.husky`));
+    assert.match(o, /^lane: governance$/m, o);
+    assert.match(o, /"\.husky" is a gitlink \(submodule\) \(mode 160000\) that a governance pattern names \(tool configuration\)/, o);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('the lane\'s raw scan remembers each gap, so comment runs that each hold a keyword stay linear (PR #255 round two: Q0-255R-1 N26)', () => {
+  // Q0's shape: every block comment holds `from /*`, so each keyword's gap runs to the end of the text unless the gap
+  // ends already found are remembered. With the memo off the narrow form took 34.7 s here at this length (Q0's
+  // n26-time.out); with it, milliseconds. The bound is generous for a slow runner. The wide form (the walk's backstop)
+  // is measured through a guard root, with `//` comments and parentheses too.
+  const n = 32000;
+  const narrow = '/* from /* x */ '.repeat(n);
+  let started = Date.now();
+  assert.deepEqual(importSpecs([narrow]), []);
+  let ms = Date.now() - started;
+  assert.ok(ms < 3000, `the tier's scan: ${ms} ms`);
+  for (const [what, text] of [['block comments', narrow], ['line comments', '// from\n'.repeat(n * 2)],
+    ['parentheses and comments', '/* import( /* x */ ( '.repeat(n)]]) {
+    const head = { 'scripts/verify-x.mjs': `export {};\n${text}\n`, 'src/lib/evil.mjs': '' };
+    started = Date.now();
+    const l = evilLane(head);
+    ms = Date.now() - started;
+    assert.ok(ms < 3000, `the walk's backstop, ${what}: ${ms} ms`);
+    assert.ok(['risk', 'governance'].includes(l.lane), what);
+  }
+});
+
+test('the audit lane compares the head branch exactly, case included (PR #255 round two: Q0-255R-1 L9)', () => {
+  const head = { 'work-packages/WP-0A-A0-001.json': '{}\n' };
+  const audit = ['evidence/audits/2026-10-18/c0-audit.md'];
+  const of = (extra) => laneOf({ paths: audit, changes: addedRegular(audit), tier: 'H', recordsOnly: false, files: new Set(Object.keys(head)),
+    readHead: (p) => head[p], ...AUDIT_OK, ...extra });
+  assert.equal(of({}).lane, 'audit');
+  // Git branch names are case-sensitive: a branch that differs from WP-0A-A0-001's only in case is another branch.
+  for (const headRef of ['Agent/a0-001', 'agent/A0-001', 'AGENT/A0-001']) {
+    const l = of({ headRef });
+    assert.equal(l.lane, 'risk', `${headRef}: ${JSON.stringify(l)}`);
+    assert.ok(l.reasons.some((x) => x.includes(`the head branch ${JSON.stringify(headRef)} is not WP-0A-A0-001's ownership.branch at the base ("agent/a0-001")`)), JSON.stringify(l.reasons));
+  }
+  // And the other way: WP-0A-A0-001's branch written with capitals at the base admits only that exact spelling.
+  assert.equal(of({ auditBranch: 'Agent/A0-001', headRef: 'agent/a0-001' }).lane, 'risk');
+  assert.equal(of({ auditBranch: 'Agent/A0-001', headRef: 'Agent/A0-001' }).lane, 'audit');
 });

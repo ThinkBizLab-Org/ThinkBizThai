@@ -102,8 +102,10 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // biting in pure form and through the CLI on a throwaway git repository: 87 to 88. RFC-2026-034 §8 item 2 (2026-10-11,
 // no migration): two tests -- the classifier's lane in pure form, and its --lane flag through the CLI: 88 to 90. The
 // first review round on PR #255 (2026-10-11, no migration): four tests -- the harness's fixtures, the guards' imports
-// and a test's subject; the patterns; the audit lane; the scanner's linear time: 90 to 94.
-  'test-kits/db/foundation-contract.test.mjs': 94,
+// and a test's subject; the patterns; the audit lane; the scanner's linear time: 90 to 94. The second review round
+// (2026-10-11, no migration; A1-255r2-1, Q0-255R-1): four tests -- a guard's import behind a scanner misread; symbolic
+// links and gitlinks; the raw scan's gap memo, timed; the head branch compared case-sensitively: 94 to 98.
+  'test-kits/db/foundation-contract.test.mjs': 98,
   'test-kits/db/rls-assertions.test.mjs': 20,
 // Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
 // -- 296 to 301 tests and 2101 to 2130 assertions -- and the assertion half moved only
@@ -295,8 +297,10 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // 1362 to 1460 with RFC-2026-034 §8 item 2 (2026-10-11, no migration): the lane's two tests add their assertions, and the
 // floor is raised to the guard's own count at this head, which also takes in 44 assertions earlier batches added under a
 // floor they did not move. 1460 to 1490 with the first review round on PR #255 (2026-10-11, no migration): four lane
-// tests added and the two earlier ones adjusted; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 1490,
+// tests added and the two earlier ones adjusted; the guard's own count. 1490 to 1525 with the second review round on
+// PR #255 (2026-10-11, no migration): four lane tests added and the patterns test given eight tool files; the guard's
+// own count.
+  'test-kits/db/foundation-contract.test.mjs': 1525,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.
@@ -342,8 +346,9 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 export const TEST_NAME_DIGEST_BY_FILE = {
   // RFC-2026-034 §8 item 2 (2026-10-11): foundation-contract and branch-scope each gain tests (no test removed or
   // renamed); both name digests move. They move again with the first review round on PR #255 (four and two tests
-  // added, none removed or renamed).
-  'test-kits/db/foundation-contract.test.mjs': '0d36220eda62abdd',
+  // added, none removed or renamed), and foundation-contract's again with the second (four tests added, none removed or
+  // renamed).
+  'test-kits/db/foundation-contract.test.mjs': '991ec0f8bc05fbb4',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
   'tests/db/identity/identity-isolation.test.mjs': '25aa50b576c0925b',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',

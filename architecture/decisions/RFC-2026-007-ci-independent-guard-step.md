@@ -449,18 +449,22 @@ each changed path tested whole (the diff is `--no-renames`, so no path carries a
     configuration, lockfiles and Makefiles are matched by base name anywhere in the tree; the tool
     list is a denylist (`CODEOWNERS`, `mise.toml`, `.tool-versions`, `.envrc`, `.editorconfig`,
     `Dockerfile*`, `docker-compose*`, `compose*.y*ml`, `supabase/config.toml`, `.pre-commit-config.yaml`,
-    Renovate's files and the others it names), so a reader who sees a tool file it misses raises the
-    lane (RFC-2026-034 §2.3). An agent tool's settings directory, `.github`, `.agents` and `docs` count
-    as a bare file or symlink too. The fixtures the database harness loads are on it
-    (`tests/db/**/fixtures/**` and any `.sql` under `tests/db/`), and so is a `test-kits/` directory
-    other than `db/` and `contracts/`;
+    Renovate's files, `lefthook.yml`, `Taskfile.yml`, `justfile` and the others it names), so a reader
+    who sees a tool file it misses raises the lane (RFC-2026-034 §2.3). An agent tool's settings
+    directory, `.github`, `.agents` and `docs` count as a bare file or symlink too. The fixtures the
+    database harness loads are on it (`tests/db/**/fixtures/**` and any `.sql` under `tests/db/`), and
+    so is a `test-kits/` directory other than `db/` and `contracts/`;
   - is a module a governance code file imports, transitively, read at the head. The walk is rooted at
     every JavaScript file at the head that a `never` or `guard` entry matches (the guards, validators,
     contracts, runners, classifiers and top-level guard tests) and at `scripts/db/run.mjs`,
     `scripts/db/rls-smoke.mjs`, `scripts/db/authz-proofs.mjs` and every other JavaScript file only
     `additive` entries match. It holds the modules they import, not the roots' directories. A module it
     cannot read, an import read from code that resolves to nothing or leaves the repository, an import
-    named by an expression, or text the scanner cannot read makes the pull request governance;
+    named by an expression, or text the scanner cannot read makes the pull request governance; so does a
+    symbolic link (mode `120000`) or gitlink (`160000`) at the head that the walk reaches, that the
+    harness names, or that a governance pattern names, since the walk would read only the link's text
+    and node loads what it points at (A1-255r2-1 on PR #255). While such a link stands, every pull
+    request prints governance;
   - is a `.sql` or `.json` file that the database harness (the three database roots and what they
     import) names in a string literal, from the repository root or from the module;
   - is a test (`*.test.mjs`, anywhere) whose subject is a governance path: one that imports a path
@@ -475,9 +479,18 @@ each changed path tested whole (the diff is `--no-renames`, so no path carries a
   or L.
 
 The import scan reads each module once, in time linear in its length (a scanner, not a parser; A1-255-3:
-the regular expressions it replaces backtracked exponentially on a run of `/**/`). Every quoted
-specifier a plain keyword scan finds is followed as well, wherever it stands, so a scanner misread can
-hide an import named by an expression but not one named by a string.
+the regular expressions it replaces backtracked exponentially on a run of `/**/`). The same fix
+rewrote `importSpecs`, which the **tier** uses for L's import allowlist and for cross-module imports, as
+a linear keyword scan in place of the backtracking expression; the tier reads the same specifiers with
+it on real code (R0-255r-2, Q0-255R-2). The scanner reads a regular expression after `)` as a division,
+so on crafted text it can misread a stretch of code as a literal and miss an import there. Behind it the
+walk runs a raw keyword scan of the whole text, wherever the text stands (code, string or comment), and
+follows every specifier that names a file at the head: one after `from`, `import`, `import(` or
+`require(`, past whitespace, `/* */` and `//` comments and any number of opening parentheses, written
+with `'`, `"` or a backtick holding no `${`, read as written and again with its escapes and its
+percent-encoding decoded (A1-255r2-1 on PR #255, round two). What a misread can still hide is an import
+whose specifier is computed (a concatenation, a variable, a template literal with a `${`), and a module
+loaded by a mechanism that is not an import or `require` call; §D lists both.
 
 `additive-eligible: yes` is printed when every governance path is of the `additive` kind and nothing
 could not be read. A path the patterns name takes the patterns' kind: `never` for an RFC, the guide,
@@ -490,7 +503,12 @@ the foundation contract test, the two registries and the manifest). A path the p
 takes the highest kind of what reaches it: `never` for a test that imports a `never` path, `guard`
 for a module any `never` or `guard` root imports, else `additive`. The mark never lowers the lane,
 and the pull request stays governance until A1 and Q0 confirm in writing. Without `--lane` the
-classifier's output and exit codes are unchanged.
+classifier's exit codes are unchanged, and so is its output on real code: on the 60 most recent
+merged pull requests the tier report is the same byte for byte, and over every file at the head the
+rewritten `importSpecs` reads the same specifiers or more (Q0's measurement at `d50a6036`). Crafted
+text that is not an import can read differently: `import a from /* x */ y /* z */ './a.mjs';` gave
+`./a.mjs` before (a comment run stretched across code to a later `*/`) and gives nothing now
+(Q0-255R-2).
 
 ### C. Tests
 
@@ -505,7 +523,7 @@ base (empty, missing, not a commit, no repository, no classifier, only the recor
 not exactly `main`, unset, unrelated); stubs for a base without `--lane` (usage, exit 2), without a
 lane line, with two lane lines, an unknown lane, no tier line first, a lane that disagrees with the
 tier, and exit 1; a path name forging a lane line and workflow commands; and the 64 KiB cap and
-escaping. Six tests in `test-kits/db/foundation-contract.test.mjs` pin `laneOf` (each lane, one path
+escaping. Ten tests in `test-kits/db/foundation-contract.test.mjs` pin `laneOf` (each lane, one path
 per governance pattern group, the transitive-import rule and its fail-closed cases, additive
 eligibility both ways), the CLI (each lane; without `--lane` the report is the `--lane` output's
 prefix with no lane line; the audit lane without the head branch, without both repositories, or from
@@ -513,7 +531,14 @@ a fork; the flags' usage errors exit 2), and, one test per group of the first re
 the harness's fixtures, every guard's imports and a test's subject; the tool configuration, bare
 agent paths, case-insensitive matching, nested Makefiles, whole-path matching and the guard tests'
 kind; the audit lane's statuses, modes, directory, date, branch and repositories; and the scanner's
-linear time on A1's input (under 2 seconds) with what it reads and refuses.
+linear time on A1's input (under 2 seconds) with what it reads and refuses. The second review round
+adds four: A1's probes of a guard's import behind a misread (a backtick, a parenthesized and a
+comment-preceded specifier, `require('…')`, escaped and percent-encoded spellings), each governance,
+with the computed import that still hides and the tier's narrow scan (double quotes read, the wide
+forms not); a symbolic link or gitlink the walk reaches, the harness names or a pattern names, in pure
+form and through the CLI on A1's planted base; the raw scan's gap memo, timed (under 3 seconds on
+input that takes the memo-less scan about 35 seconds); and the head branch compared case-sensitively
+(Q0-255R-1: L9, N26, N27, N31, N33).
 
 ### D. What this does NOT do
 
@@ -529,14 +554,21 @@ linear time on A1's input (under 2 seconds) with what it reads and refuses.
   request never drops lane during its life stays the readers' (C0-255-9 on PR #255).
 - It does not see what a module loads at run time (`new Function`, `eval`, `node:vm`, a computed
   member such as `process.getBuiltinModule(name)`, a process it spawns), nor a file a governance code
-  file other than the database harness reads as data, nor an import the scanner misreads around (a
-  regular expression after `)` is read as a division). A tool file the denylist does not name prints
-  the lane its tier gives. Each is a lane printed lower than §2.2 gives it, which a reader raises.
+  file other than the database harness reads as data. Where the scanner reads code as a literal (a
+  regular expression after `)` is read as a division), an import inside it is still followed when its
+  specifier is written as a string in any form §B lists (corrected 2026-10-11, A1-255r2-1: the earlier
+  text said "not one named by a string", which did not hold for a backtick, a parenthesized or a
+  comment-preceded specifier, nor for a symbolic link); what stays hidden there is an import whose
+  specifier is computed from an expression, and a module loaded by a mechanism the scanner does not
+  model. Outside such a stretch an import named by an expression fails closed (it is a problem); a
+  mechanism that is not an import is not seen anywhere, as the first sentence of this item says. A
+  tool file the denylist does not name prints the lane its tier gives. Each is a lane printed lower
+  than §2.2 gives it, which a reader raises.
 - It does not quote the tier report's path names (Amendment 2026-10-08 §C); the lane's own reasons
   quote each path.
 
 ### E. Rollback
 
-A reviewed revert of the one step, the classifier's lane section and flags, and their fifteen tests.
+A reviewed revert of the one step, the classifier's lane section and flags, and their nineteen tests.
 Nothing reads the step, so removing it changes no other step's outcome. No data, provider or
 credential effect.

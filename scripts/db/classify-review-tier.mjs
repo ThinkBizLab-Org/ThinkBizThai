@@ -214,8 +214,15 @@ export function manifestNeutral(beforeText, afterText, moves = []) {
 // backtracked exponentially. Here the whitespace and block comments after a keyword are stepped over by hand, each
 // comment's end found by binary search in the one list of `*/` offsets, and each gap's end remembered, so no character
 // is stepped over twice; the specifier then runs to the next quote, found in one precomputed table.
+//
+// `wide` is the import walk's backstop (A1-255r2-1 on PR #255, round two). Behind a scanner misread, an import named by
+// a string could still hide from the narrow form in three shapes: a backtick specifier, a parenthesized one
+// (`import(("..."))`), and one after a `//` comment. The wide form also steps over `//` comments (to the line's end, from
+// one precomputed table), over any number of `(` after `import(` and `require(`, and takes a backtick specifier that
+// holds no `${`. Each only adds modules to the walk. The tier's `importSpecs` keeps the narrow form.
 const WS = /\s/;
-function rawScanner(text) {
+function rawScanner(text, wide = false) {
+  const n = text.length;
   const closes = [];
   for (let p = text.indexOf('*/'); p !== -1; p = text.indexOf('*/', p + 1)) closes.push(p);
   const nextClose = (from) => {
@@ -226,36 +233,61 @@ function rawScanner(text) {
   };
   const quote = new Int32Array(text.length + 1).fill(-1);
   for (let p = text.length - 1; p >= 0; p -= 1) quote[p] = (text[p] === "'" || text[p] === '"') ? p : quote[p + 1];
-  const memo = new Map();
-  // The first offset at or after `pos` that is neither whitespace nor inside a block comment.
-  const skipGap = (pos) => {
-    const visited = [];
-    let p = pos;
-    for (;;) {
-      while (p < text.length && WS.test(text[p])) p += 1;
-      if (!text.startsWith('/*', p)) break;
-      if (memo.has(p)) { p = memo.get(p); break; }
-      visited.push(p);
-      const c = nextClose(p + 2);
-      if (c === -1) { p = text.length; break; }
-      p = c + 2;
+  // The wide form's tables: the next backtick, and the next line end (LF, CR, U+2028, U+2029, as `scanJs` ends a line
+  // comment), at or after each offset.
+  const tick = wide ? new Int32Array(n + 1).fill(-1) : null;
+  const lineEnd = wide ? new Int32Array(n + 1).fill(n) : null;
+  if (wide) {
+    for (let p = n - 1; p >= 0; p -= 1) {
+      tick[p] = text[p] === '`' ? p : tick[p + 1];
+      lineEnd[p] = LINE_END.has(text[p]) ? p : lineEnd[p + 1];
     }
-    for (const v of visited) memo.set(v, p);
-    return p;
+  }
+  // A skipper: the first offset at or after `pos` that is neither whitespace nor inside a block comment (nor, in the wide
+  // form, inside a `//` comment, nor, with `parens`, an opening parenthesis). Each element's start is remembered with
+  // where its gap ends, so a run is stepped over once however many keywords stand inside it (Q0-255R-1 N26).
+  const skipper = (parens) => {
+    const memo = new Map();
+    return (pos) => {
+      const visited = [];
+      let p = pos;
+      for (;;) {
+        while (p < n && WS.test(text[p])) p += 1;
+        if (memo.has(p)) { p = memo.get(p); break; }
+        let next;
+        if (text.startsWith('/*', p)) { const c = nextClose(p + 2); next = c === -1 ? n : c + 2; }
+        else if (wide && text.startsWith('//', p)) next = lineEnd[p];
+        else if (parens && text[p] === '(') next = p + 1;
+        else break;
+        visited.push(p);
+        p = next;
+      }
+      for (const v of visited) memo.set(v, p);
+      return p;
+    };
   };
-  // A quoted specifier starting at `p` (a quote, one or more non-quote characters, a quote), or null.
+  const skipGap = skipper(false);
+  const skipCall = wide ? skipper(true) : skipGap;
+  // A quoted specifier starting at `p` (a quote, one or more non-quote characters, a quote), or null. In the wide form
+  // also a backtick, one or more characters other than a backtick, a backtick, holding no `${`.
   const specAt = (p) => {
-    if (p >= text.length || (text[p] !== "'" && text[p] !== '"')) return null;
+    if (p >= n) return null;
+    if (wide && text[p] === '`') {
+      const end = tick[p + 1];
+      const spec = end > p + 1 ? text.slice(p + 1, end) : null;
+      return spec === null || spec.includes('${') ? null : spec;
+    }
+    if (text[p] !== "'" && text[p] !== '"') return null;
     const end = quote[p + 1];
     return end > p + 1 ? text.slice(p + 1, end) : null;
   };
-  return { skipGap, specAt };
+  return { skipGap, skipCall, specAt };
 }
 const RAW_KEYWORD = /\b(from|import|require)\b/g;
 const CSS_IMPORT = /@import\s+(?:url\(\s*)?['"]?([^'")\s;]+)/g;
-// `calls` also reads `import(` and `require(` followed by a quoted specifier.
-function rawSpecs(text, { calls = false } = {}) {
-  const { skipGap, specAt } = rawScanner(text);
+// `calls` also reads `import(` and `require(` followed by a quoted specifier; `wide` is the walk's backstop (above).
+function rawSpecs(text, { calls = false, wide = false } = {}) {
+  const { skipGap, skipCall, specAt } = rawScanner(text, wide);
   // By keyword, in the order the earlier expressions returned them: every `from`, then every `import`, then calls.
   const found = [[], [], []];
   const slot = (word) => (word === 'from' ? 0 : word === 'import' ? 1 : 2);
@@ -264,7 +296,7 @@ function rawSpecs(text, { calls = false } = {}) {
     let p = skipGap(m.index + m[1].length);
     if (slot(m[1]) !== 0 && text[p] === '(') {
       if (!calls) continue;
-      p = skipGap(p + 1);
+      p = skipCall(p + 1);
     } else if (slot(m[1]) === 2) continue;
     const spec = specAt(p);
     if (spec !== null) found[slot(m[1])].push(spec);
@@ -491,6 +523,7 @@ export const GOVERNANCE_PATTERNS = Object.freeze([
     + String.raw`\.gitattributes|\.gitignore|\.gitmodules|\.editorconfig|\.browserslistrc|\.npmignore|\.swcrc|bunfig\.toml|`
     + String.raw`\.?mise(?:\.[^/]*)?\.toml|\.envrc|CODEOWNERS|Dockerfile[^/]*|[^/]*\.dockerfile|\.dockerignore|`
     + String.raw`docker-compose[^/]*|compose[^/]*\.ya?ml|supabase/config\.toml|\.pre-commit-config\.ya?ml|renovate\.json5?|\.renovaterc[^/]*|`
+    + String.raw`\.?lefthook\.ya?ml|Taskfile\.ya?ml|\.?justfile|`
     + String.raw`\.(?:eslint|prettier|babel|stylelint|lintstaged|mocha|c8|nyc)rc(?:\.[a-z]+)?|\.(?:eslint|prettier)ignore|`
     + String.raw`(?:eslint|prettier|babel|jest|vite|vitest|playwright|next|postcss|tailwind|webpack|rollup|svelte|astro|nuxt|remix|tsup|esbuild|commitlint|lint-staged|stylelint)\.config\.[a-z]+|`
     + String.raw`(?:vite|vitest)\.workspace\.[a-z]+|`
@@ -546,8 +579,11 @@ const TEST_MODULE = /\.test\.[cm]?js$/i;
 // identifiers, numbers and single-character punctuation, each read once. It is a scanner, not a parser, and it reads
 // a regular expression after `)` or `]` (or after an identifier that is not a keyword such as `return`) as a division,
 // and one after `}` as a regular expression; a misread can hide an import from `jsRefs`. That is why `importClosure`
-// also follows every quoted specifier the raw keyword scan finds (`rawSpecs`), wherever it stands: a misread can hide
-// an import named by an expression, never one named by a string. Line comments and regular expressions end at LF, CR,
+// also follows every specifier the raw keyword scan finds (`backstopSpecs`), wherever it stands: after `from`, `import`,
+// `import(` or `require(`, past whitespace, comments and parentheses, written with `'`, `"` or a backtick holding no `${`,
+// read as written and with its escapes and percent-encoding decoded. Behind a misread, what can still hide is an import
+// whose specifier is computed (an expression, or a template literal with a `${`), and a module loaded by a mechanism
+// that is not an import or `require` (A1-255r2-1 on PR #255, round two). Line comments and regular expressions end at LF, CR,
 // U+2028 and U+2029, as V8 ends them; a string literal may hold U+2028 and U+2029 (ES2019), and ends unterminated at
 // LF or CR.
 const LINE_END = new Set(['\n', '\r', '\u2028', '\u2029']);
@@ -691,6 +727,31 @@ export function jsRefs(text) {
   return { specs, opaque, literals, problems };
 }
 
+// The specifiers the walk's backstop reads from a module's text (A1-255r2-1 on PR #255, round two): the wide raw scan of
+// the text as written and, when it holds a backslash, of the text with every escape decoded (`\u0069mport(`, a
+// specifier spelled `'./\x65vil.mjs'` or `'.\/evil.mjs'`); each specifier also with tabs and line breaks removed and
+// percent-encoding decoded, as a URL resolves an ES module specifier. Each only adds candidates; one that names no file is
+// dropped.
+const ESCAPE = /\\(?:u\{([0-9a-fA-F]{1,6})\}|u([0-9a-fA-F]{4})|x([0-9a-fA-F]{2})|(\r\n|[\n\r\u2028\u2029])|([\s\S]))/g;
+const decodeEscapes = (text) => text.replace(ESCAPE, (_, cp, u, x, cont, ch) => {
+  if (cont !== undefined) return '';
+  if (ch !== undefined) return ch;
+  const code = Number.parseInt(cp ?? u ?? x, 16);
+  return code <= 0x10ffff ? String.fromCodePoint(code) : '';
+});
+function backstopSpecs(text) {
+  const raw = rawSpecs(text, { calls: true, wide: true });
+  if (text.includes('\\')) raw.push(...rawSpecs(decodeEscapes(text), { calls: true, wide: true }));
+  const out = new Set();
+  for (const spec of raw) {
+    out.add(spec);
+    const bare = spec.replace(/[\t\n\r]/g, '');
+    out.add(bare);
+    try { out.add(decodeURIComponent(bare)); } catch { /* malformed percent-encoding: the other spellings stand */ }
+  }
+  return [...out];
+}
+
 // Every reading of one module, by path, for one classification: `readHead` is called once per path, and the scan once
 // per text (`laneOfRange` also caches the text per blob).
 function moduleReader(readHead) {
@@ -701,7 +762,7 @@ function moduleReader(readHead) {
       try {
         const text = readHead(path);
         if (typeof text !== 'string') throw new Error('not text');
-        entry = CODE_MODULE.test(path) ? { text, ...jsRefs(text), raw: rawSpecs(text, { calls: true }) } : { text, specs: [], opaque: [], literals: [], problems: [], raw: [] };
+        entry = CODE_MODULE.test(path) ? { text, ...jsRefs(text), raw: backstopSpecs(text) } : { text, specs: [], opaque: [], literals: [], problems: [], raw: [] };
       } catch {
         entry = null;
       }
@@ -723,8 +784,10 @@ function localTarget(from, spec) {
 // `files` is the set of paths at the head when known: a root absent from it imports nothing; a specifier read from code
 // that resolves to no file in it is a problem. A quoted specifier the raw keyword scan finds anywhere else in a module
 // (in a string or a comment, or code the scanner misread) is followed when it names a file at the head, and is never a
-// problem: it can only add modules. Returns { modules: Map(path -> the root that reaches it), problems: [...] }.
-export function importClosure(roots, readHead, files = null, read = moduleReader(readHead)) {
+// problem: it can only add modules. `links` maps each path at the head that is a symbolic link or a gitlink to its mode:
+// node loads what a link points at, and the walk reads only the link's text, so a link the walk reaches is a problem
+// (A1-255r2-1 on PR #255, round two). Returns { modules: Map(path -> the root that reaches it), problems: [...] }.
+export function importClosure(roots, readHead, files = null, read = moduleReader(readHead), links = null) {
   const modules = new Map();
   const problems = [];
   const queue = [];
@@ -738,6 +801,10 @@ export function importClosure(roots, readHead, files = null, read = moduleReader
     if (seen.has(path)) continue;
     seen.add(path);
     if (path !== root) modules.set(path, root);
+    if (links?.has(path)) {
+      problems.push(`${JSON.stringify(path)} is ${linkWhat(links.get(path))} the walk reaches from ${root}; what it stands for is not read, so the modules behind it are unknown`);
+      continue;
+    }
     if (!CODE_MODULE.test(path)) continue;
     const m = read(path);
     if (m === null) {
@@ -784,6 +851,11 @@ function literalTargets(from, literal) {
   return [...out].filter((p) => !p.startsWith('../'));
 }
 
+// A symbolic link (mode 120000) or a gitlink (160000) at the head: the lane reads neither what a link points at nor a
+// submodule's tree, so one the walk reaches, the harness names, or a governance pattern names is a problem (fail closed).
+export const LINK_MODES = Object.freeze(['120000', '160000']);
+const linkWhat = (mode) => `${mode === '160000' ? 'a gitlink (submodule)' : 'a symbolic link'} (mode ${mode})`;
+
 const kindOfPatterns = (matched) => (matched.some((g) => g.kind === 'never') ? 'never' : matched.some((g) => g.kind === 'additive') ? 'additive' : 'guard');
 
 // Everything that makes a path governance beyond the patterns, computed at the head (RFC-2026-034 §2.2):
@@ -794,9 +866,11 @@ const kindOfPatterns = (matched) => (matched.some((g) => g.kind === 'never') ? '
 //     entries match: a module reached only from those is `additive`. The closure holds the IMPORTED modules only;
 //   - every file the database harness names by a path literal ending `.sql` or `.json` (the harness's import closure,
 //     read whole), `additive` (C0-255-1, A1-255-1a, Q0-255-1 on PR #255);
-//   - `problems`: what could not be read, which makes the pull request governance (fail closed).
+//   - `problems`: what could not be read, which makes the pull request governance (fail closed), among them every
+//     symbolic link or gitlink at the head (`links`, path -> mode) that a governance pattern names, the walk reaches or
+//     the harness names (A1-255r2-1 on PR #255, round two).
 // `paths` are the changed paths, used as the roots' universe when the files at the head are not known.
-export function governanceClosure({ paths = [], files = null, readHead = null, read = null } = {}) {
+export function governanceClosure({ paths = [], files = null, readHead = null, read = null, links = null } = {}) {
   if (typeof readHead !== 'function' && typeof read !== 'function') {
     return { modules: new Map(), data: new Map(), problems: ['no reader of the head was given, so the modules the governance code files import are unknown'] };
   }
@@ -810,9 +884,14 @@ export function governanceClosure({ paths = [], files = null, readHead = null, r
     if (matched.some((g) => g.kind !== 'additive')) guardRoots.push(p);
     else if (!additiveRoots.includes(p)) additiveRoots.push(p);
   }
-  const guard = importClosure(guardRoots, null, files, reader);
-  const additive = importClosure(additiveRoots, null, files, reader);
-  const harness = importClosure(GOVERNANCE_IMPORT_ROOTS, null, files, reader);
+  const guard = importClosure(guardRoots, null, files, reader, links);
+  const additive = importClosure(additiveRoots, null, files, reader, links);
+  const harness = importClosure(GOVERNANCE_IMPORT_ROOTS, null, files, reader, links);
+  const linkProblems = [];
+  for (const [p, mode] of links ?? []) {
+    const named = GOVERNANCE_PATTERNS.filter((g) => g.re.test(p));
+    if (named.length > 0) linkProblems.push(`${JSON.stringify(p)} is ${linkWhat(mode)} that a governance pattern names (${named[0].what}); what it stands for is not read`);
+  }
   const modules = new Map();
   for (const [p, root] of additive.modules) modules.set(p, { kind: 'additive', root });
   for (const [p, root] of guard.modules) modules.set(p, { kind: 'guard', root });
@@ -822,10 +901,14 @@ export function governanceClosure({ paths = [], files = null, readHead = null, r
     const m = reader(p);
     if (m === null) continue;
     for (const lit of m.literals) {
-      for (const t of literalTargets(p, lit)) if (/\.(?:sql|json)$/i.test(t) && (!files || files.has(t)) && !data.has(t)) data.set(t, p);
+      for (const t of literalTargets(p, lit)) {
+        if (!/\.(?:sql|json)$/i.test(t) || (files && !files.has(t)) || data.has(t)) continue;
+        data.set(t, p);
+        if (links?.has(t)) linkProblems.push(`${JSON.stringify(t)} is ${linkWhat(links.get(t))} that the database harness names (${p}); what it stands for is not read`);
+      }
     }
   }
-  return { modules, data, problems: [...new Set([...guard.problems, ...additive.problems])] };
+  return { modules, data, problems: [...new Set([...linkProblems, ...guard.problems, ...additive.problems])] };
 }
 
 // Whether a changed test file's subject is a governance path (C0-255-2, A1-255-1c on PR #255): a `*.test.mjs` (or
@@ -855,17 +938,22 @@ export function testSubject(path, read, isGov, files = null) {
 // the audit lane needs); `tier` and `recordsOnly` are what `classifyTier` returned; `headRef` is its head branch,
 // `repo` and `headRepo` the base and head repositories (`owner/name`), when known; `auditBranch` is WP-0A-A0-001's
 // `ownership.branch` read at the base (undefined or null when it could not be read); `files` the set of paths at the
-// head; `readHead(path)` reads a file at the head and throws when it cannot. Returns { lane, reasons, additiveEligible }.
+// head; `readHead(path)` reads a file at the head and throws when it cannot; `modes` maps paths at the head to their git
+// modes, of which only a symbolic link's or a gitlink's matters (LINK_MODES): such a path is never read as a module.
+// Returns { lane, reasons, additiveEligible }.
 export function laneOf({ paths, tier, recordsOnly, headRef = undefined, auditBranch = undefined, files = null, readHead = null,
-  changes = null, repo = undefined, headRepo = undefined } = {}) {
+  changes = null, repo = undefined, headRepo = undefined, modes = null } = {}) {
   if (!Array.isArray(paths) || paths.length === 0 || !paths.every((p) => typeof p === 'string' && p.length > 0)) {
     return { lane: 'governance', reasons: ['no list of changed paths to place (fail closed: governance)'], additiveEligible: false };
   }
   const all = [...new Set(paths)];
   const reasons = [];
   let coverable = true;
-  const read = typeof readHead === 'function' ? moduleReader(readHead) : null;
-  const closure = governanceClosure({ paths: all, files, read });
+  const links = new Map([...(modes ?? [])].filter(([, m]) => LINK_MODES.includes(m)));
+  const read = typeof readHead === 'function'
+    ? moduleReader((p) => { if (links.has(p)) throw new Error(`${p} is a link`); return readHead(p); })
+    : null;
+  const closure = governanceClosure({ paths: all, files, read, links });
   // The kind of a governance path, or null: the patterns decide for a path they name; otherwise the walk does.
   const govKind = (p) => {
     const matched = GOVERNANCE_PATTERNS.filter((g) => g.re.test(p));
@@ -1034,9 +1122,10 @@ const BLOB_TEXT = new Map();
 // working tree. `opts` carries `headRef`, `repo` and `headRepo` as the CLI was given them.
 export function laneOfRange(base, r, opts = {}) {
   const blobs = new Map();
+  const modes = new Map();
   for (const entry of git(['ls-tree', '-r', '-z', '--full-tree', r.head]).split('\0')) {
-    const m = /^\d{6} \w+ ([0-9a-f]{40,64})\t(.+)$/s.exec(entry);
-    if (m) blobs.set(m[2], m[1]);
+    const m = /^(\d{6}) \w+ ([0-9a-f]{40,64})\t(.+)$/s.exec(entry);
+    if (m) { blobs.set(m[3], m[2]); modes.set(m[3], m[1]); }
   }
   const readHead = (p) => {
     const blob = blobs.get(p);
@@ -1046,7 +1135,7 @@ export function laneOfRange(base, r, opts = {}) {
   };
   return laneOf({
     paths: r.paths, changes: r.changes, tier: r.tier, recordsOnly: r.recordsOnly, headRef: opts.headRef, repo: opts.repo,
-    headRepo: opts.headRepo, auditBranch: auditBranchAt(rev(base)), files: new Set(blobs.keys()), readHead,
+    headRepo: opts.headRepo, auditBranch: auditBranchAt(rev(base)), files: new Set(blobs.keys()), readHead, modes,
   });
 }
 
