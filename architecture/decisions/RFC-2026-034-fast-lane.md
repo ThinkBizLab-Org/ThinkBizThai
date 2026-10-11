@@ -3,10 +3,10 @@
 Status: **Proposed.** The Product Owner chose the direction on 2026-10-10, answering A0's question at 19:03:54Z (asked
 19:02:50Z, session `c2816eec`) with `ทางกลาง (Recommended)`; the question, its options and the answer are transcribed in
 `evidence/WP-0A-A0-001/product-owner-disposition-2026-10-11-fast-lane.md`. The text below is A0's drafting of that
-direction, revised six times after role rounds (round one: C0-251-1..11, A1-251-1..10, R0-251-1..9, Q0-251-2..6; re-read:
+direction, revised seven times after role rounds (round one: C0-251-1..11, A1-251-1..10, R0-251-1..9, Q0-251-2..6; re-read:
 C0-251r-1..9, A1-251r-1..6, R0-251-10..15 and -2r, -3r, Q0-251-7..11; second re-read: C0-251r2-1..9,
 A1-251r2-1..7, R0-251-16..23, Q0-251-12..14; third re-read: C0-251r3-1..10, A1-251r3-1..4,
-R0-251-24..28, Q0-251-13..16; fourth re-read: C0-251r4-1..6, A1-251r4-1..5, R0-251-24, -29, -30, Q0-251-17..21; fifth re-read: C0-251r5-1..6, A1-251r5-1..3, R0-251-24, -31, -32, Q0-251-22..24, -14). It is not in effect until the Order of §10 is complete: the
+R0-251-24..28, Q0-251-13..16; fourth re-read: C0-251r4-1..6, A1-251r4-1..5, R0-251-24, -29, -30, Q0-251-17..21; fifth re-read: C0-251r5-1..6, A1-251r5-1..3, R0-251-24, -31, -32, Q0-251-22..24, -14; sixth re-read: C0-251r6-1..4, A1-251r6-1..5, R0-251-33..35, Q0-251-25..27). It is not in effect until the Order of §10 is complete: the
 Owner answers §9 himself, A0 records his answers and sets the status line, the roles re-read, and the Owner merges this
 PR personally (a governance PR under RFC-2026-025 §5 item 6). Where the Owner chooses an alternative in §9, §2 to §4
 and §7 change to match before he merges.
@@ -84,7 +84,7 @@ unchanged). The lane follows the tier and the paths:
 
 | Lane | What it covers | Before merge | Integration Owner (R0) | Who presses |
 |---|---|---|---|---|
-| **Governance** | any change to: `architecture/decisions/**`, `CONTRIBUTING_AGENTS.md`, `docs/**`, `.agents/**`, `.github/**`, `package.json`, any lockfile or tool configuration, either classifier, and any script or test CI runs as a guard or runner: `scripts/verify-*.mjs`, `scripts/validate-*.mjs`, `scripts/*-contract.mjs`, `scripts/scan-repository-secrets.mjs`, `scripts/refresh-author-handoff.mjs`, `scripts/run-test-suite.mjs`, `scripts/record-verification.mjs`, `scripts/regenerate-integrity-manifest.mjs`, `scripts/db/classify-*.mjs`, `scripts/db/run.mjs`, the database test harness (`scripts/db/rls-smoke.mjs`, `scripts/db/authz-proofs.mjs`, `db/foundation/ci/**`) and every module any of them imports, the `Makefile` targets CI runs, the top-level `test-kits/*.test.mjs` guard tests, any test whose subject is a governance path (for example the classifier's pins in `test-kits/db/foundation-contract.test.mjs`), and a hand edit of which files `test-kits/integrity-manifest.json` digests. **If it is unclear whether a path is a guard or runner, it is governance.** An additive guard edit (below) follows the change it serves. Other test cases a runner executes (`tests/**`, `test-kits/db/**`, `test-kits/contracts/**`) are not guards. | as today: every role | as today, per PR | as today under RFC-2026-025 §5 item 6 (see below) |
+| **Governance** | any change to: `architecture/decisions/**`, `CONTRIBUTING_AGENTS.md`, `docs/**`, `.agents/**`, `.github/**`, `package.json`, any lockfile or tool configuration, either classifier, and any script or test CI runs as a guard or runner: `scripts/verify-*.mjs`, `scripts/validate-*.mjs`, `scripts/*-contract.mjs`, `scripts/scan-repository-secrets.mjs`, `scripts/refresh-author-handoff.mjs`, `scripts/run-test-suite.mjs`, `scripts/record-verification.mjs`, `scripts/regenerate-integrity-manifest.mjs`, `scripts/db/classify-*.mjs`, `scripts/db/run.mjs`, the database test harness (`scripts/db/rls-smoke.mjs`, `scripts/db/authz-proofs.mjs`, `db/foundation/ci/**`), the data the database guards read (`db/foundation/lint/**`, `db/foundation/invariants/**`) and every module any of them imports, the `Makefile` targets CI runs, the top-level `test-kits/*.test.mjs` guard tests, any test whose subject is a governance path (for example the classifier's pins in `test-kits/db/foundation-contract.test.mjs`), and a hand edit of which files `test-kits/integrity-manifest.json` digests. **If it is unclear whether a path is a guard or runner, it is governance.** An additive guard edit (below) takes the risk lane once confirmed. Other test cases a runner executes (`tests/**`, `test-kits/db/**`, `test-kits/contracts/**`) are not guards. | as today: every role | as today, per PR | as today under RFC-2026-025 §5 item 6 (see below) |
 | **Records** | RFC-2026-025 §6.1 | as today: one independent reading (§6.2) | as §6.2 says | as §6 says |
 | **Risk** | every other tier H pull request except an audit pull request: migrations, RLS, grants, schema; auth, sessions, identity, tenancy, roles; secrets, OAuth, credentials; billing, payments, webhooks; publishing, jobs, queues, storage and deletion, provider adapters, mail and notifications; contracts; other scripts and test kits; work-package scope, roles and status moves; any module not on the allowlist; anything unplaced | **A1 (Security/Privacy) and Q0 (Tester)** pass on the final head; a stop-the-line or security finding adds C0 and R0 at once | in the round audit (§2.3) | A0 (Q-034-1) |
 | **Fast** | tier M and L only | green CI **and one independent Reviewer (C0)** who confirms in writing what the classifier cannot: for L, behind a feature flag and no data path; for M, the test exercises the changed code (RFC-2026-030 §2 bullet 4) (Q-034-4) | in the round audit (§2.3) | A0 (Q-034-1) |
@@ -96,17 +96,22 @@ unchanged). The lane follows the tier and the paths:
   pull request's own change needs and removes or loosens nothing, takes the **risk lane** instead of governance:
   - pins, lint rules, proofs and self-tests for objects the pull request itself adds, in `scripts/db/run.mjs`, the
     database test harness or a module they import; and tightening an existing check for those objects, if the check's
-    negative control still fails. An entry in one of `run.mjs`'s admission lists (`PERMISSIVE_POLICIES`,
-    `SECURITY_DEFINER_FUNCTIONS`, the `CLIENT_*` privilege lists, `FK_ACTION_EXEMPTIONS`, `LIFECYCLE_WRITERS` and the
-    like) is additive only for an object the same pull request adds and only when A1's confirmation names it; an entry
-    in any `*_EXEMPTIONS` list or in `APPROVED_EXTENSION_SET` is governance;
-  - new test cases in any test file, including `test-kits/db/foundation-contract.test.mjs`, except a test that pins a
-    classifier, CI or a guard's own behaviour;
+    negative control still fails. An entry in an admission list of `run.mjs` or a module it imports (`PERMISSIVE_POLICIES`,
+    `SECURITY_DEFINER_FUNCTIONS`, the `CLIENT_*` privilege lists, `LIFECYCLE_WRITERS` in
+    `scripts/db/audit-producer-rule.mjs`, and the like) is additive only for an object the same pull request adds and only when A1's confirmation names it; an entry
+    in any `*_EXEMPTIONS` list (`FK_ACTION_EXEMPTIONS` among them) or in `APPROVED_EXTENSION_SET` is governance;
+  - new test cases in any test file, including `test-kits/db/foundation-contract.test.mjs`, except a test whose subject is a
+    governance path in the table above, such as one that pins a classifier, CI or a guard's own behaviour;
   - in a registry, a new entry for a file the pull request adds, a raised count or floor, a changed name digest for a
     test file whose new set of test names contains every old name (no test case removed or renamed) (a test name in `scripts/test-suite-contract.mjs`, a path in
     `DIGESTED_FLOOR` of `scripts/verify-test-coverage-floor.mjs`); in `test-kits/branch-identity.test.mjs`, a row for a
-    new branch, or a package's own row moved to the branch its manifest's `ownership.branch` names in the same pull
-    request (the manifest change takes the risk lane);
+    new branch, or the row of the package the pull request's own branch belongs to, moved to that branch as the
+    package's manifest's `ownership.branch` names in the same pull request: both its `BRANCH_OWNERSHIP` entry and its
+    line in the resolution test's ref list (the manifest change takes the risk lane);
+  - in the data the database guards read (`db/foundation/lint/**`, `db/foundation/invariants/**`), a pin, snapshot or
+    generated line for an object the pull request itself adds or changes, including the snapshot's record of which
+    migrations are applied; an entry in any exemption or known-exception list there (`rls-exemption-register.json`,
+    `read-allowlist-known-exceptions.json` and the like), and any other changed or removed line, is governance;
   - a regeneration of `test-kits/integrity-manifest.json` that only records the digests of files the pull request
     adds or changes.
 
@@ -195,7 +200,8 @@ Not amended: RFC-2026-030 §2 bullets 2 and 3, §4 other than §4.1 rule 3 and �
   two readers instead of four, plus the gate change. A migration batch reaches the risk lane only on A1's and Q0's
   written confirmation that its guard edits are additive (§2.2): 22 of the 24 migration commits on `main` since
   2026-09-20 edited a guard or a registry, and all 12 batch PRs #161–#185 moved their package's branch row (R0-251-24).
-  A batch that also edits an RFC or CI, as 6 of those 12 did, or renames a test, is governance (Q-034-6).
+  A batch that also edits an RFC or CI, as 6 of those 12 did, is governance under RFC-2026-025 §5 item 6 as today; one
+  that renames a test is governance under this RFC (Q-034-6 (ii)).
 
 ## 5. Effect on RFC-2026-031
 
@@ -282,7 +288,8 @@ exit. Its §6 item 2 is narrowed as §3 says.
   A0 presses the audit pull request; Q-034-1 does not reach it (C0-251r4-2).
 - **Q-034-6. Who presses governance PRs that this RFC makes governance, or that open the lanes.** Two kinds:
   (i) §8 items 2, 4 and 5 (CI prints the tier; CI runs application tests; the module names); (ii) a migration batch that
-  is governance only because of this RFC's path list (a guard edit A1 or Q0 does not confirm as additive), not because
+  is governance only because of a path this RFC adds to governance (for example a guard edit A1 or Q0 does not confirm
+  as additive, which includes any edit that loosens a guard, `docs/**`, `.agents/**`, a package file, or a test that pins a guard), not because
   it edits an RFC, CI or another path RFC-2026-025 §5 item 6 already names. Your direction of 2026-10-08 (§10.2 of that
   day's disposition, `ให้ A0 กดทุกตัวในแผน (Recommended)`) lets A0 press every governance PR in the plan approved that
   day once four roles pass and CI is green, and since 2026-10-03 A0 has pressed migration batches under your standing
