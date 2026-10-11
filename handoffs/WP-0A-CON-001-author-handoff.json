@@ -5,7 +5,7 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "8086281b104b844bc363054e752b859e0110c801",
-  "head_revision_or_patch_checksum": "5f44cb4ffacbd5492f63da12948f3cbdce2e6b1a",
+  "head_revision_or_patch_checksum": "0569028ab072054acc9f1580d87bc30c7c85feb8",
   "task_ids": [
     "WP-0A-CON-001",
     "r0-acknowledgement-amended-by-0-2026-10-11"
@@ -28,7 +28,7 @@
   "assumptions": [
     "THIS INCREMENT transcribes /claude/r0_steward's acknowledgement of this package's one amended_by entry, WP-0A-A0-002's narrowing of writable_paths under RFC-2026-003 (1873ade0), in R0's words from evidence/WP-0A-A0-001/r0-review-2026-10-11-pr250.md §6, and creates handoffs/WP-0A-CON-001-author-handoff.json, the name the handoff guard reads. Written by /claude/a0_atlas acting as A0 for this package, whose role_assignments.author_agent_run_id stays /root (as WP-0A-A0-001 records the same arrangement), so agent_run_id is /root.",
     "Records only: every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-CON-001/records-transcription-2026-10-11.md.",
-    "Path: records-only under RFC-2026-025 §6 (RFC-2026-034 §2.2 Records lane, the Owner's choice that this session's remaining PRs follow RFC-2026-034's lanes): classify-records-only exits 0; one independent reading by C0, because the record transcribes R0's own words (§6.2 item 1)."
+    "Path: NOT records-only (classify-records-only exits 1: this manifest keeps ownership.amended_by as one object, not a list, which RFC-2026-025 §6.1 rule 4 does not admit). Tier H outside governance, so the RFC-2026-034 §2.2 Risk lane: A1 (Security/Privacy) and Q0 (Tester) on the final head."
   ],
   "acceptance_results": [
     {
@@ -65,7 +65,7 @@
     "The catalog-schema acknowledgements R0's §6 names as not reviewed stay pending."
   ],
   "open_risks_or_blockers": [
-    "Records-only (RFC-2026-025 §6): one independent reading by C0 (R0 is the subject) on the final head, recorded as evidence/WP-0A-CON-001/light-path-reading-2026-10-11.md. A0 presses under RFC-2026-025 §6.2 item 3 and the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6) once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
+    "Risk lane (RFC-2026-034 §2.2): A1 and Q0 pass on the final head; A0 presses under Q-034-1 once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit; R0 gives the integration verdict in the round audit."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the records this WP-0A-CON-001 branch appended (r0-acknowledgement-amended-by-0-2026-10-11); nothing depends on them.",
   "recommended_next_work_packages": [
