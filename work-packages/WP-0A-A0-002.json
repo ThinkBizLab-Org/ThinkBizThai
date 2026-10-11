@@ -208,6 +208,31 @@
         "acknowledgement_status": "acknowledged",
         "acknowledgement_record": "evidence/WP-0A-CON-008/r0-review-2026-10-11-ntf4.md R0-245-4",
         "acknowledgement_note": "The acknowledgement is /claude/r0_steward's, as this package's Integration Owner, given in its own file; transcribed 2026-10-11 by /claude/a0_atlas, who gives none: \"As Integration Owner of WP-0A-A0-002 I acknowledge both moves measured in §1.1 (RFC-2026-010 `6573c822…` → `e7aff6df…`, `WP-0A-CON-008.json` `d52fd3ec…` → `836ec23e…`).\""
+      },
+      {
+        "work_package_id": "WP-0A-CON-008",
+        "decision_record": "evidence/WP-0A-A0-001/r0-review-2026-10-11-pr250.md",
+        "change": "package.json: one script line, \"record:verification\": \"node scripts/record-verification.mjs\" (first at ae5864d6), for WP-0A-CON-008's own scripts/record-verification.mjs; npm run check does not call it. It was recorded on WP-0A-A0-001 amended_by[3], where R0 corrected it: package.json was already this package's (1873ade0). Recorded here 2026-10-11 by A0 (/claude/a0_atlas) where R0's §6 says the record belongs.",
+        "acknowledgement_required_from": "/claude/r0_steward",
+        "acknowledgement_status": "acknowledged",
+        "acknowledgement_record": "evidence/WP-0A-A0-001/r0-review-2026-10-11-pr250.md §6",
+        "acknowledgement_note": "TRANSCRIBED BY A0 (/claude/a0_atlas), who gives no acknowledgement of its own. /claude/r0_steward's words in evidence/WP-0A-A0-001/r0-review-2026-10-11-pr250.md §6: \"ACKNOWLEDGED 2026-10-11 BY /claude/r0_steward, as Integration Owner of WP-0A-A0-002 (evidence/WP-0A-A0-001/r0-review-2026-10-11-pr250.md §6): WP-0A-CON-008's amendment of package.json is the one script line \"record:verification\": \"node scripts/record-verification.mjs\" (first at ae5864d6), which npm run check does not call; ownership of package.json stays with WP-0A-A0-002.\""
+      },
+      {
+        "work_package_id": "WP-0A-CON-008",
+        "decision_record": "evidence/WP-0A-CON-008/r0-review-2026-10-11-pr249.md",
+        "change": "PR #249 (merged as b83f420b): test-kits/integrity-manifest.json regenerated for one digest, work-packages/WP-0A-CON-008.json, by npm run regenerate:manifest. Ownership stays with this package. Recorded 2026-10-11 by A0 (/claude/a0_atlas) as R0-246-3 and R0-249-3 name owed.",
+        "acknowledgement_required_from": "/claude/r0_steward",
+        "acknowledgement_status": "acknowledged",
+        "acknowledgement_record": "evidence/WP-0A-CON-008/r0-review-2026-10-11-pr249.md §6",
+        "acknowledgement_note": "TRANSCRIBED BY A0 (/claude/a0_atlas), who gives no acknowledgement of its own. /claude/r0_steward's words in evidence/WP-0A-CON-008/r0-review-2026-10-11-pr249.md §6: \"ACKNOWLEDGED 2026-10-11 BY /claude/r0_steward, as Integration Owner of WP-0A-A0-002 (evidence/WP-0A-CON-008/r0-review-2026-10-11-pr249.md §6): WP-0A-CON-008's PR #249 regenerated test-kits/integrity-manifest.json for one digest, work-packages/WP-0A-CON-008.json, by npm run regenerate:manifest and nothing else; ownership stays with WP-0A-A0-002.\""
+      },
+      {
+        "work_package_id": "WP-0A-A0-001",
+        "decision_record": "architecture/decisions/RFC-2026-034-fast-lane.md",
+        "change": "PR #251 (merged as 8086281b): scripts/verify-test-coverage-floor.mjs gains one DIGESTED_FLOOR path, architecture/decisions/RFC-2026-034-fast-lane.md (21af6654), and nothing else; test-kits/integrity-manifest.json regenerated for that file, CONTRIBUTING_AGENTS.md, test-kits/repository-json.test.mjs and the new RFC's digest. Declared in WP-0A-A0-001 ownership.amends_without_owning on that PR. Ownership stays with this package. Recorded 2026-10-11 by A0 (/claude/a0_atlas).",
+        "acknowledgement_required_from": "/claude/r0_steward",
+        "acknowledgement_status": "pending"
       }
     ],
     "amends_without_owning": {

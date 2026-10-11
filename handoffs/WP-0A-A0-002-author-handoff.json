@@ -4,34 +4,26 @@
   "work_package_id": "WP-0A-A0-002",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "b83f420b5691360bfbef83d8e46bbc15f6edad53",
-  "head_revision_or_patch_checksum": "8b950acf83de3137616b26349049fad70dd2222e",
+  "base_revision": "928afae9ccae3cca9eea2f2f6756e2c9b0f49ad2",
+  "head_revision_or_patch_checksum": "928afae9ccae3cca9eea2f2f6756e2c9b0f49ad2",
   "task_ids": [
     "WP-0A-A0-002",
-    "amended-by-records-2026-10-11"
+    "amended-by-10-to-12-2026-10-11"
   ],
-  "files_added": [
-    "evidence/WP-0A-A0-002/a1-review-2026-10-11-pr246.md",
-    "evidence/WP-0A-A0-002/c0-review-2026-10-11-pr246.md",
-    "evidence/WP-0A-A0-002/q0-review-2026-10-11-pr246.md",
-    "evidence/WP-0A-A0-002/r0-review-2026-10-11-pr246.md",
-    "evidence/WP-0A-A0-002/records-transcription-2026-10-11.md"
-  ],
-  "files_modified": [
-    "handoffs/WP-0A-A0-002-author-handoff.json",
-    "work-packages/WP-0A-A0-002.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-003",
-    "RFC-2026-025"
+    "RFC-2026-025",
+    "RFC-2026-034"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT appends amended_by[4] to [9]: the DIGESTED_FLOOR and integrity-manifest amendments of #236 and #239 (WP-0A-CON-004), #242, #243 and #244 (WP-0A-CON-006) and #245 (WP-0A-CON-008), each acknowledged by /claude/r0_steward as this package's Integration Owner, quoted from the file each cites.",
-    "Records only: every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-A0-002/records-transcription-2026-10-11.md.",
-    "Path: the full path (C0, A1, Q0, R0 on the final head, CI green), as the Owner directed for this session."
+    "THIS INCREMENT appends ownership.amended_by[10] to [12]: WP-0A-CON-008's record:verification script line in package.json and its PR #249 digest move, each acknowledged in /claude/r0_steward's own words (r0-review-2026-10-11-pr250.md §6; r0-review-2026-10-11-pr249.md §6), and WP-0A-A0-001's PR #251 amendments (one DIGESTED_FLOOR path, four digests), pending R0.",
+    "Records content (not records-only; Risk lane): every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-A0-002/records-transcription-2026-10-11.md (second increment).",
+    "Path: NOT records-only (classify-records-only exits 1: amended_by entries added). Tier H outside governance, so the RFC-2026-034 §2.2 Risk lane: A1 (Security/Privacy) and Q0 (Tester) on the final head."
   ],
   "acceptance_results": [
     {
@@ -46,7 +38,7 @@
       "result": "valid"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commit a29b456d)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit the records commit)",
       "exit_code": 0,
       "result": "clean: exit 0 — tests 740, pass 740, fail 0"
     },
@@ -61,23 +53,23 @@
       "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, customer data or provider call.",
+  "security_privacy_cost_impact": "Records content (not records-only; Risk lane). No authority is granted or widened; no credential, customer data or provider call.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
   "known_limitations": [
-    "Older amendments not named (for example #229's for RFC-2026-031) are not recorded here.",
-    "The records PRs of 2026-10-11 regenerate the integrity manifest again (WP-0A-CON-008); their record is owed by this package's next PR."
+    "amended_by[12] stays pending until R0 acknowledges it, at the latest in the first round audit.",
+    "Older amendments (#211, #213, #229, #230, #233, #237; R0-246-1) and amended_by[0] to [2] remain unrecorded or pending."
   ],
   "open_risks_or_blockers": [
-    "Full path, as the Owner directed for this session. Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-A0-002/ at the head they read: c0-review-2026-10-11-pr246.md (review_approved), a1-review-2026-10-11-pr246.md (security_approved, no finding), q0-review-2026-10-11-pr246.md (test_verified 740/740 on the branch name), r0-review-2026-10-11-pr246.md (integration_verified). Presser: A0 (/claude/a0_atlas) under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6); not a governance PR. Pressed once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
+    "Risk lane (RFC-2026-034 §2.2): A1 and Q0 pass on the final head; A0 presses under Q-034-1 once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit; R0 gives the integration verdict in the round audit."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the records this WP-0A-A0-002 branch appended (amended-by-records-2026-10-11: amended_by[4] to [9]); nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the records this WP-0A-A0-002 branch appended (amended-by-10-to-12-2026-10-11); nothing depends on them.",
   "recommended_next_work_packages": [
-    "WP-0A-A0-002: records of later digest moves."
+    "RFC-2026-034 §8 item 1: the first round audit by 2026-10-18 under evidence/audits/, where R0 can acknowledge amended_by[12]."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-002/records-transcription-2026-10-11.md, then git diff origin/main.",
-    "amended_by[4] to [9]: each quoted acknowledgement against its R0 file."
+    "Read evidence/WP-0A-A0-002/records-transcription-2026-10-11.md (second increment), then git diff origin/main.",
+    "amended_by[10] and [11] acknowledgement_note against R0's §6 words byte for byte; [12] change text against git diff b4aa4fcd 8086281b."
   ],
   "superseded_by": "Earlier versions of this handoff described earlier heads, most recently 56e47b22 (the E4 code increment, merged in PR #204 at ae163ed8). This version describes the post-merge records increment of PR #220 at the head it cites."
 }
