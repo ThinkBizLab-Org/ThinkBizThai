@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "9fcc458c5a1314db25fde031b6ec1e0d31d0ab84",
-  "head_revision_or_patch_checksum": "b3856f8d4749fb5ceefff8bbb68d580571a4ef03",
+  "head_revision_or_patch_checksum": "16c5a76b25e847e8107ab80d923f88a312259715",
   "task_ids": [
     "WP-0A-A0-004",
     "ci-tier-and-lane-2026-10-11"
@@ -50,7 +50,7 @@
   "acceptance_results": [
     {
       "criterion": "The new step gates nothing, fails closed, runs the base's copy before npm ci, prints inert; laneOf follows RFC-2026-034 §2.2",
-      "result": "pass for author self-check: 9 new tests in test-kits/branch-scope.test.mjs and 6 in test-kits/db/foundation-contract.test.mjs after the first review round (755 in all); independent re-reading owed"
+      "result": "pass for author self-check: 9 new tests in test-kits/branch-scope.test.mjs and 10 in test-kits/db/foundation-contract.test.mjs after the second review round (759 in all); independent re-reading owed"
     }
   ],
   "tests": [
@@ -80,7 +80,7 @@
   "compatibility_impact": "No contract changes: CI, a classifier and tests; no contract-catalog file.",
   "known_limitations": [
     "The lane is information for the readers; nothing gates on it yet. The fast lane also needs a module on M_ELIGIBLE_MODULES (RFC-2026-034 §8 item 5) or an L web path, and none exists today.",
-    "The import walk is a linear scanner, not a JavaScript parser. A misread it makes (a regular expression after ')' read as a division) can hide an import from it, including one named by a string in some forms (A1-255r2-1: backtick, parenthesized or comment-preceded specifiers after such a misread; a symlinked module); RFC-2026-007 Amendment 2026-10-11 §D says only expression-named imports can hide, which is too narrow and is owed a correction. Planting such an import is itself a governance edit read by all four roles.",
+    "The import walk is a linear scanner, not a JavaScript parser. After the second review round its raw backstop also reads backtick, parenthesized, comment-preceded, escaped and percent-encoded specifiers, and a symlink or gitlink it reaches is governance (A1-255r2-1). What can still hide behind a misread is an import whose specifier is computed from an expression, or a module loaded by something that is not an import or require call (RFC-2026-007 Amendment 2026-10-11 §D). Planting either in a guard is itself a governance edit read by all four roles.",
     "A module reached from a guard or never root is guard kind even when the database runner also imports it (tests/db/identity/run-isolation.mjs and isolation-cases.mjs, through test-kits/branch-scope.test.mjs); RFC-2026-034 §2.2 would let the runner's imports be additive. Stricter, so fail closed; the mark never changes the lane.",
     "Locally the timeout 300 wrapper is exercised with stand-ins; the real coreutils timeout runs only on CI."
   ],
