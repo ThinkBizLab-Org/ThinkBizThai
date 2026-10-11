@@ -5,13 +5,18 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "8086281b104b844bc363054e752b859e0110c801",
-  "head_revision_or_patch_checksum": "8086281b104b844bc363054e752b859e0110c801",
+  "head_revision_or_patch_checksum": "5f44cb4ffacbd5492f63da12948f3cbdce2e6b1a",
   "task_ids": [
     "WP-0A-CON-001",
     "r0-acknowledgement-amended-by-0-2026-10-11"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-CON-001/records-transcription-2026-10-11.md",
+    "handoffs/WP-0A-CON-001-author-handoff.json"
+  ],
+  "files_modified": [
+    "work-packages/WP-0A-CON-001.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-003",
