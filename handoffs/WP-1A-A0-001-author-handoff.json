@@ -5,13 +5,20 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "3070d888e164e0979cf438e86af6d4c83c02fc79",
-  "head_revision_or_patch_checksum": "3070d888e164e0979cf438e86af6d4c83c02fc79",
+  "head_revision_or_patch_checksum": "d6dd5e5b002cc8e3284f457b2a46997d8a435615",
   "task_ids": [
     "WP-1A-A0-001",
     "rfc-029-approval-2026-10-12"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-1A-A0-001/product-owner-disposition-2026-10-12-rfc-029-approval.md"
+  ],
+  "files_modified": [
+    "architecture/decisions/RFC-2026-029-application-tier-stack.md",
+    "handoffs/WP-1A-A0-001-author-handoff.json",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-1A-A0-001.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
