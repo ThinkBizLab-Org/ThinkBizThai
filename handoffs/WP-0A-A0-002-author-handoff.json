@@ -4,13 +4,16 @@
   "work_package_id": "WP-0A-A0-002",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "928afae9ccae3cca9eea2f2f6756e2c9b0f49ad2",
-  "head_revision_or_patch_checksum": "6bdbbb723f76b6d475146ef65c1c3d041acedeef",
+  "base_revision": "21ca7592938db08222483b34fd4fd3ca6e4ec9e1",
+  "head_revision_or_patch_checksum": "c5d750132e570106db549497fb7bee747b2e623c",
   "task_ids": [
     "WP-0A-A0-002",
     "amended-by-10-to-12-2026-10-11"
   ],
-  "files_added": [],
+  "files_added": [
+    "evidence/WP-0A-A0-002/a1-review-2026-10-11-pr254.md",
+    "evidence/WP-0A-A0-002/q0-review-2026-10-11-pr254.md"
+  ],
   "files_modified": [
     "evidence/WP-0A-A0-002/records-transcription-2026-10-11.md",
     "handoffs/WP-0A-A0-002-author-handoff.json",
@@ -25,7 +28,7 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT appends ownership.amended_by[10] to [12]: WP-0A-CON-008's record:verification script line in package.json and its PR #249 digest move, each acknowledged in /claude/r0_steward's own words (r0-review-2026-10-11-pr250.md §6; r0-review-2026-10-11-pr249.md §6), and WP-0A-A0-001's PR #251 amendments (one DIGESTED_FLOOR path, four digests), pending R0.",
+    "THIS INCREMENT appends ownership.amended_by[10] to [12]: WP-0A-CON-008's record:verification script line in package.json and its PR #249 digest move, each acknowledged in /claude/r0_steward's own words (r0-review-2026-10-11-pr250.md §6; r0-review-2026-10-11-pr249.md §6), and WP-0A-A0-001's PR #251 amendments (one DIGESTED_FLOOR path; in the integrity manifest three digests moved and one added), pending R0.",
     "Records content (not records-only; Risk lane): every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-A0-002/records-transcription-2026-10-11.md (second increment).",
     "Path: NOT records-only (classify-records-only exits 1: amended_by entries added). Tier H outside governance, so the RFC-2026-034 §2.2 Risk lane: A1 (Security/Privacy) and Q0 (Tester) on the final head."
   ],
@@ -59,7 +62,7 @@
   ],
   "security_privacy_cost_impact": "Records content (not records-only; Risk lane). No authority is granted or widened; no credential, customer data or provider call.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
+  "compatibility_impact": "No contract changes: records content only; no contract-catalog file.",
   "known_limitations": [
     "amended_by[12] stays pending until R0 acknowledges it, at the latest in the first round audit.",
     "Older amendments (#211, #213, #229, #230, #233, #237; R0-246-1) and amended_by[0] to [2] remain unrecorded or pending."
@@ -75,5 +78,5 @@
     "Read evidence/WP-0A-A0-002/records-transcription-2026-10-11.md (second increment), then git diff origin/main.",
     "amended_by[10] and [11] acknowledgement_note against R0's §6 words byte for byte; [12] change text against git diff b4aa4fcd 8086281b."
   ],
-  "superseded_by": "Earlier versions of this handoff described earlier heads, most recently 56e47b22 (the E4 code increment, merged in PR #204 at ae163ed8). This version describes the post-merge records increment of PR #220 at the head it cites."
+  "superseded_by": null
 }
