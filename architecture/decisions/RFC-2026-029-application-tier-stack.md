@@ -8,7 +8,7 @@ Date: 2026-10-08
 Author: `/claude/a0_atlas` (A0 Architecture/Integration; owner of root config, lockfile and composition root under the register's §4.3); drafted by a subagent of that run
 Reviewer sought: `/claude/c0_contract_reviewer` (review), `/claude/a1_bastion` (Security: the request path, the worker credential, the service-role exclusion and the dependency supply chain), `/claude/q0_sentinel` (test), `/claude/r0_steward` (Integration Owner: CI and the lockfile)
 Answers: the remaining half of `OPEN-018` (`docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md:127`, "TypeScript/Node/Next.js assumption ห้าม lockfile จนประกาศ" — no lockfile until announced); `RFC-2026-011`'s deferral ("The application tier's language is NOT decided here … decided with the stack at G1"); the condition in `CONTRIBUTING_AGENTS.md` § Verification and handoff that no dependency is introduced "without a new approved RFC"
-Depends on: `RFC-2026-001` (approved; Node `24.20.0`, npm `11.19.0`, `npm ci --ignore-scripts`), `RFC-2026-011` (approved; the tooling tier is JavaScript ESM), `RFC-2026-012` (approved; server-only mutation, Realtime unresolved at its §Limitations), `RFC-2026-017` (approved; `service_role` reserved for migration and platform administration), `RFC-2026-019` (approved; the request path is `authenticated`, command functions are owned by `app_command`), `RFC-2026-021` (approved; the client read allowlist starts empty), `RFC-2026-028` (approved; the worker's login role), `RFC-2026-025` (approved; who merges governance)
+Depends on: `RFC-2026-001` (approved; Node `24.20.0`, npm `11.19.0`, `npm ci --ignore-scripts`), `RFC-2026-011` (approved; the tooling tier is JavaScript ESM), `RFC-2026-012` (approved; server-only mutation, Realtime unresolved at its §Limitations), `RFC-2026-017` (approved; `service_role` reserved for migration and platform administration), `RFC-2026-019` (approved; the request path is `authenticated`, command functions are owned by `app_command`), `RFC-2026-021` (approved; the client read allowlist starts empty), `RFC-2026-028` (approved; the worker's login role), `RFC-2026-025` (approved; who merges governance); `RFC-2026-034` (approved 2026-10-11, PR #251; §7 rests on its §2.1)
 Does not answer: D0 (how G0 exits; `WP-0A-A0-010`), D7 (where Meta tokens are stored), D8 (email provider), D10 (storage provider), D13/D14 (package naming, legal entity and domain). Each is named in §11 so that silence here is not read as a decision.
 
 ---
@@ -390,8 +390,8 @@ is ever needed for local configuration, it holds no migrations, and a guard asse
 
 This section follows `RFC-2026-034` §2.1, which the Owner approved on 2026-10-11 and which is on `main` (PR #251).
 The register sets what a consumer may do at each freeze level (`sprint-0a-decision-register-contract-catalog-th.md`
-§5.1, `:186-191`). RFC-2026-034 amends those rungs, and the register's line 373, as to writing and merging application
-code (RFC-2026-034 §3). This RFC adopts the rungs as so amended and lowers none of them further:
+§5.1, `:186-191`). RFC-2026-034 §3 amends §5.1 lines 190–191 and the register's line 373 as to writing and merging
+application code; this RFC reads the rungs as so amended and lowers none of them further:
 
 | Level | What the register allows | Under RFC-2026-034 §2.1, for application code | Where that code may live here |
 |---|---|---|---|
@@ -400,8 +400,9 @@ code (RFC-2026-034 §3). This RFC adopts the rungs as so amended and lowers none
 | Frozen v1 | "เขียน implementation ได้" (implementation may be written) | as Candidate v1; it is also the level every contract a deploy serving users needs first (below) | merged into `src/modules/` and `apps/` |
 | Integrated v1 | "merge consumer ได้" (a consumer may be merged) | as Frozen v1 | merged into `src/modules/` and `apps/` |
 
-So **code that implements or consumes a contract may be merged into `src/modules/` or `apps/` once every contract it
-implements or consumes is at `Candidate` or above**, and only as reversible work:
+So, **before the G0 exit closes** (RFC-2026-034 §2.1), **code that implements or consumes a contract may be merged into
+`src/modules/` or `apps/` once every contract it implements or consumes is at `Candidate` or above**, and only as
+reversible work:
 
 - **Synthetic data only.** No real customer data.
 - **Migrations on local and CI databases only.** Migrations run on local databases and on CI's throwaway
@@ -412,12 +413,13 @@ implements or consumes is at `Candidate` or above**, and only as reversible work
 
 Code that implements or consumes a contract still at `Draft` stays a spike under `spikes/<work-package-id>/` (or on its
 own branch) and is never imported from `apps/` or `src/` (§6.3/3). Code that implements or consumes no contract, such as
-the skeleton or components with no data path, is merged under the same reversibility.
+the skeleton or components with no data path, is merged under the same reversibility; that follows from the rule
+above and from `CONTRIBUTING_AGENTS.md` § Current gate constraint, not from new text in RFC-2026-034.
 
 **`Frozen` before production use.** Before any paid beta, real customer data, or production deploy that serves users,
 every contract that deploy uses is `Frozen` under `RFC-2026-031`. A breaking change to a `Candidate` contract follows
 its owner and the RFC path. Freeze pull requests and changes to a `Frozen` contract keep RFC-2026-031's own role rules
-(RFC-2026-034 §2.1).
+(§4 there), whatever their lane (RFC-2026-034 §2.1).
 
 Who reads each pull request of this code is set by RFC-2026-034 §2.2's lanes, not by this section. A merge under this
 section does not move a contract's level. It does not close the G0 exit either, which stays "decided, conditional"
@@ -524,9 +526,9 @@ they exist, this RFC is a rule held by review alone, and it says so.
   added now, because none has §3.4/1's answers; `WP-1A-A0-002` brings the ones it actually needs as one
   dated amendment with those answers, which is one governance merge rather than several.
 
-**Answered 2026-10-11 UTC (2026-10-12 local).** The Owner approved this text as written (status line), and with it
-A0's recommendations on Q-029-1, Q-029-5 and Q-029-7, as recommended. Q-029-2, Q-029-3, Q-029-4 and Q-029-6 stay with
-the packages named above. **Who presses the skeleton (note).** In the same answer the Owner directed that A0 may press
+**2026-10-11 UTC (2026-10-12 local).** The Owner approved this text as written (status line). He was not asked these
+questions one by one: Q-029-1, Q-029-5 and Q-029-7 remain A0's recommendations, not his answers, and Q-029-2, Q-029-3,
+Q-029-4 and Q-029-6 stay with the packages named above (C0-256-1, R0-256-1). **Who presses the skeleton (note).** In the same answer the Owner directed that A0 may press
 the `WP-1A-A0-002` skeleton pull request once C0, A1, Q0 and R0 have passed on its final head and CI is green on it,
 with `RFC-2026-025` §5 item 6's other conditions kept. The direction reaches that pull request only. It does not reach
 this RFC or any amendment to its allowlist (§3.4/1), Q-029-7's dated amendment included. The words, and A0's reading of

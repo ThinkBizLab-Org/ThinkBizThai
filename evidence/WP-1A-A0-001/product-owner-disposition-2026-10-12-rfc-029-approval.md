@@ -67,16 +67,17 @@ real customer data or production deploy serving users. The rest of the PR follow
 in §10, and the sentences elsewhere in the RFC that relied on the old §7 or on facts the old text dated (PR #214 open,
 Draft contracts). Any further substantive change is not covered by these words and goes back to the Owner. The approval
 takes effect when the Owner merges this PR personally ((c) below). It does not answer Q-029-2, -3, -4 or -6, which stay
-with the packages the RFC names; Q-029-1, -5 and -7 were put as A0's recommendations inside the text approved as
-written, and are recorded in §10 as accepted.
+with the packages the RFC names; Q-029-1, -5 and -7 were not put to him one by one: they remain A0's recommendations, not
+his answers, and §10 says so (C0-256-1, R0-256-1).
 
 **(b) A0 may press the WP-1A-A0-002 skeleton pull request.** That pull request installs Next.js, TypeScript and
 Tailwind, adds `package.json` changes and the lockfile, and makes CI run `tsc` and the application tests (RFC-2026-034
 §8 item 4). A0 (`/claude/a0_atlas`) may press its merge once C0, A1, Q0 and R0 have passed on its final head and CI is
 green on that head. RFC-2026-025 §5 item 6's other conditions still apply in full: the head contains current `main`,
-and no security finding of any grade is open against it. The Owner may still press it himself. This is a named
-direction under RFC-2026-025 §5 item 6, of the kind recorded for PR #211 and in the 2026-10-08 disposition §10.2. It
-does not amend RFC-2026-025. Its reach, in A0's reading of the option text ("ครอบคลุมเฉพาะ skeleton PR นี้ (รวม §8 item
+and no security finding of any grade is open against it. The Owner may still press it himself. RFC-2026-025 §5 item 6 says a governance PR is merged by the Owner
+personally, "never by delegation"; this is a named exception the Owner gave for one pull request, of the kind
+RFC-2026-025 records for PR #211 and the 2026-10-08 disposition §10.2 records, not a delegation under that rule
+(C0-256-2). It does not amend RFC-2026-025. Its reach, in A0's reading of the option text ("ครอบคลุมเฉพาะ skeleton PR นี้ (รวม §8 item
 4) ไม่รวม RFC-029 เอง"):
 
 - It reaches **that one pull request only**. The pull request does not exist yet. RFC-2026-025 §5 item 6 says the
@@ -90,8 +91,13 @@ does not amend RFC-2026-025. Its reach, in A0's reading of the option text ("ค
   §3.4/1, whether it travels in the skeleton pull request or on its own. This reading is A0's. If the skeleton pull
   request carries such an amendment, A0 does not press it under this direction and asks the Owner.
 - It does **not** reach any other governance pull request. RFC-2026-034 Q-034-6 (i) already lets A0 press §8 item 4 on
-  its own. This direction extends the same rule to the skeleton's package, lockfile, tool configuration and `tsc` step,
-  which RFC-2026-025 §5 item 6 names directly.
+  its own. This direction extends the same exception to the skeleton's package, lockfile, tool configuration and `tsc` step,
+  which are governance under RFC-2026-034 §2.2 (C0-256-2).
+- It reaches **Next.js, TypeScript and Tailwind** and what RFC-2026-029 §3 lists for them, as the question named. A
+  provider SDK (`@supabase/*`, `pg`, `@sentry/nextjs`) installed in the skeleton pull request is outside those words;
+  if the skeleton carries one, A0 asks the Owner before pressing (A1 note, R0-256-2). Because Q-029-7 expects the
+  skeleton to carry a dated allowlist amendment, the Owner should expect A0 to ask him about that amendment, or to land
+  it separately first.
 
 **(c) This RFC-2026-029 pull request is merged by the Owner personally.** The chosen option says so ("คุณกด merge
 เอง"). No delegation covers it: not (b), not the 2026-10-08 disposition §10.2 (which let A0 press PR #215 in that
