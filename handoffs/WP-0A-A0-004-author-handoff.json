@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "9fcc458c5a1314db25fde031b6ec1e0d31d0ab84",
-  "head_revision_or_patch_checksum": "cc5731cde853ba8492f8c22c980d674801654e54",
+  "head_revision_or_patch_checksum": "b8bb37f167ff0e667001087aee4d7431a4f6524c",
   "task_ids": [
     "WP-0A-A0-004",
     "ci-tier-and-lane-2026-10-11"
@@ -14,18 +14,22 @@
     "evidence/WP-0A-A0-004/a1-reread-2026-10-11-pr255.md",
     "evidence/WP-0A-A0-004/a1-reread2-2026-10-11-pr255.md",
     "evidence/WP-0A-A0-004/a1-reread3-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/a1-reread4-2026-10-12-pr255.md",
     "evidence/WP-0A-A0-004/a1-review-2026-10-11-pr255.md",
     "evidence/WP-0A-A0-004/c0-reread-2026-10-11-pr255.md",
     "evidence/WP-0A-A0-004/c0-reread2-2026-10-11-pr255.md",
     "evidence/WP-0A-A0-004/c0-reread3-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/c0-reread4-2026-10-12-pr255.md",
     "evidence/WP-0A-A0-004/c0-review-2026-10-11-pr255.md",
     "evidence/WP-0A-A0-004/q0-reread-2026-10-11-pr255.md",
     "evidence/WP-0A-A0-004/q0-reread2-2026-10-11-pr255.md",
     "evidence/WP-0A-A0-004/q0-reread3-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/q0-reread4-2026-10-12-pr255.md",
     "evidence/WP-0A-A0-004/q0-review-2026-10-11-pr255.md",
     "evidence/WP-0A-A0-004/r0-reread-2026-10-11-pr255.md",
     "evidence/WP-0A-A0-004/r0-reread2-2026-10-11-pr255.md",
     "evidence/WP-0A-A0-004/r0-reread3-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/r0-reread4-2026-10-12-pr255.md",
     "evidence/WP-0A-A0-004/r0-review-2026-10-11-pr255.md"
   ],
   "files_modified": [
@@ -89,7 +93,7 @@
   "known_limitations": [
     "The lane is information for the readers; nothing gates on it yet. The fast lane also needs a module on M_ELIGIBLE_MODULES (RFC-2026-034 §8 item 5) or an L web path, and none exists today.",
     "The import walk is a best-effort aid, not a parser, and does not claim to find every module a guard can load. It fails closed on any symbolic link or gitlink at the head; on an import read from code of a URL other than node:, of an absolute path, or resolving to anything but .js, .mjs, .cjs or .json; and on a reached .ts, .mts, .cts, .tsx, .jsx, .node or .wasm module. Every string in a guard's closure naming a code module joins the walk. Known forms it misses (RFC-2026-007 Amendment 2026-10-11 §D): a path computed at run time; a mechanism naming no repository-relative path literally; a process a guard spawns; a CommonJS require of a file whose extension it treats as data; a literal over the scanner's 4096-character cap; a backslash-separated path; a path held in data the guard reads (for example a JSON file); and a path where node and the walk pick different candidates. Each is an accepted residual: planting it in a guard is a governance edit all four roles read.",
-    "Fail closed where the RFC would allow lighter: every module a guard reaches, by import or by a string naming it (the classifier names scripts/db/run.mjs; scripts/test-suite-contract.mjs names its twelve test files), is guard kind, so none of them is additive-eligible; and such a file changed alone (for example catalog-groups.test.mjs, catalog-reference-integrity.test.mjs, scripts/commit-when-clean.mjs) prints governance. Test fixture strings make the paths they name governance too (Q0 N-2): none of those paths exists today, but a product file later added at one would print governance. It never lowers a lane; over the last 45 merges no lane changed (R0-255r3-2).",
+    "Fail closed where the RFC would allow lighter: a module a guard reaches, by import or by a string naming it, is guard kind and not additive-eligible, unless the RFC's additive rule names the path itself (foundation-contract.test.mjs, branch-identity.test.mjs, scripts/test-suite-contract.mjs and scripts/verify-test-coverage-floor.mjs stay additive-eligible). So the database runner's imports lose the mark (the classifier names scripts/db/run.mjs by string), and a file a guard names by string, changed alone, prints governance: scripts/test-suite-contract.mjs names some two dozen test files by literal path (for example catalog-groups.test.mjs and catalog-reference-integrity.test.mjs), and scripts/commit-when-clean.mjs is named too (C0-255r4-1). Test fixture strings make the paths they name governance too (Q0 N-2): none of those paths exists today, but a product file later added at one would print governance. It never lowers a lane; over the last 45 merges no lane changed (R0-255r3-2).",
     "Locally the timeout 300 wrapper is exercised with stand-ins; the real coreutils timeout runs only on CI."
   ],
   "open_risks_or_blockers": [
