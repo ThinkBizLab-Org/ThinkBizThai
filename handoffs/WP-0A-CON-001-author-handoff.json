@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-CON-001",
+  "agent_run_id": "/root",
+  "final_status": "in_review",
+  "base_revision": "928afae9ccae3cca9eea2f2f6756e2c9b0f49ad2",
+  "head_revision_or_patch_checksum": "454ed1d0c318bea4db42a5fcaeadbd182bdb0afd",
+  "task_ids": [
+    "WP-0A-CON-001",
+    "r0-acknowledgement-amended-by-0-2026-10-11"
+  ],
+  "files_added": [
+    "evidence/WP-0A-CON-001/a1-review-2026-10-11-pr253.md",
+    "evidence/WP-0A-CON-001/q0-review-2026-10-11-pr253.md",
+    "evidence/WP-0A-CON-001/records-transcription-2026-10-11.md",
+    "handoffs/WP-0A-CON-001-author-handoff.json"
+  ],
+  "files_modified": [
+    "work-packages/WP-0A-CON-001.json"
+  ],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "RFC-2026-003",
+    "RFC-2026-025",
+    "RFC-2026-034"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "THIS INCREMENT transcribes /claude/r0_steward's acknowledgement of this package's one amended_by entry, WP-0A-A0-002's narrowing of writable_paths under RFC-2026-003 (1873ade0), in R0's words from evidence/WP-0A-A0-001/r0-review-2026-10-11-pr250.md §6, and creates handoffs/WP-0A-CON-001-author-handoff.json, the name the handoff guard reads. Written by /claude/a0_atlas acting as A0 for this package, whose role_assignments.author_agent_run_id stays /root (as WP-0A-A0-001 records the same arrangement), so agent_run_id is /root.",
+    "Records content (not records-only; Risk lane): every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-CON-001/records-transcription-2026-10-11.md.",
+    "Path: NOT records-only (classify-records-only exits 1: this manifest keeps ownership.amended_by as one object, not a list, which RFC-2026-025 §6.1 rule 4 does not admit). Tier H outside governance, so the RFC-2026-034 §2.2 Risk lane: A1 (Security/Privacy) and Q0 (Tester) on the final head."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "Recorded words match their sources; old entries byte-equal; no status, contract, test or script change beyond what is stated",
+      "result": "pass for author self-check: extracted by script from the cited role files"
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run validate:protocol",
+      "exit_code": 0,
+      "result": "valid"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit the records commit)",
+      "exit_code": 0,
+      "result": "clean: exit 0 — tests 740, pass 740, fail 0"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-001",
+      "exit_code": 0,
+      "result": "every changed path declared, every amendment explains one"
+    },
+    {
+      "command": "npm run check:handoff",
+      "exit_code": 0,
+      "result": "the handoff cites this branch"
+    }
+  ],
+  "security_privacy_cost_impact": "Records content (not records-only; Risk lane). No authority is granted or widened; no credential, customer data or provider call.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
+  "known_limitations": [
+    "The catalog-schema acknowledgements R0's §6 names as not reviewed stay pending."
+  ],
+  "open_risks_or_blockers": [
+    "Risk lane (RFC-2026-034 §2.2): A1 and Q0 pass on the final head; A0 presses under Q-034-1 once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit; R0 gives the integration verdict in the round audit."
+  ],
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the records this WP-0A-CON-001 branch appended (r0-acknowledgement-amended-by-0-2026-10-11); nothing depends on them.",
+  "recommended_next_work_packages": [
+    "WP-0A-A0-002 records PR for R0's other §6 acknowledgement (the record:verification line in package.json)."
+  ],
+  "reviewer_instructions": [
+    "Read evidence/WP-0A-CON-001/records-transcription-2026-10-11.md, then git diff origin/main.",
+    "amended_by acknowledgement keys against r0-review-2026-10-11-pr250.md §6, byte for byte."
+  ],
+  "superseded_by": null
+}

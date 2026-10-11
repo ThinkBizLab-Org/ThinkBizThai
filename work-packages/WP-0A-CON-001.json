@@ -79,7 +79,9 @@
       "decision_record": "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
       "change": "The writable globs contract-catalog/shared-kernel/**, test-kits/contracts/**, and the unused fixtures/contracts/** were replaced with the exact paths this package delivered. This amendment is anticipatory, not corrective: the repository validates with the globs restored, and they bite only once a follow-on shared-kernel contract package declares outputs under them. No status, role, gate, contract freeze level, or delivered output of this package changed.",
       "acknowledgement_required_from": "/root/r0_steward",
-      "acknowledgement_status": "pending"
+      "acknowledgement_status": "acknowledged",
+      "acknowledgement_record": "evidence/WP-0A-A0-001/r0-review-2026-10-11-pr250.md §6",
+      "acknowledgement_note": "TRANSCRIBED BY A0 (/claude/a0_atlas), who gives no acknowledgement of its own. /claude/r0_steward's words in evidence/WP-0A-A0-001/r0-review-2026-10-11-pr250.md §6: \"ACKNOWLEDGED 2026-10-11 BY /claude/r0_steward, successor to /root/r0_steward for acknowledgements recorded pending against it (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 row 2): WP-0A-A0-002's narrowing of this package's writable_paths under RFC-2026-003 (1873ade0) replaced the globs contract-catalog/shared-kernel/**, fixtures/contracts/** and test-kits/contracts/** with the paths this package delivered (index.json, ctr-ten-001/**, ctr-err-001/**, ctr-evt-001/**, ctr-job-001/**, and test-kits/contracts/shared-kernel-contract-catalog.test.mjs) and changed no other field.\""
     },
     "writable_paths": [
       "contract-catalog/shared-kernel/index.json",
