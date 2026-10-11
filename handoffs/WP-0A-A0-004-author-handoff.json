@@ -5,12 +5,17 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "9fcc458c5a1314db25fde031b6ec1e0d31d0ab84",
-  "head_revision_or_patch_checksum": "3d8dba29ef89f3402f5731d9b6272edb03f8c6a1",
+  "head_revision_or_patch_checksum": "758a83e3f6d3d60384725f2a4dd60aa9a3f569f4",
   "task_ids": [
     "WP-0A-A0-004",
     "ci-tier-and-lane-2026-10-11"
   ],
-  "files_added": [],
+  "files_added": [
+    "evidence/WP-0A-A0-004/a1-review-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/c0-review-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/q0-review-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/r0-review-2026-10-11-pr255.md"
+  ],
   "files_modified": [
     ".github/workflows/ci.yml",
     "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
@@ -41,7 +46,7 @@
   "acceptance_results": [
     {
       "criterion": "The new step gates nothing, fails closed, runs the base's copy before npm ci, prints inert; laneOf follows RFC-2026-034 §2.2",
-      "result": "pass for author self-check: 7 new tests in test-kits/branch-scope.test.mjs and 2 in test-kits/db/foundation-contract.test.mjs; independent reading owed"
+      "result": "pass for author self-check: 9 new tests in test-kits/branch-scope.test.mjs and 6 in test-kits/db/foundation-contract.test.mjs after the first review round (755 in all); independent re-reading owed"
     }
   ],
   "tests": [
@@ -71,8 +76,9 @@
   "compatibility_impact": "No contract changes: CI, a classifier and tests; no contract-catalog file.",
   "known_limitations": [
     "The lane is information for the readers; nothing gates on it yet. The fast lane also needs a module on M_ELIGIBLE_MODULES (RFC-2026-034 §8 item 5) or an L web path, and none exists today.",
-    "Import roots are run.mjs, rls-smoke.mjs and authz-proofs.mjs; fixtures the harness loads by readFile are covered by the db/foundation/** and tests path patterns only as far as those patterns reach.",
-    "A test that pins CI or a classifier is marked never-additive by name (branch-scope, repository-json, test-coverage-floor); foundation-contract.test.mjs stays additive-coverable, as RFC-2026-034 §2.2 allows new tests there, and the readers judge whether a new test pins the classifier."
+    "The import walk is a linear scanner, not a JavaScript parser: a regular expression after ')' is read as a division, so an import named by an expression could hide behind such a misread; imports written as strings are still caught by a raw keyword scan (RFC-2026-007 Amendment 2026-10-11 §D).",
+    "A module reached from a guard or never root is guard kind even when the database runner also imports it (tests/db/identity/run-isolation.mjs and isolation-cases.mjs, through test-kits/branch-scope.test.mjs); RFC-2026-034 §2.2 would let the runner's imports be additive. Stricter, so fail closed; the mark never changes the lane.",
+    "Locally the timeout 300 wrapper is exercised with stand-ins; the real coreutils timeout runs only on CI."
   ],
   "open_risks_or_blockers": [
     "GOVERNANCE, tier H, full path: C0, A1, Q0 and R0 on the final head; A0 presses under Q-034-6 (i) once all four pass and CI is green on the exact head containing main. Amendment acknowledgements owed from WP-0A-DB-00, WP-0A-A0-002 and WP-0A-CON-008."
