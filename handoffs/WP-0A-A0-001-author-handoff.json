@@ -5,7 +5,7 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "b4aa4fcddf7b0a71fad6eb1fd280b0282eba1680",
-  "head_revision_or_patch_checksum": "a729691252146d1b0c48ac533a29b4af45d0f736",
+  "head_revision_or_patch_checksum": "6f6b574c1ef16802abe223f2f04d120edf0f2522",
   "task_ids": [
     "WP-0A-A0-001",
     "RFC-2026-034-fast-lane-2026-10-11"
@@ -15,19 +15,23 @@
     "evidence/WP-0A-A0-001/a1-reread-2026-10-11-pr251.md",
     "evidence/WP-0A-A0-001/a1-reread2-2026-10-11-pr251.md",
     "evidence/WP-0A-A0-001/a1-reread3-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/a1-reread4-2026-10-11-pr251.md",
     "evidence/WP-0A-A0-001/a1-review-2026-10-11-pr251.md",
     "evidence/WP-0A-A0-001/c0-reread-2026-10-11-pr251.md",
     "evidence/WP-0A-A0-001/c0-reread2-2026-10-11-pr251.md",
     "evidence/WP-0A-A0-001/c0-reread3-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/c0-reread4-2026-10-11-pr251.md",
     "evidence/WP-0A-A0-001/c0-review-2026-10-11-pr251.md",
     "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-11-fast-lane.md",
     "evidence/WP-0A-A0-001/q0-reread-2026-10-11-pr251.md",
     "evidence/WP-0A-A0-001/q0-reread2-2026-10-11-pr251.md",
     "evidence/WP-0A-A0-001/q0-reread3-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/q0-reread4-2026-10-11-pr251.md",
     "evidence/WP-0A-A0-001/q0-review-2026-10-11-pr251.md",
     "evidence/WP-0A-A0-001/r0-reread-2026-10-11-pr251.md",
     "evidence/WP-0A-A0-001/r0-reread2-2026-10-11-pr251.md",
     "evidence/WP-0A-A0-001/r0-reread3-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/r0-reread4-2026-10-11-pr251.md",
     "evidence/WP-0A-A0-001/r0-review-2026-10-11-pr251.md"
   ],
   "files_modified": [
@@ -50,9 +54,9 @@
   "assumptions": [
     "WRITER DISCLOSURE: written by /claude/a0_atlas (A0). agent_run_id reads /root because handoff-conformance requires it to equal the manifest author_agent_run_id, which this increment does not change.",
     "THIS INCREMENT drafts RFC-2026-034 'fast lane' (status Proposed) on the Product Owner's choice of 2026-10-10 (asked 19:02:50Z, answered 19:03:54Z, `ทางกลาง (Recommended)`; evidence/WP-0A-A0-001/product-owner-disposition-2026-10-11-fast-lane.md) and applies its six CONTRIBUTING_AGENTS.md passages (RFC §7), this package's file. DECISION_RECORDS (own file), DIGESTED_FLOOR and the integrity manifest (WP-0A-A0-002, declared amendments) register it.",
-    "A governance PR under RFC-2026-025 §5 item 6: the Product Owner merges it personally. Its questions Q-034-1 to Q-034-5 are his to answer; A0 does not answer them from any broad delegation and does not press this PR.",
+    "A governance PR under RFC-2026-025 §5 item 6: the Product Owner merges it personally. Its questions Q-034-1 to Q-034-6 are his to answer; A0 does not answer them from any broad delegation and does not press this PR.",
     "The branch is cut at #250's merge; the handoff range was set to the branch point by hand and then regenerated.",
-    "REVISED FOUR TIMES after role rounds (round one at 6046e46e; re-reads at 5cb6d727, 90ee098e and 7033114d), each round's files carried with -x; see open_blockers[7] and the two rework commits."
+    "REVISED FIVE TIMES after role rounds (round one at 6046e46e; re-reads at 5cb6d727, 90ee098e, 7033114d and ed314eb3), each round's files carried with -x; see open_blockers[7] and the five rework commits."
   ],
   "acceptance_results": [
     {
@@ -81,7 +85,7 @@
       "result": "valid"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commits 21af6654, b2e6fbf4 and the second rework commit)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commits 21af6654, b2e6fbf4 and each of the four later rework commits, the last of them the fifth revision)",
       "exit_code": 0,
       "result": "clean: exit 0 — tests 740, pass 740, fail 0, each"
     },
@@ -105,12 +109,12 @@
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes: an RFC and six CONTRIBUTING_AGENTS.md passages; no contract-catalog file.",
   "known_limitations": [
-    "Proposed only. Not in effect until the Owner answers Q-034-1 to Q-034-5 and merges this PR personally.",
+    "Proposed only. Not in effect until the Owner answers Q-034-1 to Q-034-6 and merges this PR personally.",
     "Until CI prints the tier (RFC §8 item 2; ci.yml is WP-0A-A0-004's, the classifier WP-0A-DB-00's), every PR is tier H, so the fast lane stays closed.",
     "RFC-2026-030 and RFC-2026-031 status lines are not touched here (RFC §8 item 3)."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE, tier H, full path. Round one at 6046e46e and re-reads at 5cb6d727, 90ee098e and 7033114d (carried); at 7033114d C0, A1 and Q0 passed and R0 asked one change (R0-251-24). The fourth rework commit is outside every carry clause, so C0, A1, Q0 and R0 re-read it. Not pressed by A0. RFC §10 sets the order: the Product Owner answers Q-034-1 to Q-034-5 in chat; A0 transcribes them and changes the status line in one commit; the roles re-read; the Owner merges it personally."
+    "GOVERNANCE, tier H, full path. Round one at 6046e46e and re-reads at 5cb6d727, 90ee098e, 7033114d and ed314eb3 (carried); at ed314eb3 C0 and A1 passed, and R0 and Q0 asked one change (R0-251-24, Q0-251-17). The fifth rework commit is outside every carry clause, so C0, A1, Q0 and R0 re-read it. Not pressed by A0. RFC §10 sets the order: the Product Owner answers Q-034-1 to Q-034-6 in chat; A0 transcribes them and changes the status line in one commit; the roles re-read; the Owner merges it personally."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed PR reverting RFC-2026-034 and the six CONTRIBUTING_AGENTS.md passages restores RFC-2026-030's review depth and the earlier gate text (RFC §11).",
   "recommended_next_work_packages": [
@@ -118,6 +122,6 @@
   ],
   "reviewer_instructions": [
     "Read the disposition, then architecture/decisions/RFC-2026-034-fast-lane.md, then git diff origin/main -- CONTRIBUTING_AGENTS.md against RFC §7.",
-    "Check that the RFC states the Owner's chosen option faithfully and marks what goes beyond it as a question (Q-034-1..5)."
+    "Check that the RFC states the Owner's chosen option faithfully and marks what goes beyond it as a question (Q-034-1..6)."
   ]
 }
