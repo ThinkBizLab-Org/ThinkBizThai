@@ -5,7 +5,7 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "b4aa4fcddf7b0a71fad6eb1fd280b0282eba1680",
-  "head_revision_or_patch_checksum": "a8aac43fc5daaeb934594dc16d4c0985459a1bab",
+  "head_revision_or_patch_checksum": "85972c45ae57033b48ed5c89a23769be80e113a9",
   "task_ids": [
     "WP-0A-A0-001",
     "RFC-2026-034-fast-lane-2026-10-11"
@@ -69,10 +69,9 @@
   "contracts_produced_or_changed": [],
   "assumptions": [
     "WRITER DISCLOSURE: written by /claude/a0_atlas (A0). agent_run_id reads /root because handoff-conformance requires it to equal the manifest author_agent_run_id, which this increment does not change.",
-    "THIS INCREMENT drafts RFC-2026-034 'fast lane' (status Proposed) on the Product Owner's choice of 2026-10-10 (asked 19:02:50Z, answered 19:03:54Z, `ทางกลาง (Recommended)`; evidence/WP-0A-A0-001/product-owner-disposition-2026-10-11-fast-lane.md) and applies its six CONTRIBUTING_AGENTS.md passages (RFC §7), this package's file. DECISION_RECORDS (own file), DIGESTED_FLOOR and the integrity manifest (WP-0A-A0-002, declared amendments) register it.",
+    "THIS INCREMENT drafts RFC-2026-034 'fast lane' (its status line carries the Owner's answers to Q-034-1..6 of 2026-10-11; in effect when he merges this PR) on the Product Owner's choice of 2026-10-10 (asked 19:02:50Z, answered 19:03:54Z, `ทางกลาง (Recommended)`; evidence/WP-0A-A0-001/product-owner-disposition-2026-10-11-fast-lane.md) and applies its six CONTRIBUTING_AGENTS.md passages (RFC §7), this package's file. DECISION_RECORDS (own file), DIGESTED_FLOOR and the integrity manifest (WP-0A-A0-002, declared amendments) register it.",
     "A governance PR under RFC-2026-025 §5 item 6: the Product Owner merges it personally. Its questions Q-034-1 to Q-034-6 are his to answer; A0 does not answer them from any broad delegation and does not press this PR.",
-    "The branch is cut at #250's merge; the handoff range was set to the branch point by hand and then regenerated.",
-    "REVISED EIGHT TIMES after role rounds (round one at 6046e46e; re-reads at 5cb6d727, 90ee098e, 7033114d, ed314eb3, 460cca24, 7c4b0242, 6eca9c01 and 0968d3c1), each round's files carried with -x; see open_blockers[7] and the eight rework commits."
+    "REVISED EIGHT TIMES after role rounds (round one at 6046e46e; re-reads at 5cb6d727, 90ee098e, 7033114d, ed314eb3, 460cca24, 7c4b0242, 6eca9c01 and 0968d3c1), each round's files carried with -x; see open_blockers[7], the eight rework commits and the answers commit."
   ],
   "acceptance_results": [
     {
@@ -125,12 +124,12 @@
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes: an RFC and six CONTRIBUTING_AGENTS.md passages; no contract-catalog file.",
   "known_limitations": [
-    "Proposed only. Not in effect until the Owner answers Q-034-1 to Q-034-6 and merges this PR personally.",
+    "Not in effect until the Owner merges this PR personally; his answers to Q-034-1 to Q-034-6 (2026-10-11 02:59:23Z) are transcribed in the disposition.",
     "Until CI prints the tier (RFC §8 item 2; ci.yml is WP-0A-A0-004's, the classifier WP-0A-DB-00's), every PR is tier H, so the fast lane stays closed.",
     "RFC-2026-030 and RFC-2026-031 status lines are not touched here (RFC §8 item 3)."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE, tier H, full path. Round one at 6046e46e and re-reads at 5cb6d727, 90ee098e, 7033114d, ed314eb3, 460cca24, 7c4b0242, 6eca9c01 and 0968d3c1 (carried); at 0968d3c1 C0 review_approved, A1 security_approved, Q0 test_verified and R0 found it ready for the answers of the Owner, with advisories only, which A0 acts on in the commit that records those answers. Not pressed by A0. RFC §10 sets the order: the Product Owner answers Q-034-1 to Q-034-6 in chat; A0 transcribes them and changes the status line in one commit; the roles re-read; the Owner merges it personally."
+    "GOVERNANCE, tier H, full path. Round one at 6046e46e and re-reads at 5cb6d727, 90ee098e, 7033114d, ed314eb3, 460cca24, 7c4b0242, 6eca9c01 and 0968d3c1 (carried). The Product Owner answered Q-034-1 to Q-034-6 with A0's recommendation on each (02:59:23Z, transcript c2816eec); the commit that transcribes them and changes the status line is outside every carry clause, so C0, A1, Q0 and R0 re-read it. Not pressed by A0: the Owner un-drafts and merges it personally with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed PR reverting RFC-2026-034 and the six CONTRIBUTING_AGENTS.md passages restores RFC-2026-030's review depth and the earlier gate text (RFC §11).",
   "recommended_next_work_packages": [
