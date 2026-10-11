@@ -5,12 +5,14 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "8086281b104b844bc363054e752b859e0110c801",
-  "head_revision_or_patch_checksum": "8c15a4a3b8b6bb0d05af8525d5f779bc2d7d707b",
+  "head_revision_or_patch_checksum": "376ff83ae798b5f28e26183a189f4963fc5445fa",
   "task_ids": [
     "WP-0A-A0-001",
     "r0-acknowledgements-and-pr251-record-2026-10-11"
   ],
-  "files_added": [],
+  "files_added": [
+    "evidence/WP-0A-A0-001/light-path-reading-2026-10-11.md"
+  ],
   "files_modified": [
     "evidence/WP-0A-A0-001/records-transcription-2026-10-11.md",
     "handoffs/WP-0A-A0-001-author-handoff.json",
