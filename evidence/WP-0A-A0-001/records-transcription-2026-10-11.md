@@ -59,8 +59,8 @@ R0's words from `evidence/WP-0A-A0-001/r0-final-2026-10-11-pr251.md` §5, with o
 | merge sha | `8086281b104b844bc363054e752b859e0110c801` | `gh pr view 251 --json mergeCommit`; merged 2026-10-11T04:12:28Z |
 | merge date + 7 days | 2026-10-18 | 2026-10-11 + 7 |
 
-The PR was un-drafted and merged by the Product Owner himself, in the session terminal, with
-`gh pr merge 251 --merge --match-head-commit b58aa6724c4efa32933a85bc344555d2905a29d4`.
+`gh pr view 251 --json mergedBy` gives the repository account `workstationgroup`, which does not itself show who
+acted; that the Product Owner pressed it is R0's statement in the words above, not a gh fact.
 
 ### 4.3 What this does not do
 
@@ -70,4 +70,4 @@ Status stays `integration_verified`. No RFC, guide, profile, contract, test or s
 
 Its two paths (`scripts/verify-test-coverage-floor.mjs`, `test-kits/integrity-manifest.json`) explained PR #251's
 amendments, now merged. This increment touches neither, so `verify-branch-scope` would read them as a standing
-permission (exit 74). RFC-2026-025 §6.1 rule 4 admits narrowing; the rationale is unchanged.
+permission (exit 74). RFC-2026-025 §6.1 rule 4 admits narrowing; the rationale gains one dated sentence saying so.
