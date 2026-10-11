@@ -374,6 +374,14 @@ Nine tests in `test-kits/branch-scope.test.mjs` (six from the first increment, t
   in the log as an extra, indented line that may read like a verdict; it is never a command, never
   at column 0 and never the step's own verdict line. Quoting is the classifier's, owned by
   WP-0A-DB-00 (Q0 Q2 on PR #212).
+  *Correction 2026-10-11 (A1-R1 on PR #212, `evidence/WP-0A-A0-004/a1-recheck-2026-10-07.md`; R0-255-5
+  on PR #255):* "never at column 0" is false. The indent comes from `sed 's/^/  /'`, which starts a
+  line only at a newline, and the runner's line reader also ends a line at a lone carriage return, so
+  a path name holding `\r` shows its next part unindented, at column 0, and that part may read like a
+  verdict. The rest of the sentence holds: that line is still inside the `::stop-commands::` window, so
+  it is never a command, and it still comes after the step's own verdict line, so it is never that
+  line; nothing reads the step, so nothing is gated on it. The sentence above is kept as written so the
+  record of what was claimed stays readable.
 - A base whose own classifier is wrong prints a wrong verdict. That classifier was reviewed and is
   digested on `main` (RFC-2026-025 §6.6 item 2).
 
@@ -381,3 +389,215 @@ Nine tests in `test-kits/branch-scope.test.mjs` (six from the first increment, t
 
 A reviewed revert of the one step and its nine tests. Nothing reads the step, so removing it changes
 no other step's outcome. No data, provider or credential effect.
+
+## Amendment 2026-10-11 — CI prints the review tier and the lane, and gates nothing on them
+
+Status of this amendment: implements a step the Product Owner already approved. RFC-2026-034 was
+approved on 2026-10-11 (`evidence/WP-0A-A0-001/product-owner-disposition-2026-10-11-fast-lane.md`),
+and its §8 item 2 names this step as owed: "CI prints the tier and the lane on every pull request",
+by the owner of `.github/workflows/ci.yml` (this package) with the classifier's owner
+(WP-0A-DB-00). It is also RFC-2026-030 §9 item 2 and §10 item 2: "a CI step that runs the base's copy
+of the classifier and prints its tier on every PR". This section records how that step is built. It
+decides nothing new about tiers or lanes, and the decision above and the Amendments 2026-10-06 and
+2026-10-08 stand unchanged.
+
+Who presses. RFC-2026-034 §2.2 ("Who presses governance", the Owner's answer to Q-034-6 on
+2026-10-11, `ยืนยันทั้ง 6 ข้อ (Recommended)`) lets A0 press the governance pull request of §8 item 2
+once C0, A1, Q0 and R0 pass on its final head and CI is green on it.
+
+### A. The step
+
+`Print the review tier and lane (informational, gates nothing)` runs on `pull_request` events only,
+straight after the records-only step of the Amendment 2026-10-08 and before `Clean install`.
+
+1. It runs the **base's** classifiers: `git show <base.sha>:scripts/db/classify-review-tier.mjs`
+   and `git show <base.sha>:scripts/db/classify-records-only.mjs` into one scratch directory (the
+   first imports the second), then `timeout 300 node <copy> <base.sha> HEAD --lane
+   --head-ref=<head.ref> --repo=<repository> --head-repo=<head.repo.full_name>`. A pull request that
+   edits either classifier is judged by the copies on `main`, which print it H and governance
+   (RFC-2026-030 §4, A1-4). The two repositories let the audit lane rule out a fork whose branch
+   carries WP-0A-A0-001's branch name (Q0-255-5, A1 I-1 on PR #255); the time limit keeps a head that
+   makes the classifier slow from holding the job open (A1-255-3).
+2. It prints a tier and a lane only when that classifier exits 0, its first line is
+   `tier: <records|L|M|H> (`, exactly one line is `lane: <governance|records|audit|risk|fast>`, and the
+   two agree (fast only with M or L, records only with records, risk only with H). In every other case
+   it prints `tier: H (not classified)` and `lane: governance (not classified)` with the reason: a base
+   branch that is not exactly `main`, an empty or missing base commit, a base holding either
+   classifier unreadable, a classifier that runs past 300 seconds (`timeout` exits 124), a classifier
+   exit other than 0, and an output that does not meet the rule above. A base classifier that does not understand `--lane` exits 2 with its usage line, so it
+   prints not classified; that is the case on the pull request that adds this step, whose base has no
+   `--lane`, and on every pull request until that one is merged. A path name that forges a second
+   `lane:` line makes two, and so prints governance, not the forged lane.
+3. The verdict and the classifier's output go to the job log and to the job summary, printed inert
+   exactly as the records-only step prints its own (Amendment 2026-10-08 §A item 2): every log line
+   between `::stop-commands::<token>` and `::<token>::` with a 32-hex-digit token from `/dev/urandom`,
+   the reason and output left out of the log when there is no token, `&`, `<` and `>` escaped in the
+   summary, and at most 64 KiB of output there. The step writes no step output, no environment and no
+   path, has no `id`, and no later step reads it. Its only `exit` is `exit 0`.
+4. It runs before `npm ci` and `npm run check`, the first steps that execute the pull request's own
+   code, so the `GITHUB_PATH` route of §E "A hostile author" is not open to it. The negative-control
+   decision stays the workflow's only `GITHUB_OUTPUT` writer.
+
+### B. The lane, in the classifier
+
+`scripts/db/classify-review-tier.mjs` (WP-0A-DB-00's, amended by this pull request) gains `laneOf`
+and the `--lane`, `--head-ref`, `--repo` and `--head-repo` flags. The lane follows RFC-2026-034 §2.2,
+each changed path tested whole (the diff is `--no-renames`, so no path carries a rename arrow):
+
+- **governance** when any changed path
+  - matches the governance row (`GOVERNANCE_PATTERNS`, matched case-insensitively). Tool
+    configuration, lockfiles and Makefiles are matched by base name anywhere in the tree; the tool
+    list is a denylist (`CODEOWNERS`, `mise.toml`, `.tool-versions`, `.envrc`, `.editorconfig`,
+    `Dockerfile*`, `docker-compose*`, `compose*.y*ml`, `supabase/config.toml`, `.pre-commit-config.yaml`,
+    Renovate's files, `lefthook.yml`, `Taskfile.yml`, `justfile` and the others it names), so a reader
+    who sees a tool file it misses raises the lane (RFC-2026-034 §2.3). An agent tool's settings
+    directory, `.github`, `.agents` and `docs` count as a bare file or symlink too. The fixtures the
+    database harness loads are on it (`tests/db/**/fixtures/**` and any `.sql` under `tests/db/`), and
+    so is a `test-kits/` directory other than `db/` and `contracts/`;
+  - is a module a governance code file imports, transitively, read at the head. The walk is rooted at
+    every JavaScript file at the head that a `never` or `guard` entry matches (the guards, validators,
+    contracts, runners, classifiers and top-level guard tests) and at `scripts/db/run.mjs`,
+    `scripts/db/rls-smoke.mjs`, `scripts/db/authz-proofs.mjs` and every other JavaScript file only
+    `additive` entries match. It holds the modules they import, not the roots' directories. An import
+    resolves close to how node resolves it, not identically (§D): the exact path; the path with `.js`, `.mjs`, `.cjs`, `.json`, `.ts`,
+    `.mts` or `.cts` added; a directory's `package.json` `main`, then its `index.js`, `index.mjs` or
+    `index.cjs` (Q0-255R2-1 on PR #255). A module it cannot read, an import read from code that resolves
+    to nothing, leaves the repository, is a URL (any scheme but `node:`) or an absolute path
+    (A1-255r3-2), or resolves to a file the walk does not read (anything but `.js`, `.mjs`, `.cjs` and
+    `.json`: a TypeScript module is not scanned, it fails closed), an import named by an expression, or
+    text the scanner cannot read makes the pull request governance;
+  - is a code module a string in a module the walk reads names (round three on PR #255, A1-255r3-1):
+    every string in such a module, whether or not the scanner reads it as an import, resolved from the
+    module and from the repository root as above, that names a `.js`, `.mjs` or `.cjs` file at the head
+    joins the walk; one that names code node can run and the walk cannot read (`.ts`, `.mts`, `.cts`,
+    `.tsx`, `.jsx`, `.node`, `.wasm`) makes the pull request governance. A string that names data (JSON,
+    SQL, Markdown, anything else) adds nothing. Because the classifier names the database roots and
+    `scripts/test-suite-contract.mjs` names the tests the suite runs, both by strings, the database
+    runner's imports and those tests are now reached from a guard root;
+  - **any** symbolic link (mode `120000`) or gitlink (`160000`) at the head makes the pull request
+    governance, wherever it is and whatever reaches or names it: the lane reads neither what a link
+    points at nor a submodule's tree, and a link to a directory hides every path beneath it from
+    `git ls-tree` (corrected 2026-10-11, round three on PR #255: C0-255r2-1, A1-255r3-1, R0-255r2-1; the
+    earlier text counted only a link "that the walk reaches, that the harness names, or that a governance
+    pattern names", and a link to a directory was none of those). While a link stands, every pull request
+    prints governance; none stands today;
+  - is a `.sql` or `.json` file that the database harness (the three database roots and what they
+    reach by imports, not what they reach only by a string) names in a string literal, from the
+    repository root or from the module;
+  - is a test (`*.test.mjs`, anywhere) whose subject is a governance path: one that imports a path
+    that is governance by any of the rules above. What a test imports is the observable proxy for its
+    subject;
+- else **audit** when every change is an added or modified regular file (status `A` or `M`, mode
+  `100644`; no symlink, executable, deletion or type change) directly in one
+  `evidence/audits/<YYYY-MM-DD>/` directory (a calendar date, no subdirectory), the head branch was
+  given and is WP-0A-A0-001's `ownership.branch` read at the base, and the base and head repositories
+  were both given and are the same. Anything not given is not checked, and so is not audit;
+- else **records** when the records-only classifier says so; else **risk** for H and **fast** for M
+  or L.
+
+The import scan reads each module once, in time linear in its length (a scanner, not a parser; A1-255-3:
+the regular expressions it replaces backtracked exponentially on a run of `/**/`). The same fix
+rewrote `importSpecs`, which the **tier** uses for L's import allowlist and for cross-module imports, as
+a linear keyword scan in place of the backtracking expression; the tier reads the same specifiers with
+it on real code (R0-255r-2, Q0-255R-2). The scanner reads a regular expression after `)` as a division,
+so on crafted text it can misread a stretch of code as a literal and miss an import there. Two readings
+of the raw text stand behind it, whatever the scanner made of that text: a raw keyword scan that follows
+every specifier naming a file at the head after `from`, `import`, `import(` or `require(` (past
+whitespace and `/* */` and `//` comments, and past any number of opening parentheses after `import(` and
+`require(`; A1-255r2-1, round two), and the string rule above (round three). The walk is a best-effort
+aid, not a parser, and it does not claim to find every module a guard can load; §D says what it misses
+and why that is accepted (corrected 2026-10-11 twice, rounds three and four on PR #255: each earlier text
+said what alone could still hide, and a measured probe contradicted each).
+
+`additive-eligible: yes` is printed when every governance path is of the `additive` kind and nothing
+could not be read. A path the patterns name takes the patterns' kind: `never` for an RFC, the guide,
+`docs/**`, `.agents/**`, `.github/**`, a package, lock or tool file, a Makefile, a classifier and the
+three tests that pin CI or a classifier; `guard` for the guards, validators, contracts and runners
+the additive rule does not name and for every top-level `test-kits/*.test.mjs` but
+`branch-identity.test.mjs`, since those pin a guard's own behaviour; `additive` for the rest (the
+database runner and harness, the harness's fixtures, the guards' data, `branch-identity.test.mjs`,
+the foundation contract test, the two registries and the manifest). A path the patterns do not name
+takes the highest kind of what reaches it: `never` for a test that imports a `never` path, `guard`
+for a module any `never` or `guard` root imports or names by a string, else `additive`. The mark never lowers the lane,
+and the pull request stays governance until A1 and Q0 confirm in writing. Without `--lane` the
+classifier's exit codes are unchanged, and so is its output on real code: on the 60 most recent
+merged pull requests the tier report is the same byte for byte, and over every file at the head the
+rewritten `importSpecs` reads the same specifiers or more (Q0's measurement at `d50a6036`). Crafted
+text that is not an import can read differently: `import a from /* x */ y /* z */ './a.mjs';` gave
+`./a.mjs` before (a comment run stretched across code to a later `*/`) and gives nothing now
+(Q0-255R-2).
+
+### C. Tests
+
+Nine tests in `test-kits/branch-scope.test.mjs` cut the step body out of `ci.yml` and run it with
+`bash -e` against throwaway repositories whose base commit holds copies of both real classifiers or
+a stub: the step's shape and place, its one `node` call under `timeout 300` with the head branch and
+both repositories; each lane the real classifier gives (risk, governance with and without
+`additive-eligible`, records, audit on WP-0A-A0-001's branch and risk on another or none); a fork, or
+a missing repository, never audit; a `timeout` that reports exit 124 or fails printed not classified; a
+pull request that edits both classifiers printed governance by the base copies; every fail-closed
+base (empty, missing, not a commit, no repository, no classifier, only the records-only classifier,
+not exactly `main`, unset, unrelated); stubs for a base without `--lane` (usage, exit 2), without a
+lane line, with two lane lines, an unknown lane, no tier line first, a lane that disagrees with the
+tier, and exit 1; a path name forging a lane line and workflow commands; and the 64 KiB cap and
+escaping. Fifteen tests in `test-kits/db/foundation-contract.test.mjs` pin `laneOf` (each lane, one path
+per governance pattern group, the transitive-import rule and its fail-closed cases, additive
+eligibility both ways), the CLI (each lane; without `--lane` the report is the `--lane` output's
+prefix with no lane line; the audit lane without the head branch, without both repositories, or from
+a fork; the flags' usage errors exit 2), and, one test per group of the first review round on PR #255:
+the harness's fixtures, every guard's imports and a test's subject; the tool configuration, bare
+agent paths, case-insensitive matching, nested Makefiles, whole-path matching and the guard tests'
+kind; the audit lane's statuses, modes, directory, date, branch and repositories; and the scanner's
+linear time on A1's input (under 2 seconds) with what it reads and refuses. The second review round
+adds four: A1's probes of a guard's import behind a misread (a backtick, a parenthesized and a
+comment-preceded specifier, `require('…')`, escaped and percent-encoded spellings), each governance,
+with the computed import that still hides and the tier's narrow scan (double quotes read, the wide
+forms not); a symbolic link or gitlink the walk reaches, the harness names or a pattern names, in pure
+form and through the CLI on A1's planted base; the raw scan's gap memo, timed (under 3 seconds on
+input that takes the memo-less scan about 35 seconds); and the head branch compared case-sensitively
+(Q0-255R-1: L9, N26, N27, N31, N33). The third review round adds five, each on the reviewers' own
+probes: a link anywhere at the head, a link to a directory under C0's, A1's, R0's and Q0's guards in
+pure form and C0's through the CLI (C0-255r2-1, A1-255r3-1, R0-255r2-1); an import of a URL or an
+absolute path, A1's two `data:` rows among them, with the residual a `file://` URL inside a `data:`
+module leaves (A1-255r3-2); the string rule, A1's `.cjs` rows among them, with data named by a string
+adding nothing and the harness's literals kept to its imports (A1-255r3-1); resolution as node
+resolves, Q0's R13 to R16 among them (Q0-255R2-1); and the three behaviours Q0 found unpinned
+(Q0-255R2-2: B4, B10, B20).
+
+### D. What this does NOT do
+
+- It does not lower any pull request's readers. Until the classifier with `--lane` is on `main`,
+  this step prints not classified, which is H and governance; RFC-2026-030 §9 item 2 is met only
+  from the first pull request whose base carries it.
+- It does not decide whether an additive guard edit is additive; A1's and Q0's written
+  confirmations do (RFC-2026-034 §2.2).
+- The audit lane's branch check reads the head branch's name and the two repositories' names; it
+  does not check that the audit files are blob-equal to their auditors' commits, which stays A0's
+  recorded reading (RFC-2026-034 Q-034-5 (a)).
+- It does not compare one head's lane with an earlier head's; RFC-2026-034 §2.2's rule that a pull
+  request never drops lane during its life stays the readers' (C0-255-9 on PR #255).
+- It does not see every module a guard can load. The walk is a best-effort aid, not a parser, and it does not
+  claim to find every module a guard can load. Known forms it misses include: a path computed at run time; a
+  loading mechanism that names no repository-relative path literally (for example an absolute `file://` URL
+  inside a `data:` module); a process a guard spawns (`execSync('node …')`, `--import`, `NODE_OPTIONS`, a shell
+  or Python script); a CommonJS `require` of a file whose extension the walk treats as data (`.txt`, `.md`,
+  none); a literal longer than the scanner's 4096-character cap; a backslash-separated path; a path held in data the guard reads (for example a JSON file); and a path where node and the walk pick
+  different candidates (the walk takes the first of `.js`, `.mjs`, `.cjs`, `.json`, `.ts`, `.mts`, `.cts`, then
+  the directory; CommonJS `require` tries `.js`, `.json`, `.node`, then the directory). Every such form is an
+  accepted residual, not a finding: planting it in a guard is itself a governance edit that all four roles read,
+  and a reader of a governance pull request checks whether a guard's module loading changed. (Corrected
+  2026-10-11 twice, rounds three and four on PR #255: C0-255r2-1, A1-255r3-1, A1-255r3-2, R0-255r2-1,
+  Q0-255R2-1, then A1-255r4-1 and C0-255r3-1. Each earlier text said what alone could still hide, the third that
+  a module could hide "only if" its path was computed at run time or named no repository-relative path
+  literally, and a measured probe contradicted each. This item no longer claims a complete list.) Nor does it see a file a governance
+  code file other than the database harness reads as data. A tool file the denylist does not name
+  prints the lane its tier gives. Each is a lane printed lower than §2.2 gives it, which a reader
+  raises.
+- It does not quote the tier report's path names (Amendment 2026-10-08 §C); the lane's own reasons
+  quote each path.
+
+### E. Rollback
+
+A reviewed revert of the one step, the classifier's lane section and flags, and their twenty-four tests.
+Nothing reads the step, so removing it changes no other step's outcome. No data, provider or
+credential effect.

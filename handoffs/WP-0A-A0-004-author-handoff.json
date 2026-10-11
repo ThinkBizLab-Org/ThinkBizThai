@@ -3,84 +3,109 @@
   "protocol_version": "1.0.0",
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
-  "final_status": "author_complete",
-  "base_revision": "65695129f1feed95d08b863ee8a935c0d122cb8c",
-  "head_revision_or_patch_checksum": "266d2ab3c5a8d3ac4daf5a432e27213297722d95",
-  "task_ids": [],
+  "final_status": "in_review",
+  "base_revision": "9fcc458c5a1314db25fde031b6ec1e0d31d0ab84",
+  "head_revision_or_patch_checksum": "b8bb37f167ff0e667001087aee4d7431a4f6524c",
+  "task_ids": [
+    "WP-0A-A0-004",
+    "ci-tier-and-lane-2026-10-11"
+  ],
   "files_added": [
-    "evidence/WP-0A-A0-004/light-path-reading-2026-10-09.md",
-    "evidence/WP-0A-A0-004/light-path-reading-2026-10-09b.md",
-    "evidence/WP-0A-A0-004/records-transcription-2026-10-09.md"
+    "evidence/WP-0A-A0-004/a1-reread-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/a1-reread2-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/a1-reread3-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/a1-reread4-2026-10-12-pr255.md",
+    "evidence/WP-0A-A0-004/a1-review-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/c0-reread-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/c0-reread2-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/c0-reread3-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/c0-reread4-2026-10-12-pr255.md",
+    "evidence/WP-0A-A0-004/c0-review-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/q0-reread-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/q0-reread2-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/q0-reread3-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/q0-reread4-2026-10-12-pr255.md",
+    "evidence/WP-0A-A0-004/q0-review-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/r0-reread-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/r0-reread2-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/r0-reread3-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/r0-reread4-2026-10-12-pr255.md",
+    "evidence/WP-0A-A0-004/r0-review-2026-10-11-pr255.md"
   ],
   "files_modified": [
+    ".github/workflows/ci.yml",
+    "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
+    "evidence/VERIFICATION.md",
     "handoffs/WP-0A-A0-004-author-handoff.json",
+    "scripts/db/classify-review-tier.mjs",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/branch-scope.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-A0-004.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "DEC-021",
-    "DEC-023",
-    "DEC-025"
+    "RFC-2026-007",
+    "RFC-2026-025",
+    "RFC-2026-030",
+    "RFC-2026-034"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
-    "This is a records increment (2026-10-09) after PR #212 merged (merge 9de0483e44e116479093db0a71a027e26e89b513, final head e864400c95dba843a348fedd5c5b2359c61f0ae5, bootstrap run 37751828272 success). The branch was fast-forwarded to origin/main d17ff256 and carries the records commit and this handoff refresh, last and alone.",
-    "The Owner's answer quoted is `บันทึกตามจริง ค้างไว้ (Recommended)`, on main in evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md §3.1 (PR #229). It records the press of #212 as a breach; it does not ratify it.",
-    "This handoff is written by a records-only subagent of the Author run /claude/a0_atlas. It writes no role verdict and decides nothing."
+    "THIS INCREMENT adds the CI step 'Print the review tier and lane (informational, gates nothing)' (RFC-2026-034 §8 item 2; RFC-2026-030 §9 item 2 and §10 item 2). It runs the base's copy of scripts/db/classify-review-tier.mjs (with classify-records-only.mjs beside it) before npm ci, prints tier and lane between stop-commands markers and in the escaped, capped job summary, writes no step output and exits 0 on every path; anything other than a full classification prints tier H and lane governance, not classified.",
+    "The classifier (WP-0A-DB-00's file, declared amendment) gains laneOf and formatLane: the RFC-2026-034 §2.2 governance path list (each pattern never, guard or additive); a transitive local-import walk read from the head, rooted at every guard, runner, classifier and guard test plus the database runner and harness, with a linear scanner (importSpecs rewritten, which the tier also uses) and fail-closed problems; the fixtures and path literals the harness loads; a test that imports a governance path is governance; audit only with --head-ref on WP-0A-A0-001's branch, equal --repo and --head-repo, and added or modified regular files directly in one evidence/audits/<date>/; records; risk for H and fast for M and L. additive-eligible is printed when only additive-coverable guard paths make the PR governance; it never lowers the lane. Without --lane the output is unchanged on real code.",
+    "On this pull request itself the base's classifier has no --lane, so the new step prints not classified (governance); that is the step failing closed, as designed.",
+    "Governance pull request (RFC-2026-034 §2.2): C0, A1, Q0 and R0 read the final head; A0 presses it under the Owner's answer to Q-034-6 (i) of 2026-10-11 once all four pass and CI is green on the exact head."
   ],
   "acceptance_results": [
     {
-      "criterion": "work-packages/WP-0A-A0-004.json keeps status in_review; open_blockers[0]-[13] are unchanged and two entries are appended ([14] the #212 breach, [15] #189's owed record).",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-A0-004/records-transcription-2026-10-09.md §2"
-    },
-    {
-      "criterion": "A1-R1 in open_blockers[14] is A1's own finding text from evidence/WP-0A-A0-004/a1-recheck-2026-10-07.md, and every merge fact was re-measured with gh and git.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-A0-004/records-transcription-2026-10-09.md §1"
-    },
-    {
-      "criterion": "ownership.amends_without_owning.paths narrows to none (this branch changes neither path); the rationale is only appended to.",
-      "result": "pass",
-      "evidence": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004"
+      "criterion": "The new step gates nothing, fails closed, runs the base's copy before npm ci, prints inert; laneOf follows RFC-2026-034 §2.2",
+      "result": "pass for author self-check: 9 new tests in test-kits/branch-scope.test.mjs and 15 in test-kits/db/foundation-contract.test.mjs after the third review round (764 in all); independent re-reading owed"
     }
   ],
   "tests": [
     {
-      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD (on the records commit)",
+      "command": "npm run validate:protocol",
       "exit_code": 0,
-      "result": "records-only: all 2 changed path(s) are records; no status move printed",
-      "toolchain": "node v24.20.0 / npm 11.19.0"
+      "result": "valid"
     },
     {
-      "command": "npm run check (through node scripts/commit-when-clean.mjs on the branch name)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (the increment commit)",
       "exit_code": 0,
-      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
-      "toolchain": "node v24.20.0 / npm 11.19.0"
+      "result": "clean: exit 0 — the full suite under the suite lock"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004",
+      "exit_code": 0,
+      "result": "every changed path declared, every amendment explains one"
+    },
+    {
+      "command": "npm run check:handoff",
+      "exit_code": 0,
+      "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Records only: two appended open_blockers lines, a narrowed amends_without_owning, one evidence file and this handoff. No code, workflow, provider call, credential, migration or customer-data effect. Cost impact none.",
-  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "No contract-catalog file, script, test, workflow or RFC is changed by this records increment, so no consumer is affected. The CI step merged in PR #212 is unchanged.",
+  "security_privacy_cost_impact": "Changes CI by one informational step that gates nothing and writes no step output; the classifier gains a print-only lane function. No credential, secret, customer data or provider call; the step runs only the base's copy of the classifier, before any of the pull request's own code.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "No contract changes: CI, a classifier and tests; no contract-catalog file.",
   "known_limitations": [
-    "A1-R1 (LOW) stays open: RFC-2026-007 Amendment 2026-10-08 §C still says a forged path line is never at column 0. Closing it needs a governance PR; who presses it is not decided.",
-    "The job summary of the classification step has not been read on the platform (C0 C4, Q0 condition 2); no API returns it.",
-    "gh records mergedBy workstationgroup (the repository account) only; who pressed a merge is not machine-verifiable."
+    "The lane is information for the readers; nothing gates on it yet. The fast lane also needs a module on M_ELIGIBLE_MODULES (RFC-2026-034 §8 item 5) or an L web path, and none exists today.",
+    "The import walk is a best-effort aid, not a parser, and does not claim to find every module a guard can load. It fails closed on any symbolic link or gitlink at the head; on an import read from code of a URL other than node:, of an absolute path, or resolving to anything but .js, .mjs, .cjs or .json; and on a reached .ts, .mts, .cts, .tsx, .jsx, .node or .wasm module. Every string in a guard's closure naming a code module joins the walk. Known forms it misses (RFC-2026-007 Amendment 2026-10-11 §D): a path computed at run time; a mechanism naming no repository-relative path literally; a process a guard spawns; a CommonJS require of a file whose extension it treats as data; a literal over the scanner's 4096-character cap; a backslash-separated path; a path held in data the guard reads (for example a JSON file); and a path where node and the walk pick different candidates. Each is an accepted residual: planting it in a guard is a governance edit all four roles read.",
+    "Fail closed where the RFC would allow lighter: a module a guard reaches, by import or by a string naming it, is guard kind and not additive-eligible, unless the RFC's additive rule names the path itself (foundation-contract.test.mjs, branch-identity.test.mjs, scripts/test-suite-contract.mjs and scripts/verify-test-coverage-floor.mjs stay additive-eligible). So the database runner's imports lose the mark (the classifier names scripts/db/run.mjs by string), and a file a guard names by string, changed alone, prints governance: scripts/test-suite-contract.mjs names some two dozen test files by literal path (for example catalog-groups.test.mjs and catalog-reference-integrity.test.mjs), and scripts/commit-when-clean.mjs is named too (C0-255r4-1). Test fixture strings make the paths they name governance too (Q0 N-2): none of those paths exists today, but a product file later added at one would print governance. It never lowers a lane; over the last 45 merges no lane changed (R0-255r3-2).",
+    "Locally the timeout 300 wrapper is exercised with stand-ins; the real coreutils timeout runs only on CI."
   ],
   "open_risks_or_blockers": [
-    "Records light path (RFC-2026-025 §6; classify-records-only exit 0, no status move). The one independent reading: C0 (/claude/c0_contract_reviewer) in R0's place, evidence/WP-0A-A0-004/light-path-reading-2026-10-09.md, carried with -x. Presser: A0 (/claude/a0_atlas) presses this records-only PR under RFC-2026-025 §6.2 item 3, i.e. the Owner's standing delegation for finished non-governance batches (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6), with §2 item 1 and §5 item 6 applying in full: bootstrap green on this exact head containing current main, no security finding open, a true merge commit pinned with --match-head-commit. This PR is not a governance PR (no RFC, CONTRIBUTING_AGENTS.md, CI or gate change).\nStill open: WP-0A-A0-004 stays in_review until A1-R1 is closed by a governance PR correcting RFC-2026-007's sentence (open_blockers[14]); #189's integration_verified is owed — A1's ruling on its tripped carry clause and R0's wording restated in a records-only form (open_blockers[15]). The next state record quotes the delegation and names A0 as presser."
+    "GOVERNANCE, tier H, full path: C0, A1, Q0 and R0 on the final head; A0 presses under Q-034-6 (i) once all four pass and CI is green on the exact head containing main. Amendment acknowledgements owed from WP-0A-DB-00, WP-0A-A0-002 and WP-0A-CON-008."
   ],
-  "rollback_or_forward_fix": "Revert the WP-0A-A0-004 records PR of 2026-10-09 (#212 breach and #189 owed record) through a reviewed revert PR of its merge commit: open_blockers returns to fourteen entries, amends_without_owning.paths regains evidence/VERIFICATION.md and scripts/test-suite-contract.mjs, and records-transcription-2026-10-09.md is removed. A wrong fact in open_blockers[14] or [15] is fixed forward by an appended correcting entry, never by rewording.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR removes the WP-0A-A0-004 tier-and-lane CI step and laneOf (ci-tier-and-lane-2026-10-11); nothing gates on either.",
   "recommended_next_work_packages": [
-    "WP-0A-A0-004"
+    "WP-0A-A0-002: RFC-2026-034 §8 item 4, CI runs application tests (scripts/run-test-suite.mjs)."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-004/records-transcription-2026-10-09.md, then open_blockers[14] and [15] of work-packages/WP-0A-A0-004.json.",
-    "Check open_blockers[14] against evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md §3.1, A1-R1's text in evidence/WP-0A-A0-004/a1-recheck-2026-10-07.md, and gh pr view 212 / gh run view 37751828272; check [15] against a1-recheck-2026-10-06.md §6 and r0-recheck-2026-10-06.md §6.",
-    "Confirm status is in_review, open_blockers[0]-[13] and every other field match origin/main except the narrowed amends_without_owning, and that this handoff commit is the branch's last and touches only this file.",
-    "The author is /claude/a0_atlas, through a records-only subagent. Role verdicts are distinct runs."
+    "Read RFC-2026-034 §2.2 and §8, then git diff origin/main -- .github/workflows/ci.yml scripts/db/classify-review-tier.mjs.",
+    "Check the new step against the records-only step it is modelled on, and laneOf against §2.2 pattern by pattern."
   ],
   "superseded_by": null
 }

@@ -6645,3 +6645,859 @@ test('the review-tier classifier fails closed to H and only ever raises, each ru
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+// RFC-2026-034 §2.2 (approved 2026-10-11) and its §8 item 2: the lane. `laneOf` maps the tier and the changed paths to
+// governance, records, audit, risk or fast, failing closed to governance on anything it cannot read; `--lane` prints it
+// after the tier report and leaves the report without it byte for byte as it was. Each lane, one representative path
+// per governance pattern group, the transitive-import rule, additive eligibility both ways, and the audit checks are
+// shown below, in pure form and through the CLI on a throwaway repository. The four tests after the first two pin the
+// first fix round on PR #255 (C0, A1, Q0 and R0 at 7c4d5764), one finding group each.
+import {
+  AUDIT_PACKAGE_MANIFEST, GOVERNANCE_IMPORT_ROOTS, GOVERNANCE_PATTERNS, LANES, LINK_MODES, backstopSpecs, formatLane,
+  governanceClosure, importClosure, jsRefs, laneOf, stringNames,
+} from '../../scripts/db/classify-review-tier.mjs';
+
+// The changes an audit pull request makes, as the raw diff gives them: each path added as a regular file.
+const addedRegular = (paths) => paths.map((path) => ({ path, status: 'A', oldMode: '000000', newMode: '100644' }));
+const AUDIT_OK = { headRef: 'agent/a0-001', auditBranch: 'agent/a0-001', repo: 'org/repo', headRepo: 'org/repo' };
+
+test('the lane follows the tier and the paths, and fails closed to governance (RFC-2026-034 §2.2)', () => {
+  assert.deepEqual(LANES, ['governance', 'records', 'audit', 'risk', 'fast']);
+  assert.deepEqual([...GOVERNANCE_IMPORT_ROOTS], ['scripts/db/run.mjs', 'scripts/db/rls-smoke.mjs', 'scripts/db/authz-proofs.mjs']);
+  assert.equal(AUDIT_PACKAGE_MANIFEST, 'work-packages/WP-0A-A0-001.json');
+  assert.ok(Object.isFrozen(GOVERNANCE_PATTERNS) && GOVERNANCE_PATTERNS.every((g) => ['never', 'guard', 'additive'].includes(g.kind)));
+
+  // A small head: the runner imports a helper, which imports a test module; the harness imports a fixture module.
+  const head = {
+    'scripts/db/run.mjs': "import { lex } from './sql-lexer.mjs';\nconst later = await import('../../tests/db/identity/run-isolation.mjs');\n",
+    'scripts/db/sql-lexer.mjs': "export const lex = 1;\n",
+    'tests/db/identity/run-isolation.mjs': "import {\n  x,\n} from '../../../db/foundation/test-helpers/rls-assertions.mjs';\nimport data from './cases.json' with { type: 'json' };\n",
+    'db/foundation/test-helpers/rls-assertions.mjs': "import { readFile } from 'node:fs/promises';\n",
+    'tests/db/identity/cases.json': '{}\n',
+    'scripts/db/rls-smoke.mjs': "export * from './psql-driver.mjs';\n",
+    'scripts/db/psql-driver.mjs': "export const q = 1;\n",
+    'scripts/other.mjs': "export const o = 1;\n",
+  };
+  const files = new Set(Object.keys(head));
+  const readHead = (p) => { if (!(p in head)) throw new Error(`no ${p}`); return head[p]; };
+  const of = (paths, extra = {}) => laneOf({ paths, tier: 'H', recordsOnly: false, files, readHead, ...extra });
+  const gov = (paths, additive, why, extra) => {
+    const l = of(paths, extra);
+    assert.equal(l.lane, 'governance', `${paths.join(', ')}: ${JSON.stringify(l)}`);
+    assert.equal(l.additiveEligible, additive, `${paths.join(', ')}: additive ${JSON.stringify(l)}`);
+    assert.ok(l.reasons.some((x) => why.test(x)), `${paths.join(', ')}: ${JSON.stringify(l.reasons)}`);
+  };
+
+  // The governance row, one representative path per pattern group. `never`: not additive-eligible, whatever else.
+  for (const [p, why] of [['architecture/decisions/RFC-2026-099-x.md', /an RFC/], ['CONTRIBUTING_AGENTS.md', /the guide/],
+    ['CLAUDE.md', /agent adapter/], ['AGENTS.md', /agent adapter/], ['docs/sprint-0a/x.md', /docs\/\*\*/], ['.agents/schemas/x.json', /\.agents\/\*\*/],
+    ['.github/workflows/ci.yml', /\.github\/\*\*/], ['package.json', /package file/], ['apps/web/package.json', /package file/],
+    ['package-lock.json', /lockfile/], ['apps/web/pnpm-lock.yaml', /lockfile/], ['yarn.lock', /lockfile/],
+    ['.npmrc', /tool configuration/], ['.nvmrc', /tool configuration/], ['.node-version', /tool configuration/], ['.gitattributes', /tool configuration/],
+    ['apps/web/tsconfig.json', /tool configuration/], ['eslint.config.mjs', /tool configuration/], ['.husky/pre-commit', /tool configuration/],
+    ['Makefile', /a Makefile/], ['db/build.mk', /a Makefile/],
+    ['scripts/db/classify-review-tier.mjs', /a classifier/], ['scripts/db/classify-records-only.mjs', /a classifier/], ['scripts/db/classify-other.mjs', /a classifier/]]) {
+    gov([p], false, why);
+    // A `never` path keeps an additive-eligible companion from making the pull request eligible.
+    gov([p, 'db/foundation/lint/x.json'], false, why);
+  }
+  // `guard`: governance, not additive-eligible.
+  for (const [p, why] of [['scripts/verify-branch-scope.mjs', /a guard \(scripts\/verify-\*/], ['scripts/validate-work-packages.mjs', /a validator/],
+    ['scripts/toolchain-contract.mjs', /a guard contract/], ['scripts/scan-repository-secrets.mjs', /runner or generator/],
+    ['scripts/refresh-author-handoff.mjs', /runner or generator/], ['scripts/run-test-suite.mjs', /runner or generator/],
+    ['scripts/record-verification.mjs', /runner or generator/], ['scripts/regenerate-integrity-manifest.mjs', /runner or generator/],
+    ['test-kits/ci-guard-behaviour.test.mjs', /top-level guard test/], ['test-kits/secret-scan.test.mjs', /top-level guard test/]]) {
+    gov([p], false, why);
+    gov([p, 'test-kits/x.test.mjs'], false, why);
+  }
+  // `additive`: governance, and additive-eligible when nothing else makes it governance.
+  for (const [p, why] of [['scripts/db/run.mjs', /database runner or harness/], ['scripts/db/rls-smoke.mjs', /database runner or harness/],
+    ['scripts/db/authz-proofs.mjs', /database runner or harness/], ['db/foundation/ci/supabase-shim.sql', /database test harness/],
+    ['db/foundation/test-helpers/auth-context.sql', /database test harness/], ['db/foundation/prerequisites.sql', /database test harness/],
+    ['db/foundation/seeds/001.sql', /database test harness/], ['db/foundation/lint/read-allowlist.json', /data the database guards read/],
+    ['db/foundation/invariants/superseded.json', /data the database guards read/], ['test-kits/branch-identity.test.mjs', /the additive rule names/],
+    ['test-kits/db/foundation-contract.test.mjs', /foundation contract test/], ['test-kits/integrity-manifest.json', /integrity manifest/],
+    ['scripts/test-suite-contract.mjs', /test registry/], ['scripts/verify-test-coverage-floor.mjs', /test registry/]]) {
+    gov([p], true, why);
+  }
+  gov(['scripts/db/run.mjs', 'db/foundation/lint/x.json', 'test-kits/integrity-manifest.json', 'evidence/WP-0A-DB-00/batch.md'], true, /runner/);
+  // A test that pins CI or a classifier is never additive, though it is also a top-level guard test.
+  for (const p of ['test-kits/branch-scope.test.mjs', 'test-kits/repository-json.test.mjs', 'test-kits/test-coverage-floor.test.mjs']) {
+    gov([p], false, /pins CI or a classifier/);
+  }
+  // Paths beside the governance list are not governance by themselves: test kits that import nothing on it (here they
+  // are not even at the head), other scripts, migrations.
+  for (const p of ['test-kits/db/rls-assertions.test.mjs', 'test-kits/contracts/x.test.mjs', 'tests/db/identity/other.test.mjs',
+    'scripts/other.mjs', 'db/foundation/migrations/180_x.sql', 'contract-catalog/x.json', 'src/modules/drafts/ui/Card.tsx']) {
+    assert.equal(of([p]).lane, 'risk', p);
+  }
+
+  // The transitive-import rule: every module the runner or the harness reaches, read at the head, through a static,
+  // a multi-line, a re-export, a dynamic import and a JSON import, is governance; additive-eligible, as a module they import.
+  const closure = importClosure(GOVERNANCE_IMPORT_ROOTS, readHead, files);
+  assert.deepEqual(closure.problems, []);
+  assert.deepEqual([...closure.modules.keys()].sort(), ['db/foundation/test-helpers/rls-assertions.mjs', 'scripts/db/psql-driver.mjs',
+    'scripts/db/sql-lexer.mjs', 'tests/db/identity/cases.json', 'tests/db/identity/run-isolation.mjs']);
+  for (const p of ['scripts/db/sql-lexer.mjs', 'tests/db/identity/run-isolation.mjs', 'tests/db/identity/cases.json', 'scripts/db/psql-driver.mjs']) {
+    gov([p], true, /a module scripts\/db\/(?:run|rls-smoke)\.mjs imports, read at the head/);
+  }
+  // A module the head adds and the runner now imports is governance from that head.
+  const added = { ...head, 'scripts/db/run.mjs': head['scripts/db/run.mjs'] + "import './new-rule.mjs';\n", 'scripts/db/new-rule.mjs': 'export {};\n' };
+  const l = laneOf({ paths: ['scripts/db/new-rule.mjs'], tier: 'H', recordsOnly: false, files: new Set(Object.keys(added)), readHead: (p) => added[p] });
+  assert.equal(l.lane, 'governance', JSON.stringify(l));
+  // Fail closed: an unreadable module, an import that resolves to nothing, an import by expression, an import out of
+  // the repository, and no reader at all each make the pull request governance, and none of them is additive-eligible.
+  const broken = (patch, why) => {
+    const h = { ...head, ...patch };
+    const got = laneOf({ paths: ['scripts/other.mjs'], tier: 'H', recordsOnly: false, files: new Set(Object.keys(h)),
+      readHead: (p) => { if (h[p] === null) throw new Error('unreadable'); return h[p]; } });
+    assert.equal(got.lane, 'governance', `${why}: ${JSON.stringify(got)}`);
+    assert.equal(got.additiveEligible, false, why.source);
+    assert.ok(got.reasons.some((x) => why.test(x)), `${why}: ${JSON.stringify(got.reasons)}`);
+  };
+  broken({ 'scripts/db/sql-lexer.mjs': null }, /could not be read at the head/);
+  broken({ 'scripts/db/psql-driver.mjs': "import './gone.mjs';\n" }, /resolves to no file at the head/);
+  broken({ 'scripts/db/psql-driver.mjs': 'const m = await import(name);\n' }, /named by an expression/);
+  broken({ 'scripts/db/psql-driver.mjs': 'const m = await import(`./${name}.mjs`);\n' }, /named by an expression/);
+  broken({ 'scripts/db/psql-driver.mjs': "import '../../../../outside.mjs';\n" }, /outside the repository/);
+  const blind = laneOf({ paths: ['scripts/other.mjs'], tier: 'H', recordsOnly: false });
+  assert.equal(blind.lane, 'governance');
+  assert.ok(blind.reasons.some((x) => /no reader of the head was given/.test(x)));
+  // A root absent from the head imports nothing (it is not unreadable): the scratch repository below has none.
+  assert.equal(laneOf({ paths: ['scripts/other.mjs'], tier: 'H', recordsOnly: false, files: new Set(['scripts/other.mjs']), readHead }).lane, 'risk');
+
+  // Audit: one dated directory under evidence/audits/, added regular files, on WP-0A-A0-001's branch, from the base
+  // repository. The finer checks are pinned in their own test below.
+  const audit = ['evidence/audits/2026-10-18/c0-audit.md', 'evidence/audits/2026-10-18/q0-audit.md'];
+  assert.equal(of(audit, { ...AUDIT_OK, changes: addedRegular(audit) }).lane, 'audit');
+  for (const [extra, why] of [[{ headRef: 'agent/other' }, /is not WP-0A-A0-001's ownership\.branch/],
+    [{ auditBranch: null }, /could not be read at the base/], [{ headRef: '' }, /no head branch was given/],
+    [{ auditBranch: undefined }, /could not be read at the base/], [{ headRef: undefined }, /no head branch was given/]]) {
+    const got = of(audit, { ...AUDIT_OK, changes: addedRegular(audit), ...extra });
+    assert.equal(got.lane, 'risk', JSON.stringify(got));
+    assert.ok(got.reasons.some((x) => why.test(x)), JSON.stringify(got.reasons));
+  }
+  const withSession = [...audit, 'evidence/WP-0A-A0-001/session-x.md'];
+  assert.equal(of(withSession, { ...AUDIT_OK, changes: addedRegular(withSession) }).lane, 'risk');
+  const twoDays = ['evidence/audits/2026-10-18/a.md', 'evidence/audits/2026-10-25/b.md'];
+  assert.equal(of(twoDays, { ...AUDIT_OK, changes: addedRegular(twoDays) }).lane, 'risk');
+  assert.equal(of(['evidence/audits/notes.md'], { ...AUDIT_OK, changes: addedRegular(['evidence/audits/notes.md']) }).lane, 'risk');
+  // An audit pull request that also changes a governance path is governance.
+  assert.equal(of([...audit, 'docs/x.md'], { ...AUDIT_OK, changes: addedRegular([...audit, 'docs/x.md']) }).lane, 'governance');
+
+  // Records, risk and fast.
+  assert.equal(laneOf({ paths: ['evidence/WP-X/session-1.md'], tier: 'records', recordsOnly: true, files, readHead }).lane, 'records');
+  assert.equal(of(['db/foundation/migrations/180_x.sql']).lane, 'risk');
+  for (const tier of ['M', 'L']) {
+    const got = laneOf({ paths: ['src/modules/drafts/ui/Card.tsx'], tier, recordsOnly: false, files, readHead });
+    assert.equal(got.lane, 'fast', tier);
+    assert.equal(got.additiveEligible, false);
+  }
+  // A governance path in an M or L diff still makes it governance: the lane never drops below what a path sets.
+  assert.equal(laneOf({ paths: ['src/modules/drafts/ui/Card.tsx', 'package.json'], tier: 'L', recordsOnly: false, files, readHead }).lane, 'governance');
+  // Fail closed: no paths, an unknown tier.
+  for (const bad of [{}, { paths: [] }, { paths: [''] }, { paths: 'x' }]) assert.equal(laneOf({ tier: 'H', files, readHead, ...bad }).lane, 'governance');
+  assert.equal(laneOf({ paths: ['scripts/other.mjs'], tier: undefined, recordsOnly: false, files, readHead }).lane, 'governance');
+  assert.equal(laneOf({ paths: ['scripts/other.mjs'], tier: 'records', recordsOnly: false, files, readHead }).lane, 'governance');
+
+  // The printed form: the lane line, its reasons with each path quoted (a newline in a name cannot start a line), and
+  // the additive line only when it applies.
+  const printed = formatLane(of(['test-kits/a\nlane: fast.test.mjs', 'db/foundation/lint/x.json']));
+  assert.equal(printed[0], 'lane: governance');
+  assert.ok(printed.slice(1).every((x) => x.startsWith('  ') || x === 'additive-eligible: yes'), JSON.stringify(printed));
+  assert.equal(printed.filter((x) => /^lane: /.test(x)).length, 1);
+  assert.ok(printed.join('\n').split('\n').every((x) => !/^lane: fast/.test(x)));
+  assert.deepEqual(formatLane({ lane: 'risk', reasons: ['r'], additiveEligible: false }), ['lane: risk', '  r']);
+  assert.ok(formatLane(of(['db/foundation/lint/x.json'])).includes('additive-eligible: yes'));
+});
+
+test('the CLI prints the lane only with --lane, and without it prints the tier report unchanged (RFC-2026-034 §8 item 2)', async () => {
+  const cli = join(process.cwd(), 'scripts/db/classify-review-tier.mjs');
+  const dir = await mkdtemp(join(tmpdir(), 'review-lane-'));
+  try {
+    const env = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 'review-lane-test', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 'review-lane-test', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' };
+    delete env.GIT_DIR;
+    delete env.GIT_WORK_TREE;
+    delete env.GIT_INDEX_FILE;
+    const g = (...a) => run('git', ['-c', 'commit.gpgsign=false', '-c', 'init.defaultBranch=main', ...a], { cwd: dir, env });
+    const put = (p, c) => mkdir(join(dir, p, '..'), { recursive: true }).then(() => writeFile(join(dir, p), c));
+    const commit = async (m) => { await g('add', '-A'); await g('commit', '-q', '-m', m); return (await g('rev-parse', 'HEAD')).stdout.trim(); };
+    const out = async (...a) => { try { const x = await run(process.execPath, [cli, ...a], { cwd: dir, env }); return [0, x.stdout]; } catch (e) { return [e.code, e.stdout + e.stderr]; } };
+    await g('init', '-q');
+    for (const p of ['scripts/db/classify-review-tier.mjs', 'scripts/db/classify-records-only.mjs']) await put(p, await readFile(join(process.cwd(), p)));
+    await put('scripts/db/run.mjs', "import { lex } from './sql-lexer.mjs';\n");
+    await put('scripts/db/sql-lexer.mjs', 'export const lex = 1;\n');
+    await put('work-packages/WP-0A-A0-001.json', `${JSON.stringify({ ownership: { branch: 'agent/a0-001' } })}\n`);
+    await put('evidence/WP-X/session-1.md', 'one\n');
+    const root = await commit('base');
+    const branch = async (name, files) => {
+      await g('checkout', '-q', '-b', name, root);
+      for (const [p, c] of Object.entries(files)) await put(p, c);
+      await commit(name);
+    };
+    await branch('risk', { 'scripts/other.mjs': 'x\n' });
+    await branch('imported', { 'scripts/db/sql-lexer.mjs': 'export const lex = 2;\n' });
+    await branch('gov', { 'docs/x.md': 'x\n' });
+    await branch('records', { 'evidence/WP-X/session-1.md': 'one\ntwo\n' });
+    await branch('agent/a0-001', { 'evidence/audits/2026-10-18/c0-audit.md': 'c0\n' });
+    await branch('additive', { 'db/foundation/lint/x.json': '{}\n' });
+    const repos = ['--repo=org/repo', '--head-repo=org/repo'];
+
+    // Without --lane the report is what it was: no lane line, and it is the --lane output's prefix, line for line.
+    for (const [head, lane] of [['risk', 'risk'], ['imported', 'governance'], ['gov', 'governance'], ['records', 'records'], ['agent/a0-001', 'audit']]) {
+      const [c1, plain] = await out('main', head);
+      const [c2, laned] = await out('main', head, '--lane', `--head-ref=${head}`, ...repos);
+      assert.equal(c1, 0, plain);
+      assert.equal(c2, 0, laned);
+      assert.doesNotMatch(plain, /^lane: |^additive-eligible: /m, plain);
+      assert.ok(laned.startsWith(plain), `${head}: --lane must only append:\n${plain}\n---\n${laned}`);
+      assert.equal(laned.split('\n').filter((x) => /^lane: /.test(x)).length, 1);
+      assert.match(laned, new RegExp(`^lane: ${lane}$`, 'm'), laned);
+    }
+    // PR #255 round three: the classifier names `scripts/db/run.mjs` by a string (GOVERNANCE_IMPORT_ROOTS), so the
+    // string rule reaches the runner and its imports from a guard root, and they are governance but not
+    // additive-eligible. A path only an `additive` pattern names still is, through the CLI too.
+    let [code, o] = await out('main', 'imported', '--lane');
+    assert.match(o, /governance: "scripts\/db\/sql-lexer\.mjs" \(a module scripts\/db\/classify-review-tier\.mjs imports or names by a string, read at the head: reached from a guard/, o);
+    assert.doesNotMatch(o, /^additive-eligible: yes$/m, o);
+    [code, o] = await out('main', 'additive', '--lane');
+    assert.match(o, /^lane: governance$/m, o);
+    assert.match(o, /^additive-eligible: yes$/m, o);
+    // The audit lane needs WP-0A-A0-001's branch from the base, the head branch, and both repositories, equal: another
+    // head ref, no head ref, no repositories and a fork are each not audit (C0-255-3, R0-255-1, Q0-255-5).
+    for (const [args, why] of [[['--head-ref=agent/other', ...repos], /is not WP-0A-A0-001's ownership\.branch/],
+      [repos, /no head branch was given/], [['--head-ref=agent/a0-001'], /repositories were not both given/],
+      [['--head-ref=agent/a0-001', '--repo=org/repo'], /repositories were not both given/],
+      [['--head-ref=agent/a0-001', '--repo=org/repo', '--head-repo=fork/repo'], /is not the base repository "org\/repo" \(a fork\)/]]) {
+      [code, o] = await out('main', 'agent/a0-001', '--lane', ...args);
+      assert.equal(code, 0, o);
+      assert.match(o, /^lane: risk$/m, `${args.join(' ')}: ${o}`);
+      assert.match(o, why, o);
+    }
+    // The flags: --head-ref, --repo and --head-repo only with --lane, each once, no other flag; an unknown ref is not
+    // classified. All exit 2.
+    for (const args of [['main', 'risk', '--head-ref=x'], ['main', 'risk', '--repo=x'], ['main', 'risk', '--head-repo=x'],
+      ['main', 'risk', '--lane', '--lane'], ['main', 'risk', '--lane', '--head-ref=a', '--head-ref=b'],
+      ['main', 'risk', '--lane', '--repo=a', '--repo=b'], ['main', 'risk', '--lane', '--head-repo=a', '--head-repo=b'],
+      ['main', 'risk', '--lanes'], ['main', 'risk', 'extra', '--lane'], ['main', 'no-such-ref', '--lane']]) {
+      [code, o] = await out(...args);
+      assert.equal(code, 2, `${args.join(' ')}: ${o}`);
+      assert.doesNotMatch(o, /^lane: /m);
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('the lane reads the fixtures the harness loads, every guard\'s imports and a test\'s subject as governance (PR #255: C0-255-1, C0-255-2, A1-255-1, Q0-255-1, R0-255-2)', () => {
+  const head = {
+    // The harness: run.mjs names a fixture list module and loads data by path literal, from the repository root and
+    // from the module; run-isolation.mjs names its fixtures.
+    'scripts/db/run.mjs': [
+      "import { FIXTURE_SQL_FILES } from '../../tests/db/identity/run-isolation.mjs';",
+      "import { lex } from './sql-lexer.mjs';",
+      "export const EXTRA = 'tests/db/identity/loaded/extra.json';",
+      "export const MAP = new URL('../../contract-catalog/loaded-by-url.json', import.meta.url);",
+      "// a comment naming 'tests/db/identity/loaded/in-comment.json' is not a literal the harness reads",
+    ].join('\n'),
+    'scripts/db/sql-lexer.mjs': 'export const lex = 1;\n',
+    'scripts/db/rls-smoke.mjs': "import { lex } from './sql-lexer.mjs';\n",
+    'tests/db/identity/run-isolation.mjs': "export const FIXTURE_SQL_FILES = [\n  'tests/db/identity/fixtures/010-identity-fixture.sql',\n];\n",
+    'tests/db/identity/fixtures/010-identity-fixture.sql': 'insert into x values (1);\n',
+    'tests/db/identity/loaded/extra.json': '{}\n',
+    'tests/db/identity/loaded/in-comment.json': '{}\n',
+    'contract-catalog/loaded-by-url.json': '{}\n',
+    'db/foundation/test-helpers/rls-assertions.mjs': 'export const a = 1;\n',
+    // Guards: a verify-* guard imports a helper no pattern names; a top-level guard test imports a contracts helper, and
+    // a guard test also imports the runner's lexer, so that module is reached from both kinds of root.
+    'scripts/verify-thing.mjs': "import { help } from './lib/helper.mjs';\n",
+    'scripts/lib/helper.mjs': "import { deeper } from './deeper.mjs';\nexport const help = deeper;\n",
+    'scripts/lib/deeper.mjs': 'export const deeper = 1;\n',
+    'scripts/lib/unimported.mjs': 'export const u = 1;\n',
+    'test-kits/handoff-x.test.mjs': "import { validate } from './contracts/json-schema-subset.mjs';\nimport { lex } from '../scripts/db/sql-lexer.mjs';\n",
+    'test-kits/contracts/json-schema-subset.mjs': 'export const validate = () => ({ valid: true });\n',
+    'test-kits/contracts/util.mjs': 'export const u = 1;\n',
+    // Tests beside the guards: their subject decides.
+    'test-kits/db/rls-assertions.test.mjs': "import { a } from '../../db/foundation/test-helpers/rls-assertions.mjs';\n",
+    'tests/db/identity/identity-isolation.test.mjs': "import { FIXTURE_SQL_FILES } from './run-isolation.mjs';\n",
+    'test-kits/contracts/pins-a-classifier.test.mjs': "import { laneOf } from '../../scripts/db/classify-review-tier.mjs';\n",
+    'scripts/db/classify-review-tier.mjs': 'export const laneOf = 1;\n',
+    'test-kits/contracts/plain.test.mjs': "import { u } from './util.mjs';\nconst s = 'see ../../scripts/db/run.mjs';\n",
+    'test-kits/contracts/comment.test.mjs': "// import x from '../../scripts/db/run.mjs' (only in a comment)\n",
+    'test-kits/db/foundation-contract.test.mjs': "import { laneOf } from '../../scripts/db/classify-review-tier.mjs';\n",
+  };
+  const files = new Set(Object.keys(head));
+  const readHead = (p) => { if (!(p in head)) throw new Error(`no ${p}`); return head[p]; };
+  const of = (paths, extra = {}) => laneOf({ paths, tier: 'H', recordsOnly: false, files, readHead, ...extra });
+  const gov = (p, additive, why) => {
+    const l = of([p]);
+    assert.equal(l.lane, 'governance', `${p}: ${JSON.stringify(l)}`);
+    assert.equal(l.additiveEligible, additive, `${p}: additive ${JSON.stringify(l)}`);
+    assert.ok(l.reasons.some((x) => why.test(x)), `${p}: ${JSON.stringify(l.reasons)}`);
+  };
+
+  // C0-255-1 / A1-255-1a / Q0-255-1: the fixtures the harness loads, by pattern and by the harness's own path literals,
+  // read whole (a literal in a comment is not one), each `additive`.
+  gov('tests/db/identity/fixtures/010-identity-fixture.sql', true, /a fixture the database harness loads/);
+  gov('tests/db/identity/fixtures/140-audit-fixture.sql', true, /a fixture the database harness loads/);
+  gov('tests/db/other/fixtures/nested/data.json', true, /a fixture the database harness loads/);
+  gov('tests/db/identity/new-fixture.sql', true, /SQL under tests\/db\//);
+  gov('tests/db/identity/loaded/extra.json', true, /a file scripts\/db\/run\.mjs names, which the database harness loads/);
+  gov('contract-catalog/loaded-by-url.json', true, /a file scripts\/db\/run\.mjs names, which the database harness loads/);
+  assert.equal(of(['tests/db/identity/loaded/in-comment.json']).lane, 'risk');
+  const g = governanceClosure({ files, readHead });
+  assert.deepEqual(g.problems, []);
+  assert.deepEqual([...g.data.keys()].sort(), ['contract-catalog/loaded-by-url.json', 'tests/db/identity/fixtures/010-identity-fixture.sql',
+    'tests/db/identity/loaded/extra.json']);
+
+  // A1-255-1b / R0-255-2: every guard's imports, transitively, are governance and `guard` (not additive-eligible); a
+  // module reached only from the database roots stays `additive`; one reached from both is `guard`. Only modules a
+  // root imports: a file beside the guard is not governance.
+  gov('scripts/lib/helper.mjs', false, /a module scripts\/verify-thing\.mjs imports, read at the head: reached from a guard/);
+  gov('scripts/lib/deeper.mjs', false, /a module scripts\/verify-thing\.mjs imports/);
+  gov('test-kits/contracts/json-schema-subset.mjs', false, /a module test-kits\/handoff-x\.test\.mjs imports/);
+  gov('scripts/db/sql-lexer.mjs', false, /reached from a guard/);
+  gov('tests/db/identity/run-isolation.mjs', true, /a module scripts\/db\/run\.mjs imports, read at the head\)/);
+  assert.equal(of(['scripts/lib/unimported.mjs']).lane, 'risk');
+  assert.equal(g.modules.get('scripts/lib/helper.mjs').kind, 'guard');
+  assert.equal(g.modules.get('tests/db/identity/run-isolation.mjs').kind, 'additive');
+  // A guard that imports something that cannot be followed makes every pull request governance (fail closed).
+  const opaque = { ...head, 'scripts/verify-thing.mjs': 'const m = await import(process.argv[2]);\n' };
+  const got = laneOf({ paths: ['scripts/lib/unimported.mjs'], tier: 'H', recordsOnly: false, files: new Set(Object.keys(opaque)), readHead: (p) => opaque[p] });
+  assert.equal(got.lane, 'governance');
+  assert.ok(got.reasons.some((x) => /"scripts\/verify-thing\.mjs" imports or requires a module named by an expression/.test(x)), JSON.stringify(got.reasons));
+
+  // C0-255-2 / A1-255-1c: a test anywhere whose import is a governance path is governance: `never` when it imports a
+  // `never` path (here a classifier), else `additive`. A test that imports nothing on the list (a path in a string is
+  // not an import) is not. An import written only in a comment still counts, as the raw scan reads it (fail closed). A
+  // path a pattern names keeps the patterns' kind: the foundation contract test stays additive.
+  gov('test-kits/db/rls-assertions.test.mjs', true, /a test whose subject is a governance path \(it imports db\/foundation\/test-helpers\/rls-assertions\.mjs\)/);
+  gov('tests/db/identity/identity-isolation.test.mjs', true, /a test whose subject is a governance path \(it imports tests\/db\/identity\/run-isolation\.mjs\)/);
+  gov('test-kits/contracts/pins-a-classifier.test.mjs', false, /it imports scripts\/db\/classify-review-tier\.mjs/);
+  assert.equal(of(['test-kits/contracts/plain.test.mjs']).lane, 'risk');
+  gov('test-kits/contracts/comment.test.mjs', true, /it imports scripts\/db\/run\.mjs/);
+  gov('test-kits/db/foundation-contract.test.mjs', true, /foundation contract test/);
+  // A changed test that cannot be read at the head is governance (fail closed).
+  const unreadable = laneOf({ paths: ['test-kits/contracts/plain.test.mjs'], tier: 'H', recordsOnly: false, files,
+    readHead: (p) => { if (p === 'test-kits/contracts/plain.test.mjs') throw new Error('unreadable'); return readHead(p); } });
+  assert.equal(unreadable.lane, 'governance');
+  assert.ok(unreadable.reasons.some((x) => /is a test that could not be read at the head/.test(x)));
+});
+
+test('the governance patterns read tool configuration, bare agent paths, any case and nested Makefiles, and test each path whole (PR #255: C0-255-4, C0-255-5, A1-255-2, A1-255-4b, Q0-255-2, Q0-255-3, Q0-255-4, R0-255-3, R0-255-4, R0-255-7)', () => {
+  const of = (paths) => laneOf({ paths, tier: 'H', recordsOnly: false, files: new Set(), readHead: () => { throw new Error('none'); } });
+  const gov = (p, additive, why) => {
+    const l = of([p]);
+    assert.equal(l.lane, 'governance', `${p}: ${JSON.stringify(l)}`);
+    assert.equal(l.additiveEligible, additive, `${p}: additive ${JSON.stringify(l)}`);
+    assert.ok(l.reasons.some((x) => why.test(x)), `${p}: ${JSON.stringify(l.reasons)}`);
+  };
+  // C0-255-4: tool configuration, anywhere in the tree, CODEOWNERS wherever GitHub reads it.
+  for (const p of ['CODEOWNERS', '.github/CODEOWNERS', 'docs/CODEOWNERS', 'apps/web/CODEOWNERS', 'mise.toml', '.mise.toml', 'mise.local.toml',
+    '.tool-versions', '.envrc', '.editorconfig', 'Dockerfile', 'Dockerfile.dev', 'apps/api/Dockerfile', 'web.dockerfile', '.dockerignore',
+    'docker-compose.yml', 'docker-compose.override.yaml', 'compose.yaml', 'compose.dev.yml', 'supabase/config.toml', 'apps/x/supabase/config.toml',
+    '.pre-commit-config.yaml', 'renovate.json', 'renovate.json5', '.renovaterc', '.renovaterc.json', 'vitest.workspace.ts',
+    // C0-255r-5 (round two): git-hook and task runners.
+    'lefthook.yml', 'lefthook.yaml', '.lefthook.yml', 'Taskfile.yml', 'Taskfile.yaml', 'justfile', 'Justfile', '.justfile', 'tools/justfile']) {
+    gov(p, false, /tool configuration|docs\/\*\*|\.github\/\*\*/);
+  }
+  // A1 I-2: a bare agent-tool, `.github`, `.agents` or `docs` path (a file or a symlink, no trailing slash).
+  for (const p of ['.cursor', '.codex', '.claude', '.gemini', '.windsurf', '.github', '.agents', 'docs', '.husky']) gov(p, false, /./);
+  // Q0-255-3 (mutation L12): every pattern is case-insensitive.
+  for (const [p, why] of [['.GITHUB/workflows/x.yml', /\.github\/\*\*/], ['Docs/x.md', /docs\/\*\*/], ['PACKAGE.JSON', /package file/],
+    ['Scripts/Verify-x.mjs', /a guard/], ['scripts/db/CLASSIFY-x.mjs', /a classifier/], ['ARCHITECTURE/DECISIONS/x.md', /an RFC/],
+    ['TESTS/DB/identity/FIXTURES/x.sql', /a fixture the database harness loads/], ['dockerfile', /tool configuration/]]) {
+    gov(p, /fixture/.test(why.source), why);
+  }
+  // R0-255-7: a Makefile anywhere, not only at the top level.
+  for (const p of ['Makefile', 'apps/web/Makefile', 'db/sub/GNUmakefile', 'tools/makefile', 'db/build.mk']) gov(p, false, /a Makefile/);
+  // C0-255-5 / A1-255-2 / Q0-255-2 / R0-255-4: each path is tested whole; a name holding ` -> ` is not split.
+  gov('scripts/verify-a -> b.mjs', false, /a guard/);
+  gov('scripts/a -> b/verify-x.mjs', false, /a guard/);
+  gov('scripts/db/classify-x -> y.mjs', false, /a classifier/);
+  gov('test-kits/x -> y.test.mjs', false, /a top-level guard test/);
+  assert.equal(of(['notes -> docs/x.md']).lane, 'risk');
+  // R0-255-3 / A1-255-4b: top-level guard tests pin a guard's own behaviour and are not additive-eligible, except the
+  // branch-identity test the rule names; the foundation contract test stays additive.
+  for (const p of ['test-kits/ci-guard-behaviour.test.mjs', 'test-kits/secret-scan.test.mjs', 'test-kits/toolchain-contract.test.mjs',
+    'test-kits/handoff-conformance.test.mjs', 'test-kits/xy.test.mjs']) gov(p, false, /a top-level guard test/);
+  gov('test-kits/branch-identity.test.mjs', true, /the additive rule names/);
+  gov('test-kits/db/foundation-contract.test.mjs', true, /foundation contract test/);
+  // Q0-255-4: a test-kits directory other than db/ and contracts/ is unclear, so governance (additive).
+  for (const p of ['test-kits/sub/x.test.mjs', 'test-kits/sub/deeper/helper.mjs', 'test-kits/e2e/x.json']) gov(p, true, /a test-kits directory other than db\/ and contracts\//);
+  for (const p of ['test-kits/db/x.test.mjs', 'test-kits/contracts/x.test.mjs', 'test-kits/db/fixtures/x.json']) assert.equal(of([p]).lane, 'risk', p);
+});
+
+test('the audit lane needs added or modified regular files in one dated directory, the head branch and the base repository (PR #255: C0-255-3, C0-255-6, R0-255-1, A1-255-4a, Q0-255-5)', () => {
+  const head = { 'work-packages/WP-0A-A0-001.json': '{}\n' };
+  const files = new Set(Object.keys(head));
+  const readHead = (p) => { if (!(p in head)) throw new Error(`no ${p}`); return head[p]; };
+  const of = (paths, changes, extra = {}) => laneOf({ paths, changes, tier: 'H', recordsOnly: false, files, readHead, ...AUDIT_OK, ...extra });
+  const audit = ['evidence/audits/2026-10-18/c0-audit.md', 'evidence/audits/2026-10-18/a1-audit.md'];
+  const ok = of(audit, addedRegular(audit));
+  assert.equal(ok.lane, 'audit', JSON.stringify(ok));
+  assert.match(ok.reasons[0], /each an added or modified regular file, on "agent\/a0-001", WP-0A-A0-001's ownership\.branch at the base, from "org\/repo"/);
+  // A modified regular file is an audit file too (an auditor's file amended in the same round).
+  assert.equal(of(audit, [{ path: audit[0], status: 'M', oldMode: '100644', newMode: '100644' }, ...addedRegular([audit[1]])]).lane, 'audit');
+  const notAudit = (paths, changes, extra, why) => {
+    const got = of(paths, changes, extra);
+    assert.equal(got.lane, 'risk', `${why}: ${JSON.stringify(got)}`);
+    assert.ok(got.reasons.some((x) => /^not audit: /.test(x) && why.test(x)), `${why}: ${JSON.stringify(got.reasons)}`);
+  };
+  // Not an added or modified regular file: a symlink, an executable, a deletion, a type change, a submodule.
+  notAudit(audit, [{ path: audit[0], status: 'A', oldMode: '000000', newMode: '120000' }, ...addedRegular([audit[1]])], {}, /status A, mode 000000 -> 120000/);
+  notAudit(audit, [{ path: audit[0], status: 'A', oldMode: '000000', newMode: '100755' }, ...addedRegular([audit[1]])], {}, /mode 000000 -> 100755/);
+  notAudit(audit, [{ path: audit[0], status: 'D', oldMode: '100644', newMode: '000000' }, ...addedRegular([audit[1]])], {}, /status D/);
+  notAudit(audit, [{ path: audit[0], status: 'T', oldMode: '100644', newMode: '120000' }, ...addedRegular([audit[1]])], {}, /status T/);
+  notAudit(audit, [{ path: audit[0], status: 'A', oldMode: '000000', newMode: '160000' }, ...addedRegular([audit[1]])], {}, /160000/);
+  notAudit(audit, [{ path: audit[0], status: 'M', oldMode: '120000', newMode: '100644' }, ...addedRegular([audit[1]])], {}, /mode 120000 -> 100644/);
+  // No statuses at all, or none for one path.
+  notAudit(audit, undefined, {}, /statuses and modes of the changes were not given/);
+  notAudit(audit, addedRegular([audit[0]]), {}, /has no status or mode to check/);
+  // A subdirectory, or a directory that is not a calendar date.
+  const nested = ['evidence/audits/2026-10-18/sub/x.mjs'];
+  notAudit(nested, addedRegular(nested), {}, /is in a subdirectory/);
+  for (const d of ['2026-13-01', '2026-02-30', '2026-1-18', 'latest']) {
+    const p = [`evidence/audits/${d}/c0-audit.md`];
+    notAudit(p, addedRegular(p), {}, /is not a calendar date/);
+  }
+  // C0-255-3 / R0-255-1: no head branch given is not audit (the CLI without --head-ref).
+  notAudit(audit, addedRegular(audit), { headRef: undefined }, /no head branch was given \(--head-ref\)/);
+  notAudit(audit, addedRegular(audit), { headRef: null }, /no head branch was given/);
+  notAudit(audit, addedRegular(audit), { headRef: 'agent/other' }, /is not WP-0A-A0-001's ownership\.branch/);
+  // Q0-255-5 / A1 I-1: a fork is never audit, and neither is a pull request whose repositories were not both given.
+  notAudit(audit, addedRegular(audit), { headRepo: 'fork/repo' }, /the head repository "fork\/repo" is not the base repository "org\/repo" \(a fork\)/);
+  notAudit(audit, addedRegular(audit), { headRepo: 'ORG/repo' }, /\(a fork\)/);
+  for (const extra of [{ repo: undefined }, { headRepo: undefined }, { repo: '' }, { headRepo: '' }, { repo: undefined, headRepo: undefined }]) {
+    notAudit(audit, addedRegular(audit), extra, /repositories were not both given \(--repo, --head-repo\)/);
+  }
+});
+
+test('the lane scanner reads in linear time: the comment run that backtracked exponentially returns at once (PR #255: A1-255-3)', () => {
+  // A1's input: one comment line holding `from` and thirty-six `/**/` with no closing quote, appended to a module the
+  // runner imports. The earlier regular expressions doubled their work with each `/**/`; 36 ran past 45 seconds.
+  const a1 = `// from ${'/**/ '.repeat(36)}x`;
+  const huge = `// from ${'/**/ '.repeat(20000)}x\nimport(${'/**/ '.repeat(20000)}x\n${'from /* from /**/ '.repeat(5000)}'`;
+  for (const [what, line] of [['A1-255-3', a1], ['a far longer run', huge]]) {
+    const head = { 'scripts/db/run.mjs': "import './sql-lexer.mjs';\n", 'scripts/db/sql-lexer.mjs': `export const lex = 1;\n${line}\n` };
+    const started = Date.now();
+    const l = laneOf({ paths: ['scripts/db/sql-lexer.mjs'], tier: 'H', recordsOnly: false, files: new Set(Object.keys(head)), readHead: (p) => head[p] });
+    importSpecs([line]);
+    importSpecs(line.split('\n'));
+    jsRefs(line);
+    const ms = Date.now() - started;
+    assert.ok(ms < 2000, `${what}: ${ms} ms`);
+    assert.equal(l.lane, 'governance', what);
+  }
+  // The scanner still reads what the old expressions read: a specifier after comments, an import split over lines, a
+  // dynamic import, `require`, and a re-export; strings and comments hold no import.
+  assert.deepEqual(importSpecs(["import x from /* 'decoy' */ './a.mjs';", "export * from './b.mjs';", "import './c.css';", "@import url('./d.css');"]),
+    ['./a.mjs', './b.mjs', './c.css', './d.css']);
+  const refs = jsRefs([
+    "import {\n  a, // a comment with a 'quote\n} from './a.mjs';",
+    "const b = await import(/* why */ './b.mjs');",
+    "const c = require('./c.cjs');",
+    "export { d } from './d.mjs';",
+    "const s = \"import x from './not-an-import.mjs'\";",
+    "const t = `from './nor-this.mjs' ${await import('./e.mjs')}`;",
+    "const r = /import('\\.\\/f.mjs')/;",
+    "/* import './g.mjs' */",
+  ].join('\n'));
+  assert.deepEqual(refs.specs, ['./a.mjs', './b.mjs', './c.cjs', './d.mjs', './e.mjs']);
+  assert.deepEqual(refs.opaque, []);
+  assert.deepEqual(refs.problems, []);
+  for (const [src, why] of [['import(name);', /import\(\.\.\.\)/], ['require(name);', /require\(\.\.\.\)/], ['const r = require;', /^require at/],
+    ['import { createRequire } from "node:module";', /createRequire/], ['import(`./${x}.mjs`);', /import\(\.\.\.\)/]]) {
+    assert.ok(jsRefs(src).opaque.some((x) => why.test(x)), `${src}: ${JSON.stringify(jsRefs(src))}`);
+  }
+  assert.ok(jsRefs('re\\u0071uire("./x.mjs");').problems.some((x) => /an escaped identifier/.test(x)));
+  assert.ok(jsRefs('const s = `unterminated').problems.some((x) => /unterminated template/.test(x)));
+});
+
+// The second review round on PR #255 (A1 and Q0 at d50a6036). A1-255r2-1: behind a scanner misread, an import named by
+// a string still hid from the walk's raw backstop as a backtick specifier, a parenthesized one or one after a `//`
+// comment, and a symbolic link hid the module it points at. Q0-255R-1: five mutations survived (L9, N26, N27, N31, N33).
+// One test per group, each named for the lane so the reviewers' runner selects it.
+const A1_MISREAD = 'if (true) /`/.test("x");';
+const A1_MISREAD_END = '// `';
+// A module body with `lines` between A1's misread line and the comment that closes the stretch it hides.
+const behind = (...lines) => [A1_MISREAD, ...lines, A1_MISREAD_END, ''].join('\n');
+const evilLane = (head, extra = {}) => laneOf({ paths: ['src/lib/evil.mjs'], tier: 'H', recordsOnly: false,
+  files: new Set(Object.keys(head)), readHead: (p) => { if (!(p in head)) throw new Error(`no ${p}`); return head[p]; }, ...extra });
+
+test('the lane follows a guard\'s import named by a string behind a scanner misread: backtick, parenthesized, after a comment, require, escaped or percent-encoded (PR #255 round two: A1-255r2-1, Q0-255R-1 N27, N31, N33)', () => {
+  // A1's probes, exactly: a planted guard `scripts/verify-a1-probe.mjs` and a pull request that edits only
+  // `src/lib/evil.mjs`. Each must print governance; A1 measured the three misread rows as risk at d50a6036.
+  // Bodies are joined from plain strings: the coverage floor's own walk refuses a template literal that names a module
+  // loader after an interpolation.
+  const probes = [
+    ['control', 'import "../src/lib/evil.mjs";\n', false],
+    ['a backtick specifier, no misread', 'await import(`../src/lib/evil.mjs`);\n', false],
+    ['a // comment before the specifier, no misread', 'await import( // c\n"../src/lib/evil.mjs");\n', false],
+    ['a backtick specifier behind a misread', behind('await import(`../src/lib/evil.mjs`);'), true],
+    ['a parenthesized specifier behind a misread', behind('await import(("../src/lib/evil.mjs"));'), true],
+    ['a // comment before the specifier behind a misread', behind('await import( // c', '"../src/lib/evil.mjs");'), true],
+    // Q0-255R-1 N31: `require('…')` behind a misread (the raw scan reads `require(`, not a bare `require`).
+    ['require behind a misread', behind('import { createRequire } from "node:module";', 'const require = createRequire(import.meta.url);',
+      "require('../src/lib/evil.mjs');"), true],
+    // The same class, spelled so the text differs from the path: an escape in the string, an escape in the keyword,
+    // percent-encoding (an ES module specifier is a URL), a /* */ comment and an `export … from` after a // comment.
+    ['an escaped specifier behind a misread', behind('await import("../src/lib/\\x65vil.mjs");'), true],
+    ['an escaped keyword behind a misread', behind('await \\u0069mport("../src/lib/evil.mjs");'), true],
+    ['a percent-encoded specifier behind a misread', behind('await import("../src/lib/%65vil.mjs");'), true],
+    ['a block comment and parentheses behind a misread', behind('await import /* a */ ( /* b */ ( "../src/lib/evil.mjs" ));'), true],
+    ['export from after a // comment behind a misread', behind('export { x } from // c', '  `../src/lib/evil.mjs`;'), true],
+  ];
+  for (const [what, body, misread] of probes) {
+    // The misread is real: the scanner reads no import from the code (Q0-255R-1 N27: only the backstop finds it).
+    if (misread) assert.deepEqual(jsRefs(body).specs.filter((s) => s.includes('vil')), [], `${what}: ${JSON.stringify(jsRefs(body))}`);
+    const l = evilLane({ 'scripts/verify-a1-probe.mjs': body, 'src/lib/evil.mjs': 'export {};\n' });
+    assert.equal(l.lane, 'governance', `${what}: ${JSON.stringify(l)}`);
+    assert.ok(l.reasons.some((x) => /"src\/lib\/evil\.mjs" \(a module scripts\/verify-a1-probe\.mjs imports, read at the head: reached from a guard/.test(x)),
+      `${what}: ${JSON.stringify(l.reasons)}`);
+    assert.equal(l.additiveEligible, false, what);
+  }
+  // The residual RFC-2026-007 Amendment 2026-10-11 §D names: behind a misread, a specifier computed from an expression
+  // (here a concatenation, and a template literal with a `${`) is not read, and the edit prints the lane its tier gives.
+  for (const body of [behind('await import("../src/lib/" + "evil.mjs");'), behind('const d = "lib";', 'await import(`../src/${d}/evil.mjs`);')]) {
+    assert.equal(evilLane({ 'scripts/verify-a1-probe.mjs': body, 'src/lib/evil.mjs': 'export {};\n' }).lane, 'risk', body);
+  }
+  // Q0-255R-1 N33: a double-quoted specifier is read by the tier's import scan, which keeps the narrow form (no
+  // backtick, no // comment, no extra parentheses), so its output on real code is what it was.
+  assert.deepEqual(importSpecs(['import x from "./a.mjs";', 'export * from "./b.mjs";', 'import "./c.mjs";']), ['./a.mjs', './b.mjs', './c.mjs']);
+  assert.deepEqual(importSpecs(['import x from `./a.mjs`;', 'export * from // c\n"./b.mjs";', 'import(("./c.mjs"));']), []);
+});
+
+test('the lane counts a symbolic link or gitlink the walk reaches, the harness names or a governance pattern names as governance, in pure form and through the CLI (PR #255 round two: A1-255r2-1)', async () => {
+  assert.deepEqual(LINK_MODES, ['120000', '160000']);
+  // Pure form. A1's probe: the guard imports `./lib/h.mjs`, a symbolic link to the edited module; its text is the target.
+  const linked = { 'scripts/verify-a1-probe.mjs': 'import "./lib/h.mjs";\n', 'scripts/lib/h.mjs': '../../src/lib/evil.mjs', 'src/lib/evil.mjs': 'export {};\n' };
+  assert.equal(evilLane(linked).lane, 'risk', 'without the modes the link reads as a module that imports nothing');
+  for (const mode of LINK_MODES) {
+    const l = evilLane(linked, { modes: new Map([['scripts/lib/h.mjs', mode]]) });
+    assert.equal(l.lane, 'governance', `${mode}: ${JSON.stringify(l)}`);
+    assert.ok(l.reasons.some((x) => new RegExp(`"scripts/lib/h\\.mjs" is a (?:symbolic link|gitlink \\(submodule\\)) \\(mode ${mode}\\) the walk reaches from scripts/verify-a1-probe\\.mjs.*\\(fail closed\\)$`).test(x)), JSON.stringify(l.reasons));
+    assert.equal(l.additiveEligible, false);
+  }
+  // A regular file's mode changes nothing. Since round three a link nothing reaches or names is governance too (every
+  // link at the head fails closed; the test of round three below pins why).
+  assert.equal(evilLane(linked, { modes: new Map([['scripts/lib/h.mjs', '100644'], ['scripts/verify-a1-probe.mjs', '100755']]) }).lane, 'risk');
+  const anywhere = evilLane({ ...linked, 'notes/link.md': 'x' }, { modes: new Map([['notes/link.md', '120000']]) });
+  assert.equal(anywhere.lane, 'governance');
+  assert.ok(anywhere.reasons.some((x) => /"notes\/link\.md" is a symbolic link \(mode 120000\) at the head; .*a link anywhere fails closed/.test(x)), JSON.stringify(anywhere.reasons));
+  // A link a governance pattern names (a guard that is itself a link, a bare agent directory) makes every pull request
+  // governance, even one that touches neither; so does a link the harness names by a path literal.
+  for (const [p, why] of [['scripts/verify-link.mjs', /a guard/], ['.cursor', /an agent adapter/], ['docs', /docs\/\*\*/]]) {
+    const l = evilLane({ 'src/lib/evil.mjs': 'export {};\n', [p]: 'somewhere' }, { modes: new Map([[p, '120000']]) });
+    assert.equal(l.lane, 'governance', p);
+    assert.ok(l.reasons.some((x) => x.includes(`${JSON.stringify(p)} is a symbolic link (mode 120000) that a governance pattern names`) && why.test(x)), JSON.stringify(l.reasons));
+  }
+  const harness = { 'scripts/db/run.mjs': "export const F = 'contract-catalog/data.json';\n", 'contract-catalog/data.json': 'x', 'src/lib/evil.mjs': '' };
+  const h = evilLane(harness, { modes: new Map([['contract-catalog/data.json', '120000']]) });
+  assert.equal(h.lane, 'governance');
+  assert.ok(h.reasons.some((x) => /"contract-catalog\/data\.json" is a symbolic link \(mode 120000\) that the database harness names \(scripts\/db\/run\.mjs\)/.test(x)), JSON.stringify(h.reasons));
+  // A test that is a link is not read as a module: its subject is unknown, so governance.
+  const t = laneOf({ paths: ['tests/x.test.mjs'], tier: 'H', recordsOnly: false, files: new Set(['tests/x.test.mjs']), readHead: () => 'x',
+    modes: new Map([['tests/x.test.mjs', '120000']]) });
+  assert.equal(t.lane, 'governance');
+  assert.ok(t.reasons.some((x) => /"tests\/x\.test\.mjs" is a test that could not be read at the head/.test(x)), JSON.stringify(t.reasons));
+
+  // Through the CLI on a throwaway repository, as A1 built it: a planted base (as if a governance pull request had merged
+  // it), then a pull request that edits only src/lib/evil.mjs. The head's modes come from git.
+  const cli = join(process.cwd(), 'scripts/db/classify-review-tier.mjs');
+  const dir = await mkdtemp(join(tmpdir(), 'review-lane-link-'));
+  try {
+    const env = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 'review-lane-test', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 'review-lane-test', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' };
+    delete env.GIT_DIR;
+    delete env.GIT_WORK_TREE;
+    delete env.GIT_INDEX_FILE;
+    const g = (...a) => run('git', ['-c', 'commit.gpgsign=false', '-c', 'init.defaultBranch=main', ...a], { cwd: dir, env });
+    const put = (p, c) => mkdir(join(dir, p, '..'), { recursive: true }).then(() => writeFile(join(dir, p), c));
+    const lane = async (head) => (await run(process.execPath, [cli, 'main', head, '--lane'], { cwd: dir, env })).stdout;
+    await g('init', '-q');
+    for (const p of ['scripts/db/classify-review-tier.mjs', 'scripts/db/classify-records-only.mjs']) await put(p, await readFile(join(process.cwd(), p)));
+    await put('src/lib/evil.mjs', 'export {};\n');
+    await g('add', '-A');
+    await g('commit', '-q', '-m', 'base');
+    const plant = async (name, files, after = async () => {}) => {
+      await g('checkout', '-q', '-b', `${name}-base`, 'main');
+      for (const [p, c] of Object.entries(files)) await put(p, c);
+      await g('add', '-A');
+      await after();
+      await g('commit', '-q', '-m', `${name} planted`);
+      await g('checkout', '-q', '-b', name);
+      await put('src/lib/evil.mjs', `export const changed = ${JSON.stringify(name)};\n`);
+      await g('add', 'src/lib/evil.mjs');
+      await g('commit', '-q', '-m', `${name} edit`);
+      return lane(name);
+    };
+    // The symbolic link (A1's last row).
+    await mkdir(join(dir, 'scripts/lib'), { recursive: true });
+    await symlink('../../src/lib/evil.mjs', join(dir, 'scripts/lib/h.mjs'));
+    let o = await plant('link', { 'scripts/verify-a1-probe.mjs': 'import "./lib/h.mjs";\n' });
+    assert.match(o, /^lane: governance$/m, o);
+    assert.match(o, /"scripts\/lib\/h\.mjs" is a symbolic link \(mode 120000\) the walk reaches from scripts\/verify-a1-probe\.mjs/, o);
+    // A backtick specifier behind a misread (A1's fourth row), through git.
+    await g('checkout', '-q', 'main');
+    await rm(join(dir, 'scripts/lib'), { recursive: true, force: true });
+    o = await plant('misread', { 'scripts/verify-a1-probe.mjs': behind('await import(`../src/lib/evil.mjs`);') });
+    assert.match(o, /^lane: governance$/m, o);
+    assert.match(o, /"src\/lib\/evil\.mjs" \(a module scripts\/verify-a1-probe\.mjs imports, read at the head: reached from a guard/, o);
+    // A gitlink a governance pattern names (a `.husky` submodule): every pull request is governance while it stands.
+    await g('checkout', '-q', 'main');
+    const commitSha = (await g('rev-parse', 'HEAD')).stdout.trim();
+    o = await plant('gitlink', {}, () => g('update-index', '--add', '--cacheinfo', `160000,${commitSha},.husky`));
+    assert.match(o, /^lane: governance$/m, o);
+    assert.match(o, /"\.husky" is a gitlink \(submodule\) \(mode 160000\) that a governance pattern names \(tool configuration\)/, o);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('the lane\'s raw scan remembers each gap, so comment runs that each hold a keyword stay linear (PR #255 round two: Q0-255R-1 N26)', () => {
+  // Q0's shape: every block comment holds `from /*`, so each keyword's gap runs to the end of the text unless the gap
+  // ends already found are remembered. With the memo off the narrow form took 34.7 s here at this length (Q0's
+  // n26-time.out); with it, milliseconds. The bound is generous for a slow runner. The wide form (the walk's backstop)
+  // is measured through a guard root, with `//` comments and parentheses too.
+  const n = 32000;
+  const narrow = '/* from /* x */ '.repeat(n);
+  let started = Date.now();
+  assert.deepEqual(importSpecs([narrow]), []);
+  let ms = Date.now() - started;
+  assert.ok(ms < 3000, `the tier's scan: ${ms} ms`);
+  for (const [what, text] of [['block comments', narrow], ['line comments', '// from\n'.repeat(n * 2)],
+    ['parentheses and comments', '/* import( /* x */ ( '.repeat(n)]]) {
+    const head = { 'scripts/verify-x.mjs': `export {};\n${text}\n`, 'src/lib/evil.mjs': '' };
+    started = Date.now();
+    const l = evilLane(head);
+    ms = Date.now() - started;
+    assert.ok(ms < 3000, `the walk's backstop, ${what}: ${ms} ms`);
+    assert.ok(['risk', 'governance'].includes(l.lane), what);
+  }
+});
+
+test('the audit lane compares the head branch exactly, case included (PR #255 round two: Q0-255R-1 L9)', () => {
+  const head = { 'work-packages/WP-0A-A0-001.json': '{}\n' };
+  const audit = ['evidence/audits/2026-10-18/c0-audit.md'];
+  const of = (extra) => laneOf({ paths: audit, changes: addedRegular(audit), tier: 'H', recordsOnly: false, files: new Set(Object.keys(head)),
+    readHead: (p) => head[p], ...AUDIT_OK, ...extra });
+  assert.equal(of({}).lane, 'audit');
+  // Git branch names are case-sensitive: a branch that differs from WP-0A-A0-001's only in case is another branch.
+  for (const headRef of ['Agent/a0-001', 'agent/A0-001', 'AGENT/A0-001']) {
+    const l = of({ headRef });
+    assert.equal(l.lane, 'risk', `${headRef}: ${JSON.stringify(l)}`);
+    assert.ok(l.reasons.some((x) => x.includes(`the head branch ${JSON.stringify(headRef)} is not WP-0A-A0-001's ownership.branch at the base ("agent/a0-001")`)), JSON.stringify(l.reasons));
+  }
+  // And the other way: WP-0A-A0-001's branch written with capitals at the base admits only that exact spelling.
+  assert.equal(of({ auditBranch: 'Agent/A0-001', headRef: 'agent/a0-001' }).lane, 'risk');
+  assert.equal(of({ auditBranch: 'Agent/A0-001', headRef: 'Agent/A0-001' }).lane, 'audit');
+});
+
+// The third review round on PR #255 (C0, A1, R0 and Q0 at 39de17ae). Each round had found another way for a planted
+// import to hide from the walk; round three closes the class instead of the spelling: every link at the head fails
+// closed (C0-255r2-1, A1-255r3-1a, R0-255r2-1, Q0-255R2-1 R12); an import of a URL or an absolute path read from code
+// fails closed (A1-255r3-2); every string in a module the walk reads that names a code module joins the walk, so a
+// scanner misread hides nothing a literal names (A1-255r3-1b), while a string naming data adds nothing; and modules
+// resolve close to how node does (not identically; RFC-2026-007 §D), failing closed on code the walk cannot read (Q0-255R2-1). Q0-255R2-2's three unpinned
+// behaviours (B4, B10, B20) are pinned last. The probes are the reviewers' own, as A0 measured them before the fix.
+const R3_EVIL = { 'src/lib/evil.mjs': 'export {};\n' };
+const r3Lane = (head, links = [], edit = 'src/lib/evil.mjs', mode = '120000') => laneOf({ paths: [edit], tier: 'H', recordsOnly: false,
+  files: new Set(Object.keys(head)), readHead: (p) => { if (!(p in head)) throw new Error(`no ${p}`); return head[p]; },
+  modes: new Map(links.map((p) => [p, mode])) });
+const r3Gov = (l, why, what) => {
+  assert.equal(l.lane, 'governance', `${what}: ${JSON.stringify(l)}`);
+  assert.equal(l.additiveEligible, false, what);
+  assert.ok(l.reasons.some((x) => why.test(x)), `${what}: ${JSON.stringify(l.reasons)}`);
+};
+const r3Escape = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+
+test('the lane fails closed on a symbolic link or gitlink anywhere at the head, so a link to a directory hides nothing beneath it, in pure form and through the CLI (PR #255 round three: C0-255r2-1, A1-255r3-1a, R0-255r2-1, Q0-255R2-1 R12)', async () => {
+  const atHead = (p) => new RegExp(`"${r3Escape(p)}" is a (?:symbolic link|gitlink \\(submodule\\)) \\(mode 1[26]0000\\) at the head; .*a link anywhere fails closed \\(fail closed\\)$`);
+  // C0's, A1's, R0's and Q0's probes: a guard holds A1's misread line, then a string import through a link to a
+  // directory (R0's four placements, C0's `tools/x`, Q0's `scripts/lnk`), double-quoted, backtick and static. Git lists
+  // the link as one entry, so the path beneath it is at no file; without the mode it reads as a file and is risk.
+  for (const [link, spec] of [['scripts/lib', './lib/evil.mjs'], ['tools/x', '../tools/x/evil.mjs'], ['scripts/db/lib', './db/lib/evil.mjs'],
+    ['src/x', '../src/x/evil.mjs'], ['scripts/lnk', './lnk/evil.mjs']]) {
+    for (const body of [behind(`await import("${spec}");`), behind(`await import(\`${spec}\`);`), behind(`import "${spec}";`)]) {
+      const head = { ...R3_EVIL, 'scripts/verify-a1-probe.mjs': body, [link]: '../src/lib' };
+      assert.equal(r3Lane(head).lane, 'risk', `${link} without its mode: ${body}`);
+      for (const mode of LINK_MODES) r3Gov(r3Lane(head, [link], undefined, mode), atHead(link), `${link} ${mode}: ${body}`);
+    }
+  }
+  // C0's harness row: the harness names a data file through a link to a directory.
+  const harness = { 'src/sql/seed.sql': 'x', 'scripts/db/run.mjs': "export const S = 'data/linked/seed.sql';\n", 'data/linked': '../src/sql' };
+  r3Gov(r3Lane(harness, ['data/linked'], 'src/sql/seed.sql'), atHead('data/linked'), 'the harness through a directory link');
+  // A link nothing reaches or names, anywhere, with nothing else at the head.
+  r3Gov(r3Lane({ ...R3_EVIL, 'notes/deep/link.md': 'x' }, ['notes/deep/link.md']), atHead('notes/deep/link.md'), 'a link nothing names');
+  // No link, no such problem: the same head with every mode a regular file's is risk.
+  assert.equal(laneOf({ paths: ['src/lib/evil.mjs'], tier: 'H', recordsOnly: false, files: new Set(Object.keys(harness)), readHead: (p) => harness[p],
+    modes: new Map(Object.keys(harness).map((p) => [p, '100644'])) }).lane, 'risk');
+
+  // Through the CLI on a throwaway repository: C0's row, a guard planted with the misread and an import through
+  // `tools/x`, a symbolic link to `../src/lib`; then a pull request that edits only src/lib/evil.mjs.
+  const cli = join(process.cwd(), 'scripts/db/classify-review-tier.mjs');
+  const dir = await mkdtemp(join(tmpdir(), 'review-lane-dirlink-'));
+  try {
+    const env = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 'review-lane-test', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 'review-lane-test', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' };
+    delete env.GIT_DIR;
+    delete env.GIT_WORK_TREE;
+    delete env.GIT_INDEX_FILE;
+    const g = (...a) => run('git', ['-c', 'commit.gpgsign=false', '-c', 'init.defaultBranch=main', ...a], { cwd: dir, env });
+    const put = (p, c) => mkdir(join(dir, p, '..'), { recursive: true }).then(() => writeFile(join(dir, p), c));
+    await g('init', '-q');
+    for (const p of ['scripts/db/classify-review-tier.mjs', 'scripts/db/classify-records-only.mjs']) await put(p, await readFile(join(process.cwd(), p)));
+    await put('src/lib/evil.mjs', 'export {};\n');
+    await put('scripts/verify-a1-probe.mjs', behind('await import("../tools/x/evil.mjs");'));
+    await mkdir(join(dir, 'tools'), { recursive: true });
+    await symlink('../src/lib', join(dir, 'tools/x'));
+    await g('add', '-A');
+    await g('commit', '-q', '-m', 'planted');
+    assert.match((await g('ls-tree', 'HEAD', 'tools/x')).stdout, /^120000 blob /, 'git holds the directory link as one entry');
+    await g('checkout', '-q', '-b', 'edit');
+    await put('src/lib/evil.mjs', 'export const changed = 1;\n');
+    await g('commit', '-q', '-am', 'edit');
+    const o = (await run(process.execPath, [cli, 'main', 'edit', '--lane'], { cwd: dir, env })).stdout;
+    assert.match(o, /^lane: governance$/m, o);
+    assert.match(o, /"tools\/x" is a symbolic link \(mode 120000\) at the head; .*a link anywhere fails closed \(fail closed\)$/m, o);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('the lane fails closed on a guard\'s import of a URL or an absolute path, and reads a repository path a data: module names (PR #255 round three: A1-255r3-2)', () => {
+  const lane = (body, edit = 'src/lib/evil.mjs') => r3Lane({ ...R3_EVIL, 'src/lib/evil.cjs': '', 'scripts/verify-a1-probe.mjs': body }, [], edit);
+  const url = /imports ".*", a URL or an absolute path: only node: built-ins and relative paths are followed \(fail closed\)$/;
+  // A1's two rows, with no misread: each was risk at 39de17ae.
+  const fileUrl = 'await import("data:text/javascript,import%20%22file:///checkout/src/lib/evil.mjs%22;");';
+  const cwdRequire = "await import(\"data:text/javascript,import{createRequire}from'node:module';createRequire(process.cwd()%2B'/')('./src/lib/evil.cjs')\");";
+  r3Gov(lane(`${fileUrl}\n`), url, 'A1: data: URL with a file:// URL inside');
+  r3Gov(lane(`${cwdRequire}\n`, 'src/lib/evil.cjs'), url, 'A1: data: URL with createRequire(cwd) inside');
+  // Every scheme but node:, in any case, and every absolute path.
+  for (const spec of ['file:///x/evil.mjs', 'FILE:///x/evil.mjs', 'http://example.test/x.mjs', 'https://example.test/x.mjs', 'blob:nodedata:x',
+    'data:text/javascript,', '/abs/evil.mjs', 'C:/x/evil.mjs', 'c:\\x\\evil.mjs', '\\\\server\\share\\x.mjs']) {
+    r3Gov(lane(`import ${JSON.stringify(spec)};\n`), url, spec);
+    r3Gov(lane(`const m = require(${JSON.stringify(spec)});\n`), url, `require ${spec}`);
+  }
+  // A node: built-in and a bare package name are not problems.
+  for (const body of ['import fs from "node:fs";\n', 'import x from "some-package";\n', 'const c = require("node:child_process");\n']) assert.equal(lane(body).lane, 'risk', body);
+  // Behind a misread the specifier is not read from code, so the URL rule does not see it; the string rule still reads
+  // the repository path inside the data: module, from the root. An absolute file:// URL inside one names no repository
+  // path literally: the residual RFC-2026-007 Amendment 2026-10-11 §D names, risk.
+  r3Gov(lane(behind(cwdRequire), 'src/lib/evil.cjs'), /"src\/lib\/evil\.cjs" \(a module scripts\/verify-a1-probe\.mjs imports or names by a string, read at the head: reached from a guard/, 'A1: createRequire behind a misread');
+  assert.equal(lane(behind(fileUrl)).lane, 'risk', 'the residual: an absolute file:// URL inside a data: module');
+});
+
+test('the lane follows every string in a guard that names a code module, whatever the scanner made of the text, and a string that names data adds nothing (PR #255 round three: A1-255r3-1b)', () => {
+  const named = (p, root = 'scripts/verify-a1-probe.mjs') => new RegExp(`"${r3Escape(p)}" \\(a module ${r3Escape(root)} imports or names by a string, read at the head: reached from a guard`);
+  // A1's .cjs rows: an HTML-like comment, which the scanner does not model, behind a misread. The misread is real.
+  for (const body of [behind('require( <!-- c', '"../src/lib/evil.cjs");'), behind('require(', '--> c', '"../src/lib/evil.cjs");')]) {
+    assert.deepEqual(jsRefs(body).specs, [], body);
+    r3Gov(r3Lane({ 'src/lib/evil.cjs': '', 'scripts/verify-a1-probe.cjs': body }, [], 'src/lib/evil.cjs'), named('src/lib/evil.cjs', 'scripts/verify-a1-probe.cjs'), body);
+  }
+  // Any string, not only one in an import: in a constant, in an array, in a comment, from the module or the root, with
+  // a query, without its extension, escaped, percent-encoded; with and without a misread.
+  for (const line of ['const p = "../src/lib/evil.mjs";', "const all = ['x', 'src/lib/evil.mjs'];", "// loads '../src/lib/evil.mjs' later",
+    'const p = "../src/lib/evil.mjs?v=1#top";', 'const p = "../src/lib/evil";', 'const p = "../src/lib/ev\\u0069l.mjs";', 'const p = "../src/lib/%65vil.mjs";',
+    'const p = `../src/lib/evil.mjs`;']) {
+    for (const body of [`${line}\n`, behind(line)]) r3Gov(r3Lane({ ...R3_EVIL, 'scripts/verify-a1-probe.mjs': body }), named('src/lib/evil.mjs'), body);
+  }
+  // The string rule reads code modules only: a string that names data (JSON, SQL, Markdown) adds nothing.
+  for (const [p, line] of [['src/data/x.json', "const d = 'src/data/x.json';"], ['src/sql/seed.sql', "const s = '../src/sql/seed.sql';"], ['notes/a.md', "const m = 'notes/a.md';"]]) {
+    assert.equal(r3Lane({ [p]: 'x', 'scripts/verify-a1-probe.mjs': `${line}\n` }, [], p).lane, 'risk', p);
+  }
+  // Code node can run that the walk cannot read, named by a string: a problem.
+  for (const ext of ['ts', 'mts', 'cts', 'tsx', 'jsx', 'node', 'wasm']) {
+    r3Gov(r3Lane({ ...R3_EVIL, [`src/lib/h.${ext}`]: 'x', 'scripts/verify-a1-probe.mjs': `const h = '../src/lib/h.${ext}';\n` }),
+      new RegExp(`names "\\.\\./src/lib/h\\.${ext}", which resolves to "src/lib/h\\.${ext}", code node can run and the walk cannot read \\(fail closed\\)$`), ext);
+  }
+  // The harness's .sql/.json rule keeps round one's scope: it reads what the harness reaches by imports, not what it
+  // reaches by a string. The module the runner names by a string is governance (additive); the data that module names is not.
+  const head = { 'scripts/db/run.mjs': "const helper = 'scripts/db/by-string.mjs';\n", 'scripts/db/by-string.mjs': "export const F = 'tests/db/x/data.json';\n",
+    'tests/db/x/data.json': '{}\n' };
+  const files = new Set(Object.keys(head));
+  const of = (p, h = head) => laneOf({ paths: [p], tier: 'H', recordsOnly: false, files: new Set(Object.keys(h)), readHead: (x) => h[x] });
+  const helper = of('scripts/db/by-string.mjs');
+  assert.equal(helper.lane, 'governance', JSON.stringify(helper));
+  assert.equal(helper.additiveEligible, true);
+  assert.ok(helper.reasons.some((x) => /"scripts\/db\/by-string\.mjs" \(a module scripts\/db\/run\.mjs imports or names by a string, read at the head\)/.test(x)), JSON.stringify(helper.reasons));
+  assert.equal(of('tests/db/x/data.json').lane, 'risk');
+  assert.ok(!governanceClosure({ files, readHead: (x) => head[x] }).data.has('tests/db/x/data.json'));
+  // Imported, the same module's data is the harness's.
+  const imported = { ...head, 'scripts/db/run.mjs': "import './by-string.mjs';\n" };
+  assert.equal(of('tests/db/x/data.json', imported).lane, 'governance');
+  assert.ok(governanceClosure({ files: new Set(Object.keys(imported)), readHead: (x) => imported[x] }).data.has('tests/db/x/data.json'));
+});
+
+test('the lane resolves a guard\'s imports as node does, and fails closed on a module it cannot read (PR #255 round three: Q0-255R2-1 R13 to R16)', () => {
+  const reached = (p, root) => new RegExp(`"${r3Escape(p)}" \\(a module ${r3Escape(root)} imports`);
+  // Q0's R13 (an extensionless require behind a misread), R13b (the same with no misread: followed, no longer a
+  // problem), R16 (a directory require behind a misread), and the other forms the walk resolves: a directory's index,
+  // a package.json main with and without its extension, and an added `.mjs`, which `require` itself does not try (the walk
+  // resolves close to node, not identically; RFC-2026-007 §D).
+  const cjs = 'scripts/verify-q0-probe.cjs';
+  for (const [what, head, edit] of [
+    ['R13', { 'src/lib/cj.js': '', [cjs]: behind('require("../src/lib/cj");') }, 'src/lib/cj.js'],
+    ['R13b', { 'src/lib/cj.js': '', [cjs]: 'require("../src/lib/cj");\n' }, 'src/lib/cj.js'],
+    ['R16', { 'src/lib/index.js': '', [cjs]: behind('require("../src/lib");') }, 'src/lib/index.js'],
+    ['index.cjs', { 'src/lib/index.cjs': '', [cjs]: 'require("../src/lib");\n' }, 'src/lib/index.cjs'],
+    ['.mjs added', { 'src/lib/m.mjs': '', [cjs]: 'require("../src/lib/m");\n' }, 'src/lib/m.mjs'],
+    ['package.json main', { 'src/pkg/package.json': '{"main":"lib/m.js"}', 'src/pkg/lib/m.js': '', [cjs]: 'require("../src/pkg");\n' }, 'src/pkg/lib/m.js'],
+    ['main without its extension', { 'src/pkg/package.json': '{"main":"lib/m"}', 'src/pkg/lib/m.cjs': '', [cjs]: 'require("../src/pkg");\n' }, 'src/pkg/lib/m.cjs'],
+    ['main a directory', { 'src/pkg/package.json': '{"main":"lib"}', 'src/pkg/lib/index.js': '', [cjs]: 'require("../src/pkg");\n' }, 'src/pkg/lib/index.js'],
+  ]) r3Gov(r3Lane(head, [], edit), reached(edit, cjs), what);
+  // Q0's R14 and R15: a TypeScript module a guard imports, with no misread: node runs it, the walk cannot read it, so it
+  // is a problem. So is every other extension the walk does not read, named exactly or resolved by an added extension.
+  for (const ext of ['mts', 'ts', 'cts', 'tsx', 'jsx']) {
+    for (const spec of [`./lib/h.${ext}`, ...(['ts', 'mts', 'cts'].includes(ext) ? ['./lib/h'] : [])]) {
+      const head = { ...R3_EVIL, 'scripts/verify-q0-probe.mjs': `import "${spec}";\n`, [`scripts/lib/h.${ext}`]: 'import "../../src/lib/evil.mjs";\n' };
+      r3Gov(r3Lane(head), new RegExp(`imports "${r3Escape(spec)}", which resolves to "scripts/lib/h\\.${ext}", a module the walk cannot read \\(only \\.js, \\.mjs, \\.cjs and \\.json\\) \\(fail closed\\)$`), spec);
+    }
+  }
+  // Read from code, an import of any other file the walk does not read is a problem too (the raw backstop flags only
+  // code node can run): a stylesheet, SQL, text.
+  for (const f of ['scripts/lib/style.css', 'scripts/lib/q.sql', 'scripts/lib/notes.txt']) {
+    const spec = `./${f.slice('scripts/'.length)}`;
+    r3Gov(r3Lane({ ...R3_EVIL, 'scripts/verify-q0-probe.mjs': `import "${spec}";\n`, [f]: 'x' }),
+      new RegExp(`imports "${r3Escape(spec)}", which resolves to "${r3Escape(f)}", a module the walk cannot read`), f);
+  }
+  // A JSON import is data the walk need not read: no problem, and the file itself is governance.
+  const json = { ...R3_EVIL, 'scripts/verify-q0-probe.mjs': 'import d from "./d.json" with { type: "json" };\n', 'scripts/d.json': '{}\n' };
+  assert.equal(r3Lane(json).lane, 'risk');
+  r3Gov(r3Lane(json, [], 'scripts/d.json'), reached('scripts/d.json', 'scripts/verify-q0-probe.mjs'), 'a JSON import');
+  // A package.json that cannot be read as JSON, or whose main leaves the repository, is a problem; so is an import that
+  // resolves to nothing.
+  for (const [pkg, why] of [['{', /"src\/pkg\/package\.json" could not be read as JSON/], ['{"main":"../../../outside.js"}', /names a main outside the repository/]]) {
+    r3Gov(r3Lane({ ...R3_EVIL, 'src/pkg/package.json': pkg, [cjs]: 'require("../src/pkg");\n' }), why, pkg);
+  }
+  r3Gov(r3Lane({ ...R3_EVIL, [cjs]: 'require("../src/gone");\n' }), /imports "\.\.\/src\/gone", which resolves to no file at the head/, 'nothing there');
+  // A string or a backstop candidate that names a directory whose package.json is not JSON adds nothing (node refuses
+  // to load it): the classifier's own string "." with a scratch repository's stub package.json is not a problem.
+  for (const body of ['const here = ".";\n', behind('require("../src/pkg");'), 'const p = "../src/pkg";\n']) {
+    assert.equal(r3Lane({ ...R3_EVIL, 'package.json': 'not json', 'src/pkg/package.json': '{', 'scripts/verify-q0-probe.mjs': body }).lane, 'risk', body);
+  }
+});
+
+test('the lane\'s backstop and string rule drop tabs and line breaks, a wide // comment ends at every line end, and the additive walk checks links (PR #255 round three: Q0-255R2-2 B4, B10, B20)', () => {
+  // B4 (Q0's R8): a tab or a line break inside a specifier, which a URL drops, behind a misread; and in each reader.
+  for (const body of [behind('await import("../src/lib/ev\til.mjs");'), behind('await import(`../src/lib/ev\nil.mjs`);'), behind('await import(`../src/lib/e\r\nvil.mjs`);')]) {
+    assert.equal(r3Lane({ ...R3_EVIL, 'scripts/verify-a1-probe.mjs': body }).lane, 'governance', JSON.stringify(body));
+  }
+  for (const spec of ['./a\t.mjs', './a\n.mjs', './\r\na.mjs']) {
+    assert.ok(backstopSpecs(`import(\`${spec}\`)`).includes('./a.mjs'), JSON.stringify(spec));
+    assert.ok(stringNames(`x = \`${spec}\``).includes('./a.mjs'), JSON.stringify(spec));
+  }
+  // B10 (Q0's R9): the wide raw scan ends a // comment at LF, CR, U+2028 and U+2029, as V8 does.
+  for (const end of ['\n', '\r', '\u2028', '\u2029']) {
+    assert.ok(backstopSpecs(`import( // c${end}"./a.mjs")`).includes('./a.mjs'), JSON.stringify(end));
+    assert.ok(backstopSpecs(`export { x } from // c${end}'./b.mjs'`).includes('./b.mjs'), JSON.stringify(end));
+    assert.equal(r3Lane({ ...R3_EVIL, 'scripts/verify-a1-probe.mjs': behind(`await import( // c${end}"../src/lib/evil.mjs");`) }).lane, 'governance', JSON.stringify(end));
+  }
+  // B20: the additive walk checks links, a non-code `.json` the runner imports included: the reason names the walk that
+  // reaches it, not only the link at the head.
+  const head = { ...R3_EVIL, 'scripts/db/run.mjs': "import d from './data.json' with { type: 'json' };\n", 'scripts/db/data.json': '../../x.json' };
+  const l = r3Lane(head, ['scripts/db/data.json']);
+  r3Gov(l, /"scripts\/db\/data\.json" is a symbolic link \(mode 120000\) the walk reaches from scripts\/db\/run\.mjs/, 'B20');
+  const links = new Map([['scripts/db/data.json', '120000']]);
+  const c = importClosure(['scripts/db/run.mjs'], (p) => head[p], new Set(Object.keys(head)), undefined, links);
+  assert.ok(c.problems.some((x) => /"scripts\/db\/data\.json" is a symbolic link \(mode 120000\) the walk reaches from scripts\/db\/run\.mjs/.test(x)), JSON.stringify(c.problems));
+});
