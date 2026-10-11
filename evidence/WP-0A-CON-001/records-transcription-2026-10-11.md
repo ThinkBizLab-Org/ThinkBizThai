@@ -1,7 +1,11 @@
 # WP-0A-CON-001 records transcription, 2026-10-11
 
-Transcribed by A0 (`/claude/a0_atlas`) under RFC-2026-034, which the Product Owner merged as PR #251. This is a
-records-only pull request under RFC-2026-025 §6; A0 gives no acknowledgement and no verdict of its own.
+Transcribed by A0 (`/claude/a0_atlas`) under RFC-2026-034, which the Product Owner merged as PR #251. A0 gives no
+acknowledgement and no verdict of its own. This pull request is **not** records-only: `classify-records-only.mjs`
+exits 1 because this manifest keeps `ownership.amended_by` as one object, not a list, and RFC-2026-025 §6.1 rule 4
+admits acknowledgement keys only on a list. It is tier H outside governance, so it takes the RFC-2026-034 §2.2 Risk
+lane: A1 and Q0 read the final head. (The content commit's message calls it records only; that was written before
+the classifier ran and is corrected here.)
 
 ## 1. `ownership.amended_by` (the one entry, `[0]`): R0's acknowledgement
 
