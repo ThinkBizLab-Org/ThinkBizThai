@@ -70,8 +70,9 @@ export const INTEGRITY_MANIFEST = 'test-kits/integrity-manifest.json';
 // reads.
 export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/branch-identity.test.mjs': 8,
-  // RFC-2026-034 §8 item 2 (WP-0A-A0-004, 2026-10-11): seven tests of the tier and lane step, 30 to 37.
-  'test-kits/branch-scope.test.mjs': 37,
+  // RFC-2026-034 §8 item 2 (WP-0A-A0-004, 2026-10-11): seven tests of the tier and lane step, 30 to 37; the first
+  // review round on PR #255 adds two (the repositories and the fork, the time limit), 37 to 39.
+  'test-kits/branch-scope.test.mjs': 39,
   'test-kits/capability-profile.test.mjs': 4,
   'test-kits/ci-guard-behaviour.test.mjs': 17,
   'test-kits/contracts/catalog-groups.test.mjs': 7,
@@ -99,8 +100,10 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // biting in pure form and through the CLI on a throwaway git repository: 86 to 87. Batch rfc-030-risk-tiered-review
 // (2026-10-08, no migration, RFC-2026-030 approved in principle): one test -- the review-tier classifier, every rule
 // biting in pure form and through the CLI on a throwaway git repository: 87 to 88. RFC-2026-034 §8 item 2 (2026-10-11,
-// no migration): two tests -- the classifier's lane in pure form, and its --lane flag through the CLI: 88 to 90.
-  'test-kits/db/foundation-contract.test.mjs': 90,
+// no migration): two tests -- the classifier's lane in pure form, and its --lane flag through the CLI: 88 to 90. The
+// first review round on PR #255 (2026-10-11, no migration): four tests -- the harness's fixtures, the guards' imports
+// and a test's subject; the patterns; the audit lane; the scanner's linear time: 90 to 94.
+  'test-kits/db/foundation-contract.test.mjs': 94,
   'test-kits/db/rls-assertions.test.mjs': 20,
 // Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
 // -- 296 to 301 tests and 2101 to 2130 assertions -- and the assertion half moved only
@@ -157,7 +160,8 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/branch-identity.test.mjs': 15,
   // RFC-2026-034 §8 item 2 (2026-10-11): 166 to 225, the tier and lane step's seven tests; the guard's own count.
-  'test-kits/branch-scope.test.mjs': 225,
+  // 225 to 236 with the first review round on PR #255: two tests added, three adjusted; the guard's own count.
+  'test-kits/branch-scope.test.mjs': 236,
   'test-kits/capability-profile.test.mjs': 4,
   'test-kits/ci-guard-behaviour.test.mjs': 33,
   'test-kits/contracts/catalog-groups.test.mjs': 9,
@@ -290,8 +294,9 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // classifier's test adds its assertions; the guard's own count.
 // 1362 to 1460 with RFC-2026-034 §8 item 2 (2026-10-11, no migration): the lane's two tests add their assertions, and the
 // floor is raised to the guard's own count at this head, which also takes in 44 assertions earlier batches added under a
-// floor they did not move.
-  'test-kits/db/foundation-contract.test.mjs': 1460,
+// floor they did not move. 1460 to 1490 with the first review round on PR #255 (2026-10-11, no migration): four lane
+// tests added and the two earlier ones adjusted; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 1490,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.
@@ -336,12 +341,13 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
   // RFC-2026-034 §8 item 2 (2026-10-11): foundation-contract and branch-scope each gain tests (no test removed or
-  // renamed); both name digests move.
-  'test-kits/db/foundation-contract.test.mjs': 'f4bb637609d2d924',
+  // renamed); both name digests move. They move again with the first review round on PR #255 (four and two tests
+  // added, none removed or renamed).
+  'test-kits/db/foundation-contract.test.mjs': '0d36220eda62abdd',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
   'tests/db/identity/identity-isolation.test.mjs': '25aa50b576c0925b',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
-  'test-kits/branch-scope.test.mjs': '90dc4037da55acd4',
+  'test-kits/branch-scope.test.mjs': '946cbd265ad735ac',
   'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',
   'test-kits/ci-guard-behaviour.test.mjs': 'cc42f80046d803e9',
   'test-kits/contracts/catalog-groups.test.mjs': '401597be61929abb',

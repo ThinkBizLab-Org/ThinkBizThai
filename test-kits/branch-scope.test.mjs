@@ -964,8 +964,9 @@ test('the job summary carries at most 64 KiB of classifier output; the log keeps
 // against throwaway repositories whose base commit holds copies of BOTH real classifiers (the tier classifier imports
 // the records-only one). What is pinned: it gates nothing (exit 0 on every path, no step output, nothing reads it), it
 // fails closed (`tier: H (not classified)` / `lane: governance (not classified)` on anything but a clean classification,
-// a base classifier that does not understand `--lane` included), it runs the BASE's classifiers before any of the pull
-// request's own code runs, its log is inert, and its summary is escaped and capped.
+// a base classifier that does not understand `--lane` included, and a classifier that runs past `timeout 300`), it runs
+// the BASE's classifiers before any of the pull request's own code runs, it passes the head branch and both
+// repositories so a fork is never audit, its log is inert, and its summary is escaped and capped.
 const LANE_STEP = 'Print the review tier and lane (informational, gates nothing)';
 const TIER_CLASSIFIER = 'scripts/db/classify-review-tier.mjs';
 const UNCLASSIFIED = 'tier: H \\(not classified\\), lane: governance \\(not classified\\)';
@@ -983,13 +984,33 @@ async function laneRepo() {
   return { ...scratch, base: scratch.git('rev-parse', 'HEAD') };
 }
 
+// The step runs the classifier under coreutils `timeout`, which the CI runner has and a developer's machine may not.
+// Where there is none, a stand-in that runs its command without a limit is put LAST on PATH, so the rest of the step is
+// exercised the same way; the test below pins what the step does when `timeout` reports a timeout (exit 124).
+let timeoutShim;
+async function laneEnv(env) {
+  const { spawnSync } = await import('node:child_process');
+  if (timeoutShim === undefined) {
+    timeoutShim = null;
+    if (spawnSync('sh', ['-c', 'command -v timeout'], { env: { PATH: process.env.PATH } }).status !== 0) {
+      const { mkdtemp, writeFile, chmod } = await import('node:fs/promises');
+      const { tmpdir } = await import('node:os');
+      const { join } = await import('node:path');
+      timeoutShim = await mkdtemp(join(tmpdir(), 'ci-timeout-'));
+      await writeFile(join(timeoutShim, 'timeout'), '#!/bin/sh\nshift\nexec "$@"\n');
+      await chmod(join(timeoutShim, 'timeout'), 0o755);
+    }
+  }
+  return timeoutShim === null ? env : { ...env, PATH: `${env.PATH ?? process.env.PATH}:${timeoutShim}` };
+}
+
 async function lane(env, cwd) {
   const { readFile, mkdtemp } = await import('node:fs/promises');
   const { tmpdir } = await import('node:os');
   const { join } = await import('node:path');
   const block = stepBlock(await readFile(CI_WORKFLOW_PATH, 'utf8'), LANE_STEP);
   const summary = join(await mkdtemp(join(tmpdir(), 'ci-summary-')), 'summary.md');
-  const result = await runStep(runBody(block), { GITHUB_STEP_SUMMARY: summary, ...env }, cwd);
+  const result = await runStep(runBody(block), await laneEnv({ GITHUB_STEP_SUMMARY: summary, ...env }), cwd);
   let text = '';
   try { text = await readFile(summary, 'utf8'); } catch { text = ''; }
   return { ...result, summary: text };
@@ -1028,13 +1049,16 @@ test('the tier and lane step gates nothing and runs the base classifiers before 
   assert.equal(envValue(step, 'BASE_REF'), '${{ github.event.pull_request.base.ref }}');
   assert.equal(envValue(step, 'BASE_SHA'), '${{ github.event.pull_request.base.sha }}');
   assert.equal(envValue(step, 'HEAD_REF'), '${{ github.event.pull_request.head.ref }}');
+  assert.equal(envValue(step, 'HEAD_REPO'), '${{ github.event.pull_request.head.repo.full_name }}');
+  assert.equal(envValue(step, 'REPO'), '${{ github.repository }}');
 
   const body = runBody(step);
   assert.doesNotMatch(body, /GITHUB_OUTPUT|GITHUB_ENV|GITHUB_PATH/, 'it may write the log and the job summary, nothing a later step reads');
   assert.deepEqual([...body.matchAll(/\bexit\b\s*(\S*)/g)].map((m) => m[1]), ['0'], 'its one exit is exit 0');
   assert.equal([...body.matchAll(/^\s*report "tier: \$\{tier\}" "lane: \$\{lane\}"/gm)].length, 1, 'one path prints a classified tier and lane');
   assert.match(body, /unclassified\(\) \{ report "tier: H \(not classified\)" "lane: governance \(not classified\)" /);
-  assert.match(body, /node "\$\{work\}\/classify-review-tier\.mjs" "\$\{BASE_SHA\}" HEAD --lane "--head-ref=\$\{HEAD_REF:-\}"/);
+  assert.match(body, /timeout 300 node "\$\{work\}\/classify-review-tier\.mjs" "\$\{BASE_SHA\}" HEAD --lane "--head-ref=\$\{HEAD_REF:-\}" "--repo=\$\{REPO:-\}" "--head-repo=\$\{HEAD_REPO:-\}" >/);
+  assert.equal([...body.matchAll(/\bnode\b/g)].length, 1, 'the classifier is the one node call, and it runs under timeout');
   assert.match(body, /for script in classify-review-tier\.mjs classify-records-only\.mjs; do/);
   assert.match(body, /git show "\$\{BASE_SHA\}:scripts\/db\/\$\{script\}" > "\$\{work\}\/\$\{script\}"/);
   assert.doesNotMatch(body, /node scripts\/db\/classify-/, "the pull request's own classifiers must not be its judge");
@@ -1060,7 +1084,8 @@ test('the tier and lane step prints each lane the base classifier gives, with it
   assert.match(result.out, /classifier copy: the base's/);
   assert.match(result.summary, /<pre>\ntier: H \(1 path\(s\)[\s\S]*\nlane: risk\n/);
 
-  // Governance: CI itself. And a guard test alone is governance that the additive rule may cover.
+  // Governance: CI itself, and a top-level guard test, which pins a guard's own behaviour, neither additive-eligible.
+  // The guards' data alone is governance that the additive rule may cover.
   const gov = await laneRepo();
   await gov.put('.github/workflows/ci.yml', 'changed\n');
   commitHead(gov.git);
@@ -1068,11 +1093,18 @@ test('the tier and lane step prints each lane the base classifier gives, with it
   assertLane(result, 'tier: H, lane: governance', 'CI');
   assert.match(result.out, /governance: "\.github\/workflows\/ci\.yml" \(\.github\/\*\*\)/);
   assert.doesNotMatch(result.out, /^ {2}additive-eligible: /m);
+  const guardTest = await laneRepo();
+  await guardTest.put('test-kits/other.test.mjs', 'changed\n');
+  commitHead(guardTest.git);
+  result = await lane({ BASE_REF: 'main', BASE_SHA: guardTest.base, HEAD_REF: 'agent/x/WP-X' }, guardTest.repo);
+  assertLane(result, 'tier: H, lane: governance', 'a guard test');
+  assert.match(result.out, /governance: "test-kits\/other\.test\.mjs" \(a top-level guard test/);
+  assert.doesNotMatch(result.out, /^ {2}additive-eligible: /m);
   const additive = await laneRepo();
-  await additive.put('test-kits/other.test.mjs', 'changed\n');
+  await additive.put('db/foundation/lint/read-allowlist.json', '{}\n');
   commitHead(additive.git);
   result = await lane({ BASE_REF: 'main', BASE_SHA: additive.base, HEAD_REF: 'agent/x/WP-X' }, additive.repo);
-  assertLane(result, 'tier: H, lane: governance', 'a guard test');
+  assertLane(result, 'tier: H, lane: governance', 'the guards\' data');
   assert.match(result.out, /^ {2}additive-eligible: yes$/m);
 
   // Records: RFC-2026-025 §6.1, unchanged.
@@ -1082,19 +1114,65 @@ test('the tier and lane step prints each lane the base classifier gives, with it
   result = await lane({ BASE_REF: 'main', BASE_SHA: records.base, HEAD_REF: 'agent/x/WP-X' }, records.repo);
   assertLane(result, 'tier: records, lane: records', 'records only');
 
-  // Audit: only one dated audit directory, on WP-0A-A0-001's branch as the base's manifest names it; on any other
-  // branch the same paths take the risk lane.
+  // Audit: only one dated audit directory, on WP-0A-A0-001's branch as the base's manifest names it, from this
+  // repository; on any other branch, with no branch, or from a fork, the same paths take the risk lane.
   const audit = await laneRepo();
   await audit.put('evidence/audits/2026-10-18/c0-audit.md', 'c0\n');
   await audit.put('evidence/audits/2026-10-18/a1-audit.md', 'a1\n');
   commitHead(audit.git);
-  result = await lane({ BASE_REF: 'main', BASE_SHA: audit.base, HEAD_REF: AUDIT_BRANCH }, audit.repo);
+  const repos = { REPO: 'org/repo', HEAD_REPO: 'org/repo' };
+  result = await lane({ BASE_REF: 'main', BASE_SHA: audit.base, HEAD_REF: AUDIT_BRANCH, ...repos }, audit.repo);
   assertLane(result, 'tier: H, lane: audit', 'an audit on its branch');
-  result = await lane({ BASE_REF: 'main', BASE_SHA: audit.base, HEAD_REF: 'agent/x/WP-X' }, audit.repo);
+  result = await lane({ BASE_REF: 'main', BASE_SHA: audit.base, HEAD_REF: 'agent/x/WP-X', ...repos }, audit.repo);
   assertLane(result, 'tier: H, lane: risk', 'an audit on another branch');
   assert.match(result.out, /not audit: .*is not WP-0A-A0-001's ownership\.branch/);
-  result = await lane({ BASE_REF: 'main', BASE_SHA: audit.base }, audit.repo);
+  result = await lane({ BASE_REF: 'main', BASE_SHA: audit.base, ...repos }, audit.repo);
   assertLane(result, 'tier: H, lane: risk', 'an audit with no head branch');
+  assert.match(result.out, /not audit: .*no head branch was given/);
+});
+
+test('the tier and lane step passes both repositories, so a pull request from a fork is never audit (PR #255: Q0-255-5, A1 I-1)', async () => {
+  const audit = await laneRepo();
+  await audit.put('evidence/audits/2026-10-18/c0-audit.md', 'c0\n');
+  commitHead(audit.git);
+  const on = { BASE_REF: 'main', BASE_SHA: audit.base, HEAD_REF: AUDIT_BRANCH };
+  assertLane(await lane({ ...on, REPO: 'org/repo', HEAD_REPO: 'org/repo' }, audit.repo), 'tier: H, lane: audit', 'the base repository');
+  for (const [what, env, why] of [
+    ['a fork whose branch carries the audit branch name', { REPO: 'org/repo', HEAD_REPO: 'fork/repo' }, /the head repository "fork\/repo" is not the base repository "org\/repo" \(a fork\)/],
+    ['no head repository', { REPO: 'org/repo' }, /repositories were not both given/],
+    ['no base repository', { HEAD_REPO: 'org/repo' }, /repositories were not both given/],
+    ['neither repository', {}, /repositories were not both given/],
+  ]) {
+    const result = await lane({ ...on, ...env }, audit.repo);
+    assertLane(result, 'tier: H, lane: risk', what);
+    assert.match(result.out, why, what);
+  }
+});
+
+test('the tier and lane step runs the classifier under timeout 300, and a timeout prints not classified (PR #255: A1-255-3)', async () => {
+  const { mkdtemp, writeFile, chmod, readFile } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { repo, base, git, put } = await laneRepo();
+  await put('scripts/other.mjs', 'changed\n');
+  commitHead(git);
+  // A stand-in `timeout` that records its arguments and reports what coreutils reports when the limit is reached.
+  const fake = await mkdtemp(join(tmpdir(), 'ci-timeout-124-'));
+  const args = join(fake, 'args');
+  await writeFile(join(fake, 'timeout'), `#!/bin/sh\nprintf '%s\\n' "$@" > '${args}'\nexit 124\n`);
+  await chmod(join(fake, 'timeout'), 0o755);
+  const env = { BASE_REF: 'main', BASE_SHA: base, HEAD_REF: 'agent/x/WP-X', REPO: 'org/repo', HEAD_REPO: 'org/repo' };
+  const result = await lane({ ...env, PATH: `${fake}:${process.env.PATH}` }, repo);
+  assertLane(result, UNCLASSIFIED, 'a timeout');
+  assert.match(result.out, /did not finish within 300 seconds on .*which is not a classification \(fail closed\)/);
+  const given = (await readFile(args, 'utf8')).split('\n');
+  assert.deepEqual(given.slice(0, 2), ['300', 'node']);
+  assert.ok(given.includes('--lane') && given.includes('--repo=org/repo') && given.includes('--head-repo=org/repo') && given.includes('--head-ref=agent/x/WP-X'), given.join(' '));
+  // Any other exit of `timeout` (its own failure, 125 to 127) is a classifier exit other than 0: not classified too.
+  await writeFile(join(fake, 'timeout'), '#!/bin/sh\nexit 125\n');
+  const failed = await lane({ ...env, PATH: `${fake}:${process.env.PATH}` }, repo);
+  assertLane(failed, UNCLASSIFIED, 'timeout itself failing');
+  assert.match(failed.out, /exited 125 on /);
 });
 
 test('a pull request that edits a classifier is judged by the base copies, and prints governance', async () => {
@@ -1153,7 +1231,7 @@ test('when the tier and lane cannot be printed the step prints H and governance,
   // With no job summary at all, the log still carries the verdict and the step still exits 0.
   const { readFile } = await import('node:fs/promises');
   const block = stepBlock(await readFile(CI_WORKFLOW_PATH, 'utf8'), LANE_STEP);
-  const bare = await runStep(runBody(block), { BASE_REF: 'main', BASE_SHA: base }, repo);
+  const bare = await runStep(runBody(block), await laneEnv({ BASE_REF: 'main', BASE_SHA: base }), repo);
   assert.equal(bare.code, 0, bare.out);
   assert.match(bare.out, /^review tier and lane: tier: H, lane: risk -- /m);
 });

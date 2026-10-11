@@ -199,11 +199,11 @@ jobs:
       # is `tier: <records|L|M|H> (`, exactly one line is `lane: <governance|records|audit|risk|fast>`,
       # and the two agree (fast only for M or L, records only for records, risk only for H). A base
       # that is not exactly `main`, an empty or missing base commit, a base holding either classifier
-      # unreadable, a classifier exit other than 0 -- among them the exit 2 of a base classifier that
-      # does not understand `--lane`, which is the base of the very pull request that adds this step --
-      # or any other outcome prints `tier: H (not classified)` and `lane: governance (not classified)`
-      # with the reason, never a lower one. A path name that forges a second `lane:` line therefore
-      # prints governance, not the forged lane.
+      # unreadable, a classifier that runs past 300 seconds, a classifier exit other than 0 -- among
+      # them the exit 2 of a base classifier that does not understand `--lane`, which is the base of
+      # the very pull request that adds this step -- or any other outcome prints `tier: H (not
+      # classified)` and `lane: governance (not classified)` with the reason, never a lower one. A path
+      # name that forges a second `lane:` line therefore prints governance, not the forged lane.
       #
       # ITS OUTPUT IS PRINTED INERT, as the records-only step's is: every log line is printed between
       # `::stop-commands::<token>` and `::<token>::`, with a 32-hex-digit token drawn from /dev/urandom at
@@ -214,16 +214,21 @@ jobs:
       # IT RUNS THE BASE'S CLASSIFIERS, not the pull request's. Both files (classify-review-tier.mjs
       # imports classify-records-only.mjs) are read out of the base commit with `git show` into one
       # scratch directory, so a pull request that edits either is judged by the copies on `main`, which
-      # print it governance (RFC-2026-030 §4, A1-4). The head branch is passed for the audit lane's
-      # branch check. And it runs BEFORE `npm ci` and `npm run check`, the first steps that execute the
-      # pull request's own code, so that code has had no chance to put another `git` or `node` on
-      # GITHUB_PATH (RFC-2026-007 §E, A1 I1 on #197).
+      # print it governance (RFC-2026-030 §4, A1-4). The head branch, the head repository and this
+      # repository are passed for the audit lane's checks: a pull request from a fork is never audit,
+      # whatever its branch is called (Q0-255-5 and A1 I-1 on PR #255). The classifier runs under
+      # `timeout 300`, and a timeout (exit 124) prints not classified, so a head that makes the
+      # classifier slow cannot hold the job open (A1-255-3). And it runs BEFORE `npm ci` and
+      # `npm run check`, the first steps that execute the pull request's own code, so that code has had
+      # no chance to put another `git` or `node` on GITHUB_PATH (RFC-2026-007 §E, A1 I1 on #197).
       - name: Print the review tier and lane (informational, gates nothing)
         if: github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
         run: |
           esc() { awk '{ gsub(/&/, "\\&amp;"); gsub(/</, "\\&lt;"); gsub(/>/, "\\&gt;"); print }'; }
           report() {
@@ -274,9 +279,12 @@ jobs:
             fi
           done
           set +e
-          node "${work}/classify-review-tier.mjs" "${BASE_SHA}" HEAD --lane "--head-ref=${HEAD_REF:-}" > "${work}/out" 2>&1
+          timeout 300 node "${work}/classify-review-tier.mjs" "${BASE_SHA}" HEAD --lane "--head-ref=${HEAD_REF:-}" "--repo=${REPO:-}" "--head-repo=${HEAD_REPO:-}" > "${work}/out" 2>&1
           code=$?
           set -e
+          if [ "${code}" -eq 124 ]; then
+            unclassified "the base's classifier did not finish within 300 seconds on ${BASE_SHA}..HEAD, which is not a classification (fail closed)" "${work}/out"
+          fi
           if [ "${code}" -ne 0 ]; then
             unclassified "the base's classifier exited ${code} on ${BASE_SHA}..HEAD, which is not a classification; a base classifier that does not understand --lane exits 2 (fail closed)" "${work}/out"
           fi

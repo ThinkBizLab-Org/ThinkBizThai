@@ -6649,11 +6649,17 @@ test('the review-tier classifier fails closed to H and only ever raises, each ru
 // RFC-2026-034 §2.2 (approved 2026-10-11) and its §8 item 2: the lane. `laneOf` maps the tier and the changed paths to
 // governance, records, audit, risk or fast, failing closed to governance on anything it cannot read; `--lane` prints it
 // after the tier report and leaves the report without it byte for byte as it was. Each lane, one representative path
-// per governance pattern group, the transitive-import rule, additive eligibility both ways, and the audit branch check
-// are shown below, in pure form and through the CLI on a throwaway repository.
+// per governance pattern group, the transitive-import rule, additive eligibility both ways, and the audit checks are
+// shown below, in pure form and through the CLI on a throwaway repository. The four tests after the first two pin the
+// first fix round on PR #255 (C0, A1, Q0 and R0 at 7c4d5764), one finding group each.
 import {
-  AUDIT_PACKAGE_MANIFEST, GOVERNANCE_IMPORT_ROOTS, GOVERNANCE_PATTERNS, LANES, formatLane, importClosure, laneOf,
+  AUDIT_PACKAGE_MANIFEST, GOVERNANCE_IMPORT_ROOTS, GOVERNANCE_PATTERNS, LANES, formatLane, governanceClosure, importClosure,
+  jsRefs, laneOf,
 } from '../../scripts/db/classify-review-tier.mjs';
+
+// The changes an audit pull request makes, as the raw diff gives them: each path added as a regular file.
+const addedRegular = (paths) => paths.map((path) => ({ path, status: 'A', oldMode: '000000', newMode: '100644' }));
+const AUDIT_OK = { headRef: 'agent/a0-001', auditBranch: 'agent/a0-001', repo: 'org/repo', headRepo: 'org/repo' };
 
 test('the lane follows the tier and the paths, and fails closed to governance (RFC-2026-034 §2.2)', () => {
   assert.deepEqual(LANES, ['governance', 'records', 'audit', 'risk', 'fast']);
@@ -6699,7 +6705,8 @@ test('the lane follows the tier and the paths, and fails closed to governance (R
   for (const [p, why] of [['scripts/verify-branch-scope.mjs', /a guard \(scripts\/verify-\*/], ['scripts/validate-work-packages.mjs', /a validator/],
     ['scripts/toolchain-contract.mjs', /a guard contract/], ['scripts/scan-repository-secrets.mjs', /runner or generator/],
     ['scripts/refresh-author-handoff.mjs', /runner or generator/], ['scripts/run-test-suite.mjs', /runner or generator/],
-    ['scripts/record-verification.mjs', /runner or generator/], ['scripts/regenerate-integrity-manifest.mjs', /runner or generator/]]) {
+    ['scripts/record-verification.mjs', /runner or generator/], ['scripts/regenerate-integrity-manifest.mjs', /runner or generator/],
+    ['test-kits/ci-guard-behaviour.test.mjs', /top-level guard test/], ['test-kits/secret-scan.test.mjs', /top-level guard test/]]) {
     gov([p], false, why);
     gov([p, 'test-kits/x.test.mjs'], false, why);
   }
@@ -6708,7 +6715,7 @@ test('the lane follows the tier and the paths, and fails closed to governance (R
     ['scripts/db/authz-proofs.mjs', /database runner or harness/], ['db/foundation/ci/supabase-shim.sql', /database test harness/],
     ['db/foundation/test-helpers/auth-context.sql', /database test harness/], ['db/foundation/prerequisites.sql', /database test harness/],
     ['db/foundation/seeds/001.sql', /database test harness/], ['db/foundation/lint/read-allowlist.json', /data the database guards read/],
-    ['db/foundation/invariants/superseded.json', /data the database guards read/], ['test-kits/branch-identity.test.mjs', /top-level guard test/],
+    ['db/foundation/invariants/superseded.json', /data the database guards read/], ['test-kits/branch-identity.test.mjs', /the additive rule names/],
     ['test-kits/db/foundation-contract.test.mjs', /foundation contract test/], ['test-kits/integrity-manifest.json', /integrity manifest/],
     ['scripts/test-suite-contract.mjs', /test registry/], ['scripts/verify-test-coverage-floor.mjs', /test registry/]]) {
     gov([p], true, why);
@@ -6718,7 +6725,8 @@ test('the lane follows the tier and the paths, and fails closed to governance (R
   for (const p of ['test-kits/branch-scope.test.mjs', 'test-kits/repository-json.test.mjs', 'test-kits/test-coverage-floor.test.mjs']) {
     gov([p], false, /pins CI or a classifier/);
   }
-  // Paths beside the governance list are not governance by themselves: other test kits, other scripts, migrations.
+  // Paths beside the governance list are not governance by themselves: test kits that import nothing on it (here they
+  // are not even at the head), other scripts, migrations.
   for (const p of ['test-kits/db/rls-assertions.test.mjs', 'test-kits/contracts/x.test.mjs', 'tests/db/identity/other.test.mjs',
     'scripts/other.mjs', 'db/foundation/migrations/180_x.sql', 'contract-catalog/x.json', 'src/modules/drafts/ui/Card.tsx']) {
     assert.equal(of([p]).lane, 'risk', p);
@@ -6758,23 +6766,24 @@ test('the lane follows the tier and the paths, and fails closed to governance (R
   // A root absent from the head imports nothing (it is not unreadable): the scratch repository below has none.
   assert.equal(laneOf({ paths: ['scripts/other.mjs'], tier: 'H', recordsOnly: false, files: new Set(['scripts/other.mjs']), readHead }).lane, 'risk');
 
-  // Audit: one dated directory under evidence/audits/, on WP-0A-A0-001's branch when the head branch is known.
+  // Audit: one dated directory under evidence/audits/, added regular files, on WP-0A-A0-001's branch, from the base
+  // repository. The finer checks are pinned in their own test below.
   const audit = ['evidence/audits/2026-10-18/c0-audit.md', 'evidence/audits/2026-10-18/q0-audit.md'];
-  assert.equal(of(audit, { headRef: 'agent/a0-001', auditBranch: 'agent/a0-001' }).lane, 'audit');
-  assert.equal(of(audit).lane, 'audit', 'the paths alone, when no head branch is given');
-  assert.ok(of(audit).reasons.some((x) => /the head branch was not given/.test(x)));
-  for (const [extra, why] of [[{ headRef: 'agent/other', auditBranch: 'agent/a0-001' }, /is not WP-0A-A0-001's ownership\.branch/],
-    [{ headRef: 'agent/a0-001', auditBranch: null }, /could not be read at the base/], [{ headRef: '', auditBranch: 'agent/a0-001' }, /is not WP-0A-A0-001's/],
-    [{ headRef: 'agent/a0-001' }, /could not be read at the base/]]) {
-    const got = of(audit, extra);
+  assert.equal(of(audit, { ...AUDIT_OK, changes: addedRegular(audit) }).lane, 'audit');
+  for (const [extra, why] of [[{ headRef: 'agent/other' }, /is not WP-0A-A0-001's ownership\.branch/],
+    [{ auditBranch: null }, /could not be read at the base/], [{ headRef: '' }, /no head branch was given/],
+    [{ auditBranch: undefined }, /could not be read at the base/], [{ headRef: undefined }, /no head branch was given/]]) {
+    const got = of(audit, { ...AUDIT_OK, changes: addedRegular(audit), ...extra });
     assert.equal(got.lane, 'risk', JSON.stringify(got));
     assert.ok(got.reasons.some((x) => why.test(x)), JSON.stringify(got.reasons));
   }
-  assert.equal(of([...audit, 'evidence/WP-0A-A0-001/session-x.md'], { headRef: 'agent/a0-001', auditBranch: 'agent/a0-001' }).lane, 'risk');
-  assert.equal(of(['evidence/audits/2026-10-18/a.md', 'evidence/audits/2026-10-25/b.md'], { headRef: 'b', auditBranch: 'b' }).lane, 'risk');
-  assert.equal(of(['evidence/audits/notes.md'], { headRef: 'b', auditBranch: 'b' }).lane, 'risk');
+  const withSession = [...audit, 'evidence/WP-0A-A0-001/session-x.md'];
+  assert.equal(of(withSession, { ...AUDIT_OK, changes: addedRegular(withSession) }).lane, 'risk');
+  const twoDays = ['evidence/audits/2026-10-18/a.md', 'evidence/audits/2026-10-25/b.md'];
+  assert.equal(of(twoDays, { ...AUDIT_OK, changes: addedRegular(twoDays) }).lane, 'risk');
+  assert.equal(of(['evidence/audits/notes.md'], { ...AUDIT_OK, changes: addedRegular(['evidence/audits/notes.md']) }).lane, 'risk');
   // An audit pull request that also changes a governance path is governance.
-  assert.equal(of([...audit, 'docs/x.md'], { headRef: 'b', auditBranch: 'b' }).lane, 'governance');
+  assert.equal(of([...audit, 'docs/x.md'], { ...AUDIT_OK, changes: addedRegular([...audit, 'docs/x.md']) }).lane, 'governance');
 
   // Records, risk and fast.
   assert.equal(laneOf({ paths: ['evidence/WP-X/session-1.md'], tier: 'records', recordsOnly: true, files, readHead }).lane, 'records');
@@ -6831,11 +6840,12 @@ test('the CLI prints the lane only with --lane, and without it prints the tier r
     await branch('gov', { 'docs/x.md': 'x\n' });
     await branch('records', { 'evidence/WP-X/session-1.md': 'one\ntwo\n' });
     await branch('agent/a0-001', { 'evidence/audits/2026-10-18/c0-audit.md': 'c0\n' });
+    const repos = ['--repo=org/repo', '--head-repo=org/repo'];
 
     // Without --lane the report is what it was: no lane line, and it is the --lane output's prefix, line for line.
     for (const [head, lane] of [['risk', 'risk'], ['imported', 'governance'], ['gov', 'governance'], ['records', 'records'], ['agent/a0-001', 'audit']]) {
       const [c1, plain] = await out('main', head);
-      const [c2, laned] = await out('main', head, '--lane', `--head-ref=${head}`);
+      const [c2, laned] = await out('main', head, '--lane', `--head-ref=${head}`, ...repos);
       assert.equal(c1, 0, plain);
       assert.equal(c2, 0, laned);
       assert.doesNotMatch(plain, /^lane: |^additive-eligible: /m, plain);
@@ -6846,15 +6856,22 @@ test('the CLI prints the lane only with --lane, and without it prints the tier r
     let [code, o] = await out('main', 'imported', '--lane');
     assert.match(o, /governance: "scripts\/db\/sql-lexer\.mjs" \(a module scripts\/db\/run\.mjs imports, read at the head\)/);
     assert.match(o, /^additive-eligible: yes$/m);
-    // The audit lane needs WP-0A-A0-001's branch from the base: another head ref is not audit, and no ref is not checked.
-    [code, o] = await out('main', 'agent/a0-001', '--lane', '--head-ref=agent/other');
-    assert.equal(code, 0, o);
-    assert.match(o, /^lane: risk$/m);
-    [code, o] = await out('main', 'agent/a0-001', '--lane');
-    assert.match(o, /^lane: audit$/m);
-    assert.match(o, /the head branch was not given/);
-    // The flags: --head-ref only with --lane, each once, no other flag; an unknown ref is not classified. All exit 2.
-    for (const args of [['main', 'risk', '--head-ref=x'], ['main', 'risk', '--lane', '--lane'], ['main', 'risk', '--lane', '--head-ref=a', '--head-ref=b'],
+    // The audit lane needs WP-0A-A0-001's branch from the base, the head branch, and both repositories, equal: another
+    // head ref, no head ref, no repositories and a fork are each not audit (C0-255-3, R0-255-1, Q0-255-5).
+    for (const [args, why] of [[['--head-ref=agent/other', ...repos], /is not WP-0A-A0-001's ownership\.branch/],
+      [repos, /no head branch was given/], [['--head-ref=agent/a0-001'], /repositories were not both given/],
+      [['--head-ref=agent/a0-001', '--repo=org/repo'], /repositories were not both given/],
+      [['--head-ref=agent/a0-001', '--repo=org/repo', '--head-repo=fork/repo'], /is not the base repository "org\/repo" \(a fork\)/]]) {
+      [code, o] = await out('main', 'agent/a0-001', '--lane', ...args);
+      assert.equal(code, 0, o);
+      assert.match(o, /^lane: risk$/m, `${args.join(' ')}: ${o}`);
+      assert.match(o, why, o);
+    }
+    // The flags: --head-ref, --repo and --head-repo only with --lane, each once, no other flag; an unknown ref is not
+    // classified. All exit 2.
+    for (const args of [['main', 'risk', '--head-ref=x'], ['main', 'risk', '--repo=x'], ['main', 'risk', '--head-repo=x'],
+      ['main', 'risk', '--lane', '--lane'], ['main', 'risk', '--lane', '--head-ref=a', '--head-ref=b'],
+      ['main', 'risk', '--lane', '--repo=a', '--repo=b'], ['main', 'risk', '--lane', '--head-repo=a', '--head-repo=b'],
       ['main', 'risk', '--lanes'], ['main', 'risk', 'extra', '--lane'], ['main', 'no-such-ref', '--lane']]) {
       [code, o] = await out(...args);
       assert.equal(code, 2, `${args.join(' ')}: ${o}`);
@@ -6863,4 +6880,227 @@ test('the CLI prints the lane only with --lane, and without it prints the tier r
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test('the lane reads the fixtures the harness loads, every guard\'s imports and a test\'s subject as governance (PR #255: C0-255-1, C0-255-2, A1-255-1, Q0-255-1, R0-255-2)', () => {
+  const head = {
+    // The harness: run.mjs names a fixture list module and loads data by path literal, from the repository root and
+    // from the module; run-isolation.mjs names its fixtures.
+    'scripts/db/run.mjs': [
+      "import { FIXTURE_SQL_FILES } from '../../tests/db/identity/run-isolation.mjs';",
+      "import { lex } from './sql-lexer.mjs';",
+      "export const EXTRA = 'tests/db/identity/loaded/extra.json';",
+      "export const MAP = new URL('../../contract-catalog/loaded-by-url.json', import.meta.url);",
+      "// a comment naming 'tests/db/identity/loaded/in-comment.json' is not a literal the harness reads",
+    ].join('\n'),
+    'scripts/db/sql-lexer.mjs': 'export const lex = 1;\n',
+    'scripts/db/rls-smoke.mjs': "import { lex } from './sql-lexer.mjs';\n",
+    'tests/db/identity/run-isolation.mjs': "export const FIXTURE_SQL_FILES = [\n  'tests/db/identity/fixtures/010-identity-fixture.sql',\n];\n",
+    'tests/db/identity/fixtures/010-identity-fixture.sql': 'insert into x values (1);\n',
+    'tests/db/identity/loaded/extra.json': '{}\n',
+    'tests/db/identity/loaded/in-comment.json': '{}\n',
+    'contract-catalog/loaded-by-url.json': '{}\n',
+    'db/foundation/test-helpers/rls-assertions.mjs': 'export const a = 1;\n',
+    // Guards: a verify-* guard imports a helper no pattern names; a top-level guard test imports a contracts helper, and
+    // a guard test also imports the runner's lexer, so that module is reached from both kinds of root.
+    'scripts/verify-thing.mjs': "import { help } from './lib/helper.mjs';\n",
+    'scripts/lib/helper.mjs': "import { deeper } from './deeper.mjs';\nexport const help = deeper;\n",
+    'scripts/lib/deeper.mjs': 'export const deeper = 1;\n',
+    'scripts/lib/unimported.mjs': 'export const u = 1;\n',
+    'test-kits/handoff-x.test.mjs': "import { validate } from './contracts/json-schema-subset.mjs';\nimport { lex } from '../scripts/db/sql-lexer.mjs';\n",
+    'test-kits/contracts/json-schema-subset.mjs': 'export const validate = () => ({ valid: true });\n',
+    'test-kits/contracts/util.mjs': 'export const u = 1;\n',
+    // Tests beside the guards: their subject decides.
+    'test-kits/db/rls-assertions.test.mjs': "import { a } from '../../db/foundation/test-helpers/rls-assertions.mjs';\n",
+    'tests/db/identity/identity-isolation.test.mjs': "import { FIXTURE_SQL_FILES } from './run-isolation.mjs';\n",
+    'test-kits/contracts/pins-a-classifier.test.mjs': "import { laneOf } from '../../scripts/db/classify-review-tier.mjs';\n",
+    'scripts/db/classify-review-tier.mjs': 'export const laneOf = 1;\n',
+    'test-kits/contracts/plain.test.mjs': "import { u } from './util.mjs';\nconst s = 'see ../../scripts/db/run.mjs';\n",
+    'test-kits/contracts/comment.test.mjs': "// import x from '../../scripts/db/run.mjs' (only in a comment)\n",
+    'test-kits/db/foundation-contract.test.mjs': "import { laneOf } from '../../scripts/db/classify-review-tier.mjs';\n",
+  };
+  const files = new Set(Object.keys(head));
+  const readHead = (p) => { if (!(p in head)) throw new Error(`no ${p}`); return head[p]; };
+  const of = (paths, extra = {}) => laneOf({ paths, tier: 'H', recordsOnly: false, files, readHead, ...extra });
+  const gov = (p, additive, why) => {
+    const l = of([p]);
+    assert.equal(l.lane, 'governance', `${p}: ${JSON.stringify(l)}`);
+    assert.equal(l.additiveEligible, additive, `${p}: additive ${JSON.stringify(l)}`);
+    assert.ok(l.reasons.some((x) => why.test(x)), `${p}: ${JSON.stringify(l.reasons)}`);
+  };
+
+  // C0-255-1 / A1-255-1a / Q0-255-1: the fixtures the harness loads, by pattern and by the harness's own path literals,
+  // read whole (a literal in a comment is not one), each `additive`.
+  gov('tests/db/identity/fixtures/010-identity-fixture.sql', true, /a fixture the database harness loads/);
+  gov('tests/db/identity/fixtures/140-audit-fixture.sql', true, /a fixture the database harness loads/);
+  gov('tests/db/other/fixtures/nested/data.json', true, /a fixture the database harness loads/);
+  gov('tests/db/identity/new-fixture.sql', true, /SQL under tests\/db\//);
+  gov('tests/db/identity/loaded/extra.json', true, /a file scripts\/db\/run\.mjs names, which the database harness loads/);
+  gov('contract-catalog/loaded-by-url.json', true, /a file scripts\/db\/run\.mjs names, which the database harness loads/);
+  assert.equal(of(['tests/db/identity/loaded/in-comment.json']).lane, 'risk');
+  const g = governanceClosure({ files, readHead });
+  assert.deepEqual(g.problems, []);
+  assert.deepEqual([...g.data.keys()].sort(), ['contract-catalog/loaded-by-url.json', 'tests/db/identity/fixtures/010-identity-fixture.sql',
+    'tests/db/identity/loaded/extra.json']);
+
+  // A1-255-1b / R0-255-2: every guard's imports, transitively, are governance and `guard` (not additive-eligible); a
+  // module reached only from the database roots stays `additive`; one reached from both is `guard`. Only modules a
+  // root imports: a file beside the guard is not governance.
+  gov('scripts/lib/helper.mjs', false, /a module scripts\/verify-thing\.mjs imports, read at the head: reached from a guard/);
+  gov('scripts/lib/deeper.mjs', false, /a module scripts\/verify-thing\.mjs imports/);
+  gov('test-kits/contracts/json-schema-subset.mjs', false, /a module test-kits\/handoff-x\.test\.mjs imports/);
+  gov('scripts/db/sql-lexer.mjs', false, /reached from a guard/);
+  gov('tests/db/identity/run-isolation.mjs', true, /a module scripts\/db\/run\.mjs imports, read at the head\)/);
+  assert.equal(of(['scripts/lib/unimported.mjs']).lane, 'risk');
+  assert.equal(g.modules.get('scripts/lib/helper.mjs').kind, 'guard');
+  assert.equal(g.modules.get('tests/db/identity/run-isolation.mjs').kind, 'additive');
+  // A guard that imports something that cannot be followed makes every pull request governance (fail closed).
+  const opaque = { ...head, 'scripts/verify-thing.mjs': 'const m = await import(process.argv[2]);\n' };
+  const got = laneOf({ paths: ['scripts/lib/unimported.mjs'], tier: 'H', recordsOnly: false, files: new Set(Object.keys(opaque)), readHead: (p) => opaque[p] });
+  assert.equal(got.lane, 'governance');
+  assert.ok(got.reasons.some((x) => /"scripts\/verify-thing\.mjs" imports or requires a module named by an expression/.test(x)), JSON.stringify(got.reasons));
+
+  // C0-255-2 / A1-255-1c: a test anywhere whose import is a governance path is governance: `never` when it imports a
+  // `never` path (here a classifier), else `additive`. A test that imports nothing on the list (a path in a string is
+  // not an import) is not. An import written only in a comment still counts, as the raw scan reads it (fail closed). A
+  // path a pattern names keeps the patterns' kind: the foundation contract test stays additive.
+  gov('test-kits/db/rls-assertions.test.mjs', true, /a test whose subject is a governance path \(it imports db\/foundation\/test-helpers\/rls-assertions\.mjs\)/);
+  gov('tests/db/identity/identity-isolation.test.mjs', true, /a test whose subject is a governance path \(it imports tests\/db\/identity\/run-isolation\.mjs\)/);
+  gov('test-kits/contracts/pins-a-classifier.test.mjs', false, /it imports scripts\/db\/classify-review-tier\.mjs/);
+  assert.equal(of(['test-kits/contracts/plain.test.mjs']).lane, 'risk');
+  gov('test-kits/contracts/comment.test.mjs', true, /it imports scripts\/db\/run\.mjs/);
+  gov('test-kits/db/foundation-contract.test.mjs', true, /foundation contract test/);
+  // A changed test that cannot be read at the head is governance (fail closed).
+  const unreadable = laneOf({ paths: ['test-kits/contracts/plain.test.mjs'], tier: 'H', recordsOnly: false, files,
+    readHead: (p) => { if (p === 'test-kits/contracts/plain.test.mjs') throw new Error('unreadable'); return readHead(p); } });
+  assert.equal(unreadable.lane, 'governance');
+  assert.ok(unreadable.reasons.some((x) => /is a test that could not be read at the head/.test(x)));
+});
+
+test('the governance patterns read tool configuration, bare agent paths, any case and nested Makefiles, and test each path whole (PR #255: C0-255-4, C0-255-5, A1-255-2, A1-255-4b, Q0-255-2, Q0-255-3, Q0-255-4, R0-255-3, R0-255-4, R0-255-7)', () => {
+  const of = (paths) => laneOf({ paths, tier: 'H', recordsOnly: false, files: new Set(), readHead: () => { throw new Error('none'); } });
+  const gov = (p, additive, why) => {
+    const l = of([p]);
+    assert.equal(l.lane, 'governance', `${p}: ${JSON.stringify(l)}`);
+    assert.equal(l.additiveEligible, additive, `${p}: additive ${JSON.stringify(l)}`);
+    assert.ok(l.reasons.some((x) => why.test(x)), `${p}: ${JSON.stringify(l.reasons)}`);
+  };
+  // C0-255-4: tool configuration, anywhere in the tree, CODEOWNERS wherever GitHub reads it.
+  for (const p of ['CODEOWNERS', '.github/CODEOWNERS', 'docs/CODEOWNERS', 'apps/web/CODEOWNERS', 'mise.toml', '.mise.toml', 'mise.local.toml',
+    '.tool-versions', '.envrc', '.editorconfig', 'Dockerfile', 'Dockerfile.dev', 'apps/api/Dockerfile', 'web.dockerfile', '.dockerignore',
+    'docker-compose.yml', 'docker-compose.override.yaml', 'compose.yaml', 'compose.dev.yml', 'supabase/config.toml', 'apps/x/supabase/config.toml',
+    '.pre-commit-config.yaml', 'renovate.json', 'renovate.json5', '.renovaterc', '.renovaterc.json', 'vitest.workspace.ts']) {
+    gov(p, false, /tool configuration|docs\/\*\*|\.github\/\*\*/);
+  }
+  // A1 I-2: a bare agent-tool, `.github`, `.agents` or `docs` path (a file or a symlink, no trailing slash).
+  for (const p of ['.cursor', '.codex', '.claude', '.gemini', '.windsurf', '.github', '.agents', 'docs', '.husky']) gov(p, false, /./);
+  // Q0-255-3 (mutation L12): every pattern is case-insensitive.
+  for (const [p, why] of [['.GITHUB/workflows/x.yml', /\.github\/\*\*/], ['Docs/x.md', /docs\/\*\*/], ['PACKAGE.JSON', /package file/],
+    ['Scripts/Verify-x.mjs', /a guard/], ['scripts/db/CLASSIFY-x.mjs', /a classifier/], ['ARCHITECTURE/DECISIONS/x.md', /an RFC/],
+    ['TESTS/DB/identity/FIXTURES/x.sql', /a fixture the database harness loads/], ['dockerfile', /tool configuration/]]) {
+    gov(p, /fixture/.test(why.source), why);
+  }
+  // R0-255-7: a Makefile anywhere, not only at the top level.
+  for (const p of ['Makefile', 'apps/web/Makefile', 'db/sub/GNUmakefile', 'tools/makefile', 'db/build.mk']) gov(p, false, /a Makefile/);
+  // C0-255-5 / A1-255-2 / Q0-255-2 / R0-255-4: each path is tested whole; a name holding ` -> ` is not split.
+  gov('scripts/verify-a -> b.mjs', false, /a guard/);
+  gov('scripts/a -> b/verify-x.mjs', false, /a guard/);
+  gov('scripts/db/classify-x -> y.mjs', false, /a classifier/);
+  gov('test-kits/x -> y.test.mjs', false, /a top-level guard test/);
+  assert.equal(of(['notes -> docs/x.md']).lane, 'risk');
+  // R0-255-3 / A1-255-4b: top-level guard tests pin a guard's own behaviour and are not additive-eligible, except the
+  // branch-identity test the rule names; the foundation contract test stays additive.
+  for (const p of ['test-kits/ci-guard-behaviour.test.mjs', 'test-kits/secret-scan.test.mjs', 'test-kits/toolchain-contract.test.mjs',
+    'test-kits/handoff-conformance.test.mjs', 'test-kits/xy.test.mjs']) gov(p, false, /a top-level guard test/);
+  gov('test-kits/branch-identity.test.mjs', true, /the additive rule names/);
+  gov('test-kits/db/foundation-contract.test.mjs', true, /foundation contract test/);
+  // Q0-255-4: a test-kits directory other than db/ and contracts/ is unclear, so governance (additive).
+  for (const p of ['test-kits/sub/x.test.mjs', 'test-kits/sub/deeper/helper.mjs', 'test-kits/e2e/x.json']) gov(p, true, /a test-kits directory other than db\/ and contracts\//);
+  for (const p of ['test-kits/db/x.test.mjs', 'test-kits/contracts/x.test.mjs', 'test-kits/db/fixtures/x.json']) assert.equal(of([p]).lane, 'risk', p);
+});
+
+test('the audit lane needs added or modified regular files in one dated directory, the head branch and the base repository (PR #255: C0-255-3, C0-255-6, R0-255-1, A1-255-4a, Q0-255-5)', () => {
+  const head = { 'work-packages/WP-0A-A0-001.json': '{}\n' };
+  const files = new Set(Object.keys(head));
+  const readHead = (p) => { if (!(p in head)) throw new Error(`no ${p}`); return head[p]; };
+  const of = (paths, changes, extra = {}) => laneOf({ paths, changes, tier: 'H', recordsOnly: false, files, readHead, ...AUDIT_OK, ...extra });
+  const audit = ['evidence/audits/2026-10-18/c0-audit.md', 'evidence/audits/2026-10-18/a1-audit.md'];
+  const ok = of(audit, addedRegular(audit));
+  assert.equal(ok.lane, 'audit', JSON.stringify(ok));
+  assert.match(ok.reasons[0], /each an added or modified regular file, on "agent\/a0-001", WP-0A-A0-001's ownership\.branch at the base, from "org\/repo"/);
+  // A modified regular file is an audit file too (an auditor's file amended in the same round).
+  assert.equal(of(audit, [{ path: audit[0], status: 'M', oldMode: '100644', newMode: '100644' }, ...addedRegular([audit[1]])]).lane, 'audit');
+  const notAudit = (paths, changes, extra, why) => {
+    const got = of(paths, changes, extra);
+    assert.equal(got.lane, 'risk', `${why}: ${JSON.stringify(got)}`);
+    assert.ok(got.reasons.some((x) => /^not audit: /.test(x) && why.test(x)), `${why}: ${JSON.stringify(got.reasons)}`);
+  };
+  // Not an added or modified regular file: a symlink, an executable, a deletion, a type change, a submodule.
+  notAudit(audit, [{ path: audit[0], status: 'A', oldMode: '000000', newMode: '120000' }, ...addedRegular([audit[1]])], {}, /status A, mode 000000 -> 120000/);
+  notAudit(audit, [{ path: audit[0], status: 'A', oldMode: '000000', newMode: '100755' }, ...addedRegular([audit[1]])], {}, /mode 000000 -> 100755/);
+  notAudit(audit, [{ path: audit[0], status: 'D', oldMode: '100644', newMode: '000000' }, ...addedRegular([audit[1]])], {}, /status D/);
+  notAudit(audit, [{ path: audit[0], status: 'T', oldMode: '100644', newMode: '120000' }, ...addedRegular([audit[1]])], {}, /status T/);
+  notAudit(audit, [{ path: audit[0], status: 'A', oldMode: '000000', newMode: '160000' }, ...addedRegular([audit[1]])], {}, /160000/);
+  notAudit(audit, [{ path: audit[0], status: 'M', oldMode: '120000', newMode: '100644' }, ...addedRegular([audit[1]])], {}, /mode 120000 -> 100644/);
+  // No statuses at all, or none for one path.
+  notAudit(audit, undefined, {}, /statuses and modes of the changes were not given/);
+  notAudit(audit, addedRegular([audit[0]]), {}, /has no status or mode to check/);
+  // A subdirectory, or a directory that is not a calendar date.
+  const nested = ['evidence/audits/2026-10-18/sub/x.mjs'];
+  notAudit(nested, addedRegular(nested), {}, /is in a subdirectory/);
+  for (const d of ['2026-13-01', '2026-02-30', '2026-1-18', 'latest']) {
+    const p = [`evidence/audits/${d}/c0-audit.md`];
+    notAudit(p, addedRegular(p), {}, /is not a calendar date/);
+  }
+  // C0-255-3 / R0-255-1: no head branch given is not audit (the CLI without --head-ref).
+  notAudit(audit, addedRegular(audit), { headRef: undefined }, /no head branch was given \(--head-ref\)/);
+  notAudit(audit, addedRegular(audit), { headRef: null }, /no head branch was given/);
+  notAudit(audit, addedRegular(audit), { headRef: 'agent/other' }, /is not WP-0A-A0-001's ownership\.branch/);
+  // Q0-255-5 / A1 I-1: a fork is never audit, and neither is a pull request whose repositories were not both given.
+  notAudit(audit, addedRegular(audit), { headRepo: 'fork/repo' }, /the head repository "fork\/repo" is not the base repository "org\/repo" \(a fork\)/);
+  notAudit(audit, addedRegular(audit), { headRepo: 'ORG/repo' }, /\(a fork\)/);
+  for (const extra of [{ repo: undefined }, { headRepo: undefined }, { repo: '' }, { headRepo: '' }, { repo: undefined, headRepo: undefined }]) {
+    notAudit(audit, addedRegular(audit), extra, /repositories were not both given \(--repo, --head-repo\)/);
+  }
+});
+
+test('the lane scanner reads in linear time: the comment run that backtracked exponentially returns at once (PR #255: A1-255-3)', () => {
+  // A1's input: one comment line holding `from` and thirty-six `/**/` with no closing quote, appended to a module the
+  // runner imports. The earlier regular expressions doubled their work with each `/**/`; 36 ran past 45 seconds.
+  const a1 = `// from ${'/**/ '.repeat(36)}x`;
+  const huge = `// from ${'/**/ '.repeat(20000)}x\nimport(${'/**/ '.repeat(20000)}x\n${'from /* from /**/ '.repeat(5000)}'`;
+  for (const [what, line] of [['A1-255-3', a1], ['a far longer run', huge]]) {
+    const head = { 'scripts/db/run.mjs': "import './sql-lexer.mjs';\n", 'scripts/db/sql-lexer.mjs': `export const lex = 1;\n${line}\n` };
+    const started = Date.now();
+    const l = laneOf({ paths: ['scripts/db/sql-lexer.mjs'], tier: 'H', recordsOnly: false, files: new Set(Object.keys(head)), readHead: (p) => head[p] });
+    importSpecs([line]);
+    importSpecs(line.split('\n'));
+    jsRefs(line);
+    const ms = Date.now() - started;
+    assert.ok(ms < 2000, `${what}: ${ms} ms`);
+    assert.equal(l.lane, 'governance', what);
+  }
+  // The scanner still reads what the old expressions read: a specifier after comments, an import split over lines, a
+  // dynamic import, `require`, and a re-export; strings and comments hold no import.
+  assert.deepEqual(importSpecs(["import x from /* 'decoy' */ './a.mjs';", "export * from './b.mjs';", "import './c.css';", "@import url('./d.css');"]),
+    ['./a.mjs', './b.mjs', './c.css', './d.css']);
+  const refs = jsRefs([
+    "import {\n  a, // a comment with a 'quote\n} from './a.mjs';",
+    "const b = await import(/* why */ './b.mjs');",
+    "const c = require('./c.cjs');",
+    "export { d } from './d.mjs';",
+    "const s = \"import x from './not-an-import.mjs'\";",
+    "const t = `from './nor-this.mjs' ${await import('./e.mjs')}`;",
+    "const r = /import('\\.\\/f.mjs')/;",
+    "/* import './g.mjs' */",
+  ].join('\n'));
+  assert.deepEqual(refs.specs, ['./a.mjs', './b.mjs', './c.cjs', './d.mjs', './e.mjs']);
+  assert.deepEqual(refs.opaque, []);
+  assert.deepEqual(refs.problems, []);
+  for (const [src, why] of [['import(name);', /import\(\.\.\.\)/], ['require(name);', /require\(\.\.\.\)/], ['const r = require;', /^require at/],
+    ['import { createRequire } from "node:module";', /createRequire/], ['import(`./${x}.mjs`);', /import\(\.\.\.\)/]]) {
+    assert.ok(jsRefs(src).opaque.some((x) => why.test(x)), `${src}: ${JSON.stringify(jsRefs(src))}`);
+  }
+  assert.ok(jsRefs('re\\u0071uire("./x.mjs");').problems.some((x) => /an escaped identifier/.test(x)));
+  assert.ok(jsRefs('const s = `unterminated').problems.some((x) => /unterminated template/.test(x)));
 });
