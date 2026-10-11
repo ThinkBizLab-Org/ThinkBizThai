@@ -5,13 +5,24 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "9fcc458c5a1314db25fde031b6ec1e0d31d0ab84",
-  "head_revision_or_patch_checksum": "9fcc458c5a1314db25fde031b6ec1e0d31d0ab84",
+  "head_revision_or_patch_checksum": "3d8dba29ef89f3402f5731d9b6272edb03f8c6a1",
   "task_ids": [
     "WP-0A-A0-004",
     "ci-tier-and-lane-2026-10-11"
   ],
   "files_added": [],
-  "files_modified": [],
+  "files_modified": [
+    ".github/workflows/ci.yml",
+    "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-A0-004-author-handoff.json",
+    "scripts/db/classify-review-tier.mjs",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/branch-scope.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-A0-004.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-007",
