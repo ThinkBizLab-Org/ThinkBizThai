@@ -65,3 +65,9 @@ The PR was un-drafted and merged by the Product Owner himself, in the session te
 ### 4.3 What this does not do
 
 Status stays `integration_verified`. No RFC, guide, profile, contract, test or script changes.
+
+### 4.4 `ownership.amends_without_owning.paths` narrowed to empty
+
+Its two paths (`scripts/verify-test-coverage-floor.mjs`, `test-kits/integrity-manifest.json`) explained PR #251's
+amendments, now merged. This increment touches neither, so `verify-branch-scope` would read them as a standing
+permission (exit 74). RFC-2026-025 §6.1 rule 4 admits narrowing; the rationale is unchanged.
