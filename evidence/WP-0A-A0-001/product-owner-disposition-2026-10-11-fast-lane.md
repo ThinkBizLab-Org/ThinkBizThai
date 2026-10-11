@@ -27,6 +27,6 @@ Asked 2026-10-10T19:02:50Z, answered 19:03:54Z, through the session's question t
 ## What this directs
 
 A0 drafts RFC-2026-034 and the `CONTRIBUTING_AGENTS.md` edits on WP-0A-A0-001, and puts them through the roles. The Owner
-merges the PR personally (RFC-2026-025 §5 item 6); the RFC's own questions (§9 questions (Q-034-1 to Q-034-5 at the RFC's latest revision)) are the Owner's to
+merges the PR personally (RFC-2026-025 §5 item 6); the RFC's own §9 questions (Q-034-1 to Q-034-6 at the RFC's latest revision) are the Owner's to
 answer before it is Approved. Until then every rule in force today stays in force, including the full path the Owner
 directed for this session.
