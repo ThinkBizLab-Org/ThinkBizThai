@@ -5,15 +5,19 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "9fcc458c5a1314db25fde031b6ec1e0d31d0ab84",
-  "head_revision_or_patch_checksum": "758a83e3f6d3d60384725f2a4dd60aa9a3f569f4",
+  "head_revision_or_patch_checksum": "b3856f8d4749fb5ceefff8bbb68d580571a4ef03",
   "task_ids": [
     "WP-0A-A0-004",
     "ci-tier-and-lane-2026-10-11"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-004/a1-reread-2026-10-11-pr255.md",
     "evidence/WP-0A-A0-004/a1-review-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/c0-reread-2026-10-11-pr255.md",
     "evidence/WP-0A-A0-004/c0-review-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/q0-reread-2026-10-11-pr255.md",
     "evidence/WP-0A-A0-004/q0-review-2026-10-11-pr255.md",
+    "evidence/WP-0A-A0-004/r0-reread-2026-10-11-pr255.md",
     "evidence/WP-0A-A0-004/r0-review-2026-10-11-pr255.md"
   ],
   "files_modified": [
@@ -39,7 +43,7 @@
   "contracts_produced_or_changed": [],
   "assumptions": [
     "THIS INCREMENT adds the CI step 'Print the review tier and lane (informational, gates nothing)' (RFC-2026-034 §8 item 2; RFC-2026-030 §9 item 2 and §10 item 2). It runs the base's copy of scripts/db/classify-review-tier.mjs (with classify-records-only.mjs beside it) before npm ci, prints tier and lane between stop-commands markers and in the escaped, capped job summary, writes no step output and exits 0 on every path; anything other than a full classification prints tier H and lane governance, not classified.",
-    "The classifier (WP-0A-DB-00's file, declared amendment) gains laneOf and formatLane: the RFC-2026-034 §2.2 governance path list (each pattern marked never, guard or additive), the transitive local imports of scripts/db/run.mjs, rls-smoke.mjs and authz-proofs.mjs read from the head (fail closed), the audit lane (one evidence/audits/<date>/ directory on WP-0A-A0-001's branch), records, risk for H and fast for M and L. additive-eligible is printed when only additive-coverable guard paths make the PR governance; it never lowers the lane, it tells the readers A1 and Q0 may confirm the risk lane in writing. Without --lane the output is unchanged.",
+    "The classifier (WP-0A-DB-00's file, declared amendment) gains laneOf and formatLane: the RFC-2026-034 §2.2 governance path list (each pattern never, guard or additive); a transitive local-import walk read from the head, rooted at every guard, runner, classifier and guard test plus the database runner and harness, with a linear scanner (importSpecs rewritten, which the tier also uses) and fail-closed problems; the fixtures and path literals the harness loads; a test that imports a governance path is governance; audit only with --head-ref on WP-0A-A0-001's branch, equal --repo and --head-repo, and added or modified regular files directly in one evidence/audits/<date>/; records; risk for H and fast for M and L. additive-eligible is printed when only additive-coverable guard paths make the PR governance; it never lowers the lane. Without --lane the output is unchanged on real code.",
     "On this pull request itself the base's classifier has no --lane, so the new step prints not classified (governance); that is the step failing closed, as designed.",
     "Governance pull request (RFC-2026-034 §2.2): C0, A1, Q0 and R0 read the final head; A0 presses it under the Owner's answer to Q-034-6 (i) of 2026-10-11 once all four pass and CI is green on the exact head."
   ],
@@ -76,7 +80,7 @@
   "compatibility_impact": "No contract changes: CI, a classifier and tests; no contract-catalog file.",
   "known_limitations": [
     "The lane is information for the readers; nothing gates on it yet. The fast lane also needs a module on M_ELIGIBLE_MODULES (RFC-2026-034 §8 item 5) or an L web path, and none exists today.",
-    "The import walk is a linear scanner, not a JavaScript parser: a regular expression after ')' is read as a division, so an import named by an expression could hide behind such a misread; imports written as strings are still caught by a raw keyword scan (RFC-2026-007 Amendment 2026-10-11 §D).",
+    "The import walk is a linear scanner, not a JavaScript parser. A misread it makes (a regular expression after ')' read as a division) can hide an import from it, including one named by a string in some forms (A1-255r2-1: backtick, parenthesized or comment-preceded specifiers after such a misread; a symlinked module); RFC-2026-007 Amendment 2026-10-11 §D says only expression-named imports can hide, which is too narrow and is owed a correction. Planting such an import is itself a governance edit read by all four roles.",
     "A module reached from a guard or never root is guard kind even when the database runner also imports it (tests/db/identity/run-isolation.mjs and isolation-cases.mjs, through test-kits/branch-scope.test.mjs); RFC-2026-034 §2.2 would let the runner's imports be additive. Stricter, so fail closed; the mark never changes the lane.",
     "Locally the timeout 300 wrapper is exercised with stand-ins; the real coreutils timeout runs only on CI."
   ],
