@@ -381,3 +381,100 @@ Nine tests in `test-kits/branch-scope.test.mjs` (six from the first increment, t
 
 A reviewed revert of the one step and its nine tests. Nothing reads the step, so removing it changes
 no other step's outcome. No data, provider or credential effect.
+
+## Amendment 2026-10-11 — CI prints the review tier and the lane, and gates nothing on them
+
+Status of this amendment: implements a step the Product Owner already approved. RFC-2026-034 was
+approved on 2026-10-11 (`evidence/WP-0A-A0-001/product-owner-disposition-2026-10-11-fast-lane.md`),
+and its §8 item 2 names this step as owed: "CI prints the tier and the lane on every pull request",
+by the owner of `.github/workflows/ci.yml` (this package) with the classifier's owner
+(WP-0A-DB-00). It is also RFC-2026-030 §9 item 2 and §10 item 2: "a CI step that runs the base's copy
+of the classifier and prints its tier on every PR". This section records how that step is built. It
+decides nothing new about tiers or lanes, and the decision above and the Amendments 2026-10-06 and
+2026-10-08 stand unchanged.
+
+Who presses. RFC-2026-034 §2.2 ("Who presses governance", the Owner's answer to Q-034-6 on
+2026-10-11, `ยืนยันทั้ง 6 ข้อ (Recommended)`) lets A0 press the governance pull request of §8 item 2
+once C0, A1, Q0 and R0 pass on its final head and CI is green on it.
+
+### A. The step
+
+`Print the review tier and lane (informational, gates nothing)` runs on `pull_request` events only,
+straight after the records-only step of the Amendment 2026-10-08 and before `Clean install`.
+
+1. It runs the **base's** classifiers: `git show <base.sha>:scripts/db/classify-review-tier.mjs`
+   and `git show <base.sha>:scripts/db/classify-records-only.mjs` into one scratch directory (the
+   first imports the second), then `node <copy> <base.sha> HEAD --lane --head-ref=<head.ref>`. A pull
+   request that edits either classifier is judged by the copies on `main`, which print it H and
+   governance (RFC-2026-030 §4, A1-4).
+2. It prints a tier and a lane only when that classifier exits 0, its first line is
+   `tier: <records|L|M|H> (`, exactly one line is `lane: <governance|records|audit|risk|fast>`, and the
+   two agree (fast only with M or L, records only with records, risk only with H). In every other case
+   it prints `tier: H (not classified)` and `lane: governance (not classified)` with the reason: a base
+   branch that is not exactly `main`, an empty or missing base commit, a base holding either
+   classifier unreadable, a classifier exit other than 0, and an output that does not meet the rule
+   above. A base classifier that does not understand `--lane` exits 2 with its usage line, so it
+   prints not classified; that is the case on the pull request that adds this step, whose base has no
+   `--lane`, and on every pull request until that one is merged. A path name that forges a second
+   `lane:` line makes two, and so prints governance, not the forged lane.
+3. The verdict and the classifier's output go to the job log and to the job summary, printed inert
+   exactly as the records-only step prints its own (Amendment 2026-10-08 §A item 2): every log line
+   between `::stop-commands::<token>` and `::<token>::` with a 32-hex-digit token from `/dev/urandom`,
+   the reason and output left out of the log when there is no token, `&`, `<` and `>` escaped in the
+   summary, and at most 64 KiB of output there. The step writes no step output, no environment and no
+   path, has no `id`, and no later step reads it. Its only `exit` is `exit 0`.
+4. It runs before `npm ci` and `npm run check`, the first steps that execute the pull request's own
+   code, so the `GITHUB_PATH` route of §E "A hostile author" is not open to it. The negative-control
+   decision stays the workflow's only `GITHUB_OUTPUT` writer.
+
+### B. The lane, in the classifier
+
+`scripts/db/classify-review-tier.mjs` (WP-0A-DB-00's, amended by this pull request) gains `laneOf`
+and the `--lane` flag. The lane follows RFC-2026-034 §2.2: **governance** when any changed path is
+on the governance row (`GOVERNANCE_PATTERNS`, matched case-insensitively, with tool configuration,
+lockfiles and Makefiles matched by base name anywhere) or is a module that `scripts/db/run.mjs`,
+`scripts/db/rls-smoke.mjs` or `scripts/db/authz-proofs.mjs` imports, transitively, read at the head
+(a module it cannot read, an import that resolves to nothing, or an import named by an expression
+makes the pull request governance); else **audit** when every path is in one
+`evidence/audits/<date>/` directory and the head branch is WP-0A-A0-001's `ownership.branch` read
+at the base; else **records** when the records-only classifier says so; else **risk** for H and
+**fast** for M or L. `additive-eligible: yes` is printed when every governance path is one the
+additive rule of §2.2 can cover and none is an RFC, the guide, `docs/**`, `.agents/**`, `.github/**`,
+a package, lock or tool file, a Makefile or a classifier; it never lowers the lane, and the pull
+request stays governance until A1 and Q0 confirm in writing. Without `--lane` the classifier's
+output and exit codes are unchanged.
+
+### C. Tests
+
+Seven tests in `test-kits/branch-scope.test.mjs` cut the step body out of `ci.yml` and run it with
+`bash -e` against throwaway repositories whose base commit holds copies of both real classifiers or
+a stub: the step's shape and place; each lane the real classifier gives (risk, governance with and
+without `additive-eligible`, records, audit on WP-0A-A0-001's branch and risk on another or none); a
+pull request that edits both classifiers printed governance by the base copies; every fail-closed
+base (empty, missing, not a commit, no repository, no classifier, only the records-only classifier,
+not exactly `main`, unset, unrelated); stubs for a base without `--lane` (usage, exit 2), without a
+lane line, with two lane lines, an unknown lane, no tier line first, a lane that disagrees with the
+tier, and exit 1; a path name forging a lane line and workflow commands; and the 64 KiB cap and
+escaping. Two tests in `test-kits/db/foundation-contract.test.mjs` pin `laneOf` (each lane, one path
+per governance pattern group, the transitive-import rule and its fail-closed cases, additive
+eligibility both ways, the audit branch check) and the CLI (each lane; without `--lane` the report
+is the `--lane` output's prefix with no lane line; the flags' usage errors exit 2).
+
+### D. What this does NOT do
+
+- It does not lower any pull request's readers. Until the classifier with `--lane` is on `main`,
+  this step prints not classified, which is H and governance; RFC-2026-030 §9 item 2 is met only
+  from the first pull request whose base carries it.
+- It does not decide whether an additive guard edit is additive; A1's and Q0's written
+  confirmations do (RFC-2026-034 §2.2).
+- The audit lane's branch check reads the head branch's name; it does not check that the audit
+  files are blob-equal to their auditors' commits, which stays A0's recorded reading
+  (RFC-2026-034 Q-034-5 (a)).
+- It does not quote the tier report's path names (Amendment 2026-10-08 §C); the lane's own reasons
+  quote each path.
+
+### E. Rollback
+
+A reviewed revert of the one step, the classifier's lane section and flag, and their nine tests.
+Nothing reads the step, so removing it changes no other step's outcome. No data, provider or
+credential effect.

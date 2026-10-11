@@ -6645,3 +6645,222 @@ test('the review-tier classifier fails closed to H and only ever raises, each ru
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+// RFC-2026-034 §2.2 (approved 2026-10-11) and its §8 item 2: the lane. `laneOf` maps the tier and the changed paths to
+// governance, records, audit, risk or fast, failing closed to governance on anything it cannot read; `--lane` prints it
+// after the tier report and leaves the report without it byte for byte as it was. Each lane, one representative path
+// per governance pattern group, the transitive-import rule, additive eligibility both ways, and the audit branch check
+// are shown below, in pure form and through the CLI on a throwaway repository.
+import {
+  AUDIT_PACKAGE_MANIFEST, GOVERNANCE_IMPORT_ROOTS, GOVERNANCE_PATTERNS, LANES, formatLane, importClosure, laneOf,
+} from '../../scripts/db/classify-review-tier.mjs';
+
+test('the lane follows the tier and the paths, and fails closed to governance (RFC-2026-034 §2.2)', () => {
+  assert.deepEqual(LANES, ['governance', 'records', 'audit', 'risk', 'fast']);
+  assert.deepEqual([...GOVERNANCE_IMPORT_ROOTS], ['scripts/db/run.mjs', 'scripts/db/rls-smoke.mjs', 'scripts/db/authz-proofs.mjs']);
+  assert.equal(AUDIT_PACKAGE_MANIFEST, 'work-packages/WP-0A-A0-001.json');
+  assert.ok(Object.isFrozen(GOVERNANCE_PATTERNS) && GOVERNANCE_PATTERNS.every((g) => ['never', 'guard', 'additive'].includes(g.kind)));
+
+  // A small head: the runner imports a helper, which imports a test module; the harness imports a fixture module.
+  const head = {
+    'scripts/db/run.mjs': "import { lex } from './sql-lexer.mjs';\nconst later = await import('../../tests/db/identity/run-isolation.mjs');\n",
+    'scripts/db/sql-lexer.mjs': "export const lex = 1;\n",
+    'tests/db/identity/run-isolation.mjs': "import {\n  x,\n} from '../../../db/foundation/test-helpers/rls-assertions.mjs';\nimport data from './cases.json' with { type: 'json' };\n",
+    'db/foundation/test-helpers/rls-assertions.mjs': "import { readFile } from 'node:fs/promises';\n",
+    'tests/db/identity/cases.json': '{}\n',
+    'scripts/db/rls-smoke.mjs': "export * from './psql-driver.mjs';\n",
+    'scripts/db/psql-driver.mjs': "export const q = 1;\n",
+    'scripts/other.mjs': "export const o = 1;\n",
+  };
+  const files = new Set(Object.keys(head));
+  const readHead = (p) => { if (!(p in head)) throw new Error(`no ${p}`); return head[p]; };
+  const of = (paths, extra = {}) => laneOf({ paths, tier: 'H', recordsOnly: false, files, readHead, ...extra });
+  const gov = (paths, additive, why, extra) => {
+    const l = of(paths, extra);
+    assert.equal(l.lane, 'governance', `${paths.join(', ')}: ${JSON.stringify(l)}`);
+    assert.equal(l.additiveEligible, additive, `${paths.join(', ')}: additive ${JSON.stringify(l)}`);
+    assert.ok(l.reasons.some((x) => why.test(x)), `${paths.join(', ')}: ${JSON.stringify(l.reasons)}`);
+  };
+
+  // The governance row, one representative path per pattern group. `never`: not additive-eligible, whatever else.
+  for (const [p, why] of [['architecture/decisions/RFC-2026-099-x.md', /an RFC/], ['CONTRIBUTING_AGENTS.md', /the guide/],
+    ['CLAUDE.md', /agent adapter/], ['AGENTS.md', /agent adapter/], ['docs/sprint-0a/x.md', /docs\/\*\*/], ['.agents/schemas/x.json', /\.agents\/\*\*/],
+    ['.github/workflows/ci.yml', /\.github\/\*\*/], ['package.json', /package file/], ['apps/web/package.json', /package file/],
+    ['package-lock.json', /lockfile/], ['apps/web/pnpm-lock.yaml', /lockfile/], ['yarn.lock', /lockfile/],
+    ['.npmrc', /tool configuration/], ['.nvmrc', /tool configuration/], ['.node-version', /tool configuration/], ['.gitattributes', /tool configuration/],
+    ['apps/web/tsconfig.json', /tool configuration/], ['eslint.config.mjs', /tool configuration/], ['.husky/pre-commit', /tool configuration/],
+    ['Makefile', /a Makefile/], ['db/build.mk', /a Makefile/],
+    ['scripts/db/classify-review-tier.mjs', /a classifier/], ['scripts/db/classify-records-only.mjs', /a classifier/], ['scripts/db/classify-other.mjs', /a classifier/]]) {
+    gov([p], false, why);
+    // A `never` path keeps an additive-eligible companion from making the pull request eligible.
+    gov([p, 'db/foundation/lint/x.json'], false, why);
+  }
+  // `guard`: governance, not additive-eligible.
+  for (const [p, why] of [['scripts/verify-branch-scope.mjs', /a guard \(scripts\/verify-\*/], ['scripts/validate-work-packages.mjs', /a validator/],
+    ['scripts/toolchain-contract.mjs', /a guard contract/], ['scripts/scan-repository-secrets.mjs', /runner or generator/],
+    ['scripts/refresh-author-handoff.mjs', /runner or generator/], ['scripts/run-test-suite.mjs', /runner or generator/],
+    ['scripts/record-verification.mjs', /runner or generator/], ['scripts/regenerate-integrity-manifest.mjs', /runner or generator/]]) {
+    gov([p], false, why);
+    gov([p, 'test-kits/x.test.mjs'], false, why);
+  }
+  // `additive`: governance, and additive-eligible when nothing else makes it governance.
+  for (const [p, why] of [['scripts/db/run.mjs', /database runner or harness/], ['scripts/db/rls-smoke.mjs', /database runner or harness/],
+    ['scripts/db/authz-proofs.mjs', /database runner or harness/], ['db/foundation/ci/supabase-shim.sql', /database test harness/],
+    ['db/foundation/test-helpers/auth-context.sql', /database test harness/], ['db/foundation/prerequisites.sql', /database test harness/],
+    ['db/foundation/seeds/001.sql', /database test harness/], ['db/foundation/lint/read-allowlist.json', /data the database guards read/],
+    ['db/foundation/invariants/superseded.json', /data the database guards read/], ['test-kits/branch-identity.test.mjs', /top-level guard test/],
+    ['test-kits/db/foundation-contract.test.mjs', /foundation contract test/], ['test-kits/integrity-manifest.json', /integrity manifest/],
+    ['scripts/test-suite-contract.mjs', /test registry/], ['scripts/verify-test-coverage-floor.mjs', /test registry/]]) {
+    gov([p], true, why);
+  }
+  gov(['scripts/db/run.mjs', 'db/foundation/lint/x.json', 'test-kits/integrity-manifest.json', 'evidence/WP-0A-DB-00/batch.md'], true, /runner/);
+  // A test that pins CI or a classifier is never additive, though it is also a top-level guard test.
+  for (const p of ['test-kits/branch-scope.test.mjs', 'test-kits/repository-json.test.mjs', 'test-kits/test-coverage-floor.test.mjs']) {
+    gov([p], false, /pins CI or a classifier/);
+  }
+  // Paths beside the governance list are not governance by themselves: other test kits, other scripts, migrations.
+  for (const p of ['test-kits/db/rls-assertions.test.mjs', 'test-kits/contracts/x.test.mjs', 'tests/db/identity/other.test.mjs',
+    'scripts/other.mjs', 'db/foundation/migrations/180_x.sql', 'contract-catalog/x.json', 'src/modules/drafts/ui/Card.tsx']) {
+    assert.equal(of([p]).lane, 'risk', p);
+  }
+
+  // The transitive-import rule: every module the runner or the harness reaches, read at the head, through a static,
+  // a multi-line, a re-export, a dynamic import and a JSON import, is governance; additive-eligible, as a module they import.
+  const closure = importClosure(GOVERNANCE_IMPORT_ROOTS, readHead, files);
+  assert.deepEqual(closure.problems, []);
+  assert.deepEqual([...closure.modules.keys()].sort(), ['db/foundation/test-helpers/rls-assertions.mjs', 'scripts/db/psql-driver.mjs',
+    'scripts/db/sql-lexer.mjs', 'tests/db/identity/cases.json', 'tests/db/identity/run-isolation.mjs']);
+  for (const p of ['scripts/db/sql-lexer.mjs', 'tests/db/identity/run-isolation.mjs', 'tests/db/identity/cases.json', 'scripts/db/psql-driver.mjs']) {
+    gov([p], true, /a module scripts\/db\/(?:run|rls-smoke)\.mjs imports, read at the head/);
+  }
+  // A module the head adds and the runner now imports is governance from that head.
+  const added = { ...head, 'scripts/db/run.mjs': head['scripts/db/run.mjs'] + "import './new-rule.mjs';\n", 'scripts/db/new-rule.mjs': 'export {};\n' };
+  const l = laneOf({ paths: ['scripts/db/new-rule.mjs'], tier: 'H', recordsOnly: false, files: new Set(Object.keys(added)), readHead: (p) => added[p] });
+  assert.equal(l.lane, 'governance', JSON.stringify(l));
+  // Fail closed: an unreadable module, an import that resolves to nothing, an import by expression, an import out of
+  // the repository, and no reader at all each make the pull request governance, and none of them is additive-eligible.
+  const broken = (patch, why) => {
+    const h = { ...head, ...patch };
+    const got = laneOf({ paths: ['scripts/other.mjs'], tier: 'H', recordsOnly: false, files: new Set(Object.keys(h)),
+      readHead: (p) => { if (h[p] === null) throw new Error('unreadable'); return h[p]; } });
+    assert.equal(got.lane, 'governance', `${why}: ${JSON.stringify(got)}`);
+    assert.equal(got.additiveEligible, false, why.source);
+    assert.ok(got.reasons.some((x) => why.test(x)), `${why}: ${JSON.stringify(got.reasons)}`);
+  };
+  broken({ 'scripts/db/sql-lexer.mjs': null }, /could not be read at the head/);
+  broken({ 'scripts/db/psql-driver.mjs': "import './gone.mjs';\n" }, /resolves to no file at the head/);
+  broken({ 'scripts/db/psql-driver.mjs': 'const m = await import(name);\n' }, /named by an expression/);
+  broken({ 'scripts/db/psql-driver.mjs': 'const m = await import(`./${name}.mjs`);\n' }, /named by an expression/);
+  broken({ 'scripts/db/psql-driver.mjs': "import '../../../../outside.mjs';\n" }, /outside the repository/);
+  const blind = laneOf({ paths: ['scripts/other.mjs'], tier: 'H', recordsOnly: false });
+  assert.equal(blind.lane, 'governance');
+  assert.ok(blind.reasons.some((x) => /no reader of the head was given/.test(x)));
+  // A root absent from the head imports nothing (it is not unreadable): the scratch repository below has none.
+  assert.equal(laneOf({ paths: ['scripts/other.mjs'], tier: 'H', recordsOnly: false, files: new Set(['scripts/other.mjs']), readHead }).lane, 'risk');
+
+  // Audit: one dated directory under evidence/audits/, on WP-0A-A0-001's branch when the head branch is known.
+  const audit = ['evidence/audits/2026-10-18/c0-audit.md', 'evidence/audits/2026-10-18/q0-audit.md'];
+  assert.equal(of(audit, { headRef: 'agent/a0-001', auditBranch: 'agent/a0-001' }).lane, 'audit');
+  assert.equal(of(audit).lane, 'audit', 'the paths alone, when no head branch is given');
+  assert.ok(of(audit).reasons.some((x) => /the head branch was not given/.test(x)));
+  for (const [extra, why] of [[{ headRef: 'agent/other', auditBranch: 'agent/a0-001' }, /is not WP-0A-A0-001's ownership\.branch/],
+    [{ headRef: 'agent/a0-001', auditBranch: null }, /could not be read at the base/], [{ headRef: '', auditBranch: 'agent/a0-001' }, /is not WP-0A-A0-001's/],
+    [{ headRef: 'agent/a0-001' }, /could not be read at the base/]]) {
+    const got = of(audit, extra);
+    assert.equal(got.lane, 'risk', JSON.stringify(got));
+    assert.ok(got.reasons.some((x) => why.test(x)), JSON.stringify(got.reasons));
+  }
+  assert.equal(of([...audit, 'evidence/WP-0A-A0-001/session-x.md'], { headRef: 'agent/a0-001', auditBranch: 'agent/a0-001' }).lane, 'risk');
+  assert.equal(of(['evidence/audits/2026-10-18/a.md', 'evidence/audits/2026-10-25/b.md'], { headRef: 'b', auditBranch: 'b' }).lane, 'risk');
+  assert.equal(of(['evidence/audits/notes.md'], { headRef: 'b', auditBranch: 'b' }).lane, 'risk');
+  // An audit pull request that also changes a governance path is governance.
+  assert.equal(of([...audit, 'docs/x.md'], { headRef: 'b', auditBranch: 'b' }).lane, 'governance');
+
+  // Records, risk and fast.
+  assert.equal(laneOf({ paths: ['evidence/WP-X/session-1.md'], tier: 'records', recordsOnly: true, files, readHead }).lane, 'records');
+  assert.equal(of(['db/foundation/migrations/180_x.sql']).lane, 'risk');
+  for (const tier of ['M', 'L']) {
+    const got = laneOf({ paths: ['src/modules/drafts/ui/Card.tsx'], tier, recordsOnly: false, files, readHead });
+    assert.equal(got.lane, 'fast', tier);
+    assert.equal(got.additiveEligible, false);
+  }
+  // A governance path in an M or L diff still makes it governance: the lane never drops below what a path sets.
+  assert.equal(laneOf({ paths: ['src/modules/drafts/ui/Card.tsx', 'package.json'], tier: 'L', recordsOnly: false, files, readHead }).lane, 'governance');
+  // Fail closed: no paths, an unknown tier.
+  for (const bad of [{}, { paths: [] }, { paths: [''] }, { paths: 'x' }]) assert.equal(laneOf({ tier: 'H', files, readHead, ...bad }).lane, 'governance');
+  assert.equal(laneOf({ paths: ['scripts/other.mjs'], tier: undefined, recordsOnly: false, files, readHead }).lane, 'governance');
+  assert.equal(laneOf({ paths: ['scripts/other.mjs'], tier: 'records', recordsOnly: false, files, readHead }).lane, 'governance');
+
+  // The printed form: the lane line, its reasons with each path quoted (a newline in a name cannot start a line), and
+  // the additive line only when it applies.
+  const printed = formatLane(of(['test-kits/a\nlane: fast.test.mjs', 'db/foundation/lint/x.json']));
+  assert.equal(printed[0], 'lane: governance');
+  assert.ok(printed.slice(1).every((x) => x.startsWith('  ') || x === 'additive-eligible: yes'), JSON.stringify(printed));
+  assert.equal(printed.filter((x) => /^lane: /.test(x)).length, 1);
+  assert.ok(printed.join('\n').split('\n').every((x) => !/^lane: fast/.test(x)));
+  assert.deepEqual(formatLane({ lane: 'risk', reasons: ['r'], additiveEligible: false }), ['lane: risk', '  r']);
+  assert.ok(formatLane(of(['db/foundation/lint/x.json'])).includes('additive-eligible: yes'));
+});
+
+test('the CLI prints the lane only with --lane, and without it prints the tier report unchanged (RFC-2026-034 §8 item 2)', async () => {
+  const cli = join(process.cwd(), 'scripts/db/classify-review-tier.mjs');
+  const dir = await mkdtemp(join(tmpdir(), 'review-lane-'));
+  try {
+    const env = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 'review-lane-test', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 'review-lane-test', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' };
+    delete env.GIT_DIR;
+    delete env.GIT_WORK_TREE;
+    delete env.GIT_INDEX_FILE;
+    const g = (...a) => run('git', ['-c', 'commit.gpgsign=false', '-c', 'init.defaultBranch=main', ...a], { cwd: dir, env });
+    const put = (p, c) => mkdir(join(dir, p, '..'), { recursive: true }).then(() => writeFile(join(dir, p), c));
+    const commit = async (m) => { await g('add', '-A'); await g('commit', '-q', '-m', m); return (await g('rev-parse', 'HEAD')).stdout.trim(); };
+    const out = async (...a) => { try { const x = await run(process.execPath, [cli, ...a], { cwd: dir, env }); return [0, x.stdout]; } catch (e) { return [e.code, e.stdout + e.stderr]; } };
+    await g('init', '-q');
+    for (const p of ['scripts/db/classify-review-tier.mjs', 'scripts/db/classify-records-only.mjs']) await put(p, await readFile(join(process.cwd(), p)));
+    await put('scripts/db/run.mjs', "import { lex } from './sql-lexer.mjs';\n");
+    await put('scripts/db/sql-lexer.mjs', 'export const lex = 1;\n');
+    await put('work-packages/WP-0A-A0-001.json', `${JSON.stringify({ ownership: { branch: 'agent/a0-001' } })}\n`);
+    await put('evidence/WP-X/session-1.md', 'one\n');
+    const root = await commit('base');
+    const branch = async (name, files) => {
+      await g('checkout', '-q', '-b', name, root);
+      for (const [p, c] of Object.entries(files)) await put(p, c);
+      await commit(name);
+    };
+    await branch('risk', { 'scripts/other.mjs': 'x\n' });
+    await branch('imported', { 'scripts/db/sql-lexer.mjs': 'export const lex = 2;\n' });
+    await branch('gov', { 'docs/x.md': 'x\n' });
+    await branch('records', { 'evidence/WP-X/session-1.md': 'one\ntwo\n' });
+    await branch('agent/a0-001', { 'evidence/audits/2026-10-18/c0-audit.md': 'c0\n' });
+
+    // Without --lane the report is what it was: no lane line, and it is the --lane output's prefix, line for line.
+    for (const [head, lane] of [['risk', 'risk'], ['imported', 'governance'], ['gov', 'governance'], ['records', 'records'], ['agent/a0-001', 'audit']]) {
+      const [c1, plain] = await out('main', head);
+      const [c2, laned] = await out('main', head, '--lane', `--head-ref=${head}`);
+      assert.equal(c1, 0, plain);
+      assert.equal(c2, 0, laned);
+      assert.doesNotMatch(plain, /^lane: |^additive-eligible: /m, plain);
+      assert.ok(laned.startsWith(plain), `${head}: --lane must only append:\n${plain}\n---\n${laned}`);
+      assert.equal(laned.split('\n').filter((x) => /^lane: /.test(x)).length, 1);
+      assert.match(laned, new RegExp(`^lane: ${lane}$`, 'm'), laned);
+    }
+    let [code, o] = await out('main', 'imported', '--lane');
+    assert.match(o, /governance: "scripts\/db\/sql-lexer\.mjs" \(a module scripts\/db\/run\.mjs imports, read at the head\)/);
+    assert.match(o, /^additive-eligible: yes$/m);
+    // The audit lane needs WP-0A-A0-001's branch from the base: another head ref is not audit, and no ref is not checked.
+    [code, o] = await out('main', 'agent/a0-001', '--lane', '--head-ref=agent/other');
+    assert.equal(code, 0, o);
+    assert.match(o, /^lane: risk$/m);
+    [code, o] = await out('main', 'agent/a0-001', '--lane');
+    assert.match(o, /^lane: audit$/m);
+    assert.match(o, /the head branch was not given/);
+    // The flags: --head-ref only with --lane, each once, no other flag; an unknown ref is not classified. All exit 2.
+    for (const args of [['main', 'risk', '--head-ref=x'], ['main', 'risk', '--lane', '--lane'], ['main', 'risk', '--lane', '--head-ref=a', '--head-ref=b'],
+      ['main', 'risk', '--lanes'], ['main', 'risk', 'extra', '--lane'], ['main', 'no-such-ref', '--lane']]) {
+      [code, o] = await out(...args);
+      assert.equal(code, 2, `${args.join(' ')}: ${o}`);
+      assert.doesNotMatch(o, /^lane: /m);
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

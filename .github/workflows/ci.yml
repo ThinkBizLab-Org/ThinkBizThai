@@ -181,6 +181,127 @@ jobs:
             report "NOT RECORDS-ONLY" "the base's classifier exited 1 on ${BASE_SHA}..HEAD; its reasons follow" "${work}/out"
           fi
           report "NOT RECORDS-ONLY" "the base's classifier exited ${code} on ${BASE_SHA}..HEAD, which is not a classification (fail closed)" "${work}/out"
+      # THE REVIEW TIER AND THE LANE, PRINTED AND NEVER ACTED ON (RFC-2026-034 §8 item 2, approved
+      # 2026-10-11; RFC-2026-030 §9 item 2 and §10 item 2; RFC-2026-007 Amendment 2026-10-11). Which
+      # readers a pull request needs before its merge follows its lane (RFC-2026-034 §2.2), the lane
+      # follows the tier and the paths, and the judge of both is `scripts/db/classify-review-tier.mjs`
+      # with `--lane`, not anyone's say-so. Until CI prints the tier on every pull request, every pull
+      # request is H (RFC-2026-030 §9 item 2) and the fast lane is closed; here CI prints both, in the
+      # log and in the job summary.
+      #
+      # IT GATES NOTHING. It writes no step output (the workflow's one GITHUB_OUTPUT writer stays the
+      # negative-control decision, pinned by test), no later step reads it, and it exits 0 on every
+      # path. So it cannot make a pull request pass anything it would otherwise fail, and it cannot
+      # fail one either: the tier and the lane are information for the lane's readers, who still read
+      # the pull request on its final head, and nothing here lowers a lane by hand.
+      #
+      # IT FAILS CLOSED. It prints a tier and a lane only when the classifier exited 0, its first line
+      # is `tier: <records|L|M|H> (`, exactly one line is `lane: <governance|records|audit|risk|fast>`,
+      # and the two agree (fast only for M or L, records only for records, risk only for H). A base
+      # that is not exactly `main`, an empty or missing base commit, a base holding either classifier
+      # unreadable, a classifier exit other than 0 -- among them the exit 2 of a base classifier that
+      # does not understand `--lane`, which is the base of the very pull request that adds this step --
+      # or any other outcome prints `tier: H (not classified)` and `lane: governance (not classified)`
+      # with the reason, never a lower one. A path name that forges a second `lane:` line therefore
+      # prints governance, not the forged lane.
+      #
+      # ITS OUTPUT IS PRINTED INERT, as the records-only step's is: every log line is printed between
+      # `::stop-commands::<token>` and `::<token>::`, with a 32-hex-digit token drawn from /dev/urandom at
+      # run time, and with no such token the reason and the output are left out of the log. The job
+      # summary escapes `&`, `<` and `>` in the reason and the output, and carries at most 64 KiB of the
+      # output; the log keeps all of it.
+      #
+      # IT RUNS THE BASE'S CLASSIFIERS, not the pull request's. Both files (classify-review-tier.mjs
+      # imports classify-records-only.mjs) are read out of the base commit with `git show` into one
+      # scratch directory, so a pull request that edits either is judged by the copies on `main`, which
+      # print it governance (RFC-2026-030 §4, A1-4). The head branch is passed for the audit lane's
+      # branch check. And it runs BEFORE `npm ci` and `npm run check`, the first steps that execute the
+      # pull request's own code, so that code has had no chance to put another `git` or `node` on
+      # GITHUB_PATH (RFC-2026-007 §E, A1 I1 on #197).
+      - name: Print the review tier and lane (informational, gates nothing)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          esc() { awk '{ gsub(/&/, "\\&amp;"); gsub(/</, "\\&lt;"); gsub(/>/, "\\&gt;"); print }'; }
+          report() {
+            token="$(od -An -N16 -tx1 /dev/urandom 2>/dev/null | tr -d ' \n' || true)"
+            if ! printf '%s\n' "${token}" | grep -Eq '^[0-9a-f]{32}$'; then token=""; fi
+            if [ -n "${token}" ]; then
+              echo "::stop-commands::${token}"
+              echo "review tier and lane: $1, $2 -- $3"
+              if [ -n "${4:-}" ] && [ -s "$4" ]; then sed 's/^/  /' "$4"; fi
+              echo "::${token}::"
+            else
+              echo "review tier and lane: $1, $2 -- no random token to print the reason inert, so it is left out of this log; the job summary carries it"
+            fi
+            if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+              {
+                echo "### Review tier and lane (RFC-2026-030 §4, RFC-2026-034 §2.2): $1, $2"
+                echo ""
+                printf '%s\n' "$3" | esc
+                echo ""
+                echo "Informational: this gates nothing. Each lane's readers still read the pull request on its final head (RFC-2026-034 §2.2)."
+                if [ -n "${4:-}" ] && [ -s "$4" ]; then
+                  echo ""
+                  echo "<pre>"
+                  head -c 65536 "$4" | esc
+                  echo "</pre>"
+                  if [ "$(wc -c < "$4")" -gt 65536 ]; then
+                    echo ""
+                    echo "The classifier output is cut at 64 KiB here (GitHub drops a job summary over 1 MiB); the log holds all of it."
+                  fi
+                fi
+              } >> "${GITHUB_STEP_SUMMARY}" 2>/dev/null || echo "review tier and lane: the job summary could not be written; the log above is the record"
+            fi
+            exit 0
+          }
+          unclassified() { report "tier: H (not classified)" "lane: governance (not classified)" "$1" "${2:-}"; }
+          if [ "${BASE_REF:-}" != main ]; then
+            unclassified "the base branch '${BASE_REF:-}' is not exactly main; the tier and the lane are printed for pull requests into main only"
+          fi
+          if [ -z "${BASE_SHA:-}" ] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            unclassified "the base commit '${BASE_SHA:-}' is not in this clone, so no diff was classified (fail closed)"
+          fi
+          if ! work="$(mktemp -d)"; then
+            unclassified "no scratch directory for the classifiers (fail closed)"
+          fi
+          for script in classify-review-tier.mjs classify-records-only.mjs; do
+            if ! git show "${BASE_SHA}:scripts/db/${script}" > "${work}/${script}" 2>/dev/null; then
+              unclassified "the base ${BASE_SHA} holds no readable scripts/db/${script} (fail closed)"
+            fi
+          done
+          set +e
+          node "${work}/classify-review-tier.mjs" "${BASE_SHA}" HEAD --lane "--head-ref=${HEAD_REF:-}" > "${work}/out" 2>&1
+          code=$?
+          set -e
+          if [ "${code}" -ne 0 ]; then
+            unclassified "the base's classifier exited ${code} on ${BASE_SHA}..HEAD, which is not a classification; a base classifier that does not understand --lane exits 2 (fail closed)" "${work}/out"
+          fi
+          first="$(head -n 1 "${work}/out" 2>/dev/null || true)"
+          case "${first}" in
+            "tier: records ("*) tier=records ;;
+            "tier: L ("*) tier=L ;;
+            "tier: M ("*) tier=M ;;
+            "tier: H ("*) tier=H ;;
+            *) tier="" ;;
+          esac
+          lanes="$(grep -c '^lane: ' "${work}/out" 2>/dev/null || true)"
+          lane_line="$(grep '^lane: ' "${work}/out" 2>/dev/null | head -n 1 || true)"
+          case "${lane_line}" in
+            "lane: governance" | "lane: records" | "lane: audit" | "lane: risk" | "lane: fast") lane="${lane_line#lane: }" ;;
+            *) lane="" ;;
+          esac
+          if [ -z "${tier}" ] || [ "${lanes}" != 1 ] || [ -z "${lane}" ]; then
+            unclassified "the base's classifier exited 0 on ${BASE_SHA}..HEAD but did not print one tier line first and exactly one lane line, which is not a classification (fail closed)" "${work}/out"
+          fi
+          case "${lane}:${tier}" in
+            governance:* | audit:* | records:records | risk:H | fast:M | fast:L) ;;
+            *) unclassified "the base's classifier printed lane ${lane} with tier ${tier}, which do not agree (fail closed)" "${work}/out" ;;
+          esac
+          report "tier: ${tier}" "lane: ${lane}" "the base's classifiers exited 0 on ${BASE_SHA}..HEAD; the lane's readers are named in RFC-2026-034 §2.2, and an additive-eligible governance pull request stays governance until A1 and Q0 confirm in writing" "${work}/out"
       - name: Clean install
         run: npm ci --ignore-scripts
       # Invoked BY THE WORKFLOW, not by the script it audits. `npm run check` can be

@@ -23,9 +23,20 @@
 // Today the repository has no application paths (`apps/`, `src/modules/` do not exist; RFC-2026-029 proposes the
 // layout), so every PR on it is H or `records`. The L and M rules are proved here on synthetic diffs only.
 //
+// THE LANE (RFC-2026-034 §2.2, approved 2026-10-11; §8 item 2). `laneOf` maps the tier and the changed paths to one of
+// the four lanes plus records: governance, records, audit, risk, fast. It too fails closed and only upward: a path it
+// cannot place on the governance list is not thereby lowered (the tier still decides risk against fast), an import it
+// cannot read makes the pull request governance, and a head branch it cannot check is not the audit branch. It decides
+// nothing the lane's readers decide: whether an additive guard edit is additive is A1's and Q0's written confirmation,
+// and `additiveEligible` only says that the pull request is governance solely through paths that confirmation can cover.
+//
 // Usage:
 //   node scripts/db/classify-review-tier.mjs [<base>=origin/main] [<head>=HEAD]
 //       prints `tier: <records|L|M|H>` and every reason that raised it; exit 0. Exit 2 = not classified = H.
+//   node scripts/db/classify-review-tier.mjs [<base>] [<head>] --lane [--head-ref=<branch>]
+//       the same, then `lane: <governance|records|audit|risk|fast>` and its reasons, and `additive-eligible: yes` when
+//       that applies. `--head-ref` names the pull request's head branch for the audit lane's branch check. Without
+//       `--lane` the output is byte-identical to the first form. Exit codes are the same.
 //
 // Node built-ins only (RFC-2026-001: no dependency).
 import { execFileSync } from 'node:child_process';
@@ -382,6 +393,209 @@ export function formatReport(r) {
   return out;
 }
 
+// ---- the lane (RFC-2026-034 §2.2) -------------------------------------------------------------------------------
+
+export const LANES = ['governance', 'records', 'audit', 'risk', 'fast'];
+
+// THE GOVERNANCE ROW OF RFC-2026-034 §2.2, as paths. A pull request that changes any path matching one of these, or any
+// module the database runner and harness import (GOVERNANCE_IMPORT_ROOTS, computed at the head), is governance. Each
+// entry is a regular expression over the repository path (case-insensitive: the list errs wide), what it names, and its
+// kind for §2.2's "Additive guard edits take the risk lane" rule:
+//   `never`    the rule never covers it (an RFC, the guide, `docs/**`, `.agents/**`, `.github/**`, package, lock and
+//              tool files, a Makefile, a classifier);
+//   `guard`    a guard or runner the rule does not name (governance, and not additive-eligible);
+//   `additive` a path the rule can cover once A1 and Q0 confirm in writing that every hunk only adds (`run.mjs` and the
+//              modules it imports, the harness, the guards' data, test files, the two registries and the manifest).
+// A path matching any `never` entry is never additive-eligible, whatever else it matches. "If it is unclear whether a
+// path is a guard or runner, it is governance": tool configuration, lockfiles and Makefiles are matched by base name
+// anywhere in the tree, and the agent adapters that point readers at the guide (`AGENTS.md`, `CLAUDE.md`, an agent
+// tool's settings directory) are counted with the guide.
+const G = (re, what, kind) => Object.freeze({ re, what, kind });
+const JS = String.raw`\.[cm]?js`;
+export const GOVERNANCE_PATTERNS = Object.freeze([
+  G(/^architecture\/decisions\//i, 'an RFC or decision record (architecture/decisions/**)', 'never'),
+  G(/^CONTRIBUTING_AGENTS\.md$/i, 'the guide (CONTRIBUTING_AGENTS.md)', 'never'),
+  G(/^(?:AGENTS|CLAUDE)\.md$|^\.(?:claude|cursor|codex|gemini|windsurf)\//i, 'an agent adapter or agent tool settings (read with the guide)', 'never'),
+  G(/^docs\//i, 'docs/**', 'never'),
+  G(/^\.agents\//i, '.agents/**', 'never'),
+  G(/^\.github\//i, '.github/**', 'never'),
+  G(/(?:^|\/)package\.json$/i, 'a package file (package.json)', 'never'),
+  G(/(?:^|\/)(?:package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.ya?ml|bun\.lockb?|deno\.lock|[^/]*\.lock|[^/]*-lock\.(?:json|ya?ml))$/i, 'a lockfile', 'never'),
+  G(new RegExp(String.raw`(?:^|/)(?:\.npmrc|\.nvmrc|\.node-version|\.tool-versions|\.yarnrc(?:\.ya?ml)?|\.pnpmfile\.cjs|pnpm-workspace\.ya?ml|`
+    + String.raw`\.gitattributes|\.gitignore|\.gitmodules|\.editorconfig|\.browserslistrc|\.npmignore|\.swcrc|bunfig\.toml|`
+    + String.raw`\.(?:eslint|prettier|babel|stylelint|lintstaged|mocha|c8|nyc)rc(?:\.[a-z]+)?|\.(?:eslint|prettier)ignore|`
+    + String.raw`(?:eslint|prettier|babel|jest|vite|vitest|playwright|next|postcss|tailwind|webpack|rollup|svelte|astro|nuxt|remix|tsup|esbuild|commitlint|lint-staged|stylelint)\.config\.[a-z]+|`
+    + String.raw`[jt]sconfig(?:\.[^/]*)?\.json|biome\.jsonc?|deno\.jsonc?|turbo\.json|nx\.json|lerna\.json|wrangler\.(?:toml|jsonc?)|vercel\.json|netlify\.toml)$`
+    + String.raw`|(?:^|/)\.(?:husky|devcontainer|vscode|idea|config)/`, 'i'), 'tool configuration', 'never'),
+  G(/(?:^|\/)(?:GNU)?makefile$|\.mk$/i, 'a Makefile', 'never'),
+  G(new RegExp(String.raw`^scripts/db/classify-[^/]*${JS}$`, 'i'), 'a classifier (scripts/db/classify-*.mjs)', 'never'),
+  // Guards and runners CI uses that the additive rule does not name.
+  G(new RegExp(String.raw`^scripts/(?:.*/)?verify-[^/]*${JS}$`, 'i'), 'a guard (scripts/verify-*.mjs)', 'guard'),
+  G(new RegExp(String.raw`^scripts/(?:.*/)?validate-[^/]*${JS}$`, 'i'), 'a validator (scripts/validate-*.mjs)', 'guard'),
+  G(new RegExp(String.raw`^scripts/(?:.*/)?[^/]*-contract${JS}$`, 'i'), 'a guard contract (scripts/*-contract.mjs)', 'guard'),
+  G(new RegExp(String.raw`^scripts/(?:scan-repository-secrets|refresh-author-handoff|run-test-suite|record-verification|regenerate-integrity-manifest)${JS}$`, 'i'),
+    'a runner or generator CI uses', 'guard'),
+  // A test that pins CI or a classifier is never additive (RFC-2026-034 §2.2: "an edit to a classifier, to CI, or to a
+  // test that pins them" is governance), even though the next group also matches it.
+  G(/^test-kits\/(?:branch-scope|repository-json|test-coverage-floor)\.test\.mjs$/i, 'a test that pins CI or a classifier (test-kits/branch-scope, repository-json, test-coverage-floor)', 'never'),
+  // What the additive rule can cover (RFC-2026-034 §2.2, its five bullets).
+  G(/^scripts\/db\/(?:run|rls-smoke|authz-proofs)\.mjs$/i, 'the database runner or harness (scripts/db/run.mjs, rls-smoke.mjs, authz-proofs.mjs)', 'additive'),
+  G(/^db\/foundation\/(?:ci|test-helpers|seeds)\/|^db\/foundation\/prerequisites\.sql$/i, 'the database test harness (db/foundation/{ci,test-helpers,seeds}/**, prerequisites.sql)', 'additive'),
+  G(/^db\/foundation\/(?:lint|invariants)\//i, 'the data the database guards read (db/foundation/{lint,invariants}/**)', 'additive'),
+  G(/^test-kits\/[^/]+\.test\.mjs$/i, 'a top-level guard test (test-kits/*.test.mjs)', 'additive'),
+  G(/^test-kits\/db\/foundation-contract\.test\.mjs$/i, 'the foundation contract test, which pins the classifier (test-kits/db/foundation-contract.test.mjs)', 'additive'),
+  G(/^test-kits\/integrity-manifest\.json$/i, 'the integrity manifest (test-kits/integrity-manifest.json)', 'additive'),
+  G(/^scripts\/(?:test-suite-contract|verify-test-coverage-floor)\.mjs$/i, 'a test registry (scripts/test-suite-contract.mjs, scripts/verify-test-coverage-floor.mjs)', 'additive'),
+]);
+
+// The modules whose local imports, transitively and read at the head, are governance too (RFC-2026-034 §2.2: "every
+// module any of them imports"). Each module reached is additive-eligible unless a `never` pattern also names it.
+export const GOVERNANCE_IMPORT_ROOTS = Object.freeze(['scripts/db/run.mjs', 'scripts/db/rls-smoke.mjs', 'scripts/db/authz-proofs.mjs']);
+
+// The round audit's files (RFC-2026-034 §2.3): one dated directory under evidence/audits/.
+const AUDIT_PATH = /^evidence\/audits\/(\d{4}-\d{2}-\d{2})\/[^/].*$/;
+// Which package's branch carries the audit pull request (RFC-2026-034 §2.2, the Audit row).
+export const AUDIT_PACKAGE_MANIFEST = 'work-packages/WP-0A-A0-001.json';
+
+const RELATIVE_SPECS = [
+  ...IMPORT_SPECS.slice(0, 2),
+  new RegExp(String.raw`\bimport${GAP}\(${GAP}['"]([^'"]+)['"]`, 'g'),
+  new RegExp(String.raw`\brequire${GAP}\(${GAP}['"]([^'"]+)['"]`, 'g'),
+];
+const CODE_MODULE = /\.[cm]?js$/;
+// A dynamic import or require whose argument is not a string literal cannot be followed: fail closed.
+const OPAQUE_IMPORT = /\b(?:import|require)\s*\(\s*(?!['"]|\))/;
+
+// The local modules `roots` import, transitively, read with `readHead(path)` (which throws when it cannot read).
+// `files` is the set of paths at the head when known: a root absent from it imports nothing; a specifier that resolves
+// to no file in it is a problem. Returns { modules: Map(path -> the root that reaches it), problems: [...] }.
+export function importClosure(roots, readHead, files = null) {
+  const modules = new Map();
+  const problems = [];
+  const queue = [];
+  for (const root of roots) {
+    if (files && !files.has(root)) continue;
+    queue.push([root, root]);
+  }
+  const seen = new Set();
+  while (queue.length > 0) {
+    const [path, root] = queue.shift();
+    if (seen.has(path)) continue;
+    seen.add(path);
+    if (path !== root) modules.set(path, root);
+    if (!CODE_MODULE.test(path)) continue;
+    let text;
+    try {
+      text = readHead(path);
+      if (typeof text !== 'string') throw new Error('not text');
+    } catch {
+      problems.push(`${JSON.stringify(path)} could not be read at the head, so the modules it imports are unknown`);
+      continue;
+    }
+    if (text.split('\n').some((l) => OPAQUE_IMPORT.test(l))) {
+      problems.push(`${JSON.stringify(path)} imports or requires a module named by an expression, which cannot be followed`);
+    }
+    const specs = [];
+    for (const re of RELATIVE_SPECS) for (const m of text.matchAll(re)) specs.push(m[1]);
+    for (const spec of specs) {
+      if (!spec.startsWith('./') && !spec.startsWith('../')) continue;
+      const target = resolveRel(path, spec.split(/[?#]/)[0]);
+      if (target.startsWith('../') || target === '..') {
+        problems.push(`${JSON.stringify(path)} imports ${JSON.stringify(spec)}, outside the repository`);
+        continue;
+      }
+      if (files && !files.has(target)) {
+        problems.push(`${JSON.stringify(path)} imports ${JSON.stringify(spec)}, which resolves to no file at the head`);
+        continue;
+      }
+      if (!seen.has(target)) queue.push([target, root]);
+    }
+  }
+  return { modules, problems };
+}
+
+// The lane of one pull request (RFC-2026-034 §2.2). `paths` are its changed paths; `tier` and `recordsOnly` are what
+// `classifyTier` returned; `headRef` is its head branch when known; `auditBranch` is WP-0A-A0-001's `ownership.branch`
+// read at the base (undefined or null when it could not be read); `files` the set of paths at the head; `readHead(path)`
+// reads a file at the head and throws when it cannot. Returns { lane, reasons, additiveEligible }.
+export function laneOf({ paths, tier, recordsOnly, headRef = undefined, auditBranch = undefined, files = null, readHead = null } = {}) {
+  if (!Array.isArray(paths) || paths.length === 0 || !paths.every((p) => typeof p === 'string' && p.length > 0)) {
+    return { lane: 'governance', reasons: ['no list of changed paths to place (fail closed: governance)'], additiveEligible: false };
+  }
+  const all = [...new Set(paths.flatMap((p) => p.split(' -> ')))];
+  const reasons = [];
+  let coverable = true;
+  const hit = new Set();
+  for (const p of all) {
+    const matched = GOVERNANCE_PATTERNS.filter((g) => g.re.test(p));
+    if (matched.length === 0) continue;
+    hit.add(p);
+    reasons.push(`governance: ${JSON.stringify(p)} (${matched.map((g) => g.what).join('; ')})`);
+    if (matched.some((g) => g.kind === 'never') || !matched.some((g) => g.kind === 'additive')) coverable = false;
+  }
+  // The modules the runner and the harness import, read at the head (fail closed: what cannot be read is governance).
+  let closure;
+  if (typeof readHead !== 'function') {
+    closure = { modules: new Map(), problems: ['no reader of the head was given, so the modules the database runner and harness import are unknown'] };
+  } else {
+    closure = importClosure(GOVERNANCE_IMPORT_ROOTS, readHead, files);
+  }
+  for (const p of all) {
+    if (!closure.modules.has(p)) continue;
+    if (!hit.has(p)) reasons.push(`governance: ${JSON.stringify(p)} (a module ${closure.modules.get(p)} imports, read at the head)`);
+    hit.add(p);
+  }
+  if (closure.problems.length > 0) {
+    for (const why of closure.problems) reasons.push(`governance: ${why} (fail closed)`);
+    coverable = false;
+  }
+  if (hit.size > 0 || closure.problems.length > 0) {
+    return { lane: 'governance', reasons, additiveEligible: coverable && hit.size > 0 };
+  }
+  // Audit: every changed path in one dated directory under evidence/audits/, on WP-0A-A0-001's branch when the head
+  // branch is known.
+  const dates = new Set(all.map((p) => AUDIT_PATH.exec(p)?.[1] ?? null));
+  if (!dates.has(null) && dates.size === 1) {
+    const where = `every changed path is under evidence/audits/${[...dates][0]}/`;
+    if (headRef === undefined || headRef === null) {
+      return { lane: 'audit', reasons: [`audit: ${where} (the head branch was not given, so it was not checked against ${AUDIT_PACKAGE_MANIFEST})`], additiveEligible: false };
+    }
+    if (typeof auditBranch === 'string' && auditBranch.length > 0 && headRef === auditBranch) {
+      return { lane: 'audit', reasons: [`audit: ${where}, on ${JSON.stringify(headRef)}, WP-0A-A0-001's ownership.branch at the base`], additiveEligible: false };
+    }
+    reasons.push(typeof auditBranch === 'string' && auditBranch.length > 0
+      ? `not audit: ${where}, but the head branch ${JSON.stringify(headRef)} is not WP-0A-A0-001's ownership.branch at the base (${JSON.stringify(auditBranch)})`
+      : `not audit: ${where}, but WP-0A-A0-001's ownership.branch could not be read at the base (fail closed)`);
+  } else if (!dates.has(null) && dates.size > 1) {
+    reasons.push(`not audit: the changed paths span more than one audit directory (${[...dates].sort().join(', ')})`);
+  }
+  if (recordsOnly === true) {
+    reasons.push('records: the records-only classifier says records-only (RFC-2026-025 §6.1)');
+    return { lane: 'records', reasons, additiveEligible: false };
+  }
+  if (tier === 'H') {
+    reasons.push('risk: tier H outside governance, records and audit (RFC-2026-034 §2.2)');
+    return { lane: 'risk', reasons, additiveEligible: false };
+  }
+  if (tier === 'M' || tier === 'L') {
+    reasons.push(`fast: tier ${tier} (RFC-2026-034 §2.2): one independent Reviewer confirms in writing what the classifier cannot`);
+    return { lane: 'fast', reasons, additiveEligible: false };
+  }
+  reasons.push(`governance: tier ${JSON.stringify(tier)} is not a tier the lanes know (fail closed)`);
+  return { lane: 'governance', reasons, additiveEligible: false };
+}
+
+// What `--lane` prints after the tier report, as lines.
+export function formatLane(l) {
+  const out = [`lane: ${l.lane}`];
+  for (const why of l.reasons) out.push(`  ${why}`);
+  if (l.additiveEligible) {
+    out.push('additive-eligible: yes');
+    out.push('  every governance path is one RFC-2026-034 §2.2\'s additive rule can cover; the pull request takes the risk lane only once A1 and Q0 each confirm in writing, on the final head, that every guard hunk only adds (a test that pins a classifier, CI or a guard\'s own behaviour is not additive). Until both have, it is governance.');
+  }
+  return out;
+}
+
 // ---- the git side ---------------------------------------------------------------------------------------------
 
 const git = (args) => execFileSync('git', args, {
@@ -423,13 +637,41 @@ export function classifyTierRange(base, head) {
   return { mergeBase: mb, head: h, copy: copyNote(b), ...r };
 }
 
+// WP-0A-A0-001's `ownership.branch` as the base holds it, or null when it cannot be read (then nothing is audit).
+export function auditBranchAt(baseCommit) {
+  try {
+    const branch = JSON.parse(git(['cat-file', 'blob', `${baseCommit}:${AUDIT_PACKAGE_MANIFEST}`]))?.ownership?.branch;
+    return typeof branch === 'string' && branch.length > 0 ? branch : null;
+  } catch {
+    return null;
+  }
+}
+
+// The lane of the range a tier report `r` (from classifyTierRange) covers. The head is read by blob, never from the
+// working tree.
+export function laneOfRange(base, r, headRef) {
+  const files = new Set(git(['ls-tree', '-r', '-z', '--name-only', r.head]).split('\0').filter(Boolean));
+  return laneOf({
+    paths: r.paths, tier: r.tier, recordsOnly: r.recordsOnly, headRef, auditBranch: auditBranchAt(rev(base)), files,
+    readHead: (p) => git(['cat-file', 'blob', `${r.head}:${p}`]),
+  });
+}
+
+const USAGE = 'usage: classify-review-tier.mjs [<base>=origin/main] [<head>=HEAD] [--lane [--head-ref=<branch>]]';
+
 function main(argv) {
-  if (argv.length > 2 || argv.some((a) => a.startsWith('-'))) {
-    console.error('usage: classify-review-tier.mjs [<base>=origin/main] [<head>=HEAD]');
+  const lane = argv.filter((a) => a === '--lane').length;
+  const refs = argv.filter((a) => a.startsWith('--head-ref='));
+  const rest = argv.filter((a) => a !== '--lane' && !a.startsWith('--head-ref='));
+  if (rest.length > 2 || rest.some((a) => a.startsWith('-')) || lane > 1 || refs.length > 1 || (refs.length > 0 && lane === 0)) {
+    console.error(USAGE);
     return 2;
   }
-  const [base = 'origin/main', head = 'HEAD'] = argv;
-  for (const line of formatReport(classifyTierRange(base, head))) console.log(line);
+  const [base = 'origin/main', head = 'HEAD'] = rest;
+  const r = classifyTierRange(base, head);
+  const lines = formatReport(r);
+  if (lane === 1) lines.push(...formatLane(laneOfRange(base, r, refs.length > 0 ? refs[0].slice('--head-ref='.length) : undefined)));
+  for (const line of lines) console.log(line);
   return 0;
 }
 
