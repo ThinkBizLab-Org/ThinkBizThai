@@ -6653,8 +6653,8 @@ test('the review-tier classifier fails closed to H and only ever raises, each ru
 // shown below, in pure form and through the CLI on a throwaway repository. The four tests after the first two pin the
 // first fix round on PR #255 (C0, A1, Q0 and R0 at 7c4d5764), one finding group each.
 import {
-  AUDIT_PACKAGE_MANIFEST, GOVERNANCE_IMPORT_ROOTS, GOVERNANCE_PATTERNS, LANES, LINK_MODES, formatLane, governanceClosure,
-  importClosure, jsRefs, laneOf,
+  AUDIT_PACKAGE_MANIFEST, GOVERNANCE_IMPORT_ROOTS, GOVERNANCE_PATTERNS, LANES, LINK_MODES, backstopSpecs, formatLane,
+  governanceClosure, importClosure, jsRefs, laneOf, stringNames,
 } from '../../scripts/db/classify-review-tier.mjs';
 
 // The changes an audit pull request makes, as the raw diff gives them: each path added as a regular file.
@@ -6840,6 +6840,7 @@ test('the CLI prints the lane only with --lane, and without it prints the tier r
     await branch('gov', { 'docs/x.md': 'x\n' });
     await branch('records', { 'evidence/WP-X/session-1.md': 'one\ntwo\n' });
     await branch('agent/a0-001', { 'evidence/audits/2026-10-18/c0-audit.md': 'c0\n' });
+    await branch('additive', { 'db/foundation/lint/x.json': '{}\n' });
     const repos = ['--repo=org/repo', '--head-repo=org/repo'];
 
     // Without --lane the report is what it was: no lane line, and it is the --lane output's prefix, line for line.
@@ -6853,9 +6854,15 @@ test('the CLI prints the lane only with --lane, and without it prints the tier r
       assert.equal(laned.split('\n').filter((x) => /^lane: /.test(x)).length, 1);
       assert.match(laned, new RegExp(`^lane: ${lane}$`, 'm'), laned);
     }
+    // PR #255 round three: the classifier names `scripts/db/run.mjs` by a string (GOVERNANCE_IMPORT_ROOTS), so the
+    // string rule reaches the runner and its imports from a guard root, and they are governance but not
+    // additive-eligible. A path only an `additive` pattern names still is, through the CLI too.
     let [code, o] = await out('main', 'imported', '--lane');
-    assert.match(o, /governance: "scripts\/db\/sql-lexer\.mjs" \(a module scripts\/db\/run\.mjs imports, read at the head\)/);
-    assert.match(o, /^additive-eligible: yes$/m);
+    assert.match(o, /governance: "scripts\/db\/sql-lexer\.mjs" \(a module scripts\/db\/classify-review-tier\.mjs imports or names by a string, read at the head: reached from a guard/, o);
+    assert.doesNotMatch(o, /^additive-eligible: yes$/m, o);
+    [code, o] = await out('main', 'additive', '--lane');
+    assert.match(o, /^lane: governance$/m, o);
+    assert.match(o, /^additive-eligible: yes$/m, o);
     // The audit lane needs WP-0A-A0-001's branch from the base, the head branch, and both repositories, equal: another
     // head ref, no head ref, no repositories and a fork are each not audit (C0-255-3, R0-255-1, Q0-255-5).
     for (const [args, why] of [[['--head-ref=agent/other', ...repos], /is not WP-0A-A0-001's ownership\.branch/],
@@ -7172,9 +7179,12 @@ test('the lane counts a symbolic link or gitlink the walk reaches, the harness n
     assert.ok(l.reasons.some((x) => new RegExp(`"scripts/lib/h\\.mjs" is a (?:symbolic link|gitlink \\(submodule\\)) \\(mode ${mode}\\) the walk reaches from scripts/verify-a1-probe\\.mjs.*\\(fail closed\\)$`).test(x)), JSON.stringify(l.reasons));
     assert.equal(l.additiveEligible, false);
   }
-  // A regular file's mode changes nothing; a link nothing reaches or names changes nothing.
+  // A regular file's mode changes nothing. Since round three a link nothing reaches or names is governance too (every
+  // link at the head fails closed; the test of round three below pins why).
   assert.equal(evilLane(linked, { modes: new Map([['scripts/lib/h.mjs', '100644'], ['scripts/verify-a1-probe.mjs', '100755']]) }).lane, 'risk');
-  assert.equal(evilLane({ ...linked, 'notes/link.md': 'x' }, { modes: new Map([['notes/link.md', '120000']]) }).lane, 'risk');
+  const anywhere = evilLane({ ...linked, 'notes/link.md': 'x' }, { modes: new Map([['notes/link.md', '120000']]) });
+  assert.equal(anywhere.lane, 'governance');
+  assert.ok(anywhere.reasons.some((x) => /"notes\/link\.md" is a symbolic link \(mode 120000\) at the head; .*a link anywhere fails closed/.test(x)), JSON.stringify(anywhere.reasons));
   // A link a governance pattern names (a guard that is itself a link, a bare agent directory) makes every pull request
   // governance, even one that touches neither; so does a link the harness names by a path literal.
   for (const [p, why] of [['scripts/verify-link.mjs', /a guard/], ['.cursor', /an agent adapter/], ['docs', /docs\/\*\*/]]) {
@@ -7281,4 +7291,212 @@ test('the audit lane compares the head branch exactly, case included (PR #255 ro
   // And the other way: WP-0A-A0-001's branch written with capitals at the base admits only that exact spelling.
   assert.equal(of({ auditBranch: 'Agent/A0-001', headRef: 'agent/a0-001' }).lane, 'risk');
   assert.equal(of({ auditBranch: 'Agent/A0-001', headRef: 'Agent/A0-001' }).lane, 'audit');
+});
+
+// The third review round on PR #255 (C0, A1, R0 and Q0 at 39de17ae). Each round had found another way for a planted
+// import to hide from the walk; round three closes the class instead of the spelling: every link at the head fails
+// closed (C0-255r2-1, A1-255r3-1a, R0-255r2-1, Q0-255R2-1 R12); an import of a URL or an absolute path read from code
+// fails closed (A1-255r3-2); every string in a module the walk reads that names a code module joins the walk, so a
+// scanner misread hides nothing a literal names (A1-255r3-1b), while a string naming data adds nothing; and modules
+// resolve as node resolves them, failing closed on code the walk cannot read (Q0-255R2-1). Q0-255R2-2's three unpinned
+// behaviours (B4, B10, B20) are pinned last. The probes are the reviewers' own, as A0 measured them before the fix.
+const R3_EVIL = { 'src/lib/evil.mjs': 'export {};\n' };
+const r3Lane = (head, links = [], edit = 'src/lib/evil.mjs', mode = '120000') => laneOf({ paths: [edit], tier: 'H', recordsOnly: false,
+  files: new Set(Object.keys(head)), readHead: (p) => { if (!(p in head)) throw new Error(`no ${p}`); return head[p]; },
+  modes: new Map(links.map((p) => [p, mode])) });
+const r3Gov = (l, why, what) => {
+  assert.equal(l.lane, 'governance', `${what}: ${JSON.stringify(l)}`);
+  assert.equal(l.additiveEligible, false, what);
+  assert.ok(l.reasons.some((x) => why.test(x)), `${what}: ${JSON.stringify(l.reasons)}`);
+};
+const r3Escape = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+
+test('the lane fails closed on a symbolic link or gitlink anywhere at the head, so a link to a directory hides nothing beneath it, in pure form and through the CLI (PR #255 round three: C0-255r2-1, A1-255r3-1a, R0-255r2-1, Q0-255R2-1 R12)', async () => {
+  const atHead = (p) => new RegExp(`"${r3Escape(p)}" is a (?:symbolic link|gitlink \\(submodule\\)) \\(mode 1[26]0000\\) at the head; .*a link anywhere fails closed \\(fail closed\\)$`);
+  // C0's, A1's, R0's and Q0's probes: a guard holds A1's misread line, then a string import through a link to a
+  // directory (R0's four placements, C0's `tools/x`, Q0's `scripts/lnk`), double-quoted, backtick and static. Git lists
+  // the link as one entry, so the path beneath it is at no file; without the mode it reads as a file and is risk.
+  for (const [link, spec] of [['scripts/lib', './lib/evil.mjs'], ['tools/x', '../tools/x/evil.mjs'], ['scripts/db/lib', './db/lib/evil.mjs'],
+    ['src/x', '../src/x/evil.mjs'], ['scripts/lnk', './lnk/evil.mjs']]) {
+    for (const body of [behind(`await import("${spec}");`), behind(`await import(\`${spec}\`);`), behind(`import "${spec}";`)]) {
+      const head = { ...R3_EVIL, 'scripts/verify-a1-probe.mjs': body, [link]: '../src/lib' };
+      assert.equal(r3Lane(head).lane, 'risk', `${link} without its mode: ${body}`);
+      for (const mode of LINK_MODES) r3Gov(r3Lane(head, [link], undefined, mode), atHead(link), `${link} ${mode}: ${body}`);
+    }
+  }
+  // C0's harness row: the harness names a data file through a link to a directory.
+  const harness = { 'src/sql/seed.sql': 'x', 'scripts/db/run.mjs': "export const S = 'data/linked/seed.sql';\n", 'data/linked': '../src/sql' };
+  r3Gov(r3Lane(harness, ['data/linked'], 'src/sql/seed.sql'), atHead('data/linked'), 'the harness through a directory link');
+  // A link nothing reaches or names, anywhere, with nothing else at the head.
+  r3Gov(r3Lane({ ...R3_EVIL, 'notes/deep/link.md': 'x' }, ['notes/deep/link.md']), atHead('notes/deep/link.md'), 'a link nothing names');
+  // No link, no such problem: the same head with every mode a regular file's is risk.
+  assert.equal(laneOf({ paths: ['src/lib/evil.mjs'], tier: 'H', recordsOnly: false, files: new Set(Object.keys(harness)), readHead: (p) => harness[p],
+    modes: new Map(Object.keys(harness).map((p) => [p, '100644'])) }).lane, 'risk');
+
+  // Through the CLI on a throwaway repository: C0's row, a guard planted with the misread and an import through
+  // `tools/x`, a symbolic link to `../src/lib`; then a pull request that edits only src/lib/evil.mjs.
+  const cli = join(process.cwd(), 'scripts/db/classify-review-tier.mjs');
+  const dir = await mkdtemp(join(tmpdir(), 'review-lane-dirlink-'));
+  try {
+    const env = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 'review-lane-test', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 'review-lane-test', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' };
+    delete env.GIT_DIR;
+    delete env.GIT_WORK_TREE;
+    delete env.GIT_INDEX_FILE;
+    const g = (...a) => run('git', ['-c', 'commit.gpgsign=false', '-c', 'init.defaultBranch=main', ...a], { cwd: dir, env });
+    const put = (p, c) => mkdir(join(dir, p, '..'), { recursive: true }).then(() => writeFile(join(dir, p), c));
+    await g('init', '-q');
+    for (const p of ['scripts/db/classify-review-tier.mjs', 'scripts/db/classify-records-only.mjs']) await put(p, await readFile(join(process.cwd(), p)));
+    await put('src/lib/evil.mjs', 'export {};\n');
+    await put('scripts/verify-a1-probe.mjs', behind('await import("../tools/x/evil.mjs");'));
+    await mkdir(join(dir, 'tools'), { recursive: true });
+    await symlink('../src/lib', join(dir, 'tools/x'));
+    await g('add', '-A');
+    await g('commit', '-q', '-m', 'planted');
+    assert.match((await g('ls-tree', 'HEAD', 'tools/x')).stdout, /^120000 blob /, 'git holds the directory link as one entry');
+    await g('checkout', '-q', '-b', 'edit');
+    await put('src/lib/evil.mjs', 'export const changed = 1;\n');
+    await g('commit', '-q', '-am', 'edit');
+    const o = (await run(process.execPath, [cli, 'main', 'edit', '--lane'], { cwd: dir, env })).stdout;
+    assert.match(o, /^lane: governance$/m, o);
+    assert.match(o, /"tools\/x" is a symbolic link \(mode 120000\) at the head; .*a link anywhere fails closed \(fail closed\)$/m, o);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('the lane fails closed on a guard\'s import of a URL or an absolute path, and reads a repository path a data: module names (PR #255 round three: A1-255r3-2)', () => {
+  const lane = (body, edit = 'src/lib/evil.mjs') => r3Lane({ ...R3_EVIL, 'src/lib/evil.cjs': '', 'scripts/verify-a1-probe.mjs': body }, [], edit);
+  const url = /imports ".*", a URL or an absolute path: only node: built-ins and relative paths are followed \(fail closed\)$/;
+  // A1's two rows, with no misread: each was risk at 39de17ae.
+  const fileUrl = 'await import("data:text/javascript,import%20%22file:///checkout/src/lib/evil.mjs%22;");';
+  const cwdRequire = "await import(\"data:text/javascript,import{createRequire}from'node:module';createRequire(process.cwd()%2B'/')('./src/lib/evil.cjs')\");";
+  r3Gov(lane(`${fileUrl}\n`), url, 'A1: data: URL with a file:// URL inside');
+  r3Gov(lane(`${cwdRequire}\n`, 'src/lib/evil.cjs'), url, 'A1: data: URL with createRequire(cwd) inside');
+  // Every scheme but node:, in any case, and every absolute path.
+  for (const spec of ['file:///x/evil.mjs', 'FILE:///x/evil.mjs', 'http://example.test/x.mjs', 'https://example.test/x.mjs', 'blob:nodedata:x',
+    'data:text/javascript,', '/abs/evil.mjs', 'C:/x/evil.mjs', 'c:\\x\\evil.mjs', '\\\\server\\share\\x.mjs']) {
+    r3Gov(lane(`import ${JSON.stringify(spec)};\n`), url, spec);
+    r3Gov(lane(`const m = require(${JSON.stringify(spec)});\n`), url, `require ${spec}`);
+  }
+  // A node: built-in and a bare package name are not problems.
+  for (const body of ['import fs from "node:fs";\n', 'import x from "some-package";\n', 'const c = require("node:child_process");\n']) assert.equal(lane(body).lane, 'risk', body);
+  // Behind a misread the specifier is not read from code, so the URL rule does not see it; the string rule still reads
+  // the repository path inside the data: module, from the root. An absolute file:// URL inside one names no repository
+  // path literally: the residual RFC-2026-007 Amendment 2026-10-11 §D names, risk.
+  r3Gov(lane(behind(cwdRequire), 'src/lib/evil.cjs'), /"src\/lib\/evil\.cjs" \(a module scripts\/verify-a1-probe\.mjs imports or names by a string, read at the head: reached from a guard/, 'A1: createRequire behind a misread');
+  assert.equal(lane(behind(fileUrl)).lane, 'risk', 'the residual: an absolute file:// URL inside a data: module');
+});
+
+test('the lane follows every string in a guard that names a code module, whatever the scanner made of the text, and a string that names data adds nothing (PR #255 round three: A1-255r3-1b)', () => {
+  const named = (p, root = 'scripts/verify-a1-probe.mjs') => new RegExp(`"${r3Escape(p)}" \\(a module ${r3Escape(root)} imports or names by a string, read at the head: reached from a guard`);
+  // A1's .cjs rows: an HTML-like comment, which the scanner does not model, behind a misread. The misread is real.
+  for (const body of [behind('require( <!-- c', '"../src/lib/evil.cjs");'), behind('require(', '--> c', '"../src/lib/evil.cjs");')]) {
+    assert.deepEqual(jsRefs(body).specs, [], body);
+    r3Gov(r3Lane({ 'src/lib/evil.cjs': '', 'scripts/verify-a1-probe.cjs': body }, [], 'src/lib/evil.cjs'), named('src/lib/evil.cjs', 'scripts/verify-a1-probe.cjs'), body);
+  }
+  // Any string, not only one in an import: in a constant, in an array, in a comment, from the module or the root, with
+  // a query, without its extension, escaped, percent-encoded; with and without a misread.
+  for (const line of ['const p = "../src/lib/evil.mjs";', "const all = ['x', 'src/lib/evil.mjs'];", "// loads '../src/lib/evil.mjs' later",
+    'const p = "../src/lib/evil.mjs?v=1#top";', 'const p = "../src/lib/evil";', 'const p = "../src/lib/ev\\u0069l.mjs";', 'const p = "../src/lib/%65vil.mjs";',
+    'const p = `../src/lib/evil.mjs`;']) {
+    for (const body of [`${line}\n`, behind(line)]) r3Gov(r3Lane({ ...R3_EVIL, 'scripts/verify-a1-probe.mjs': body }), named('src/lib/evil.mjs'), body);
+  }
+  // The string rule reads code modules only: a string that names data (JSON, SQL, Markdown) adds nothing.
+  for (const [p, line] of [['src/data/x.json', "const d = 'src/data/x.json';"], ['src/sql/seed.sql', "const s = '../src/sql/seed.sql';"], ['notes/a.md', "const m = 'notes/a.md';"]]) {
+    assert.equal(r3Lane({ [p]: 'x', 'scripts/verify-a1-probe.mjs': `${line}\n` }, [], p).lane, 'risk', p);
+  }
+  // Code node can run that the walk cannot read, named by a string: a problem.
+  for (const ext of ['ts', 'mts', 'cts', 'tsx', 'jsx', 'node', 'wasm']) {
+    r3Gov(r3Lane({ ...R3_EVIL, [`src/lib/h.${ext}`]: 'x', 'scripts/verify-a1-probe.mjs': `const h = '../src/lib/h.${ext}';\n` }),
+      new RegExp(`names "\\.\\./src/lib/h\\.${ext}", which resolves to "src/lib/h\\.${ext}", code node can run and the walk cannot read \\(fail closed\\)$`), ext);
+  }
+  // The harness's .sql/.json rule keeps round one's scope: it reads what the harness reaches by imports, not what it
+  // reaches by a string. The module the runner names by a string is governance (additive); the data that module names is not.
+  const head = { 'scripts/db/run.mjs': "const helper = 'scripts/db/by-string.mjs';\n", 'scripts/db/by-string.mjs': "export const F = 'tests/db/x/data.json';\n",
+    'tests/db/x/data.json': '{}\n' };
+  const files = new Set(Object.keys(head));
+  const of = (p, h = head) => laneOf({ paths: [p], tier: 'H', recordsOnly: false, files: new Set(Object.keys(h)), readHead: (x) => h[x] });
+  const helper = of('scripts/db/by-string.mjs');
+  assert.equal(helper.lane, 'governance', JSON.stringify(helper));
+  assert.equal(helper.additiveEligible, true);
+  assert.ok(helper.reasons.some((x) => /"scripts\/db\/by-string\.mjs" \(a module scripts\/db\/run\.mjs imports or names by a string, read at the head\)/.test(x)), JSON.stringify(helper.reasons));
+  assert.equal(of('tests/db/x/data.json').lane, 'risk');
+  assert.ok(!governanceClosure({ files, readHead: (x) => head[x] }).data.has('tests/db/x/data.json'));
+  // Imported, the same module's data is the harness's.
+  const imported = { ...head, 'scripts/db/run.mjs': "import './by-string.mjs';\n" };
+  assert.equal(of('tests/db/x/data.json', imported).lane, 'governance');
+  assert.ok(governanceClosure({ files: new Set(Object.keys(imported)), readHead: (x) => imported[x] }).data.has('tests/db/x/data.json'));
+});
+
+test('the lane resolves a guard\'s imports as node does, and fails closed on a module it cannot read (PR #255 round three: Q0-255R2-1 R13 to R16)', () => {
+  const reached = (p, root) => new RegExp(`"${r3Escape(p)}" \\(a module ${r3Escape(root)} imports`);
+  // Q0's R13 (an extensionless require behind a misread), R13b (the same with no misread: followed, no longer a
+  // problem), R16 (a directory require behind a misread), and the other forms node resolves: a directory's index, a
+  // package.json main with and without its extension.
+  const cjs = 'scripts/verify-q0-probe.cjs';
+  for (const [what, head, edit] of [
+    ['R13', { 'src/lib/cj.js': '', [cjs]: behind('require("../src/lib/cj");') }, 'src/lib/cj.js'],
+    ['R13b', { 'src/lib/cj.js': '', [cjs]: 'require("../src/lib/cj");\n' }, 'src/lib/cj.js'],
+    ['R16', { 'src/lib/index.js': '', [cjs]: behind('require("../src/lib");') }, 'src/lib/index.js'],
+    ['index.cjs', { 'src/lib/index.cjs': '', [cjs]: 'require("../src/lib");\n' }, 'src/lib/index.cjs'],
+    ['.mjs added', { 'src/lib/m.mjs': '', [cjs]: 'require("../src/lib/m");\n' }, 'src/lib/m.mjs'],
+    ['package.json main', { 'src/pkg/package.json': '{"main":"lib/m.js"}', 'src/pkg/lib/m.js': '', [cjs]: 'require("../src/pkg");\n' }, 'src/pkg/lib/m.js'],
+    ['main without its extension', { 'src/pkg/package.json': '{"main":"lib/m"}', 'src/pkg/lib/m.cjs': '', [cjs]: 'require("../src/pkg");\n' }, 'src/pkg/lib/m.cjs'],
+    ['main a directory', { 'src/pkg/package.json': '{"main":"lib"}', 'src/pkg/lib/index.js': '', [cjs]: 'require("../src/pkg");\n' }, 'src/pkg/lib/index.js'],
+  ]) r3Gov(r3Lane(head, [], edit), reached(edit, cjs), what);
+  // Q0's R14 and R15: a TypeScript module a guard imports, with no misread: node runs it, the walk cannot read it, so it
+  // is a problem. So is every other extension the walk does not read, named exactly or resolved by an added extension.
+  for (const ext of ['mts', 'ts', 'cts', 'tsx', 'jsx']) {
+    for (const spec of [`./lib/h.${ext}`, ...(['ts', 'mts', 'cts'].includes(ext) ? ['./lib/h'] : [])]) {
+      const head = { ...R3_EVIL, 'scripts/verify-q0-probe.mjs': `import "${spec}";\n`, [`scripts/lib/h.${ext}`]: 'import "../../src/lib/evil.mjs";\n' };
+      r3Gov(r3Lane(head), new RegExp(`imports "${r3Escape(spec)}", which resolves to "scripts/lib/h\\.${ext}", a module the walk cannot read \\(only \\.js, \\.mjs, \\.cjs and \\.json\\) \\(fail closed\\)$`), spec);
+    }
+  }
+  // Read from code, an import of any other file the walk does not read is a problem too (the raw backstop flags only
+  // code node can run): a stylesheet, SQL, text.
+  for (const f of ['scripts/lib/style.css', 'scripts/lib/q.sql', 'scripts/lib/notes.txt']) {
+    const spec = `./${f.slice('scripts/'.length)}`;
+    r3Gov(r3Lane({ ...R3_EVIL, 'scripts/verify-q0-probe.mjs': `import "${spec}";\n`, [f]: 'x' }),
+      new RegExp(`imports "${r3Escape(spec)}", which resolves to "${r3Escape(f)}", a module the walk cannot read`), f);
+  }
+  // A JSON import is data the walk need not read: no problem, and the file itself is governance.
+  const json = { ...R3_EVIL, 'scripts/verify-q0-probe.mjs': 'import d from "./d.json" with { type: "json" };\n', 'scripts/d.json': '{}\n' };
+  assert.equal(r3Lane(json).lane, 'risk');
+  r3Gov(r3Lane(json, [], 'scripts/d.json'), reached('scripts/d.json', 'scripts/verify-q0-probe.mjs'), 'a JSON import');
+  // A package.json that cannot be read as JSON, or whose main leaves the repository, is a problem; so is an import that
+  // resolves to nothing.
+  for (const [pkg, why] of [['{', /"src\/pkg\/package\.json" could not be read as JSON/], ['{"main":"../../../outside.js"}', /names a main outside the repository/]]) {
+    r3Gov(r3Lane({ ...R3_EVIL, 'src/pkg/package.json': pkg, [cjs]: 'require("../src/pkg");\n' }), why, pkg);
+  }
+  r3Gov(r3Lane({ ...R3_EVIL, [cjs]: 'require("../src/gone");\n' }), /imports "\.\.\/src\/gone", which resolves to no file at the head/, 'nothing there');
+  // A string or a backstop candidate that names a directory whose package.json is not JSON adds nothing (node refuses
+  // to load it): the classifier's own string "." with a scratch repository's stub package.json is not a problem.
+  for (const body of ['const here = ".";\n', behind('require("../src/pkg");'), 'const p = "../src/pkg";\n']) {
+    assert.equal(r3Lane({ ...R3_EVIL, 'package.json': 'not json', 'src/pkg/package.json': '{', 'scripts/verify-q0-probe.mjs': body }).lane, 'risk', body);
+  }
+});
+
+test('the lane\'s backstop and string rule drop tabs and line breaks, a wide // comment ends at every line end, and the additive walk checks links (PR #255 round three: Q0-255R2-2 B4, B10, B20)', () => {
+  // B4 (Q0's R8): a tab or a line break inside a specifier, which a URL drops, behind a misread; and in each reader.
+  for (const body of [behind('await import("../src/lib/ev\til.mjs");'), behind('await import(`../src/lib/ev\nil.mjs`);'), behind('await import(`../src/lib/e\r\nvil.mjs`);')]) {
+    assert.equal(r3Lane({ ...R3_EVIL, 'scripts/verify-a1-probe.mjs': body }).lane, 'governance', JSON.stringify(body));
+  }
+  for (const spec of ['./a\t.mjs', './a\n.mjs', './\r\na.mjs']) {
+    assert.ok(backstopSpecs(`import(\`${spec}\`)`).includes('./a.mjs'), JSON.stringify(spec));
+    assert.ok(stringNames(`x = \`${spec}\``).includes('./a.mjs'), JSON.stringify(spec));
+  }
+  // B10 (Q0's R9): the wide raw scan ends a // comment at LF, CR, U+2028 and U+2029, as V8 does.
+  for (const end of ['\n', '\r', '\u2028', '\u2029']) {
+    assert.ok(backstopSpecs(`import( // c${end}"./a.mjs")`).includes('./a.mjs'), JSON.stringify(end));
+    assert.ok(backstopSpecs(`export { x } from // c${end}'./b.mjs'`).includes('./b.mjs'), JSON.stringify(end));
+    assert.equal(r3Lane({ ...R3_EVIL, 'scripts/verify-a1-probe.mjs': behind(`await import( // c${end}"../src/lib/evil.mjs");`) }).lane, 'governance', JSON.stringify(end));
+  }
+  // B20: the additive walk checks links, a non-code `.json` the runner imports included: the reason names the walk that
+  // reaches it, not only the link at the head.
+  const head = { ...R3_EVIL, 'scripts/db/run.mjs': "import d from './data.json' with { type: 'json' };\n", 'scripts/db/data.json': '../../x.json' };
+  const l = r3Lane(head, ['scripts/db/data.json']);
+  r3Gov(l, /"scripts\/db\/data\.json" is a symbolic link \(mode 120000\) the walk reaches from scripts\/db\/run\.mjs/, 'B20');
+  const links = new Map([['scripts/db/data.json', '120000']]);
+  const c = importClosure(['scripts/db/run.mjs'], (p) => head[p], new Set(Object.keys(head)), undefined, links);
+  assert.ok(c.problems.some((x) => /"scripts\/db\/data\.json" is a symbolic link \(mode 120000\) the walk reaches from scripts\/db\/run\.mjs/.test(x)), JSON.stringify(c.problems));
 });

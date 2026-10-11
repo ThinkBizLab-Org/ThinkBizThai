@@ -581,11 +581,15 @@ const TEST_MODULE = /\.test\.[cm]?js$/i;
 // and one after `}` as a regular expression; a misread can hide an import from `jsRefs`. That is why `importClosure`
 // also follows every specifier the raw keyword scan finds (`backstopSpecs`), wherever it stands: after `from`, `import`,
 // `import(` or `require(`, past whitespace, comments and parentheses, written with `'`, `"` or a backtick holding no `${`,
-// read as written and with its escapes and percent-encoding decoded. Behind a misread, what can still hide is an import
-// whose specifier is computed (an expression, or a template literal with a `${`), and a module loaded by a mechanism
-// that is not an import or `require` (A1-255r2-1 on PR #255, round two). Line comments and regular expressions end at LF, CR,
-// U+2028 and U+2029, as V8 ends them; a string literal may hold U+2028 and U+2029 (ES2019), and ends unterminated at
-// LF or CR.
+// read as written and with its escapes and percent-encoding decoded (A1-255r2-1 on PR #255, round two); and why every
+// string in the module that names a code module at the head joins the walk too (`stringNames`, round three), so a misread
+// cannot hide a module named by a literal path. The walk is a best-effort aid, not a parser. A module can still hide
+// from it only if a guard loads it by a path computed at run time (not written as a literal), or by a loading mechanism
+// that names no repository-relative path literally (for example an absolute `file://` URL inside a `data:` module).
+// Planting either in a guard is itself a governance edit that all four roles read; a reader of a governance pull
+// request checks whether a guard's module loading changed (RFC-2026-007 Amendment 2026-10-11 §D). Line comments and
+// regular expressions end at LF, CR, U+2028 and U+2029, as V8 ends them; a string literal may hold U+2028 and U+2029
+// (ES2019), and ends unterminated at LF or CR.
 const LINE_END = new Set(['\n', '\r', '\u2028', '\u2029']);
 const ID_START = /[A-Za-z_$\u0080-\uffff]/;
 const ID_PART = /[\w$\u0080-\uffff]/;
@@ -739,17 +743,54 @@ const decodeEscapes = (text) => text.replace(ESCAPE, (_, cp, u, x, cont, ch) => 
   const code = Number.parseInt(cp ?? u ?? x, 16);
   return code <= 0x10ffff ? String.fromCodePoint(code) : '';
 });
-function backstopSpecs(text) {
+export function backstopSpecs(text) {
   const raw = rawSpecs(text, { calls: true, wide: true });
   if (text.includes('\\')) raw.push(...rawSpecs(decodeEscapes(text), { calls: true, wide: true }));
   const out = new Set();
-  for (const spec of raw) {
-    out.add(spec);
-    const bare = spec.replace(/[\t\n\r]/g, '');
-    out.add(bare);
-    try { out.add(decodeURIComponent(bare)); } catch { /* malformed percent-encoding: the other spellings stand */ }
-  }
+  for (const spec of raw) for (const v of spellings(spec)) out.add(v);
   return [...out];
+}
+// One specifier or string as written, with tabs and line breaks removed, and that percent-decoded, as a URL resolves an
+// ES module specifier; the string rule (below) also reads each without a `?` query or `#` fragment.
+function spellings(s, query = false) {
+  const out = new Set([s]);
+  const bare = s.replace(/[\t\n\r]/g, '');
+  out.add(bare);
+  try { out.add(decodeURIComponent(bare)); } catch { /* malformed percent-encoding: the other spellings stand */ }
+  if (query) for (const v of [...out]) out.add(v.split(/[?#]/)[0]);
+  return out;
+}
+
+// THE STRING RULE (PR #255, round three: C0-255r2-1, A1-255r3-1, R0-255r2-1, Q0-255R2-1). Every string in a module the
+// walk reads that names a CODE module at the head (`.js`, `.mjs`, `.cjs`, resolved as `resolveModule` resolves it) joins
+// the closure, whether or not the scanner reads it as an import, so a scanner misread cannot hide a module a guard names
+// by a string; one that names code the walk cannot read (`.ts`, `.mts`, `.cts`, `.tsx`, `.jsx`, `.node`, `.wasm`) is a
+// problem. A string that names a data file (JSON, SQL, Markdown, a manifest, anything else) adds nothing: what a data
+// file holds runs nothing, and the harness's data is read by its own rule (`governanceClosure`), from what the harness
+// imports only. It reads the RAW text, not the scanner's tokens: every
+// span between two consecutive `'`, two consecutive `"`, or two consecutive backticks (one holding no `${`), in the text
+// as written and, when it holds a backslash, with every escape decoded. Every literal is such a span whatever the scanner
+// made of the text around it; so are spans in comments and between two literals, which only add candidates. Linear: the
+// spans of one quote character do not overlap.
+const STRING_MAX = 4096;
+export function stringNames(text) {
+  const out = new Set();
+  const texts = text.includes('\\') ? [text, decodeEscapes(text)] : [text];
+  for (const t of texts) {
+    for (const q of ["'", '"', '`']) {
+      let open = t.indexOf(q);
+      while (open !== -1) {
+        const close = t.indexOf(q, open + 1);
+        if (close === -1) break;
+        const s = t.slice(open + 1, close);
+        if (s.length > 0 && s.length <= STRING_MAX && !(q === '`' && s.includes('${'))) out.add(s);
+        open = close;
+      }
+    }
+  }
+  const all = new Set();
+  for (const s of out) for (const v of spellings(s, true)) if (v.length > 0) all.add(v);
+  return [...all];
 }
 
 // Every reading of one module, by path, for one classification: `readHead` is called once per path, and the scan once
@@ -762,7 +803,9 @@ function moduleReader(readHead) {
       try {
         const text = readHead(path);
         if (typeof text !== 'string') throw new Error('not text');
-        entry = CODE_MODULE.test(path) ? { text, ...jsRefs(text), raw: backstopSpecs(text) } : { text, specs: [], opaque: [], literals: [], problems: [], raw: [] };
+        entry = CODE_MODULE.test(path)
+          ? { text, ...jsRefs(text), raw: backstopSpecs(text), strings: stringNames(text) }
+          : { text, specs: [], opaque: [], literals: [], problems: [], raw: [], strings: [] };
       } catch {
         entry = null;
       }
@@ -773,21 +816,86 @@ function moduleReader(readHead) {
 }
 
 const LOCAL_SPEC = /^\.\.?\//;
-const OUTSIDE_SPEC = /^(?:\/|file:|[a-z]:[\\/])/i;
+// A specifier that is a URL (any scheme but `node:`: `data:`, `file:`, `http:`, `https:`, `blob:`, ...) or an absolute
+// path (POSIX, a drive letter, a UNC or backslash path) names nothing the walk can follow (A1-255r3-2 on PR #255).
+const URL_OR_ABSOLUTE = /^(?:[a-z][a-z0-9+.-]*:|\/|\\)/i;
+const outsideSpec = (spec) => URL_OR_ABSOLUTE.test(spec) && !/^node:/i.test(spec);
 // The repository path a local specifier of `from` names, or null when it leaves the repository.
 function localTarget(from, spec) {
   const target = resolveRel(from, spec.split(/[?#]/)[0]);
   return target.startsWith('../') || target === '..' ? null : target;
 }
 
+// What the walk reads (a JavaScript module) or need not read (JSON); anything else a module imports is a module it
+// cannot read (Q0-255R2-1: fail closed, not scanned as JavaScript). A file named only by a string joins the walk only
+// when it is code: a `.js`, `.mjs` or `.cjs` file is read in turn, code node can run that the walk cannot read is a
+// problem, and a data file adds nothing.
+const WALK_READS = /\.(?:[cm]?js|json)$/i;
+const CODE_NOT_READ = /\.(?:[cm]?ts|tsx|jsx|node|wasm)$/i;
+// Module resolution as node does it for the forms this repository can use (Q0-255R2-1 on PR #255): the exact path; the
+// path with `.js`, `.mjs`, `.cjs`, `.json`, `.ts`, `.mts` or `.cts` added; a directory's `package.json` `main` (read the
+// same way), then its `index.js`, `index.mjs` or `index.cjs`. Returns { path } or { problem } or null (nothing there).
+// A `package.json` that is not JSON is a problem for an import read from code; for a candidate the backstop or the
+// string rule finds (`candidate`), it is nothing there: node refuses to load such a directory (ERR_INVALID_PACKAGE_CONFIG),
+// so nothing is hidden behind it, and any string that happens to name the directory (`.`) is not a load.
+const RESOLVE_EXTS = ['.js', '.mjs', '.cjs', '.json', '.ts', '.mts', '.cts'];
+const INDEX_FILES = ['index.js', 'index.mjs', 'index.cjs'];
+const DIRS = new WeakMap();
+function dirsOf(files) {
+  if (!DIRS.has(files)) {
+    const dirs = new Set(['.']);
+    for (const f of files) for (let i = f.indexOf('/'); i !== -1; i = f.indexOf('/', i + 1)) dirs.add(f.slice(0, i));
+    DIRS.set(files, dirs);
+  }
+  return DIRS.get(files);
+}
+function resolveModule(base, files, read, candidate = false) {
+  if (files === null) return { path: base };
+  const asFile = (b) => {
+    if (b !== '.' && files.has(b)) return b;
+    for (const ext of RESOLVE_EXTS) if (files.has(b + ext)) return b + ext;
+    return null;
+  };
+  const file = asFile(base);
+  if (file !== null) return { path: file };
+  if (!dirsOf(files).has(base)) return null;
+  const inDir = (name) => (base === '.' ? name : `${base}/${name}`);
+  const indexOf = (dir) => INDEX_FILES.map((n) => (dir === '.' ? n : `${dir}/${n}`)).find((p) => files.has(p)) ?? null;
+  const pkg = inDir('package.json');
+  if (files.has(pkg)) {
+    const m = read(pkg);
+    let main;
+    try { main = JSON.parse(m?.text ?? '')?.main; } catch { main = null; }
+    if (m !== null && main === null && candidate) return null;
+    if (m === null || main === null) return { problem: `${JSON.stringify(pkg)} could not be read as JSON, so what the directory resolves to is unknown` };
+    if (typeof main === 'string' && main.length > 0) {
+      const target = posix.normalize(posix.join(base, main));
+      if (target.startsWith('../') || target === '..' || target.startsWith('/')) return { problem: `${JSON.stringify(pkg)} names a main outside the repository (${JSON.stringify(main)})` };
+      const hit = asFile(target) ?? (dirsOf(files).has(target) ? indexOf(target) : null);
+      if (hit !== null) return { path: hit };
+    }
+  }
+  const index = indexOf(base);
+  return index === null ? null : { path: index };
+}
+
 // The local modules `roots` import, transitively, read with `readHead(path)` (which throws when it cannot read).
-// `files` is the set of paths at the head when known: a root absent from it imports nothing; a specifier read from code
-// that resolves to no file in it is a problem. A quoted specifier the raw keyword scan finds anywhere else in a module
-// (in a string or a comment, or code the scanner misread) is followed when it names a file at the head, and is never a
-// problem: it can only add modules. `links` maps each path at the head that is a symbolic link or a gitlink to its mode:
-// node loads what a link points at, and the walk reads only the link's text, so a link the walk reaches is a problem
-// (A1-255r2-1 on PR #255, round two). Returns { modules: Map(path -> the root that reaches it), problems: [...] }.
-export function importClosure(roots, readHead, files = null, read = moduleReader(readHead), links = null) {
+// `files` is the set of paths at the head when known: a root absent from it imports nothing. Each module the walk reads
+// is followed three ways:
+//   - a specifier read from its code (`jsRefs`): resolved as node resolves it (`resolveModule`); one that resolves to
+//     nothing, leaves the repository, is a URL or an absolute path, or resolves to a file the walk cannot read (not
+//     `.js`, `.mjs`, `.cjs` or `.json`) is a problem;
+//   - a specifier the raw keyword scan finds anywhere (`backstopSpecs`, in strings and comments too): followed when it
+//     resolves to a file, and otherwise dropped, so it can only add modules;
+//   - with `strings` (the default), a string that names a code module (`stringNames`), resolved from the module's
+//     directory and from the repository root: a `.js`, `.mjs` or `.cjs` file joins the closure and is read in turn; one
+//     node could run as code the walk cannot read (`.ts`, `.mts`, `.cts`, `.tsx`, `.jsx`, `.node`, `.wasm`) is a
+//     problem; a data file adds nothing. The harness's walk for its path literals passes `strings: false`.
+// `links` maps each path at the head that is a symbolic link or a gitlink to its mode: node loads what a link points at
+// and the walk reads only the link's text, so a link the walk reaches is a problem (A1-255r2-1 on PR #255, round two);
+// `governanceClosure` makes every other link at the head a problem too. Returns { modules: Map(path -> the root that
+// reaches it), named: Set(the modules reached through a string on the way), problems: [...] }.
+export function importClosure(roots, readHead, files = null, read = moduleReader(readHead), links = null, { strings = true } = {}) {
   const modules = new Map();
   const problems = [];
   const queue = [];
@@ -796,11 +904,14 @@ export function importClosure(roots, readHead, files = null, read = moduleReader
     queue.push([root, root]);
   }
   const seen = new Set();
+  const named = new Set();
+  const add = (target, root, byString) => { if (!seen.has(target)) queue.push([target, root, byString]); };
   for (let q = 0; q < queue.length; q += 1) {
-    const [path, root] = queue[q];
+    const [path, root, byString = false] = queue[q];
     if (seen.has(path)) continue;
     seen.add(path);
     if (path !== root) modules.set(path, root);
+    if (byString) named.add(path);
     if (links?.has(path)) {
       problems.push(`${JSON.stringify(path)} is ${linkWhat(links.get(path))} the walk reaches from ${root}; what it stands for is not read, so the modules behind it are unknown`);
       continue;
@@ -814,21 +925,40 @@ export function importClosure(roots, readHead, files = null, read = moduleReader
     for (const why of m.problems) problems.push(`${JSON.stringify(path)} could not be read as JavaScript (${why}), so the modules it imports are unknown`);
     for (const what of m.opaque) problems.push(`${JSON.stringify(path)} imports or requires a module named by an expression (${what}), which cannot be followed`);
     for (const spec of m.specs) {
-      if (OUTSIDE_SPEC.test(spec)) { problems.push(`${JSON.stringify(path)} imports ${JSON.stringify(spec)}, outside the repository`); continue; }
+      if (outsideSpec(spec)) { problems.push(`${JSON.stringify(path)} imports ${JSON.stringify(spec)}, a URL or an absolute path: only node: built-ins and relative paths are followed`); continue; }
       if (!LOCAL_SPEC.test(spec)) continue;
-      const target = localTarget(path, spec);
-      if (target === null) { problems.push(`${JSON.stringify(path)} imports ${JSON.stringify(spec)}, outside the repository`); continue; }
-      if (files && !files.has(target)) { problems.push(`${JSON.stringify(path)} imports ${JSON.stringify(spec)}, which resolves to no file at the head`); continue; }
-      if (!seen.has(target)) queue.push([target, root]);
+      const base = localTarget(path, spec);
+      if (base === null) { problems.push(`${JSON.stringify(path)} imports ${JSON.stringify(spec)}, outside the repository`); continue; }
+      const r = resolveModule(base, files, read);
+      if (r === null) { problems.push(`${JSON.stringify(path)} imports ${JSON.stringify(spec)}, which resolves to no file at the head`); continue; }
+      if (r.problem) { problems.push(`${JSON.stringify(path)} imports ${JSON.stringify(spec)}: ${r.problem}`); continue; }
+      if (!WALK_READS.test(r.path) && !links?.has(r.path)) problems.push(`${JSON.stringify(path)} imports ${JSON.stringify(spec)}, which resolves to ${JSON.stringify(r.path)}, a module the walk cannot read (only .js, .mjs, .cjs and .json)`);
+      add(r.path, root, byString);
     }
     for (const spec of m.raw) {
       if (!LOCAL_SPEC.test(spec)) continue;
-      const target = localTarget(path, spec);
-      if (target === null || (files && !files.has(target))) continue;
-      if (!seen.has(target)) queue.push([target, root]);
+      const base = localTarget(path, spec);
+      const r = base === null ? null : resolveModule(base, files, read, true);
+      if (r === null) continue;
+      if (r.problem) { problems.push(`${JSON.stringify(path)} imports ${JSON.stringify(spec)}: ${r.problem}`); continue; }
+      if (CODE_NOT_READ.test(r.path)) problems.push(`${JSON.stringify(path)} imports ${JSON.stringify(spec)}, which resolves to ${JSON.stringify(r.path)}, a module the walk cannot read (only .js, .mjs, .cjs and .json)`);
+      add(r.path, root, byString);
+    }
+    if (files === null || !strings) continue;
+    for (const s of m.strings) {
+      for (const base of new Set([resolveRel(path, s), posix.normalize(s)])) {
+        if (base.startsWith('../') || base === '..' || base.startsWith('/') || base === path) continue;
+        const r = resolveModule(base, files, read, true);
+        if (r === null) continue;
+        if (r.problem) { problems.push(`${JSON.stringify(path)} names ${JSON.stringify(s)}: ${r.problem}`); continue; }
+        if (r.path === path) continue;
+        if (CODE_NOT_READ.test(r.path)) problems.push(`${JSON.stringify(path)} names ${JSON.stringify(s)}, which resolves to ${JSON.stringify(r.path)}, code node can run and the walk cannot read`);
+        else if (!CODE_MODULE.test(r.path)) continue;
+        add(r.path, root, true);
+      }
     }
   }
-  return { modules, problems };
+  return { modules, named, problems };
 }
 
 // A string literal that reads as a repository path: at least one `/`, no empty segment, every segment made of letters,
@@ -852,7 +982,10 @@ function literalTargets(from, literal) {
 }
 
 // A symbolic link (mode 120000) or a gitlink (160000) at the head: the lane reads neither what a link points at nor a
-// submodule's tree, so one the walk reaches, the harness names, or a governance pattern names is a problem (fail closed).
+// submodule's tree, so EVERY link at the head is a problem (fail closed), named for the path and, where it applies, for
+// the walk that reaches it, the pattern that names it or the harness that names it. A link to a directory hides every
+// path beneath it from `git ls-tree`, so the rule does not model what a link resolves to (PR #255, round three:
+// C0-255r2-1, A1-255r3-1a, R0-255r2-1). The repository holds no link today.
 export const LINK_MODES = Object.freeze(['120000', '160000']);
 const linkWhat = (mode) => `${mode === '160000' ? 'a gitlink (submodule)' : 'a symbolic link'} (mode ${mode})`;
 
@@ -863,12 +996,13 @@ const kindOfPatterns = (matched) => (matched.some((g) => g.kind === 'never') ? '
 //     at every JavaScript file at the head that a `never` or `guard` entry matches (the guards, validators, contracts,
 //     runners, classifiers and top-level guard tests): a module reached from one of them is `guard`. It is also rooted
 //     at the database runner and harness (GOVERNANCE_IMPORT_ROOTS) and every other JavaScript file only `additive`
-//     entries match: a module reached only from those is `additive`. The closure holds the IMPORTED modules only;
-//   - every file the database harness names by a path literal ending `.sql` or `.json` (the harness's import closure,
-//     read whole), `additive` (C0-255-1, A1-255-1a, Q0-255-1 on PR #255);
+//     entries match: a module reached only from those is `additive`. The closure holds the modules a root reaches by an
+//     import or, for a code module, by a string that names it (`importClosure`), not the roots themselves;
+//   - every file the database harness names by a path literal ending `.sql` or `.json` (the modules the harness reaches
+//     by imports alone, each read whole: the string rule does not widen it), `additive` (C0-255-1, A1-255-1a, Q0-255-1
+//     on PR #255);
 //   - `problems`: what could not be read, which makes the pull request governance (fail closed), among them every
-//     symbolic link or gitlink at the head (`links`, path -> mode) that a governance pattern names, the walk reaches or
-//     the harness names (A1-255r2-1 on PR #255, round two).
+//     symbolic link or gitlink at the head (`links`, path -> mode), wherever it is (PR #255, round three).
 // `paths` are the changed paths, used as the roots' universe when the files at the head are not known.
 export function governanceClosure({ paths = [], files = null, readHead = null, read = null, links = null } = {}) {
   if (typeof readHead !== 'function' && typeof read !== 'function') {
@@ -886,15 +1020,16 @@ export function governanceClosure({ paths = [], files = null, readHead = null, r
   }
   const guard = importClosure(guardRoots, null, files, reader, links);
   const additive = importClosure(additiveRoots, null, files, reader, links);
-  const harness = importClosure(GOVERNANCE_IMPORT_ROOTS, null, files, reader, links);
+  const harness = importClosure(GOVERNANCE_IMPORT_ROOTS, null, files, reader, links, { strings: false });
   const linkProblems = [];
   for (const [p, mode] of links ?? []) {
     const named = GOVERNANCE_PATTERNS.filter((g) => g.re.test(p));
     if (named.length > 0) linkProblems.push(`${JSON.stringify(p)} is ${linkWhat(mode)} that a governance pattern names (${named[0].what}); what it stands for is not read`);
+    else linkProblems.push(`${JSON.stringify(p)} is ${linkWhat(mode)} at the head; the lane does not read what a link stands for, so a link anywhere fails closed`);
   }
   const modules = new Map();
-  for (const [p, root] of additive.modules) modules.set(p, { kind: 'additive', root });
-  for (const [p, root] of guard.modules) modules.set(p, { kind: 'guard', root });
+  for (const [p, root] of additive.modules) modules.set(p, { kind: 'additive', root, named: additive.named.has(p) });
+  for (const [p, root] of guard.modules) modules.set(p, { kind: 'guard', root, named: guard.named.has(p) });
   const data = new Map();
   for (const p of [...GOVERNANCE_IMPORT_ROOTS, ...harness.modules.keys()]) {
     if ((files && !files.has(p)) || !CODE_MODULE.test(p)) continue;
@@ -973,7 +1108,7 @@ export function laneOf({ paths, tier, recordsOnly, headRef = undefined, auditBra
     const found = [];
     const mod = closure.modules.get(p);
     if (mod) {
-      why.push(`a module ${mod.root} imports, read at the head${mod.kind === 'guard' ? ': reached from a guard, which the additive rule does not cover' : ''}`);
+      why.push(`a module ${mod.root} ${mod.named ? 'imports or names by a string' : 'imports'}, read at the head${mod.kind === 'guard' ? ': reached from a guard, which the additive rule does not cover' : ''}`);
       found.push(mod.kind);
     }
     if (closure.data.has(p)) {
