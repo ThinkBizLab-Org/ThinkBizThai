@@ -4,56 +4,119 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "47f178e1fe4de331461727a4ec83b0e3a33a8385",
-  "head_revision_or_patch_checksum": "a3916c8c2a8b98a0ad312f38d521e1c33ae78a47",
+  "base_revision": "b4aa4fcddf7b0a71fad6eb1fd280b0282eba1680",
+  "head_revision_or_patch_checksum": "477a3b1afcc13523b4774515d8c102af449c90c4",
   "task_ids": [
     "WP-0A-A0-001",
-    "amended-by-records-2026-10-11"
+    "RFC-2026-034-fast-lane-2026-10-11"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-001/a1-review-2026-10-11-pr250.md",
-    "evidence/WP-0A-A0-001/c0-review-2026-10-11-pr250.md",
-    "evidence/WP-0A-A0-001/q0-review-2026-10-11-pr250.md",
-    "evidence/WP-0A-A0-001/r0-review-2026-10-11-pr250.md",
-    "evidence/WP-0A-A0-001/records-transcription-2026-10-11.md"
+    "architecture/decisions/RFC-2026-034-fast-lane.md",
+    "evidence/WP-0A-A0-001/a1-final-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/a1-reread-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/a1-reread2-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/a1-reread3-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/a1-reread4-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/a1-reread5-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/a1-reread6-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/a1-reread7-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/a1-reread8-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/a1-review-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/c0-final-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/c0-reread-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/c0-reread2-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/c0-reread3-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/c0-reread4-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/c0-reread5-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/c0-reread6-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/c0-reread7-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/c0-reread8-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/c0-review-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-11-fast-lane.md",
+    "evidence/WP-0A-A0-001/q0-final-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/q0-reread-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/q0-reread2-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/q0-reread3-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/q0-reread4-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/q0-reread5-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/q0-reread6-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/q0-reread7-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/q0-reread8-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/q0-review-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/r0-final-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/r0-reread-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/r0-reread2-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/r0-reread3-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/r0-reread4-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/r0-reread5-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/r0-reread6-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/r0-reread7-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/r0-reread8-2026-10-11-pr251.md",
+    "evidence/WP-0A-A0-001/r0-review-2026-10-11-pr251.md"
   ],
   "files_modified": [
+    "CONTRIBUTING_AGENTS.md",
     "handoffs/WP-0A-A0-001-author-handoff.json",
+    "scripts/verify-test-coverage-floor.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/repository-json.test.mjs",
     "work-packages/WP-0A-A0-001.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-002",
-    "RFC-2026-025"
+    "RFC-2026-025",
+    "RFC-2026-030",
+    "RFC-2026-031"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT records R0's acknowledgement of amended_by[4] and [5] in R0's words (r0-review-2026-10-10-pr240.md §6), and appends amended_by[6] and [7], WP-0A-CON-006's amendments of .agents/capability-profiles/cc-a5-loom.json in PRs #242 and #243, pending acknowledgement.",
-    "Records only: every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-A0-001/records-transcription-2026-10-11.md.",
-    "Path: the full path (C0, A1, Q0, R0 on the final head, CI green), as the Owner directed for this session."
+    "WRITER DISCLOSURE: written by /claude/a0_atlas (A0). agent_run_id reads /root because handoff-conformance requires it to equal the manifest author_agent_run_id, which this increment does not change.",
+    "THIS INCREMENT drafts RFC-2026-034 'fast lane' (its status line carries the Owner's answers to Q-034-1..6 of 2026-10-11; in effect when he merges this PR) on the Product Owner's choice of 2026-10-10 (asked 19:02:50Z, answered 19:03:54Z, `ทางกลาง (Recommended)`; evidence/WP-0A-A0-001/product-owner-disposition-2026-10-11-fast-lane.md) and applies its six CONTRIBUTING_AGENTS.md passages (RFC §7), this package's file. DECISION_RECORDS (own file), DIGESTED_FLOOR and the integrity manifest (WP-0A-A0-002, declared amendments) register it.",
+    "A governance PR under RFC-2026-025 §5 item 6: the Product Owner merges it personally. Its questions Q-034-1 to Q-034-6 are his to answer; A0 does not answer them from any broad delegation and does not press this PR.",
+    "REVISED EIGHT TIMES after role rounds (round one at 6046e46e; re-reads at 5cb6d727, 90ee098e, 7033114d, ed314eb3, 460cca24, 7c4b0242, 6eca9c01 and 0968d3c1), then the answers commit read at 0254a075, each round's files carried with -x; see open_blockers[7], the eight rework commits and the answers commit."
   ],
   "acceptance_results": [
     {
-      "criterion": "Recorded words match their sources; old entries byte-equal; no status, contract, test or script change beyond what is stated",
-      "result": "pass for author self-check: extracted by script from the cited role files"
+      "criterion": "The six CONTRIBUTING_AGENTS.md passages equal RFC-2026-034 §7 word for word, and nothing else in the file changes",
+      "result": "pass for author self-check: applied by script from the RFC text"
+    },
+    {
+      "criterion": "The RFC is registered where every decision record is (DECISION_RECORDS, DIGESTED_FLOOR, integrity manifest)",
+      "result": "pass for author self-check: repository-json.test.mjs 8/8, coverage floor exit 0"
     }
   ],
   "tests": [
+    {
+      "command": "node --test test-kits/repository-json.test.mjs",
+      "exit_code": 0,
+      "result": "pass 8, fail 0"
+    },
+    {
+      "command": "node scripts/verify-test-coverage-floor.mjs",
+      "exit_code": 0,
+      "result": "floor holds; the RFC digested"
+    },
     {
       "command": "npm run validate:protocol",
       "exit_code": 0,
       "result": "valid"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 11c25d79)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commits 21af6654, b2e6fbf4 and each of the seven later rework commits, the last of them the eighth revision)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 740, pass 740, fail 0"
+      "result": "clean: exit 0 — tests 740, pass 740, fail 0, each"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-001",
       "exit_code": 0,
-      "result": "every changed path declared, every amendment explains one"
+      "result": "every changed path declared"
+    },
+    {
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD",
+      "exit_code": 0,
+      "result": "tier H (RFC, CONTRIBUTING_AGENTS.md, scripts, test kits)"
     },
     {
       "command": "npm run check:handoff",
@@ -61,22 +124,23 @@
       "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, customer data or provider call.",
+  "security_privacy_cost_impact": "Changes the review and gate rules once the Owner merges it: application code on Candidate contracts as reversible, synthetic, provider-free work; governance (CI, guards and classifiers included) and records unchanged; other tier H read by A1 and Q0 before merge; tier M and L by one Reviewer; all four audit in rounds; A0 may press its own risk- and fast-lane PRs (Q-034-1). No code, credential or customer data changes on this PR.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
+  "compatibility_impact": "No contract changes: an RFC and six CONTRIBUTING_AGENTS.md passages; no contract-catalog file.",
   "known_limitations": [
-    "amended_by[0] to [3], [6] and [7] stay pending acknowledgement.",
-    "WP-0A-A0-001 has a further increment queued after this one: the RFC-2026-034 fast-lane draft the Product Owner directed at 19:03:54Z (CONTRIBUTING_AGENTS.md is this package's file)."
+    "Not in effect until the Owner merges this PR personally; his answers to Q-034-1 to Q-034-6 (2026-10-11 02:59:23Z) are transcribed in the disposition.",
+    "Until CI prints the tier (RFC §8 item 2; ci.yml is WP-0A-A0-004's, the classifier WP-0A-DB-00's), every PR is tier H, so the fast lane stays closed.",
+    "RFC-2026-030 and RFC-2026-031 status lines are not touched here (RFC §8 item 3)."
   ],
   "open_risks_or_blockers": [
-    "Full path, as the Owner directed for this session. Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-A0-001/ at the head they read: c0-review-2026-10-11-pr250.md (review_approved), a1-review-2026-10-11-pr250.md (security_approved, no finding), q0-review-2026-10-11-pr250.md (test_verified 740/740 on the branch name), r0-review-2026-10-11-pr250.md (integration_verified; acknowledges amended_by[6], [7] and others in §6, to be recorded by this package's next PR). Presser: A0 (/claude/a0_atlas) under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6); not a governance PR. Pressed once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
+    "GOVERNANCE, tier H, full path. Round one at 6046e46e, re-reads at 5cb6d727, 90ee098e, 7033114d, ed314eb3, 460cca24, 7c4b0242, 6eca9c01 and 0968d3c1, and the final reading at 0254a075, the commit that transcribes the Owner's answers to Q-034-1 to Q-034-6 (all carried with -x): there C0 review_approved, A1 security_approved, Q0 test_verified and R0 integration_verified, with advisories only. Not pressed by A0: the Owner un-drafts it and merges it personally with --match-head-commit on a head with green CI."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the records this WP-0A-A0-001 branch appended (amended-by-records-2026-10-11: the acknowledgement keys of amended_by[4], [5] and entries [6], [7]); nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed PR reverting RFC-2026-034 and the six CONTRIBUTING_AGENTS.md passages restores RFC-2026-030's review depth and the earlier gate text (RFC §11).",
   "recommended_next_work_packages": [
-    "WP-0A-A0-001: RFC-2026-034 (fast lane) and the CONTRIBUTING_AGENTS.md gate text, a governance PR the Product Owner merges personally."
+    "After the Owner merges: the first round audit within seven days; the classifier change that prints the lane (WP-0A-A0-004); then application code on Candidate contracts (G1)."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-001/records-transcription-2026-10-11.md, then git diff origin/main.",
-    "amended_by[4], [5] acknowledgement keys against r0-review-2026-10-10-pr240.md §6; [6], [7] against WP-0A-CON-006 amends_without_owning and git log of cc-a5-loom.json."
+    "Read the disposition, then architecture/decisions/RFC-2026-034-fast-lane.md, then git diff origin/main -- CONTRIBUTING_AGENTS.md against RFC §7.",
+    "Check that the RFC states the Owner's chosen option faithfully and marks what goes beyond it as a question (Q-034-1..6)."
   ]
 }
