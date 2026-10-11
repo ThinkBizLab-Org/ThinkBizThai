@@ -5,13 +5,17 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "3070d888e164e0979cf438e86af6d4c83c02fc79",
-  "head_revision_or_patch_checksum": "d6dd5e5b002cc8e3284f457b2a46997d8a435615",
+  "head_revision_or_patch_checksum": "6d9fdb2cdbf8cc55f42278cd946fe2297e09d1f3",
   "task_ids": [
     "WP-1A-A0-001",
     "rfc-029-approval-2026-10-12"
   ],
   "files_added": [
-    "evidence/WP-1A-A0-001/product-owner-disposition-2026-10-12-rfc-029-approval.md"
+    "evidence/WP-1A-A0-001/a1-review-2026-10-12-pr256.md",
+    "evidence/WP-1A-A0-001/c0-review-2026-10-12-pr256.md",
+    "evidence/WP-1A-A0-001/product-owner-disposition-2026-10-12-rfc-029-approval.md",
+    "evidence/WP-1A-A0-001/q0-review-2026-10-12-pr256.md",
+    "evidence/WP-1A-A0-001/r0-review-2026-10-12-pr256.md"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-029-application-tier-stack.md",
@@ -66,8 +70,9 @@
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes: an RFC status line and section, a disposition and a manifest line; no contract-catalog file.",
   "known_limitations": [
+    "Still open from the 2026-10-07 review, owed by named packages (A1-256-2): A1 N1 (Low), any package the worker app builds or loads can read the worker database credential, and whether Vercel exposes it at build time is unmeasured, owed by WP-1A-A6-001; A1 N2 (Low), the answer to Q-028-3 must record that the Cron-called dispatcher is the worker, not a request path, and WP-1A-A0-004 must list the worker project's deployed routes. Both matter only once the worker is provisioned.",
     "Owed by other owners: evidence/g0-tracker-th.md:270 still says RFC-029 is unwritten (WP-0A-A0-001's file); OPEN-018 in the register is closed by the register's owner.",
-    "The skeleton direction reaches the WP-1A-A0-002 skeleton pull request only. A dated amendment to RFC-029's allowlist (Q-029-7) is merged by the Owner personally even if it travels inside the skeleton pull request; if the skeleton is split, A0 asks again before pressing any part (disposition §3 (b), A0's reading)."
+    "The skeleton direction reaches the WP-1A-A0-002 skeleton pull request only. A dated amendment to RFC-029's allowlist (Q-029-7), or a provider SDK in the skeleton, is outside the direction: A0 asks the Owner before pressing such a skeleton pull request; if the skeleton is split, A0 asks again before pressing any part (disposition §3 (b), A0's reading)."
   ],
   "open_risks_or_blockers": [
     "GOVERNANCE, tier H, full path: C0, A1, Q0 and R0 on the final head; the Product Owner un-drafts and merges it personally with --match-head-commit (RFC-2026-025 §5 item 6). Not pressed by A0."
