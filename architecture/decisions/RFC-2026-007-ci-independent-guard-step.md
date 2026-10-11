@@ -459,7 +459,7 @@ each changed path tested whole (the diff is `--no-renames`, so no path carries a
     contracts, runners, classifiers and top-level guard tests) and at `scripts/db/run.mjs`,
     `scripts/db/rls-smoke.mjs`, `scripts/db/authz-proofs.mjs` and every other JavaScript file only
     `additive` entries match. It holds the modules they import, not the roots' directories. An import
-    resolves as node resolves it: the exact path; the path with `.js`, `.mjs`, `.cjs`, `.json`, `.ts`,
+    resolves close to how node resolves it, not identically (§D): the exact path; the path with `.js`, `.mjs`, `.cjs`, `.json`, `.ts`,
     `.mts` or `.cts` added; a directory's `package.json` `main`, then its `index.js`, `index.mjs` or
     `index.cjs` (Q0-255R2-1 on PR #255). A module it cannot read, an import read from code that resolves
     to nothing, leaves the repository, is a URL (any scheme but `node:`) or an absolute path
@@ -505,10 +505,9 @@ of the raw text stand behind it, whatever the scanner made of that text: a raw k
 every specifier naming a file at the head after `from`, `import`, `import(` or `require(` (past
 whitespace and `/* */` and `//` comments, and past any number of opening parentheses after `import(` and
 `require(`; A1-255r2-1, round two), and the string rule above (round three). The walk is a best-effort
-aid, not a parser. A module can still hide from it only if a guard loads it by a path computed at run
-time (not written as a literal), or by a loading mechanism that names no repository-relative path
-literally; §D states that once, as a class (corrected 2026-10-11, round three on PR #255; the earlier
-text listed what a misread could still hide, and the list did not hold).
+aid, not a parser, and it does not claim to find every module a guard can load; §D says what it misses
+and why that is accepted (corrected 2026-10-11 twice, rounds three and four on PR #255: each earlier text
+said what alone could still hide, and a measured probe contradicted each).
 
 `additive-eligible: yes` is printed when every governance path is of the `additive` kind and nothing
 could not be read. A path the patterns name takes the patterns' kind: `never` for an RFC, the guide,
@@ -577,16 +576,20 @@ resolves, Q0's R13 to R16 among them (Q0-255R2-1); and the three behaviours Q0 f
   recorded reading (RFC-2026-034 Q-034-5 (a)).
 - It does not compare one head's lane with an earlier head's; RFC-2026-034 §2.2's rule that a pull
   request never drops lane during its life stays the readers' (C0-255-9 on PR #255).
-- It does not see every module a guard can load. The import walk is a best-effort aid, not a parser.
-  A module can still hide from it only if a guard loads it by a path computed at run time (not written
-  as a literal), or by a loading mechanism that names no repository-relative path literally (for
-  example an absolute `file://` URL inside a `data:` module). Planting either in a guard is itself a
-  governance edit, which all four roles read; a reader of a governance pull request checks whether a
-  guard's module loading changed. (Corrected 2026-10-11, round three on PR #255: C0-255r2-1, A1-255r3-1,
-  A1-255r3-2, R0-255r2-1, Q0-255R2-1. Two earlier texts each listed what a scanner misread could still
-  hide; the second said "what stays hidden there is an import whose specifier is computed from an
-  expression, and a module loaded by a mechanism the scanner does not model", and a measured probe
-  contradicted each list. This item now states the class instead.) Nor does it see a file a governance
+- It does not see every module a guard can load. The walk is a best-effort aid, not a parser, and it does not
+  claim to find every module a guard can load. Known forms it misses include: a path computed at run time; a
+  loading mechanism that names no repository-relative path literally (for example an absolute `file://` URL
+  inside a `data:` module); a process a guard spawns (`execSync('node …')`, `--import`, `NODE_OPTIONS`, a shell
+  or Python script); a CommonJS `require` of a file whose extension the walk treats as data (`.txt`, `.md`,
+  none); a literal longer than the scanner's 4096-character cap; a backslash-separated path; a path held in data the guard reads (for example a JSON file); and a path where node and the walk pick
+  different candidates (the walk takes the first of `.js`, `.mjs`, `.cjs`, `.json`, `.ts`, `.mts`, `.cts`, then
+  the directory; CommonJS `require` tries `.js`, `.json`, `.node`, then the directory). Every such form is an
+  accepted residual, not a finding: planting it in a guard is itself a governance edit that all four roles read,
+  and a reader of a governance pull request checks whether a guard's module loading changed. (Corrected
+  2026-10-11 twice, rounds three and four on PR #255: C0-255r2-1, A1-255r3-1, A1-255r3-2, R0-255r2-1,
+  Q0-255R2-1, then A1-255r4-1 and C0-255r3-1. Each earlier text said what alone could still hide, the third that
+  a module could hide "only if" its path was computed at run time or named no repository-relative path
+  literally, and a measured probe contradicted each. This item no longer claims a complete list.) Nor does it see a file a governance
   code file other than the database harness reads as data. A tool file the denylist does not name
   prints the lane its tier gives. Each is a lane printed lower than §2.2 gives it, which a reader
   raises.

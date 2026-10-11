@@ -7298,7 +7298,7 @@ test('the audit lane compares the head branch exactly, case included (PR #255 ro
 // closed (C0-255r2-1, A1-255r3-1a, R0-255r2-1, Q0-255R2-1 R12); an import of a URL or an absolute path read from code
 // fails closed (A1-255r3-2); every string in a module the walk reads that names a code module joins the walk, so a
 // scanner misread hides nothing a literal names (A1-255r3-1b), while a string naming data adds nothing; and modules
-// resolve as node resolves them, failing closed on code the walk cannot read (Q0-255R2-1). Q0-255R2-2's three unpinned
+// resolve close to how node does (not identically; RFC-2026-007 §D), failing closed on code the walk cannot read (Q0-255R2-1). Q0-255R2-2's three unpinned
 // behaviours (B4, B10, B20) are pinned last. The probes are the reviewers' own, as A0 measured them before the fix.
 const R3_EVIL = { 'src/lib/evil.mjs': 'export {};\n' };
 const r3Lane = (head, links = [], edit = 'src/lib/evil.mjs', mode = '120000') => laneOf({ paths: [edit], tier: 'H', recordsOnly: false,
@@ -7431,8 +7431,9 @@ test('the lane follows every string in a guard that names a code module, whateve
 test('the lane resolves a guard\'s imports as node does, and fails closed on a module it cannot read (PR #255 round three: Q0-255R2-1 R13 to R16)', () => {
   const reached = (p, root) => new RegExp(`"${r3Escape(p)}" \\(a module ${r3Escape(root)} imports`);
   // Q0's R13 (an extensionless require behind a misread), R13b (the same with no misread: followed, no longer a
-  // problem), R16 (a directory require behind a misread), and the other forms node resolves: a directory's index, a
-  // package.json main with and without its extension.
+  // problem), R16 (a directory require behind a misread), and the other forms the walk resolves: a directory's index,
+  // a package.json main with and without its extension, and an added `.mjs`, which `require` itself does not try (the walk
+  // resolves close to node, not identically; RFC-2026-007 §D).
   const cjs = 'scripts/verify-q0-probe.cjs';
   for (const [what, head, edit] of [
     ['R13', { 'src/lib/cj.js': '', [cjs]: behind('require("../src/lib/cj");') }, 'src/lib/cj.js'],

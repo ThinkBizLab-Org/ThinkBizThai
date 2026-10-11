@@ -583,11 +583,16 @@ const TEST_MODULE = /\.test\.[cm]?js$/i;
 // `import(` or `require(`, past whitespace, comments and parentheses, written with `'`, `"` or a backtick holding no `${`,
 // read as written and with its escapes and percent-encoding decoded (A1-255r2-1 on PR #255, round two); and why every
 // string in the module that names a code module at the head joins the walk too (`stringNames`, round three), so a misread
-// cannot hide a module named by a literal path. The walk is a best-effort aid, not a parser. A module can still hide
-// from it only if a guard loads it by a path computed at run time (not written as a literal), or by a loading mechanism
-// that names no repository-relative path literally (for example an absolute `file://` URL inside a `data:` module).
-// Planting either in a guard is itself a governance edit that all four roles read; a reader of a governance pull
-// request checks whether a guard's module loading changed (RFC-2026-007 Amendment 2026-10-11 §D). Line comments and
+// cannot hide a module named by a literal path in the forms it models. The walk is a best-effort aid, not a parser, and
+// it does not claim to find every module a guard can load. Known forms it misses include: a path computed at run time;
+// a loading mechanism that names no repository-relative path literally (for example an absolute `file://` URL inside a
+// `data:` module); a process a guard spawns (`execSync('node …')`, `--import`, `NODE_OPTIONS`, a shell or Python
+// script); a CommonJS `require` of a file whose extension the walk treats as data (`.txt`, `.md`, none); a literal
+// longer than the scanner's 4096-character cap; a backslash-separated path; a path held in data the guard reads (for example a JSON file); and a path where node and the walk pick different candidates (the walk
+// takes the first of `.js`, `.mjs`, `.cjs`, `.json`, `.ts`, `.mts`, `.cts`, then the directory; CommonJS `require`
+// tries `.js`, `.json`, `.node`, then the directory). Every such form is an accepted residual, not a finding: planting
+// it in a guard is itself a governance edit that all four roles read, and a reader of a governance pull request checks
+// whether a guard's module loading changed. (RFC-2026-007 Amendment 2026-10-11 §D.) Line comments and
 // regular expressions end at LF, CR, U+2028 and U+2029, as V8 ends them; a string literal may hold U+2028 and U+2029
 // (ES2019), and ends unterminated at LF or CR.
 const LINE_END = new Set(['\n', '\r', '\u2028', '\u2029']);
@@ -882,7 +887,7 @@ function resolveModule(base, files, read, candidate = false) {
 // The local modules `roots` import, transitively, read with `readHead(path)` (which throws when it cannot read).
 // `files` is the set of paths at the head when known: a root absent from it imports nothing. Each module the walk reads
 // is followed three ways:
-//   - a specifier read from its code (`jsRefs`): resolved as node resolves it (`resolveModule`); one that resolves to
+//   - a specifier read from its code (`jsRefs`): resolved close to how node resolves it, not identically (`resolveModule`, RFC-2026-007 §D); one that resolves to
 //     nothing, leaves the repository, is a URL or an absolute path, or resolves to a file the walk cannot read (not
 //     `.js`, `.mjs`, `.cjs` or `.json`) is a problem;
 //   - a specifier the raw keyword scan finds anywhere (`backstopSpecs`, in strings and comments too): followed when it
