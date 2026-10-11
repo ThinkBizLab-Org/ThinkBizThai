@@ -3,10 +3,10 @@
 Status: **Proposed.** The Product Owner chose the direction on 2026-10-10, answering A0's question at 19:03:54Z (asked
 19:02:50Z, session `c2816eec`) with `ทางกลาง (Recommended)`; the question, its options and the answer are transcribed in
 `evidence/WP-0A-A0-001/product-owner-disposition-2026-10-11-fast-lane.md`. The text below is A0's drafting of that
-direction, revised five times after role rounds (round one: C0-251-1..11, A1-251-1..10, R0-251-1..9, Q0-251-2..6; re-read:
+direction, revised six times after role rounds (round one: C0-251-1..11, A1-251-1..10, R0-251-1..9, Q0-251-2..6; re-read:
 C0-251r-1..9, A1-251r-1..6, R0-251-10..15 and -2r, -3r, Q0-251-7..11; second re-read: C0-251r2-1..9,
 A1-251r2-1..7, R0-251-16..23, Q0-251-12..14; third re-read: C0-251r3-1..10, A1-251r3-1..4,
-R0-251-24..28, Q0-251-13..16; fourth re-read: C0-251r4-1..6, A1-251r4-1..5, R0-251-24, -29, -30, Q0-251-17..21). It is not in effect until the Order of §10 is complete: the
+R0-251-24..28, Q0-251-13..16; fourth re-read: C0-251r4-1..6, A1-251r4-1..5, R0-251-24, -29, -30, Q0-251-17..21; fifth re-read: C0-251r5-1..6, A1-251r5-1..3, R0-251-24, -31, -32, Q0-251-22..24, -14). It is not in effect until the Order of §10 is complete: the
 Owner answers §9 himself, A0 records his answers and sets the status line, the roles re-read, and the Owner merges this
 PR personally (a governance PR under RFC-2026-025 §5 item 6). Where the Owner chooses an alternative in §9, §2 to §4
 and §7 change to match before he merges.
@@ -41,9 +41,10 @@ Two things slow the work:
 
 **What this RFC changes in practice, stated plainly.** The gate change (§2.1) lets application work start. The lighter
 review (§2.2) applies at once to tier H pull requests outside governance: two readers (A1, Q0) instead of four. A
-migration batch that also adds pins, proofs, tests or registry entries to the guards keeps that lighter reading only
-while those guard edits are additive, as A1 and Q0 each confirm in writing (§2.2); any other guard edit makes the pull
-request governance. The fast lane for tier M and L opens only once CI prints the tier (§8 item 2), and for module code only once a module is
+migration batch that also adds pins, proofs, tests or registry entries to the guards, or moves its own package's
+branch row, takes the risk lane once A1 and Q0 each confirm in writing on the final head that every such edit is
+additive (§2.2); any other guard edit, and any RFC or CI edit, makes the pull request governance, and Q-034-6 asks who
+presses a migration batch that is governance only because of this RFC's path list. The fast lane for tier M and L opens only once CI prints the tier (§8 item 2), and for module code only once a module is
 named on the allowlist, which RFC-2026-030 §4.2 item 6 forbids for any module that owns identity, tenancy, IAM, sessions,
 secrets, billing, entitlement, publishing, connectors, uploads, jobs or provider calls (§2.2).
 First-Slice platform code therefore stays in the risk lane.
@@ -87,30 +88,41 @@ unchanged). The lane follows the tier and the paths:
 | **Records** | RFC-2026-025 §6.1 | as today: one independent reading (§6.2) | as §6.2 says | as §6 says |
 | **Risk** | every other tier H pull request except an audit pull request: migrations, RLS, grants, schema; auth, sessions, identity, tenancy, roles; secrets, OAuth, credentials; billing, payments, webhooks; publishing, jobs, queues, storage and deletion, provider adapters, mail and notifications; contracts; other scripts and test kits; work-package scope, roles and status moves; any module not on the allowlist; anything unplaced | **A1 (Security/Privacy) and Q0 (Tester)** pass on the final head; a stop-the-line or security finding adds C0 and R0 at once | in the round audit (§2.3) | A0 (Q-034-1) |
 | **Fast** | tier M and L only | green CI **and one independent Reviewer (C0)** who confirms in writing what the classifier cannot: for L, behind a feature flag and no data path; for M, the test exercises the changed code (RFC-2026-030 §2 bullet 4) (Q-034-4) | in the round audit (§2.3) | A0 (Q-034-1) |
-| **Audit** | a pull request on WP-0A-A0-001's current branch that holds only the round audit's files under `evidence/audits/<date>/` (§2.3) | all four auditors' files present, each carried with `cherry-pick -x` from its auditor's own commit, blob-equal, touching no other path, and green CI (Q-034-5 (a)); or one more independent reading (Q-034-5 (b)) | the audit is R0's reading | A0, in either option of Q-034-5 |
+| **Audit** | a pull request on WP-0A-A0-001's current branch that holds only the round audit's files under `evidence/audits/<date>/` (§2.3) | all four auditors' files present, each carried with `cherry-pick -x` from its auditor's own commit, blob-equal, touching no other path, and green CI (Q-034-5 (a)); or all four files present and one more independent reading (Q-034-5 (b)) | the audit is R0's reading | A0, in either option of Q-034-5 |
 
-- **Additive guard edits follow the change they serve** (R0-251-24, R0-251-29, A1-251r4-1, -2, -4, Q0-251-17, -19). An edit to a
-  guard, runner, registry or the manifest named above follows the lane of the change it serves, not governance, when it
-  only **adds** what that change needs, or tightens an existing check for it, and removes or loosens nothing:
-  - pins, lint rules, proofs and self-tests for the objects the pull request itself adds, in `scripts/db/run.mjs`, the
-    database test harness or a module they import;
-  - new tests, in any test file, including `test-kits/db/foundation-contract.test.mjs`;
-  - in a registry, a new entry for a file the pull request adds, a raised count or floor, and a changed name digest for
-    a test file whose diff removes no `test(` line (a test name in `scripts/test-suite-contract.mjs`, a path in
-    `DIGESTED_FLOOR` of `scripts/verify-test-coverage-floor.mjs`, a row for a **new** branch in
-    `test-kits/branch-identity.test.mjs`);
+- **Additive guard edits take the risk lane** (R0-251-24, -29, -31, -32, A1-251r4-1, -2, -4, A1-251r5-1, -2,
+  Q0-251-17, -19, -22, -23, -24, C0-251r5-2, -3). Every guard, runner and registry path is tier H, so a pull request that edits one
+  never takes the fast lane. One whose only governance paths are the edits below, each of which only **adds** what the
+  pull request's own change needs and removes or loosens nothing, takes the **risk lane** instead of governance:
+  - pins, lint rules, proofs and self-tests for objects the pull request itself adds, in `scripts/db/run.mjs`, the
+    database test harness or a module they import; and tightening an existing check for those objects, if the check's
+    negative control still fails. An entry in one of `run.mjs`'s admission lists (`PERMISSIVE_POLICIES`,
+    `SECURITY_DEFINER_FUNCTIONS`, the `CLIENT_*` privilege lists, `FK_ACTION_EXEMPTIONS`, `LIFECYCLE_WRITERS` and the
+    like) is additive only for an object the same pull request adds and only when A1's confirmation names it; an entry
+    in any `*_EXEMPTIONS` list or in `APPROVED_EXTENSION_SET` is governance;
+  - new test cases in any test file, including `test-kits/db/foundation-contract.test.mjs`, except a test that pins a
+    classifier, CI or a guard's own behaviour;
+  - in a registry, a new entry for a file the pull request adds, a raised count or floor, a changed name digest for a
+    test file whose new set of test names contains every old name (no test case removed or renamed) (a test name in `scripts/test-suite-contract.mjs`, a path in
+    `DIGESTED_FLOOR` of `scripts/verify-test-coverage-floor.mjs`); in `test-kits/branch-identity.test.mjs`, a row for a
+    new branch, or a package's own row moved to the branch its manifest's `ownership.branch` names in the same pull
+    request (the manifest change takes the risk lane);
   - a regeneration of `test-kits/integrity-manifest.json` that only records the digests of files the pull request
     adds or changes.
 
-  The edit is additive only if **A1 and Q0 each confirm so in writing on the final head**, each having read every
-  guard hunk; until both have, and whenever either does not, the pull request is governance. Anything else is
-  governance: removing or renaming a test, pin, check or entry; a lowered count or floor; a moved or removed branch
-  row; a changed exit code, entry point, lock or the way a runner runs; an edit to a classifier, to CI, or to the
-  classifier's own pins. **If it is unclear whether an edit is additive, it is governance.**
+  **The confirmation.** A1 and Q0 each confirm in writing on the final head, naming every guard hunk by file and hunk
+  and saying why it is additive. Until both have, the pull request is governance; once both have, it is in the risk
+  lane, and it is merged on that lane's readers. Their confirmations carry to a later head only through carry clauses
+  (a) and (c), and (b) when the merge from `main` touches no guard path. Anything else is governance: removing or
+  renaming a test case, pin, check or entry; a lowered count or floor; any other moved or removed branch row; a changed
+  exit code, entry point, lock or the way a runner runs; an edit to a classifier, to CI, or to a test that pins them.
+  **If it is unclear whether an edit is additive, it is governance.**
 - **Who presses governance.** As today under RFC-2026-025 §5 item 6. This RFC neither adds nor ends any standing
   direction the Owner has given under that rule (the 2026-10-08 disposition §10.2; the 2026-10-09 NTF-A5 disposition,
-  Q3); each keeps the reach it already has. This PR itself is merged by the Owner personally (§10).
-- A pull request never drops lane during its life; a security finding raises it to tier H's full reading.
+  Q3); each keeps the reach it already has, except as the Owner answers Q-034-6, which §10 item 2 records here
+  whichever option he chooses (C0-251r5-1). This PR itself is merged by the Owner personally (§10).
+- A pull request never drops lane during its life, except that the confirmation above moves it from governance to the
+  risk lane, never lower (R0-251-31); a security finding raises it to tier H's full reading.
 - **Module code.** A module is on the allowlist only by a governance PR, and RFC-2026-030 §4.2 item 6 never admits a
   module that owns identity, tenancy, IAM, sessions, secrets, billing, entitlement, publishing, connectors, uploads, jobs
   or provider calls, and requires a test per module class. First-Slice platform code lives in such a module
@@ -180,9 +192,10 @@ Not amended: RFC-2026-030 §2 bullets 2 and 3, §4 other than §4.1 rule 3 and �
 - **The Author presses.** Mitigation: every lane keeps at least one independent reading before merge; the audit gives
   the integration verdict.
 - **Smaller gain than hoped at first.** Until CI prints the tier, and for First-Slice platform code always, the gain is
-  two readers instead of four, plus the gate change; and a migration batch keeps that only while its guard edits are
-  additive (§2.2); 22 of the 24 migration commits on `main` since 2026-09-20 edited a guard or a registry
-  (R0-251-24), so each such batch needs A1's and Q0's written confirmation to stay in the risk lane.
+  two readers instead of four, plus the gate change. A migration batch reaches the risk lane only on A1's and Q0's
+  written confirmation that its guard edits are additive (§2.2): 22 of the 24 migration commits on `main` since
+  2026-09-20 edited a guard or a registry, and all 12 batch PRs #161–#185 moved their package's branch row (R0-251-24).
+  A batch that also edits an RFC or CI, as 6 of those 12 did, or renames a test, is governance (Q-034-6).
 
 ## 5. Effect on RFC-2026-031
 
@@ -224,8 +237,8 @@ exit. Its §6 item 2 is narrowed as §3 says.
 1. The first round audit within seven days, under `evidence/audits/`.
 2. **CI prints the tier and the lane on every pull request** (a governance PR: `.github/workflows/ci.yml` is
    WP-0A-A0-004's, the classifier WP-0A-DB-00's). Until then every pull request is H (RFC-2026-030 §9 item 2), so the
-   fast lane is closed and only the risk lane's lighter reading applies. The same change lets CI print the audit
-   lane, which the classifier today prints as H.
+   fast lane is closed; tier H pull requests outside governance, records and audit take the risk lane, and the
+   audit lane is A0's reading of its paths until the same change lets CI print it (the classifier today prints it as H).
 3. Status-line notes that RFC-2026-034 amends them: RFC-2026-002, RFC-2026-025, RFC-2026-030, RFC-2026-031, each by its
    owner; a note on Decision Register line 373 and §5.1 by the register's owner; WP-0A-A0-010 `open_blockers[1]` and the
    G0 tracker's G0-024.
@@ -261,23 +274,27 @@ exit. Its §6 item 2 is narrowed as §3 says.
 - **Q-034-5. The audit pull request.** (a) All four auditors' files are present, each carried with `cherry-pick -x`
   from its auditor's own commit, blob-equal, touching no other path; A0 presses on green CI with no further reader,
   since each file is itself an independent reading. No script checks blob-equality today, so that rests on A0's record
-  in the pull request, and the next audit re-checks it. Whether the pull request holds only those files is likewise A0's
+  in the pull request, which lists each file's blob id beside its auditor's source commit, with the auditors' branches
+  kept, and the next audit re-checks it (A1-251r4-3). Whether the pull request holds only those files is likewise A0's
   reading, recorded with its `git diff --name-only` against the merge base (A1-251r4-3). This departs from the full path a non-records pull request
   takes and from RFC-2026-002 item 1 ("unreviewed change"), for audit pull requests only. A0 recommends (a). (b) One
   more independent run, not one of the auditors, reads the audit pull request before A0 presses it. In either option
   A0 presses the audit pull request; Q-034-1 does not reach it (C0-251r4-2).
-- **Q-034-6. Who presses the governance PRs that open the lanes.** §8 items 2, 4 and 5 are governance PRs (CI prints
-  the tier; CI runs application tests; the module names). Your direction of 2026-10-08 (§10.2 of that day's
-  disposition, `ให้ A0 กดทุกตัวในแผน (Recommended)`) lets A0 press every governance PR in the plan approved that day once
-  four roles pass and CI is green. This RFC does not decide whether these three are in that plan (R0-251-24,
-  A1-251r4-3). A0 recommends that A0 may press them under the same conditions, four roles and green CI, so the fast
-  lane opens without waiting for you. The alternative: you press each of them personally.
+- **Q-034-6. Who presses governance PRs that this RFC makes governance, or that open the lanes.** Two kinds:
+  (i) §8 items 2, 4 and 5 (CI prints the tier; CI runs application tests; the module names); (ii) a migration batch that
+  is governance only because of this RFC's path list (a guard edit A1 or Q0 does not confirm as additive), not because
+  it edits an RFC, CI or another path RFC-2026-025 §5 item 6 already names. Your direction of 2026-10-08 (§10.2 of that
+  day's disposition, `ให้ A0 กดทุกตัวในแผน (Recommended)`) lets A0 press every governance PR in the plan approved that
+  day once four roles pass and CI is green, and since 2026-10-03 A0 has pressed migration batches under your standing
+  delegation; this RFC does not decide whether either reaches these (R0-251-24, A1-251r4-3). A0 recommends that A0
+  may press both kinds once all four roles pass and CI is green, so the lanes open and batches move without waiting
+  for you. The alternative: you press each of them personally.
 
 ## 10. Order before the merge
 
 1. The Owner answers Q-034-1 to Q-034-6 himself, in chat; no broad delegation answers them.
 2. A0, in one commit: transcribes his answers with transcript times into the disposition; amends §2, §3, §4 and §7 to
-   match any alternative he chose; sets the status line to Approved.
+   match any alternative he chose; records his Q-034-6 answer in §2.2's "Who presses governance" bullet; sets the status line to Approved.
 3. C0, A1, Q0 and R0 re-read that commit on the final head.
 4. The head contains current `main`; CI is green on it; the Owner merges it personally with `--match-head-commit`.
 
