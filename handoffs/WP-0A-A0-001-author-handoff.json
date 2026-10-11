@@ -5,7 +5,7 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "8086281b104b844bc363054e752b859e0110c801",
-  "head_revision_or_patch_checksum": "22e852ca90089935bb63b7c43015d66d49cc4a71",
+  "head_revision_or_patch_checksum": "8c15a4a3b8b6bb0d05af8525d5f779bc2d7d707b",
   "task_ids": [
     "WP-0A-A0-001",
     "r0-acknowledgements-and-pr251-record-2026-10-11"
@@ -27,7 +27,7 @@
   "assumptions": [
     "THIS INCREMENT transcribes /claude/r0_steward's acknowledgements of amended_by[0] to [3], [6] and [7] (r0-review-2026-10-11-pr250.md §6; [3] with R0's correction that the record:verification line amended WP-0A-A0-002's package.json) and appends open_blockers[8], R0's post-merge record of PR #251 (r0-final-2026-10-11-pr251.md §5) with only its placeholders filled from gh and git.",
     "Records only: every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-A0-001/records-transcription-2026-10-11.md §4.",
-    "Path: records-only under RFC-2026-025 §6 (RFC-2026-034 §2.2 Records lane, the Owner's choice at 04:17Z that this session's remaining PRs follow RFC-2026-034's lanes): classify-records-only exits 0; one independent reading by C0, because the records transcribe R0's own words (§6.2 item 1)."
+    "Path: records-only under RFC-2026-025 §6 (RFC-2026-034 §2.2 Records lane): classify-records-only exits 0; one independent reading by C0, because the records transcribe R0's own words (§6.2 item 1)."
   ],
   "acceptance_results": [
     {
