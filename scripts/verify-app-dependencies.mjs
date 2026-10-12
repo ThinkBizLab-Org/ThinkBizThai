@@ -63,35 +63,168 @@ export function parseRfcAllowlist(text) {
   };
 }
 
-// Every path the "where" cell names in backticks must be covered by a glob, and every glob must come
-// from a path the cell names or from one of the two terms the RFC defines (§3.1): "adapters" and
-// "composition root". A cell reading "nowhere" admits no glob at all.
-export function whereMatchesImports(entry, allowlist) {
-  const problems = [];
-  // A clause opened by "never" names where a package may NOT be reached (pg: "never reachable from `apps/web`").
-  const admitted = entry.where.split(/;\s*never\b/)[0];
-  const tokens = [...admitted.matchAll(/`([^`]+)`/g)].map((m) => m[1]).filter((t) => !t.startsWith('@') && !t.startsWith('§'));
-  const extends_ = (glob, token) => glob === token || glob.startsWith(token.endsWith('/') ? token : `${token}/`);
-  if (/^nowhere\b/.test(entry.where)) {
-    if (entry.imports.length !== 0) problems.push(`${entry.name}: the RFC says "${entry.where}" and the copy admits ${entry.imports.join(', ')}`);
-    return problems;
-  }
-  for (const token of tokens) {
-    if (!entry.imports.some((glob) => extends_(glob, token))) problems.push(`${entry.name}: the RFC names \`${token}\` and the copy has no glob for it`);
-  }
-  for (const glob of entry.imports) {
-    const fromToken = tokens.some((token) => extends_(glob, token));
-    const fromAdapters = /\badapters\b/.test(entry.where) && allowlist.adapters.includes(glob);
-    const fromRoot = /\bcomposition root\b/.test(entry.where) && allowlist.compositionRoot.includes(glob);
-    if (!fromToken && !fromAdapters && !fromRoot) problems.push(`${entry.name}: the copy admits ${glob}, which "${entry.where}" does not name`);
-  }
-  if (entry.imports.length === 0) problems.push(`${entry.name}: the RFC says "${entry.where}" and the copy admits nowhere`);
-  return problems;
+// The two names §3.1 defines ("Two names it uses"), read from the RFC itself so that the copy's
+// `compositionRoot` and `adapters` are held to the definition and not to each other. `<app>` stands
+// for each app the definition names (`apps/web`, `apps/worker`); `<key>` for any module key.
+export function parseRfcTerms(text) {
+  const bullet = (label) => {
+    const at = text.indexOf(`- **${label}**`);
+    if (at === -1) throw new Error(`RFC-2026-029 §3.1 does not define "${label}"`);
+    const end = text.indexOf('\n- ', at + 3);
+    const stop = text.indexOf('\n\n', at);
+    return text.slice(at, Math.min(end === -1 ? Infinity : end, stop === -1 ? Infinity : stop));
+  };
+  const tokens = (body) => [...body.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+  const root = bullet('Composition root').split('Nothing else under')[0];
+  const rootTokens = tokens(root);
+  const apps = rootTokens.map((t) => t.match(/^apps\/([a-z0-9-]+)\/composition\/\*\*$/)?.[1]).filter(Boolean);
+  if (apps.length === 0) throw new Error('RFC-2026-029 §3.1 names no apps/<app>/composition/** in its composition-root definition');
+  const compositionRoot = rootTokens.flatMap((t) => (t.includes('<app>') ? apps.map((app) => t.replace('<app>', app)) : [t]));
+  const adapters = tokens(bullet('Adapters')).map((t) => t.replace('<key>', '*'));
+  return { compositionRoot, adapters };
 }
+
+// A "where it may be imported" cell, read by a fixed grammar into the exact set of globs it admits
+// (Q0-257-1, C0-257-4). The cell is a list of items joined by ",", ", and" or "and", with an optional
+// trailing "only" or "at the root only"; parenthetical remarks (`(the job store, MOD-000)`,
+// `(`@import`)`) are commentary, and a clause opened by "; never" is a prohibition held by §6.3/5,
+// not a place the package may be imported. An item is a backticked path, which admits exactly that
+// glob; the defined term "adapters"; "the composition root of `apps/X` and `apps/Y`", which admits
+// the definition's globs under those apps and no others; "anywhere under `d/` and `e/`", which admits
+// `d/**` and `e/**`; the whole cell "nowhere"; or "nowhere, except `f`" (Amendment 2026-10-12,
+// `typescript`'s cell), which admits exactly the files it names, each one backticked path with no glob
+// character, so that the exception cannot widen to a directory by a `*`. Anything else is a cell this
+// reader does not know, and it is a problem, never a guess: a new phrasing is taught here in the pull
+// request that writes it.
+export function parseWhereCell(cell, terms) {
+  const [admitted, ...prohibitions] = cell.split(/;\s*(?=never\b)/);
+  const never = prohibitions.map((clause) => clause.trim());
+  let text = admitted.replace(/\s*\((?:[^()`]|`[^`]*`)*\)/g, '').trim();
+  if (text === 'nowhere') return { globs: [], never };
+  text = text.replace(/\s+(?:at the root\s+)?only$/, '');
+  const items = (list) => list.split(/\s*,\s*(?:and\s+)?|\s+and\s+/).map((item) => item.trim());
+  const path = (item) => item.match(/^`([^`]+)`$/)?.[1] ?? null;
+  const fail = (why) => { throw new Error(`the cell "${cell}" ${why}`); };
+  let match = text.match(/^nowhere, except (.+)$/);
+  if (match) {
+    const globs = items(match[1]).map((item) => {
+      const file = path(item);
+      if (!file || /[*?[\]{}!]/.test(file) || file.endsWith('/')) fail(`names ${JSON.stringify(item)} after "nowhere, except", where one file (\`path/to/file\`) must stand`);
+      return file;
+    });
+    return { globs, never };
+  }
+  match = text.match(/^the composition root of (.+)$/);
+  if (match) {
+    const globs = items(match[1]).flatMap((item) => {
+      const app = path(item);
+      if (!app || !/^apps\/[a-z0-9-]+$/.test(app)) fail(`names ${JSON.stringify(item)} where an app (\`apps/<app>\`) must stand`);
+      return terms.compositionRoot.filter((glob) => glob.startsWith(`${app}/`));
+    });
+    return { globs, never };
+  }
+  match = text.match(/^anywhere under (.+)$/);
+  if (match) {
+    const globs = items(match[1]).map((item) => {
+      const directory = path(item);
+      if (!directory || !directory.endsWith('/')) fail(`names ${JSON.stringify(item)} where a directory (\`d/\`) must stand`);
+      return `${directory}**`;
+    });
+    return { globs, never };
+  }
+  const globs = items(text).flatMap((item) => {
+    if (item === 'adapters') return terms.adapters;
+    const glob = path(item);
+    if (!glob) fail(`holds ${JSON.stringify(item)}, which is neither a backticked path nor a term RFC-2026-029 §3.1 defines`);
+    return [glob];
+  });
+  return { globs, never };
+}
+
+// The one prohibition a "where" cell states, and the guard that holds it: pg's "never reachable from
+// `apps/web` (§6.3/5)" is scripts/app-boundaries.mjs's §6.3/5 walk. A prohibition this list does not
+// name is one no guard holds, and it is a problem.
+const HELD_PROHIBITIONS = { pg: ['never reachable from `apps/web` (§6.3/5)'] };
+
+// Amendment 2026-10-12's table, read by a fixed grammar into rows of (licence, package patterns,
+// exact licence expressions) (Q0-257-2, C0-257-4, R0-257-4). A package cell is a list of items
+// separated by top-level commas: a backticked name (that name, under exactly the row's licence);
+// "`x` and its per-platform binaries (`x-<platform>`)" (both patterns, the row's licence);
+// "the `p` builds whose licence is `E` (with or without `MIT` beside them)" (pattern p, under exactly E
+// or E AND MIT); and "optional through ..." (how they arrive, which admits nothing). Anything else is
+// a problem, as for the "where" cells.
+export function parseLicenceTable(amendment) {
+  const rows = [];
+  const problems = [];
+  const head = amendment.indexOf('| Licence | Packages |');
+  if (head === -1) return { rows, problems: ['the amendment has no "| Licence | Packages |" table'] };
+  const lines = amendment.slice(head).split('\n').slice(2);
+  for (const line of lines) {
+    if (!line.startsWith('|')) break;
+    const cells = line.match(/^\| `([^`]+)` \| (.+) \|$/);
+    if (!cells) { problems.push(`the amendment's table row ${JSON.stringify(line)} is not "| \`licence\` | packages |"`); continue; }
+    const [, licence, cell] = cells;
+    const items = [];
+    let depth = 0; let quoted = false; let current = '';
+    for (const ch of cell) {
+      if (ch === '`') quoted = !quoted;
+      else if (!quoted && ch === '(') depth += 1;
+      else if (!quoted && ch === ')') depth -= 1;
+      if (ch === ',' && depth === 0 && !quoted) { items.push(current.trim()); current = ''; } else current += ch;
+    }
+    items.push(current.trim());
+    for (const raw of items) {
+      const item = raw.replace(/^and\s+/, '');
+      let m;
+      if ((m = item.match(/^`([^`]+)`$/))) rows.push({ licence, packages: [m[1]], expressions: [licence] });
+      else if ((m = item.match(/^`([^`]+)` and its per-platform binaries \(`([^`]+)`\)$/)) && m[2] === `${m[1]}-<platform>`) {
+        rows.push({ licence, packages: [m[1], m[2]], expressions: [licence] });
+      } else if ((m = item.match(/^the `([^`]+)` builds whose licence is `([^`]+)` \(with or without `MIT` beside them\)$/)) && m[2].split(/\s+AND\s+/).includes(licence)) {
+        rows.push({ licence, packages: [m[1]], expressions: [m[2], `${m[2]} AND MIT`] });
+      } else if (!/^optional through /.test(item)) {
+        problems.push(`the amendment's ${licence} row holds ${JSON.stringify(item)}, which this reader does not know`);
+      }
+    }
+  }
+  if (rows.length === 0 && problems.length === 0) problems.push("the amendment's licence table parsed to no row");
+  return { rows, problems };
+}
+
+const NUMBER_WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, fourteen: 14, thirty: 30 };
+
+// §4.8's day count, as the RFC writes it ("at least **seven days**") (A1-257-3, Q0-257-4).
+export function parseReleaseAgeDays(text) {
+  const match = text.match(/\*\*Release age\.\*\*[\s\S]*?for at least \*\*([a-z]+|\d+) days\*\*/);
+  if (!match) return null;
+  return /^\d+$/.test(match[1]) ? Number(match[1]) : (NUMBER_WORDS[match[1]] ?? null);
+}
+
+// §4.8: "admitted only with A1's recorded approval in that pull request". The record is an A1 file
+// under a package's evidence directory; scripts/verify-release-age.mjs also requires the pull
+// request to add or change it.
+export const A1_RECORD = /^evidence\/[A-Za-z0-9._-]+\/a1-[A-Za-z0-9._-]+\.md$/;
+const PACKAGE_AT_VERSION = /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+
+const canonical = (row) => JSON.stringify([row.licence, [...row.packages].sort(), [...row.expressions].sort()]);
+const sameSet = (a, b) => a.length === b.length && [...new Set(a)].length === a.length && a.every((x) => b.includes(x));
 
 export function compareAllowlistWithRfc(allowlist, rfcText) {
   const problems = [];
   const parsed = parseRfcAllowlist(rfcText);
+  let terms = null;
+  try {
+    terms = parseRfcTerms(rfcText);
+  } catch (error) {
+    problems.push(error.message);
+  }
+  if (terms) {
+    if (!sameSet(allowlist.compositionRoot ?? [], terms.compositionRoot)) {
+      problems.push(`compositionRoot: §3.1 defines ${terms.compositionRoot.join(', ')}; the copy has ${(allowlist.compositionRoot ?? []).join(', ')}`);
+    }
+    if (!sameSet(allowlist.adapters ?? [], terms.adapters)) {
+      problems.push(`adapters: §3.1 defines ${terms.adapters.join(', ')}; the copy has ${(allowlist.adapters ?? []).join(', ')}`);
+    }
+  }
   for (const column of ['runtime', 'development']) {
     const fromRfc = parsed[column];
     const copy = allowlist[column] ?? [];
@@ -101,7 +234,27 @@ export function compareAllowlistWithRfc(allowlist, rfcText) {
     const copyKeys = new Set(copy.map(key));
     for (const row of fromRfc) if (!copyKeys.has(key(row))) problems.push(`${column}: the RFC lists ${row.name} (${row.decision}, "${row.where}") and the copy does not`);
     for (const row of copy) if (!rfcKeys.has(key(row))) problems.push(`${column}: the copy lists ${row.name} (${row.decision}, "${row.where}") and the RFC does not`);
-    for (const row of copy) problems.push(...whereMatchesImports(row, allowlist));
+    if (!terms) continue;
+    // The copy's globs are compared with what the RFC's cell admits, read by the grammar above.
+    for (const row of fromRfc) {
+      let cell;
+      try {
+        cell = parseWhereCell(row.where, terms);
+      } catch (error) {
+        problems.push(`${row.name}: ${error.message}`);
+        continue;
+      }
+      const held = HELD_PROHIBITIONS[row.name] ?? [];
+      for (const clause of cell.never) if (!held.includes(clause)) problems.push(`${row.name}: the RFC states "${clause}", which no guard here holds`);
+      for (const clause of held) if (!cell.never.includes(clause)) problems.push(`${row.name}: the guard holds "${clause}", which the RFC's cell no longer states`);
+      const imports = copy.find((r) => r.name === row.name)?.imports;
+      if (!imports) continue;
+      const extra = imports.filter((glob) => !cell.globs.includes(glob));
+      const missing = cell.globs.filter((glob) => !imports.includes(glob));
+      for (const glob of extra) problems.push(`${row.name}: the copy admits ${glob}, which "${row.where}" does not name`);
+      for (const glob of missing) problems.push(`${row.name}: the RFC's cell admits ${glob} and the copy has no such glob`);
+      if (imports.length !== new Set(imports).size) problems.push(`${row.name}: the copy repeats a glob`);
+    }
   }
   // §3.4/2's list, and the amendment's exceptions, are the RFC's words too.
   const accepted = rfcText.match(/\*\*Licences\*\* accepted without further discussion: ((?:[A-Za-z0-9.+-]+, )*[A-Za-z0-9.+-]+?)\.\s/);
@@ -111,10 +264,28 @@ export function compareAllowlistWithRfc(allowlist, rfcText) {
   }
   const at = rfcText.indexOf(`## ${allowlist.licences.amendment}`);
   if (at === -1) problems.push(`licences: RFC-2026-029 has no "## ${allowlist.licences.amendment}" section for the copy's exceptions`);
-  const amendment = at === -1 ? '' : rfcText.slice(at);
-  for (const exception of allowlist.licences.exceptions) {
-    if (!amendment.includes(`\`${exception.licence}\``)) problems.push(`licences: the amendment does not name ${exception.licence}`);
-    if (!amendment.includes(`\`${exception.named}\``)) problems.push(`licences: the amendment does not name ${exception.named}`);
+  else {
+    const { rows, problems: unread } = parseLicenceTable(rfcText.slice(at));
+    problems.push(...unread.map((p) => `licences: ${p}`));
+    const rfcRows = new Map(rows.map((row) => [canonical(row), row]));
+    const copyRows = new Map((allowlist.licences.exceptions ?? []).map((row) => [canonical(row), row]));
+    for (const [k, row] of rfcRows) if (!copyRows.has(k)) problems.push(`licences: the amendment admits ${row.licence} for ${row.packages.join(', ')} under ${row.expressions.join(' | ')}, and the copy has no such row`);
+    for (const [k, row] of copyRows) if (!rfcRows.has(k)) problems.push(`licences: the copy admits ${row.licence} for ${row.packages.join(', ')} under ${(row.expressions ?? []).join(' | ')}, which the amendment's table does not`);
+  }
+  // §4.8: the day count is the RFC's, and an exception names one version and A1's record of it.
+  const days = parseReleaseAgeDays(rfcText);
+  if (days === null) problems.push('releaseAgeDays: RFC-2026-029 §4.8 states no day count this reader can find');
+  else if (allowlist.releaseAgeDays !== days) problems.push(`releaseAgeDays: §4.8 says ${days} days; the copy says ${JSON.stringify(allowlist.releaseAgeDays)}`);
+  for (const exception of allowlist.releaseAgeExceptions ?? []) {
+    if (typeof exception?.package !== 'string' || !PACKAGE_AT_VERSION.test(exception.package)) {
+      problems.push(`releaseAgeExceptions: ${JSON.stringify(exception?.package)} is not one exact name@version`);
+    }
+    if (typeof exception?.a1_record !== 'string' || !A1_RECORD.test(exception.a1_record)) {
+      problems.push(`releaseAgeExceptions: ${exception?.package}'s a1_record ${JSON.stringify(exception?.a1_record)} is not evidence/<package>/a1-*.md (§4.8: A1's recorded approval)`);
+    }
+  }
+  for (const entry of allowlist.resolutionAliases?.allowed ?? []) {
+    if (typeof entry?.file !== 'string' || typeof entry?.option !== 'string') problems.push(`resolutionAliases: ${JSON.stringify(entry)} names no file and option`);
   }
   return problems;
 }
@@ -269,6 +440,16 @@ export function licenceAlternatives(expression) {
   return text.split(/\s+OR\s+/).map((alt) => alt.split(/\s+AND\s+/).map((id) => id.trim()));
 }
 
+// A package cell's spelling as a pattern: `*` is one or more name characters; `<platform>` is an
+// operating system npm names followed by its architecture and libc, which is A0's reading of "its
+// per-platform binaries" (C0-257-5): `lightningcss-plugin` is not one.
+const PLATFORM = '(?:android|darwin|freebsd|linux|win32)-[a-z0-9-]+';
+export function packagePattern(spelling) {
+  const escaped = spelling.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${escaped.replace('<platform>', PLATFORM).replace(/\*/g, '[a-z0-9-]+')}$`);
+}
+const normaliseExpression = (expression) => String(expression ?? '').trim().replace(/^\((.*)\)$/, '$1').split(/\s+/).join(' ');
+
 export function checkLicences(lock, manifests, allowlist) {
   const problems = [];
   const accepted = new Set(allowlist.licences.accepted);
@@ -283,12 +464,12 @@ export function checkLicences(lock, manifests, allowlist) {
       problems.push(`${key} (${name}@${entry.version}) has no licence the guard can read (${JSON.stringify(recorded)}); record it or decide it`);
       continue;
     }
-    // The amendment's exceptions are for the named TRANSITIVE packages; a direct dependency with
-    // such a licence is a new decision.
-    const extra = direct.has(name) ? [] : allowlist.licences.exceptions
-      .filter((exception) => exception.packages.some((pattern) => new RegExp(pattern).test(name)))
-      .map((exception) => exception.licence);
-    const ok = alternatives.some((ids) => ids.every((id) => accepted.has(id) || extra.includes(id)));
+    // The amendment's exceptions are for the named TRANSITIVE packages, each under the exact licence
+    // expression its row states; a direct dependency with such a licence is a new decision.
+    const expression = normaliseExpression(recorded);
+    const excepted = !direct.has(name) && allowlist.licences.exceptions.some((row) => row.packages.some((pattern) => packagePattern(pattern).test(name))
+      && row.expressions.some((allowed) => normaliseExpression(allowed) === expression));
+    const ok = excepted || alternatives.some((ids) => ids.every((id) => accepted.has(id)));
     if (!ok) {
       problems.push(`${key} (${name}@${entry.version}) is licensed ${recorded}, which RFC-2026-029 §3.4/2 does not accept${direct.has(name) ? ' for a direct dependency' : ''} and no named exception of its ${allowlist.licences.amendment} covers`);
     }

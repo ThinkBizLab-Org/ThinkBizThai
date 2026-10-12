@@ -45,6 +45,7 @@
   "required_human_authorities": [
     "Product Owner's direction of 2026-10-11 (evidence/WP-1A-A0-001/product-owner-disposition-2026-10-12-rfc-029-approval.md §3 (b)) lets A0 press this skeleton pull request once C0, A1, Q0 and R0 have passed on its final head and CI is green on it, with RFC-2026-025 §5 item 6's other conditions kept. It covers Next.js, TypeScript and Tailwind and what RFC-2026-029 §3 lists for them; no provider SDK is installed here.",
     "Product Owner's decisions of 2026-10-12 (asked 02:37:33Z, answered 02:39:15Z; evidence/WP-1A-A0-002/product-owner-disposition-2026-10-12-skeleton-licences.md): the three transitive licence families accepted as RFC-2026-029 Amendment 2026-10-12; ESLint not installed now; and the press direction extended to that amendment, travelling in this pull request only.",
+    "Product Owner's decisions of 2026-10-12 (asked 07:08:30Z, answered 07:24:27Z; the same disposition §5–§6): `อนุญาตให้ guard import typescript (Recommended)`, so RFC-2026-029 Amendment 2026-10-12 widens §3.2's typescript cell to scripts/app-boundaries-parser.mjs only (parser API, run in CI), the press direction covering it in this pull request only; and `A0 ตั้งผ่าน gh api หลัง #257 merge (Recommended)`, so after #257 merges A0 adds the `application` job to main's required status checks through gh api, changing nothing else, and records it.",
     "A1 reads RFC-2026-029 §8/8's answers before the install lands (evidence/WP-1A-A0-002/dependency-answers-2026-10-12.md): one lockfile entry, fsevents, carries the registry's hasInstallScript flag and runs nothing under --ignore-scripts; next sends telemetry at build unless it is switched off, which it is here."
   ],
   "purpose": "RFC-2026-029 (approved 2026-10-11) decides the application tier's stack, allowlist, lockfile policy and layout, and names WP-1A-A0-002 as the package that installs the first dependency and makes its §8 acceptance conditions real. This package installs the minimum set (next, react, react-dom; typescript, @types/node, @types/react, @types/react-dom, tailwindcss, @tailwindcss/postcss, postcss, vitest) at exact versions under npm 11.19.0 and Node 24.20.0 with --ignore-scripts, --engine-strict and a seven-day --before; creates apps/web as an npm workspace with one App Router page and no data path; adds tsconfig with the §2.1 flags and `npm run typecheck`; adds dependency-free guards for §8/1, §8/2, the licences, §8/4 and §8/5 with tests and negative controls; and adds the CI steps RFC-2026-029 §4.6, §4.8 and §8 and RFC-2026-034 §8 item 4 name.",
@@ -53,15 +54,15 @@
       "The first install: package.json (workspaces, devDependencies, typecheck and test:app scripts), apps/web/package.json and the root package-lock.json",
       "apps/web: App Router layout and page, the page's test, Tailwind CSS through postcss.config.mjs and a CSS @import, next.config.ts with telemetry off and unoptimized images, apps/web/types/next.d.ts and a .gitignore for next-env.d.ts",
       "tsconfig.base.json with RFC-2026-029 §2.1/2's flags, tsconfig.json for `npm run typecheck`, apps/web/tsconfig.json for next build, vitest.config.ts",
-      "Guards: scripts/verify-app-dependencies.mjs (§8/1, §8/2, licences), scripts/verify-app-boundaries.mjs (§8/4, §8/5), scripts/verify-typecheck-control.mjs (§8/3), scripts/verify-release-age.mjs (§4.8), their data scripts/app-dependency-allowlist.json, their suites and the typecheck control's fixture",
-      "CI steps: npm run check with no node_modules (§8/6), the two guards, the type check and its control, the application tests, the web build, npm audit and the release age",
-      "RFC-2026-029 Amendment 2026-10-12 recording the Owner's licence decision, and its disposition record",
+      "Guards: scripts/verify-app-dependencies.mjs (§8/1, §8/2, licences, §4.8's day count), scripts/verify-app-boundaries.mjs with its rules in scripts/app-boundaries.mjs and its parsed reader in scripts/app-boundaries-parser.mjs (§8/4, §2.1/3, §8/5, path aliases refused), scripts/verify-typecheck-control.mjs (§8/3), scripts/verify-release-age.mjs (§4.8), their data scripts/app-dependency-allowlist.json, their suites and the typecheck control's fixture",
+      "CI: in the bootstrap job, the test-integrity guard and then npm run check with no node_modules (§8/6), before the clean install; in a separate application job that needs the bootstrap job, its own clean install, the two guards (the boundary guard with --require-parser), the type check and its control, the application tests, the web build, npm audit and the release age",
+      "RFC-2026-029 Amendment 2026-10-12 recording the Owner's licence decision and his widening of §3.2's typescript cell to scripts/app-boundaries-parser.mjs, and its disposition record",
       "The §8/8 record of each installed name's licence, install script, packages added, network use and telemetry"
     ],
     "exclude": [
       "Any provider SDK (@supabase/*, pg, @sentry/nextjs) or any other §3.1 runtime package beyond next, react and react-dom.",
-      "ESLint and eslint-config-next: deferred by the Product Owner on 2026-10-12 (`ไม่ใส่ตอนนี้ (Recommended)`); RFC-2026-029 §6.3's boundaries are a dependency-free guard instead.",
-      "Any direct dependency outside RFC-2026-029 §3.1/§3.2, and any amendment to the allowlist (§3.4/1).",
+      "ESLint and eslint-config-next: deferred by the Product Owner on 2026-10-12 (`ไม่ใส่ตอนนี้ (Recommended)`); RFC-2026-029 §6.3's boundaries are a guard script instead, which also holds §2.1/3 while ESLint is deferred (A0's reading).",
+      "Any direct dependency outside RFC-2026-029 §3.1/§3.2, and any amendment to the allowlist (§3.4/1) other than the typescript cell's widening the Owner directed on 2026-10-12 (Amendment 2026-10-12).",
       "apps/worker and src/modules/: a directory is created when its first code lands (RFC-2026-029 §6.1).",
       "Provisioning Vercel or Supabase, or any credential; the Vercel projects' environment variables (WP-1A-A6-001).",
       "Session cookies (§8/7; WP-1A-A0-003)."
@@ -89,6 +90,8 @@
       "vitest.config.ts",
       "scripts/app-dependency-allowlist.json",
       "scripts/verify-app-dependencies.mjs",
+      "scripts/app-boundaries.mjs",
+      "scripts/app-boundaries-parser.mjs",
       "scripts/verify-app-boundaries.mjs",
       "scripts/verify-typecheck-control.mjs",
       "scripts/verify-release-age.mjs",
@@ -136,7 +139,7 @@
         "test-kits/branch-identity.test.mjs",
         "evidence/VERIFICATION.md"
       ],
-      "rationale": "RFC-2026-029 §6.2 makes the root package.json, package-lock.json, tsconfig bases and CI A0's, and §8 names this package as the one that installs; the files themselves are other packages' outputs, so each is declared here. package.json (WP-0A-A0-002's output): workspaces [apps/web], the five §3.2 devDependencies at exact versions, and the typecheck and test:app scripts; the check chain is unchanged. package-lock.json (WP-0A-A0-001's output): written by npm 11.19.0 from those package.json changes (§4.5). .github/workflows/ci.yml (WP-0A-A0-004's): NEXT_TELEMETRY_DISABLED at job level, `npm run check` before the clean install with no node_modules (§8/6), and after it the two guards, typecheck and its control, the application tests, the web build, npm audit and the release age; every existing step and pin is kept. architecture/decisions/RFC-2026-029-application-tier-stack.md (WP-1A-A0-001's): the dated Amendment 2026-10-12 appended at the end, recording the Owner's licence decision verbatim; no other line changes. scripts/test-suite-contract.mjs and scripts/verify-test-coverage-floor.mjs (WP-0A-A0-002's): per-file floors and name digests for the three new suites, the renamed dependency test's digest and test-coverage-floor's assertion floor, and DIGESTED_FLOOR for the new guards, data, suites and fixture; no rule changes. test-kits/integrity-manifest.json (WP-0A-A0-002's): regenerated by npm run regenerate:manifest. test-kits/test-coverage-floor.test.mjs (WP-0A-A0-002's): the zero-dependency test becomes 'the root declares only allowlisted development dependencies, and no package.json a lifecycle script', and the package.json field pin admits workspaces and devDependencies. test-kits/repository-json.test.mjs (WP-0A-A0-001's): the JavaScript-tier guard admits TypeScript under apps/, src/ and spikes/, the root project files and the typecheck fixture, as RFC-2026-029 supersedes RFC-2026-011 for the application tier only. test-kits/branch-identity.test.mjs (WP-0A-CON-008's): this package's branch added to BRANCH_OWNERSHIP. evidence/VERIFICATION.md (WP-0A-CON-008's): rewritten by npm run record:verification for the new test count."
+      "rationale": "RFC-2026-029 §6.2 makes the root package.json, package-lock.json, tsconfig bases and CI A0's, and §8 names this package as the one that installs; the files themselves are other packages' outputs, so each is declared here. package.json (WP-0A-A0-002's output): workspaces [apps/web], the five §3.2 devDependencies at exact versions, and the typecheck and test:app scripts; the check chain is unchanged. package-lock.json (WP-0A-A0-001's output): written by npm 11.19.0 from those package.json changes (§4.5). .github/workflows/ci.yml (WP-0A-A0-004's): in the bootstrap job, two steps after the classification steps and before the clean install, the test-integrity guard and then `npm run check` with no node_modules (§8/6; R0-257-1); every existing step and pin of that job is kept as on main. A new job, `application`, needs the bootstrap job and runs on a runner of its own: checkout, the checkout assertion, the toolchain, `npm ci --ignore-scripts`, the two guards (the boundary guard with --require-parser), typecheck and its control, the application tests, the web build, npm audit and the release age, with NEXT_TELEMETRY_DISABLED at job level (A1-257-4). architecture/decisions/RFC-2026-029-application-tier-stack.md (WP-1A-A0-001's): the dated Amendment 2026-10-12 appended at the end, recording the Owner's licence decision verbatim, his ESLint answer in its option's words as how §8/4 is held meanwhile, his answer of 07:24:27Z widening §3.2's typescript cell to scripts/app-boundaries-parser.mjs, and A0's marked readings; §3.2's typescript cell and the sentence above that table changed to match; and one sentence in §10's note pointing to the amendment's \"Who presses\" (the Owner's extensions of 2026-10-12). No other line changes. scripts/test-suite-contract.mjs and scripts/verify-test-coverage-floor.mjs (WP-0A-A0-002's): per-file floors and name digests for the three new suites, the renamed dependency test's digest and test-coverage-floor's assertion floor, and DIGESTED_FLOOR for the new guards (including scripts/app-boundaries.mjs and scripts/app-boundaries-parser.mjs), data, suites and fixture; no rule changes. test-kits/integrity-manifest.json (WP-0A-A0-002's): regenerated by npm run regenerate:manifest. test-kits/test-coverage-floor.test.mjs (WP-0A-A0-002's): the zero-dependency test becomes 'the root declares only allowlisted development dependencies, and no package.json a lifecycle script', and the package.json field pin admits workspaces and devDependencies. test-kits/repository-json.test.mjs (WP-0A-A0-001's): the JavaScript-tier guard admits TypeScript under apps/, src/ and spikes/, the root project files and the typecheck fixture, as RFC-2026-029 supersedes RFC-2026-011 for the application tier only. test-kits/branch-identity.test.mjs (WP-0A-CON-008's): this package's branch added to BRANCH_OWNERSHIP. evidence/VERIFICATION.md (WP-0A-CON-008's): rewritten by npm run record:verification for the new test count."
     }
   },
   "inputs": {
@@ -174,6 +177,8 @@
       "vitest.config.ts",
       "scripts/app-dependency-allowlist.json",
       "scripts/verify-app-dependencies.mjs",
+      "scripts/app-boundaries.mjs",
+      "scripts/app-boundaries-parser.mjs",
       "scripts/verify-app-boundaries.mjs",
       "scripts/verify-typecheck-control.mjs",
       "scripts/verify-release-age.mjs",
@@ -195,13 +200,13 @@
     "§8/1: every package.json's direct dependencies are compared with scripts/app-dependency-allowlist.json, a machine-readable copy of RFC-2026-029 §3.1/§3.2 including the 'where it may be imported' column, and a test fails when that copy and the RFC's tables disagree.",
     "§8/2: every version in every package.json is exact, and every resolved lockfile entry is from https://registry.npmjs.org/ with a sha512 integrity; an inBundle entry is accepted only inside a registry parent that lists it in bundleDependencies.",
     "§8/3: `npm run typecheck` is `tsc --noEmit` over tsconfig.base.json's §2.1/2 flags, runs in CI, and its negative control fails on a fixture with one marked error per flag.",
-    "§8/4: the §6.3 boundaries are checked by a dependency-free guard (ESLint deferred by the Owner), each with a negative control.",
+    "§8/4: the §6.3 boundaries are checked by a guard script (ESLint deferred by the Owner), each with a negative control: dependency-free in npm run check, and read by TypeScript's parser in CI with its own negative controls held first. While ESLint is deferred the same guard holds §2.1/3 (no @ts-ignore or @ts-nocheck, @ts-expect-error only with a reason, no `any` in application code) and refuses path aliases (Q-029-1).",
     "§8/5: no supabase/migrations directory; no file under apps/ or src/ names the service role or its key; no file under apps/web names the worker credential, and none outside apps/worker/composition/** reads it; each with a negative control.",
-    "§8/6: npm run check passes with no node_modules, shown by a CI step before the clean install, and no tooling module imports a package.",
+    "§8/6: npm run check passes with no node_modules, shown by a CI step before the clean install and after the workflow's own test-integrity guard step; no tooling module imports a package except the boundary guard's parsed reader, which only the CLI loads and no test reaches.",
     "§8/8: per installed allowlisted name, from the resolved lockfile: licence, install script, packages added, network use at build or run time, telemetry and its switch.",
     "§8/9 and §4.8: CI checks the publish age of every lockfile entry a pull request adds or changes; §4.6: CI runs npm audit --omit=dev --audit-level=high.",
     "Every lockfile licence is in §3.4/2's list or covered by Amendment 2026-10-12's named transitive exceptions, held by a guard with a negative control.",
-    "RFC-2026-034 §8 item 4: CI runs the application tests (vitest run) on every head.",
+    "RFC-2026-034 §8 item 4: CI runs the application tests (vitest run, passWithNoTests false) on every head, in the application job, which runs every step that executes an installed package after the bootstrap job's guards and on a runner of its own.",
     "npm run check stays green, and the toolchain stays Node 24.20.0 / npm 11.19.0."
   ],
   "required_tests": [
@@ -217,7 +222,7 @@
     "verify": [
       "npm run check",
       "node scripts/verify-app-dependencies.mjs",
-      "node scripts/verify-app-boundaries.mjs",
+      "node scripts/verify-app-boundaries.mjs --require-parser",
       "npm run typecheck",
       "node scripts/verify-typecheck-control.mjs",
       "npm run test:app",
@@ -240,7 +245,9 @@
   "rollback_or_forward_fix": "Revert through a reviewed revert pull request. The revert removes apps/web, the tsconfig and vitest files, the four guards and their suites and data, the CI steps, the RFC-2026-029 Amendment 2026-10-12 section, the root package.json's workspaces, devDependencies and two scripts, and returns package-lock.json to its root-only form. No data, schema or migration depends on any of it (RFC-2026-029 §12).",
   "open_blockers": [
     "AUTHOR COMPLETE ONLY. C0, A1, Q0 and R0 have not read this package. The Author moves it to in_review and no further.",
-    "RFC-2026-029 §8/4 asks for the §6.3 boundaries as lint errors. The Product Owner deferred ESLint on 2026-10-12, so they are a guard script; whether the RFC's text should say so is A0's to raise, and this package does not change it.",
+    "RFC-2026-029 §8/4 asks for the §6.3 boundaries as lint errors. The Product Owner deferred ESLint on 2026-10-12 with the option `ไม่ใส่ตอนนี้ (Recommended)` (\"check the import boundaries (§6.3) with a guard script that has no dependency instead\"), and RFC-2026-029's Amendment 2026-10-12 records that answer, in the option's words, as how §8/4 is held while ESLint is deferred; the disposition §3 (b) says the same. A0's reading, marked as such in both: the same guard also holds §2.1/3 (no @ts-ignore, a reasoned @ts-expect-error, no `any`) and stands as §2.1/4's lint step while ESLint is deferred, and in CI it reads the sources with TypeScript's parser through the installed `typescript` package. That import is no longer A0's reading: the Owner allowed it on 2026-10-12 (answered 07:24:27Z), and Amendment 2026-10-12 widens §3.2's typescript cell to scripts/app-boundaries-parser.mjs only (C0-257-1, C0-257-2, R0-257-2).",
+    "RFC-2026-029 §10 questions handed to this package: Q-029-1 is not measured here, because no src/ exists; it is owed to the first package that creates src/, which also adds src/** to tsconfig.json's include and teaches the boundary guard the alias it chooses (until then every path alias is refused). Q-029-5: next-intl is not installed; it is the shell's (WP-1A-A5-003). Q-029-7: none of its packages was needed (no ESLint, so no typescript-eslint; the page test renders with react-dom/server; no server-only or tw-animate-css), and the parsed boundary guard stands where lint would have stood; no allowlist amendment for it travels here.",
+    "Known limitation (R0-257-3): npm run check fails (exit 70) on a working tree where `next build` has run, because scripts/scan-repository-secrets.mjs walks apps/web/.next/. CI is not affected (the build runs in the application job, after and apart from npm run check); locally, delete apps/web/.next first. Whether the scanner skips .next is owed by its owner, WP-0A-A0-003; this package does not edit the scanner.",
     "The worker credential's environment variable is named nowhere yet. scripts/app-dependency-allowlist.json reserves WORKER_DATABASE_URL (with RFC-2026-028's app_worker_login) so that the §8/5 guard holds something; WP-1A-A0-004 uses that name or changes it there in the same pull request."
   ],
   "review_and_test_gates": [

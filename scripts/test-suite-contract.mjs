@@ -147,10 +147,18 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/authority-dispositions.test.mjs': 3,
   // WP-1A-A0-002 (2026-10-12, RFC-2026-029 §8): the application tier's three suites -- the dependency
   // allowlist, lockfile and licences (§8/1, §8/2, §3.4/2); the §6.3 boundaries and §8/5; the type check's
-  // flags and control, the release age, the CI wiring and §8/6.
-  'test-kits/app-dependencies.test.mjs': 9,
-  'test-kits/app-boundaries.test.mjs': 9,
-  'test-kits/app-stack.test.mjs': 7,
+  // flags and control, the release age, the CI wiring and §8/6. The first review round on PR #257
+  // (2026-10-12; A1-257-1..4, Q0-257-1..5, R0-257-1, C0-257-1): app-dependencies 9 to 12 (the where cells
+  // read exactly, the licence rows both ways, the release-age day count and exceptions); app-boundaries
+  // 9 to 14 (the closing-tag refusal, the §2.1/3 directives, the alias refusals, the reader hook, the
+  // secret key); app-stack 7 to 10 (the guard before the first check, the application job, the installs
+  // and continue-on-error, vitest's passWithNoTests). No test removed; one renamed (the CI wiring).
+  // The Owner's answer of 2026-10-12 07:24:27Z (RFC-2026-029 Amendment 2026-10-12, typescript in the
+  // parser): app-dependencies 12 to 13 (the typescript cell and its copy), app-boundaries 14 to 15 (an
+  // import of typescript anywhere but the parser fails). No test removed or renamed.
+  'test-kits/app-dependencies.test.mjs': 13,
+  'test-kits/app-boundaries.test.mjs': 15,
+  'test-kits/app-stack.test.mjs': 10,
 };
 
 // Independent review eighteen answered the question the per-file floor was written to close, and
@@ -342,10 +350,13 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/work-package-ownership.test.mjs': 8,
   'test-kits/authority-dispositions.test.mjs': 8,
   // WP-1A-A0-002 (2026-10-12): the guard's own counts. app-boundaries reads low because its negative
-  // controls assert through one helper, mustFail, which this count sees once.
-  'test-kits/app-dependencies.test.mjs': 26,
-  'test-kits/app-boundaries.test.mjs': 16,
-  'test-kits/app-stack.test.mjs': 43,
+  // controls assert through one helper, mustFail, which this count sees once. The first review round on
+  // PR #257 (2026-10-12), the guard's own counts: app-dependencies 26 to 50, app-boundaries 16 to 39,
+  // app-stack 43 to 71. The typescript widening (Amendment 2026-10-12): app-dependencies 50 to 59,
+  // app-boundaries 39 to 49, app-stack 71 to 72.
+  'test-kits/app-dependencies.test.mjs': 59,
+  'test-kits/app-boundaries.test.mjs': 49,
+  'test-kits/app-stack.test.mjs': 72,
 };
 
 // Independent review eighteen defeated the test-count floor by hollowing a suite while preserving
@@ -399,9 +410,15 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/work-package-discovery.test.mjs': 'a3920136781048b6',
   'test-kits/work-package-ownership.test.mjs': 'edeaf529d5267bba',
   'test-kits/authority-dispositions.test.mjs': 'dd031bcd9460744c',
-  'test-kits/app-dependencies.test.mjs': 'de39fb561e9464ad',
-  'test-kits/app-boundaries.test.mjs': '5a724545ff236d28',
-  'test-kits/app-stack.test.mjs': '33880c750745fd4a',
+  // The first review round on PR #257 (2026-10-12): the three suites gain tests (above), and app-stack's
+  // 'CI runs the application checks as their own steps, after the clean install and outside npm run
+  // check' is renamed 'CI runs the application checks in a job of their own, after every guard of the
+  // bootstrap job (A1-257-4)', as the steps moved to their own job; all three name digests move. The
+  // typescript widening (Amendment 2026-10-12) adds one test to each of the first two; app-stack's names
+  // are unchanged.
+  'test-kits/app-dependencies.test.mjs': '73a62dc5dd1581f5',
+  'test-kits/app-boundaries.test.mjs': '773252c60daf1487',
+  'test-kits/app-stack.test.mjs': '5970a03b4f91bd57',
 };
 
 // How many reversals `ratchets-bite.test.mjs` puts through a suite. Independent review twenty

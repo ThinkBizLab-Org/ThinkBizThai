@@ -17,7 +17,13 @@ measurement, not a role verdict.
   runtime dependency. No provider SDK (`@supabase/*`, `pg`, `@sentry/nextjs`) and no other §3.1 name is installed.
 - **ESLint and `eslint-config-next` are not installed: deferred by the Product Owner on 2026-10-12**
   (`ไม่ใส่ตอนนี้ (Recommended)`; `evidence/WP-1A-A0-002/product-owner-disposition-2026-10-12-skeleton-licences.md`
-  §2.2). RFC-2026-029 §8/4's boundaries are a dependency-free guard instead (`scripts/verify-app-boundaries.mjs`).
+  §2.2). RFC-2026-029 §8/4's boundaries are a guard script instead (`scripts/verify-app-boundaries.mjs`, its rules in
+  `scripts/app-boundaries.mjs`): dependency-free in `npm run check`, and in CI's application job it also reads the
+  sources with TypeScript's parser through the `typescript` package already listed here (the first review round on PR
+  #257; nothing more is installed for it). The Owner allowed that one import on 2026-10-12 (answered 07:24:27Z;
+  disposition §5–§6): RFC-2026-029 Amendment 2026-10-12 widens §3.2's `typescript` cell to
+  `scripts/app-boundaries-parser.mjs` only. It holds §2.1/3 too while ESLint is deferred (A0's reading, recorded in the
+  RFC's amendment and the disposition §3 (b)).
 - Resolution: `npm install --save-exact --ignore-scripts --engine-strict --before=2026-10-05` (seven days before
   2026-10-12, RFC-2026-029 §4.8). The committed `package-lock.json` is the lockfile npm writes for the two package.json
   files from a clean resolution, `npm install --package-lock-only --ignore-scripts --engine-strict --before=2026-10-05`
@@ -25,6 +31,17 @@ measurement, not a role verdict.
   lockfile that hoisted `lightningcss` differently and left out the six bundled entries below; the same 172 registry
   versions either way. The clean resolution is the one a reviewer reproduces from the package files alone, so it is the
   one kept.) `npm ci --ignore-scripts` on it installs the tree and leaves the lockfile byte-identical.
+- **The first attempt, disclosed (C0-257-7).** Before that resolution, a first attempt in the worktree ran without
+  `--ignore-scripts` and `--before`: the four flags reached npm as one unknown option because a shell variable did not
+  split (the handoff's `known_limitations` discloses it). What the transcript supports, and A1 measured (A1's review of
+  PR #257 at `5ecd1371`, §2.1): the `next` group added only the workspace link, the
+  Tailwind group 23 packages and the TypeScript/`vitest` group 35; the lockfile it wrote flagged one entry with
+  `hasInstallScript`, `fsevents` 2.3.3, whose tarball carries no install script and no `binding.gyp`, so npm had nothing
+  to run for it; the `node_modules` listing printed right after shows no `fsevents`, but npm hides lifecycle output, so
+  the transcript alone does not show what that attempt fetched (Q0 N7). A1's ruling: no third-party code ran, and nothing
+  from that attempt remains in any tree (the lockfile was restored, `node_modules` removed, and the committed lockfile
+  reproduces byte for byte from the package files). The tarballs it fetched stay in the user's npm cache, inert:
+  `npm ci` takes a tarball only by the lockfile's integrity.
 - Versions resolved: `next` 16.3.8, `react` 19.3.0, `react-dom` 19.3.0, `typescript` 7.0.2, `@types/node` 26.6.4,
   `@types/react` 19.3.0, `@types/react-dom` 19.3.0, `tailwindcss` 4.3.3, `@tailwindcss/postcss` 4.3.3, `postcss`
   8.5.28, `vitest` 5.0.3. The newest of all 172 registry versions in the lockfile is `@types/node` 26.6.4, published
@@ -104,6 +121,24 @@ tarball ships the prebuilt `fsevents.node`; the flag comes from the registry met
 | every other installed name | none found | — |
 
 The Sentry build plugin's own telemetry (§4.7) does not apply: `@sentry/nextjs` is not installed.
+
+## 5. What RFC-2026-029 §10 handed this package, and one known limitation
+
+- **Q-029-1** (how `apps/web` compiles `src/modules/`; path aliases measured "by `WP-1A-A0-002` on a clean clone"): not
+  measured here, because no `src/` exists yet (it is forbidden to this package). It is owed to the first package that
+  creates `src/`, which also adds `src/**` to `tsconfig.json`'s `include` (today `apps/**` and `vitest.config.ts` only;
+  Q0 N2, R0-257-5) and teaches the boundary guard to resolve the alias it chooses. Until then the guard refuses any
+  `paths`, `baseUrl` or `rootDirs`, any `extends` from outside the repository and any next.config alias.
+- **Q-029-5** (`next-intl` in the skeleton or the shell): not installed; it is the shell's (`WP-1A-A5-003`), as recommended.
+- **Q-029-7** (packages the skeleton would probably also want): none was needed. With no ESLint there is no
+  `typescript-eslint` or `@eslint/eslintrc`; the page test renders with `react-dom/server`, so no `jsdom`, Testing Library
+  or `@vitejs/plugin-react`; and neither `server-only` nor `tw-animate-css` is used. The parsed boundary guard stands
+  where lint would have stood. So no allowlist amendment for Q-029-7 travels here.
+- **Known limitation (R0-257-3).** `npm run check` fails (exit 70) on a working tree where `next build` has run: the
+  secret scanner (`scripts/scan-repository-secrets.mjs`, `IGNORED_DIRECTORIES`) walks `apps/web/.next/` and reports
+  Next.js's build output. CI is not affected, because the build runs in the application job, never before `npm run
+  check`. Locally, delete `apps/web/.next` before `npm run check`. Whether the scanner skips `.next` is a decision for its
+  owner, `WP-0A-A0-003`; this package does not edit the scanner.
 
 ## Appendix — the probe preload of §3
 

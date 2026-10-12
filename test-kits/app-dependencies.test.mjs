@@ -9,7 +9,11 @@ import {
   compareAllowlistWithRfc,
   licenceAlternatives,
   loadAllowlist,
+  parseLicenceTable,
+  parseReleaseAgeDays,
   parseRfcAllowlist,
+  parseRfcTerms,
+  parseWhereCell,
   readRepository,
   verifyAll,
 } from '../scripts/verify-app-dependencies.mjs';
@@ -75,11 +79,11 @@ test('the copy and the RFC are held to each other: a row, a cell, a glob, a colu
 
   const narrowed = copy();
   narrowed.runtime.find((r) => r.name === 'clsx').imports = ['apps/web/components/**'];
-  fails(compareAllowlistWithRfc(narrowed, rfc), /clsx: the RFC names `apps\/web\/lib\/utils\.ts`/, 'a path the cell names and the copy dropped');
+  fails(compareAllowlistWithRfc(narrowed, rfc), /clsx: the RFC's cell admits apps\/web\/lib\/utils\.ts and the copy has no such glob/, 'a path the cell names and the copy dropped');
 
   const nowhere = copy();
   nowhere.development.find((r) => r.name === 'typescript').imports = ['scripts/**'];
-  fails(compareAllowlistWithRfc(nowhere, rfc), /typescript: the RFC says "nowhere/, 'an import admitted for a package the RFC says is imported nowhere');
+  fails(compareAllowlistWithRfc(nowhere, rfc), /typescript: the copy admits scripts\/\*\*, which "nowhere, except `scripts\/app-boundaries-parser\.mjs`/, 'an import admitted beyond the one file the RFC names for typescript');
 
   const moved = copy();
   const vitest = moved.development.find((r) => r.name === 'vitest');
@@ -94,8 +98,8 @@ test('the copy and the RFC are held to each other: a row, a cell, a glob, a colu
   fails(compareAllowlistWithRfc(allowlist, rfc.replace('Apache-2.0, 0BSD.', 'Apache-2.0, 0BSD, MPL-2.0.')), /licences: §3\.4\/2 accepts/, 'a licence list that differs');
   fails(compareAllowlistWithRfc(allowlist, rfc.replace('## Amendment 2026-10-12', '## Addendum 2026-10-12')), /has no "## Amendment 2026-10-12" section/, 'the amendment gone');
   const extraException = copy();
-  extraException.licences.exceptions.push({ licence: 'GPL-3.0-only', packages: ['^anything$'], named: 'anything' });
-  fails(compareAllowlistWithRfc(extraException, rfc), /the amendment does not name GPL-3\.0-only/, 'an exception the amendment does not make');
+  extraException.licences.exceptions.push({ licence: 'GPL-3.0-only', packages: ['anything'], expressions: ['GPL-3.0-only'] });
+  fails(compareAllowlistWithRfc(extraException, rfc), /the copy admits GPL-3\.0-only for anything under GPL-3\.0-only, which the amendment's table does not/, 'an exception the amendment does not make');
 });
 
 test('every package.json names only allowlisted packages, at exact versions, in their column', async () => {
@@ -223,6 +227,9 @@ test('a licence outside the list fails unless the amendment names that transitiv
   fails({ 'node_modules/browserslist-data': entry('browserslist-data', '1.0.0', { license: 'CC-BY-4.0' }) }, /licensed CC-BY-4\.0/, 'an amended licence on a package the amendment does not name');
   fails({ 'node_modules/lightningcss-plugin': entry('lightningcss-plugin', '1.0.0', { license: 'MPL-2.0' }) }, /licensed MPL-2\.0/, 'a name that only resembles a platform binary');
   fails({ 'node_modules/@img/sharp-linux-x64': entry('@img/sharp-linux-x64', '0.35.5', { license: 'Apache-2.0 AND GPL-2.0-only' }) }, /licensed Apache-2\.0 AND GPL-2\.0-only/, 'a named package under a licence the amendment does not accept');
+  fails({ 'node_modules/@img/sharp-linux-x64': entry('@img/sharp-linux-x64', '0.35.5', { license: 'LGPL-3.0-or-later' }) }, /licensed LGPL-3\.0-or-later/, 'R0-257-4: a non-libvips build under plain LGPL');
+  fails({ 'node_modules/@img/sharp-evil': entry('@img/sharp-evil', '1.0.0', { license: 'LGPL-3.0-or-later' }) }, /licensed LGPL-3\.0-or-later/, 'R0-257-4: a new @img/sharp-* name under plain LGPL');
+  fails({ 'node_modules/caniuse-lite': entry('caniuse-lite', '1.0.30001814', { license: 'CC-BY-4.0 AND GPL-3.0-only' }) }, /licensed CC-BY-4\.0 AND GPL-3\.0-only/, 'a named package under an expression its row does not state');
   fails({ 'node_modules/x': entry('x', '1.0.0', { license: undefined }) }, /has no licence the guard can read/, 'no licence recorded');
   fails({ 'node_modules/x': entry('x', '1.0.0', { license: '(MIT AND (GPL-2.0 OR BSD-3-Clause))' }) }, /has no licence the guard can read/, 'an expression too complex to read');
   const direct = rootManifests({ web: { dependencies: { next: '16.3.8', 'caniuse-lite': '1.0.30001814' } } });
@@ -232,4 +239,129 @@ test('a licence outside the list fails unless the amendment names that transitiv
   fallback.licences.lockfileFallback = { 'x@1.0.0': 'ISC' };
   assert.deepEqual(checkLicences(lockFor(manifests, { 'node_modules/x': entry('x', '1.0.0', { license: undefined }) }), manifests, fallback), [],
     'a licence recorded at install for an entry whose lockfile carries none is read from the copy');
+});
+
+test('Q0-257-1: each "where" cell is read exactly, so a widened glob, a redefined term or an unknown phrasing fails', async () => {
+  const { allowlist, rfc } = await repository();
+  const terms = parseRfcTerms(rfc);
+  assert.deepEqual([...terms.adapters], ['src/modules/*/adapters/**'], "§3.1's definition of adapters");
+  assert.deepEqual([...terms.compositionRoot].sort(), [...allowlist.compositionRoot].sort(), "§3.1's definition of the composition root");
+  assert.equal(terms.compositionRoot.length, 10, 'two composition directories and four entry files for each of the two apps');
+  const where = (cell) => parseWhereCell(cell, terms);
+  assert.deepEqual(where('`apps/**`').globs, ['apps/**']);
+  assert.deepEqual(where('adapters, and `apps/web/composition/**`').globs, ['src/modules/*/adapters/**', 'apps/web/composition/**']);
+  assert.deepEqual(where('`src/modules/platform-kernel/adapters/**` (the job store, MOD-000) only; never reachable from `apps/web` (§6.3/5)'),
+    { globs: ['src/modules/platform-kernel/adapters/**'], never: ['never reachable from `apps/web` (§6.3/5)'] }, "pg's cell: one glob, and the prohibition §6.3/5 holds");
+  assert.deepEqual(where('anywhere under `apps/` and `src/`').globs, ['apps/**', 'src/**']);
+  assert.deepEqual([...where('the composition root of `apps/web` and `apps/worker` only').globs].sort(), [...terms.compositionRoot].sort());
+  assert.deepEqual(where('the composition root of `apps/web` only').globs.every((g) => g.startsWith('apps/web/')), true, 'one app admits that app\'s files only');
+  assert.deepEqual(where('nowhere (ambient types)').globs, []);
+  assert.deepEqual(where('`apps/web/**/*.css` (`@import`) only').globs, ['apps/web/**/*.css']);
+  assert.deepEqual(where('`eslint.config.mjs` at the root only').globs, ['eslint.config.mjs']);
+  assert.deepEqual(where('`**/*.test.ts`, `**/*.test.tsx` and `vitest.config.ts` only').globs, ['**/*.test.ts', '**/*.test.tsx', 'vitest.config.ts']);
+  assert.throws(() => where('wherever the composition root decides'), /neither a backticked path nor a term/, 'an unknown phrasing is refused, not guessed');
+  assert.throws(() => where('anywhere under `apps`'), /where a directory/, '"anywhere under" a path that is not a directory');
+
+  const copy = () => JSON.parse(JSON.stringify(allowlist));
+  const fails = (list, pattern, why) => assert.ok(list.some((p) => pattern.test(p)), `${why}: ${list.join(' | ') || 'no problem reported'}`);
+  const sentry = copy();
+  sentry.runtime.find((r) => r.name === '@sentry/nextjs').imports.push('apps/web/**');
+  fails(compareAllowlistWithRfc(sentry, rfc), /@sentry\/nextjs: the copy admits apps\/web\/\*\*/, "Q0's M13: @sentry/nextjs widened to every apps/web file");
+  const pg = copy();
+  pg.runtime.find((r) => r.name === 'pg').imports.push('src/modules/*/adapters/**');
+  fails(compareAllowlistWithRfc(pg, rfc), /pg: the copy admits src\/modules\/\*\/adapters\/\*\*/, "Q0's M14: pg widened to every module's adapters");
+  const root = copy();
+  root.compositionRoot.push('apps/web/app/**');
+  fails(compareAllowlistWithRfc(root, rfc), /compositionRoot: §3\.1 defines/, 'the composition root widened in the copy');
+  const adapters = copy();
+  adapters.adapters = ['src/**'];
+  fails(compareAllowlistWithRfc(adapters, rfc), /adapters: §3\.1 defines src\/modules\/\*\/adapters\/\*\*/, 'the adapters term widened in the copy');
+  fails(compareAllowlistWithRfc(allowlist, rfc.replace('(§6.3/5) |', '(§6.3/5); never reachable from `apps/worker` |')), /pg: the RFC states "never reachable from `apps\/worker`", which no guard here holds/,
+    'a prohibition the guard does not hold');
+  fails(compareAllowlistWithRfc(allowlist, rfc.replace('| D12 | `apps/web/components/**` |\n| `class-variance-authority`', '| D12 | wherever components live |\n| `class-variance-authority`')),
+    /radix-ui: the cell "wherever components live" holds/, 'a cell the reader does not know');
+});
+
+test("Q0-257-2: the amendment's licence rows and the copy's exceptions are held to each other, both ways", async () => {
+  const { allowlist, rfc } = await repository();
+  const amendment = rfc.slice(rfc.indexOf('## Amendment 2026-10-12'));
+  const { rows, problems } = parseLicenceTable(amendment);
+  assert.deepEqual(problems, []);
+  assert.deepEqual(rows, [
+    { licence: 'CC-BY-4.0', packages: ['caniuse-lite'], expressions: ['CC-BY-4.0'] },
+    { licence: 'MPL-2.0', packages: ['lightningcss', 'lightningcss-<platform>'], expressions: ['MPL-2.0'] },
+    { licence: 'LGPL-3.0-or-later', packages: ['@img/sharp-libvips-*'], expressions: ['LGPL-3.0-or-later'] },
+    { licence: 'LGPL-3.0-or-later', packages: ['@img/sharp-*'], expressions: ['Apache-2.0 AND LGPL-3.0-or-later', 'Apache-2.0 AND LGPL-3.0-or-later AND MIT'] },
+  ], 'the table, read row by row');
+  const copy = () => JSON.parse(JSON.stringify(allowlist));
+  const fails = (list, pattern, why) => assert.ok(list.some((p) => pattern.test(p)), `${why}: ${list.join(' | ') || 'no problem reported'}`);
+  const everything = copy();
+  everything.licences.exceptions.find((e) => e.packages.includes('@img/sharp-libvips-*')).packages = ['.*'];
+  fails(compareAllowlistWithRfc(everything, rfc), /the copy admits LGPL-3\.0-or-later for \.\*/, "Q0's M16: the LGPL pattern widened to .*");
+  const plain = copy();
+  plain.licences.exceptions.find((e) => e.packages.includes('@img/sharp-*')).expressions.push('LGPL-3.0-or-later');
+  fails(compareAllowlistWithRfc(plain, rfc), /the copy admits LGPL-3\.0-or-later for @img\/sharp-\*/, 'R0-257-4: @img/sharp-* admitted under plain LGPL');
+  fails(compareAllowlistWithRfc(allowlist, rfc.replace('| `CC-BY-4.0` | `caniuse-lite` |\n', '')), /the copy admits CC-BY-4\.0 for caniuse-lite under CC-BY-4\.0, which the amendment's table does not/,
+    "Q0's M25: the RFC's caniuse-lite row deleted");
+  const lost = copy();
+  lost.licences.exceptions = lost.licences.exceptions.filter((e) => e.licence !== 'MPL-2.0');
+  fails(compareAllowlistWithRfc(lost, rfc), /the amendment admits MPL-2\.0 for lightningcss, lightningcss-<platform> under MPL-2\.0, and the copy has no such row/, 'a row the copy lost');
+  fails(compareAllowlistWithRfc(allowlist, rfc.replace('`lightningcss` and its per-platform binaries (`lightningcss-<platform>`)', '`lightningcss` and its friends')),
+    /holds "`lightningcss` and its friends", which this reader does not know/, 'a cell the reader does not know');
+});
+
+test('A1-257-3: releaseAgeDays is §4.8\'s "seven days", and an exception names one version and an A1 record', async () => {
+  const { allowlist, rfc } = await repository();
+  assert.equal(parseReleaseAgeDays(rfc), 7, '§4.8 reads seven days');
+  assert.equal(allowlist.releaseAgeDays, 7);
+  assert.deepEqual(allowlist.releaseAgeExceptions, [], 'no exception is admitted today');
+  const fails = (list, pattern, why) => assert.ok(list.some((p) => pattern.test(p)), `${why}: ${list.join(' | ') || 'no problem reported'}`);
+  fails(compareAllowlistWithRfc({ ...allowlist, releaseAgeDays: 0 }, rfc), /releaseAgeDays: §4\.8 says 7 days; the copy says 0/, "Q0's M18: releaseAgeDays 0");
+  fails(compareAllowlistWithRfc(allowlist, rfc.replace('for at least **seven days**', 'for at least **three days**')), /§4\.8 says 3 days; the copy says 7/, 'the RFC changed and the copy did not');
+  fails(compareAllowlistWithRfc(allowlist, rfc.replace('**Release age.**', '**Age.**')), /§4\.8 states no day count/, 'a §4.8 the reader cannot find');
+  fails(compareAllowlistWithRfc({ ...allowlist, releaseAgeExceptions: [{ package: 'x@1.0.0', a1_record: 'README.md' }] }, rfc),
+    /x@1\.0\.0's a1_record "README\.md" is not evidence\/<package>\/a1-\*\.md/, "Q0's M19: README.md as the A1 record");
+  fails(compareAllowlistWithRfc({ ...allowlist, releaseAgeExceptions: [{ package: 'x@^1.0.0', a1_record: 'evidence/WP-X/a1-x.md' }] }, rfc),
+    /"x@\^1\.0\.0" is not one exact name@version/, 'an exception for a range');
+  assert.deepEqual(compareAllowlistWithRfc({ ...allowlist, releaseAgeExceptions: [{ package: '@scope/x@1.0.1', a1_record: 'evidence/WP-1A-A0-002/a1-release-age-x.md' }] }, rfc), [],
+    'a well-formed exception passes this check; the CI step then requires the pull request to add or change its record');
+});
+
+
+test('Amendment 2026-10-12: typescript\'s §3.2 cell admits scripts/app-boundaries-parser.mjs exactly, and the copy is held to it', async () => {
+  const { allowlist, rfc } = await repository();
+  const CELL = 'nowhere, except `scripts/app-boundaries-parser.mjs` (parser API; RFC amendment 2026-10-12)';
+  const PARSER = 'scripts/app-boundaries-parser.mjs';
+  const terms = parseRfcTerms(rfc);
+  const rfcRow = parseRfcAllowlist(rfc).development.find((r) => r.name === 'typescript');
+  assert.deepEqual(rfcRow, { name: 'typescript', decision: 'D1', where: CELL }, "the RFC's §3.2 row, read by the parity parser");
+  assert.deepEqual(allowlist.development.find((r) => r.name === 'typescript'), { name: 'typescript', decision: 'D1', where: CELL, imports: [PARSER] }, "the copy's row");
+  assert.deepEqual(parseWhereCell(CELL, terms), { globs: [PARSER], never: [] }, 'the cell admits the one file it names');
+  assert.match(rfc, /^The `@types\/\*` packages are never imported by name\. `typescript` is imported by one file only,\n`scripts\/app-boundaries-parser\.mjs`, for its parser API, which CI runs \(Amendment 2026-10-12\)\.$/m, "§3.2's sentence above the table says the same");
+  assert.match(rfc, /^## Amendment 2026-10-12 — [^\n]*`typescript` in the boundary guard's parser/m, 'the amendment that makes the widening');
+  assert.match(rfc, /`อนุญาตให้ guard import typescript \(Recommended\)`/, "the Owner's answer, verbatim, in the amendment");
+
+  // Fails closed: "nowhere, except" admits backticked single files and nothing else.
+  for (const cell of ['nowhere, except `scripts/**`', 'nowhere, except `scripts/`', 'nowhere, except `scripts/*.mjs`', 'nowhere, except scripts/app-boundaries-parser.mjs', 'nowhere, except the parser']) {
+    assert.throws(() => parseWhereCell(cell, terms), /after "nowhere, except", where one file/, `the cell ${JSON.stringify(cell)} is refused, not read as a wider grant`);
+  }
+
+  const copy = () => JSON.parse(JSON.stringify(allowlist));
+  const fails = (list, pattern, why) => assert.ok(list.some((p) => pattern.test(p)), `${why}: ${list.join(' | ') || 'no problem reported'}`);
+  const row = (c) => c.development.find((r) => r.name === 'typescript');
+  const extra = copy();
+  row(extra).imports.push('scripts/verify-app-boundaries.mjs');
+  fails(compareAllowlistWithRfc(extra, rfc), /typescript: the copy admits scripts\/verify-app-boundaries\.mjs/, 'a second file in the copy');
+  const dropped = copy();
+  row(dropped).imports = [];
+  fails(compareAllowlistWithRfc(dropped, rfc), /typescript: the RFC's cell admits scripts\/app-boundaries-parser\.mjs and the copy has no such glob/, 'the parser dropped from the copy');
+  const old = copy();
+  row(old).where = 'nowhere (a CLI)';
+  row(old).imports = [];
+  fails(compareAllowlistWithRfc(old, rfc), /development: the copy lists typescript \(D1, "nowhere \(a CLI\)"\) and the RFC does not/, 'the copy left at the old cell');
+  const tsLine = `| \`typescript\` | \`tsc --noEmit\` | D1 | ${CELL} |`;
+  assert.ok(rfc.includes(tsLine), "the RFC's row as the test edits it");
+  fails(compareAllowlistWithRfc(allowlist, rfc.replace(tsLine, '| `typescript` | `tsc --noEmit` | D1 | nowhere (a CLI) |')), /development: the RFC lists typescript \(D1, "nowhere \(a CLI\)"\) and the copy does not/, 'the RFC reverted and the copy not');
+  fails(compareAllowlistWithRfc(allowlist, rfc.replace(tsLine, '| `typescript` | `tsc --noEmit` | D1 | nowhere, except `scripts/**` (parser API; RFC amendment 2026-10-12) |')),
+    /typescript: the cell "nowhere, except `scripts\/\*\*`[^"]*" names/, 'the RFC widened to a glob');
 });

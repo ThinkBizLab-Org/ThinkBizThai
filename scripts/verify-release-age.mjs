@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { realpathSync } from 'node:fs';
 
-import { ALLOWLIST_PATH, REGISTRY, loadAllowlist, nameOf } from './verify-app-dependencies.mjs';
+import { A1_RECORD, ALLOWLIST_PATH, REGISTRY, loadAllowlist, nameOf } from './verify-app-dependencies.mjs';
 
 // RFC-2026-029 §4.8: a version, direct or transitive, enters the lockfile only once it has been
 // published on the registry for at least seven days; CI checks the publish time of every lockfile
@@ -14,9 +14,13 @@ import { ALLOWLIST_PATH, REGISTRY, loadAllowlist, nameOf } from './verify-app-de
 // registry for the publish time of every (name, version) that is new at the head -- added, or
 // changed to another version. An entry the base already held is not asked about again. An `inBundle`
 // entry has no publication of its own: it shipped inside its parent's tarball, whose own time is the
-// one checked. A version younger than seven days fails the step unless the allowlist's
-// releaseAgeExceptions names it with an A1 record that exists in the tree (§4.8: "admitted only with
-// A1's recorded approval in that pull request").
+// one checked. A version younger than the allowlist's releaseAgeDays fails the step unless the
+// allowlist's releaseAgeExceptions names it with an A1 record that the pull request itself adds or
+// changes (§4.8: "admitted only with A1's recorded approval in that pull request"): the record must be
+// an `evidence/<package>/a1-*.md` file, and `git diff --name-only --diff-filter=AM <base>...HEAD` must
+// list it (A1-257-3, Q0-257-4). A file that merely exists in the tree, such as README.md, is not a
+// record of that approval. releaseAgeDays itself is held to §4.8's "seven days" by
+// compareAllowlistWithRfc in scripts/verify-app-dependencies.mjs.
 //
 // A registry it cannot read, a version with no publish time, or a time it cannot parse FAILS the
 // step: a release age nobody measured is not a release age.
@@ -41,7 +45,8 @@ export function changedEntries(baseLock, headLock) {
 }
 
 // `times`: Map of `name@version` -> ISO string (or undefined when the registry gave none).
-export function ageVerdict(entries, times, now, { days = 7, exceptions = [], existing = new Set() } = {}) {
+// `changed`: the paths the pull request adds or modifies, against its base.
+export function ageVerdict(entries, times, now, { days = 7, exceptions = [], changed = new Set() } = {}) {
   const problems = [];
   const excepted = new Map(exceptions.map((e) => [e.package, e]));
   for (const { name, version } of entries) {
@@ -51,9 +56,13 @@ export function ageVerdict(entries, times, now, { days = 7, exceptions = [], exi
     const age = (now - published) / DAY;
     if (age >= days) continue;
     const exception = excepted.get(id);
-    if (exception && typeof exception.a1_record === 'string' && existing.has(exception.a1_record)) continue;
+    const record = exception?.a1_record;
+    const isRecord = typeof record === 'string' && A1_RECORD.test(record);
+    if (isRecord && changed.has(record)) continue;
     problems.push(`${id} was published ${new Date(published).toISOString()}, ${age.toFixed(1)} day(s) ago; RFC-2026-029 §4.8 admits a version after ${days} days`
-      + (exception ? ` (its exception names ${JSON.stringify(exception.a1_record)}, which is not in the tree)` : ''));
+      + (!exception ? ''
+        : !isRecord ? ` (its exception names ${JSON.stringify(record)}, which is not an A1 record evidence/<package>/a1-*.md)`
+          : ` (its exception names ${JSON.stringify(record)}, which this pull request does not add or change)`));
   }
   return problems;
 }
@@ -98,12 +107,16 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   }
   const allowlist = await loadAllowlist(ALLOWLIST_PATH);
   const exceptions = allowlist.releaseAgeExceptions ?? [];
-  const existing = new Set();
-  for (const e of exceptions) {
-    try { await readFile(e.a1_record); existing.add(e.a1_record); } catch { /* absent: the verdict says so */ }
+  let changed = new Set();
+  if (exceptions.length > 0) {
+    try {
+      changed = new Set(execFileSync('git', ['diff', '--name-only', '--diff-filter=AM', `${base}...HEAD`], { encoding: 'utf8' }).split('\n').filter(Boolean));
+    } catch (error) {
+      console.error(`release age: the paths this pull request changes against ${base} could not be read (${error.message.split('\n')[0]}); no exception is admitted`);
+    }
   }
   const { times, failures } = await publishTimes(entries);
-  const problems = [...failures, ...ageVerdict(entries, times, Date.now(), { days: allowlist.releaseAgeDays, exceptions, existing })];
+  const problems = [...failures, ...ageVerdict(entries, times, Date.now(), { days: allowlist.releaseAgeDays, exceptions, changed })];
   if (problems.length > 0) {
     console.error(`release age: ${problems.length} problem(s) among ${entries.length} new lockfile entr${entries.length === 1 ? 'y' : 'ies'}`);
     for (const problem of problems) console.error(`  ${problem}`);

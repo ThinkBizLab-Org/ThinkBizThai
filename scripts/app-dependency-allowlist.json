@@ -1,5 +1,5 @@
 {
-  "$comment": "The machine-readable copy of RFC-2026-029 §3.1 and §3.2 (RFC-2026-029 §8/1), with §3.4/2's licence list and the licence exceptions of its Amendment 2026-10-12. `name`, `decision` and `where` are the RFC's table cells verbatim; `imports` is the path rule each `where` cell states, as globs. test-kits/app-dependencies.test.mjs parses the RFC's tables and fails if this copy and the RFC disagree. Read by scripts/verify-app-dependencies.mjs and scripts/verify-app-boundaries.mjs. Editing this file does not amend the RFC: the RFC is changed first (§3.4/1, §3.4/7), and this copy follows it.",
+  "$comment": "The machine-readable copy of RFC-2026-029 §3.1 and §3.2 (RFC-2026-029 §8/1), with §3.4/2's licence list, the licence exceptions of its Amendment 2026-10-12 and §4.8's release age. `name`, `decision` and `where` are the RFC's table cells verbatim; `imports` is exactly the set of globs each `where` cell admits, read by a fixed grammar (scripts/verify-app-dependencies.mjs, parseWhereCell); `compositionRoot` and `adapters` are §3.1's two definitions; each licence exception is one item of the amendment's table, its package spellings and exact licence expressions as the table states them (parseLicenceTable). test-kits/app-dependencies.test.mjs parses the RFC's tables and fails if this copy and the RFC disagree. Read by scripts/verify-app-dependencies.mjs and scripts/verify-app-boundaries.mjs. Editing this file does not amend the RFC: the RFC is changed first (§3.4/1, §3.4/7), and this copy follows it.",
   "source": "architecture/decisions/RFC-2026-029-application-tier-stack.md",
   "compositionRoot": [
     "apps/web/composition/**",
@@ -33,7 +33,7 @@
     { "name": "lucide-react", "decision": "D12", "where": "`apps/web/components/**`", "imports": ["apps/web/components/**"] }
   ],
   "development": [
-    { "name": "typescript", "decision": "D1", "where": "nowhere (a CLI)", "imports": [] },
+    { "name": "typescript", "decision": "D1", "where": "nowhere, except `scripts/app-boundaries-parser.mjs` (parser API; RFC amendment 2026-10-12)", "imports": ["scripts/app-boundaries-parser.mjs"] },
     { "name": "@types/node", "decision": "D1", "where": "nowhere (ambient types)", "imports": [] },
     { "name": "@types/react", "decision": "D1", "where": "nowhere (ambient types)", "imports": [] },
     { "name": "@types/react-dom", "decision": "D1", "where": "nowhere (ambient types)", "imports": [] },
@@ -55,9 +55,10 @@
   "licences": {
     "accepted": ["MIT", "ISC", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "0BSD"],
     "exceptions": [
-      { "licence": "CC-BY-4.0", "packages": ["^caniuse-lite$"], "named": "caniuse-lite" },
-      { "licence": "MPL-2.0", "packages": ["^lightningcss$", "^lightningcss-(android|darwin|freebsd|linux|win32)-[a-z0-9-]+$"], "named": "lightningcss" },
-      { "licence": "LGPL-3.0-or-later", "packages": ["^@img/sharp-libvips-[a-z0-9-]+$", "^@img/sharp-[a-z0-9-]+$"], "named": "@img/sharp-libvips-*" }
+      { "licence": "CC-BY-4.0", "packages": ["caniuse-lite"], "expressions": ["CC-BY-4.0"] },
+      { "licence": "MPL-2.0", "packages": ["lightningcss", "lightningcss-<platform>"], "expressions": ["MPL-2.0"] },
+      { "licence": "LGPL-3.0-or-later", "packages": ["@img/sharp-libvips-*"], "expressions": ["LGPL-3.0-or-later"] },
+      { "licence": "LGPL-3.0-or-later", "packages": ["@img/sharp-*"], "expressions": ["Apache-2.0 AND LGPL-3.0-or-later", "Apache-2.0 AND LGPL-3.0-or-later AND MIT"] }
     ],
     "amendment": "Amendment 2026-10-12",
     "lockfileFallback": {}
@@ -68,5 +69,9 @@
     "allowedUnder": ["apps/worker/composition/**"]
   },
   "releaseAgeDays": 7,
-  "releaseAgeExceptions": []
+  "releaseAgeExceptions": [],
+  "resolutionAliases": {
+    "$comment": "RFC-2026-029 Q-029-1 (A1-257-1): a `paths`, `baseUrl` or `rootDirs` in any tsconfig, an `extends` that leaves the repository, or an alias, `resolveAlias`, `webpack` or `tsconfigPath` in any next.config.* can make the bundler load a module other than the one an import names, so scripts/app-boundaries.mjs refuses each of them unless an entry here names that file and option ({ \"file\": ..., \"option\": ... }). None is admitted today: no src/ exists, so no alias has been measured (Q-029-1 is owed to the first package that creates src/).",
+    "allowed": []
+  }
 }

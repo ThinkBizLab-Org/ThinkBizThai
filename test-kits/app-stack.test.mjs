@@ -11,7 +11,7 @@ import {
   flagsVerdict,
 } from '../scripts/verify-typecheck-control.mjs';
 import { ageVerdict, changedEntries } from '../scripts/verify-release-age.mjs';
-import { ALLOWED_DEPENDENCIES, extractImports } from '../scripts/verify-test-coverage-floor.mjs';
+import { ALLOWED_DEPENDENCIES, CoverageFloorError, assertPackageScripts, extractImports } from '../scripts/verify-test-coverage-floor.mjs';
 
 // The application tier's checks that need the installed toolchain or the network -- `tsc` and its
 // negative control (RFC-2026-029 §8/3), the release age (§4.8, §8/9), the audit (§4.6), the
@@ -110,51 +110,167 @@ test('the release-age verdict asks only about new entries and refuses a young, u
   fails(ageVerdict(entries, new Map([['b@2.1.0', '2026-09-01T00:00:00Z']]), now), /c@3\.0\.0: the registry gave no publish time/, 'a version with no publish time');
   fails(ageVerdict(entries, new Map([...old, ['c@3.0.0', 'yesterday']]), now), /no publish time this step could read/, 'an unreadable time');
   const young = new Map([...old, ['c@3.0.0', '2026-10-11T00:00:00Z']]);
-  const exceptions = [{ package: 'c@3.0.0', a1_record: 'evidence/WP-X/a1-approval.md' }];
-  fails(ageVerdict(entries, young, now, { exceptions }), /which is not in the tree/, 'an exception whose A1 record does not exist');
-  assert.deepEqual(ageVerdict(entries, young, now, { exceptions, existing: new Set(['evidence/WP-X/a1-approval.md']) }), [],
-    'a young security fix with A1\'s recorded approval in the tree is admitted (§4.8)');
+  const record = 'evidence/WP-X/a1-release-age-c.md';
+  const exceptions = [{ package: 'c@3.0.0', a1_record: record }];
+  fails(ageVerdict(entries, young, now, { exceptions }), /which this pull request does not add or change/, 'an exception whose A1 record the pull request does not touch');
+  assert.deepEqual(ageVerdict(entries, young, now, { exceptions, changed: new Set([record]) }), [],
+    'a young security fix with A1\'s recorded approval added in this pull request is admitted (§4.8)');
+  // A1-257-3, Q0-257-4: a file that merely exists, or one the pull request touches that is not an A1
+  // record, is not "A1's recorded approval in that pull request".
+  const readme = [{ package: 'c@3.0.0', a1_record: 'README.md' }];
+  fails(ageVerdict(entries, young, now, { exceptions: readme, changed: new Set(['README.md']) }), /"README\.md", which is not an A1 record evidence\/<package>\/a1-\*\.md/,
+    "Q0's M19: README.md named as the record, even when the pull request changes it");
+  for (const path of ['evidence/WP-X/q0-review.md', 'evidence/a1-x.md', 'evidence/WP-X/sub/a1-x.md', 'evidence/WP-X/a1-x.txt']) {
+    fails(ageVerdict(entries, young, now, { exceptions: [{ package: 'c@3.0.0', a1_record: path }], changed: new Set([path]) }), /is not an A1 record/, `the path ${path}`);
+  }
+  fails(ageVerdict(entries, young, now, { days: 7, exceptions: [{ package: 'b@2.1.0', a1_record: record }], changed: new Set([record]) }), /c@3\.0\.0 was published/,
+    'an exception names one version and admits no other');
 });
 
-test('CI runs the application checks as their own steps, after the clean install and outside npm run check', async () => {
+// The workflow's jobs and steps, read by indentation: a job is a two-space key under `jobs:`, a step a
+// six-space `- ` item in it. Comments are dropped first, so a step quoted in a comment is not a step.
+function workflowJobs(ci) {
+  const lines = ci.split('\n').filter((line) => !/^\s*#/.test(line));
+  const jobs = new Map();
+  let job = null;
+  let step = null;
+  let inJobs = false;
+  for (const line of lines) {
+    if (/^jobs:\s*$/.test(line)) { inJobs = true; continue; }
+    if (!inJobs) continue;
+    const key = line.match(/^ {2}([A-Za-z][\w-]*):\s*$/);
+    if (key) { job = { name: key[1], head: [], steps: [] }; jobs.set(key[1], job); step = null; continue; }
+    if (!job) continue;
+    if (/^ {6}- /.test(line)) { step = { text: [line.slice(8)] }; job.steps.push(step); continue; }
+    if (step && (/^ {8}/.test(line) || line.trim() === '')) { step.text.push(line.slice(8)); continue; }
+    step = null;
+    job.head.push(line);
+  }
+  for (const each of jobs.values()) {
+    for (const s of each.steps) {
+      const text = s.text.join('\n');
+      s.name = text.match(/^name: (.+)$/m)?.[1] ?? null;
+      s.uses = text.match(/^(?:- )?uses: (.+)$/m)?.[1] ?? null;
+      const block = text.match(/^run: \|\n((?: {2}.*\n?|\n)*)/m);
+      s.run = block ? block[1].split('\n').map((l) => l.slice(2)).join('\n').trim() : (text.match(/^run: (.+)$/m)?.[1] ?? null);
+      s.raw = text;
+    }
+  }
+  return jobs;
+}
+
+// R0-257-1. Before any step that runs `npm run check` -- the pull request's own `scripts.check` -- the
+// workflow must have invoked the test-integrity guard itself, which refuses a neutered check string
+// (RFC-2026-007). Returns the problems, so the same reading is run on the workflow and on a mutation.
+function guardBeforeCheck(steps) {
+  const guard = steps.findIndex((s) => s.run === 'node scripts/verify-test-coverage-floor.mjs');
+  const check = steps.findIndex((s) => /(^|\n|&&\s*|;\s*)npm run check\b/.test(s.run ?? ''));
+  if (check === -1) return ['no step runs npm run check'];
+  if (guard === -1 || guard > check) return [`step "${steps[check].name}" runs npm run check before the workflow has run the test-integrity guard`];
+  const early = steps.slice(0, guard).filter((s) => /\b(npm run|npm test|node scripts\/|make )/.test(s.run ?? ''));
+  return early.map((s) => `step "${s.name}" runs repository code before the test-integrity guard`);
+}
+
+test('the test-integrity guard runs before the first npm run check, and refuses there the check string that would empty it (R0-257-1)', async () => {
   const ci = await readFile('.github/workflows/ci.yml', 'utf8');
-  const at = (text) => {
-    const index = ci.indexOf(text);
-    assert.ok(index >= 0, `ci.yml has ${JSON.stringify(text)}`);
-    return index;
-  };
-  const steps = [
-    ['- name: Validate repository bootstrap with no node_modules', null],
-    ['- name: Clean install', 'run: npm ci --ignore-scripts'],
-    ['- name: Validate repository bootstrap', 'run: npm run check'],
-    ['- name: Verify the application dependencies', 'run: node scripts/verify-app-dependencies.mjs'],
-    ['- name: Verify the application boundaries', 'run: node scripts/verify-app-boundaries.mjs'],
-    ['- name: Type-check the application', 'run: npm run typecheck'],
-    ['- name: Type-check negative control', 'run: node scripts/verify-typecheck-control.mjs'],
-    ['- name: Application tests', 'run: npm run test:app'],
-    ['- name: Build the web application', 'run: npm run build --workspace apps/web'],
-    ['- name: Vulnerability audit (network)', 'run: npm audit --omit=dev --audit-level=high'],
-    ['- name: Release age of new lockfile entries (network)', 'run: node scripts/verify-release-age.mjs "$BASE_SHA"'],
+  const bootstrap = workflowJobs(ci).get('bootstrap');
+  assert.ok(bootstrap && bootstrap.steps.length > 10, 'the bootstrap job is read');
+  assert.deepEqual(guardBeforeCheck(bootstrap.steps), [], 'the guard precedes every npm run check in the bootstrap job');
+  const names = bootstrap.steps.map((s) => s.name);
+  const order = ['Print the review tier and lane (informational, gates nothing)', 'Verify test-integrity guard before the first npm run check',
+    'Validate repository bootstrap with no node_modules', 'Clean install', 'Verify test-integrity guard', 'Validate repository bootstrap'];
+  assert.deepEqual(order.map((name) => names.indexOf(name)).every((at, i, all) => at >= 0 && (i === 0 || at === all[i - 1] + 1)), true,
+    `the bootstrap job runs ${order.join(' -> ')} back to back (found ${names.join(' | ')})`);
+  const bare = bootstrap.steps.find((s) => s.name === 'Validate repository bootstrap with no node_modules');
+  assert.match(bare.run, /if \[ -e node_modules \]; then[\s\S]*exit 1[\s\S]*npm run check/, 'the check runs before any install and refuses a node_modules already present (§8/6)');
+
+  // The negative control: the order of PR #257's first head (no early guard), and the guard moved after
+  // the check, are both refused by the same reading.
+  const withoutGuard = ci.replace('      - name: Verify test-integrity guard before the first npm run check\n        run: node scripts/verify-test-coverage-floor.mjs\n', '');
+  assert.notEqual(withoutGuard, ci);
+  assert.match(guardBeforeCheck(workflowJobs(withoutGuard).get('bootstrap').steps).join(), /runs npm run check before the workflow has run the test-integrity guard/, 'no early guard');
+  const late = ci.replace(/(      - name: Verify test-integrity guard before the first npm run check\n        run: node scripts\/verify-test-coverage-floor\.mjs\n)(      - name: Validate repository bootstrap with no node_modules\n        run: \|\n(?: {10}.*\n)+)/, '$2$1');
+  assert.notEqual(late, ci);
+  assert.match(guardBeforeCheck(workflowJobs(late).get('bootstrap').steps).join(), /before the workflow has run the test-integrity guard/, 'the guard moved after the check');
+
+  // And what the guard does when it runs first: R0's `scripts.check` that empties the guard file is
+  // refused with exit 81 before it can run.
+  const neutered = { ...JSON.parse(await readFile('package.json', 'utf8')).scripts, check: "node -e \"require('fs').writeFileSync('scripts/verify-test-coverage-floor.mjs','')\"" };
+  assert.throws(() => assertPackageScripts(neutered), (error) => error instanceof CoverageFloorError && error.code === 81, "R0's check string is refused by the guard");
+});
+
+test('CI runs the application checks in a job of their own, after every guard of the bootstrap job (A1-257-4)', async () => {
+  const ci = await readFile('.github/workflows/ci.yml', 'utf8');
+  const jobs = workflowJobs(ci);
+  assert.deepEqual([...jobs.keys()], ['bootstrap', 'application'], 'two jobs, the bootstrap job first');
+  const app = jobs.get('application');
+  const head = app.head.join('\n');
+  assert.match(head, /^ {4}needs: bootstrap$/m, 'the application job starts only after the bootstrap job has run its guards');
+  assert.match(head, /^ {4}runs-on: ubuntu-24\.04$/m);
+  assert.match(head, /^ {4}env:\n {6}NEXT_TELEMETRY_DISABLED: '1'$/m, 'Next.js telemetry is off for the whole job (§4.7)');
+  assert.doesNotMatch(head, /^ {4}if:/m, 'the job carries no condition: it runs on every pull request and push');
+  const expected = [
+    [null, /^actions\/checkout@11d5960a326750d5838078e36cf38b85af677262$/],
+    ['Verify the checkout is the commit this application run reports on', null],
+    [null, /^actions\/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020$/],
+    ['Verify pinned toolchain for the application', null],
+    ['Clean install for the application', 'npm ci --ignore-scripts'],
+    ['Verify the application dependencies', 'node scripts/verify-app-dependencies.mjs'],
+    ['Verify the application boundaries (parsed)', 'node scripts/verify-app-boundaries.mjs --require-parser'],
+    ['Type-check the application', 'npm run typecheck'],
+    ['Type-check negative control', 'node scripts/verify-typecheck-control.mjs'],
+    ['Application tests', 'npm run test:app'],
+    ['Build the web application', 'npm run build --workspace apps/web'],
+    ['Vulnerability audit (network)', 'npm audit --omit=dev --audit-level=high'],
+    ['Release age of new lockfile entries (network)', 'node scripts/verify-release-age.mjs "$BASE_SHA"'],
   ];
-  let previous = -1;
-  for (const [name, run] of steps) {
-    const position = at(`${name}\n`);
-    assert.ok(position > previous, `${name} runs after the step before it in this list`);
-    const next = ci.indexOf('- name:', position + name.length);
-    if (run) assert.ok(ci.slice(position, next === -1 ? ci.length : next).includes(run), `${name} runs \`${run}\``);
-    previous = position;
+  assert.equal(app.steps.length, expected.length, `the application job has exactly its ${expected.length} steps (found ${app.steps.map((s) => s.name ?? s.uses).join(' | ')})`);
+  expected.forEach(([name, run], i) => {
+    const step = app.steps[i];
+    if (name === null) assert.match(step.uses ?? '', run, `step ${i + 1} uses ${run}`);
+    else {
+      assert.equal(step.name, name, `step ${i + 1} is "${name}"`);
+      if (run) assert.equal(step.run, run, `"${name}" runs \`${run}\``);
+    }
+  });
+  assert.match(app.steps[0].raw, /ref: \$\{\{ github\.head_ref \}\}[\s\S]*persist-credentials: false[\s\S]*fetch-depth: 0/, 'the same checkout as the bootstrap job, with the base in the clone');
+  assert.match(app.steps[1].run, /EXPECTED_SHA|cannot report on a commit it did not test/);
+  assert.match(app.steps[1].raw, /EXPECTED_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
+  assert.match(app.steps.at(-1).raw, /if: github\.event_name == 'pull_request'[\s\S]*BASE_SHA: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/, 'the release age is measured against the pull request\'s base');
+
+  // Nothing that runs an installed package is left in the bootstrap job, where the RLS guards run.
+  const bootstrap = jobs.get('bootstrap').steps.map((s) => s.run ?? '').join('\n');
+  for (const command of ['npm run typecheck', 'npm run test:app', 'vitest', 'next build', 'npm run build', 'npm audit', 'verify-release-age', 'verify-typecheck-control', 'verify-app-boundaries', 'tsc']) {
+    assert.ok(!bootstrap.includes(command), `the bootstrap job does not run ${command}`);
   }
-  const bare = ci.slice(at('- name: Validate repository bootstrap with no node_modules\n'), at('- name: Clean install\n'));
-  assert.match(bare, /if \[ -e node_modules \]; then[\s\S]*exit 1[\s\S]*npm run check/, 'the check runs before any install and refuses a node_modules already present (§8/6)');
-  assert.ok(at('- name: Print the review tier and lane') < at('- name: Validate repository bootstrap with no node_modules\n'),
-    'the classification steps stay the last steps before the pull request\'s own code runs');
-  const age = ci.slice(at('- name: Release age of new lockfile entries (network)\n'));
-  assert.match(age.split('- name:')[1], /if: github\.event_name == 'pull_request'[\s\S]*BASE_SHA: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/, 'the release age is measured against the pull request\'s base');
-  assert.match(ci, /^ {4}env:\n {6}NEXT_TELEMETRY_DISABLED: '1'$/m, 'Next.js telemetry is off for the whole job (§4.7)');
   const pkg = JSON.parse(await readFile('package.json', 'utf8'));
-  for (const app of ['typecheck', 'test:app', 'tsc', 'vitest', 'next']) {
-    assert.ok(!pkg.scripts.check.includes(app), `npm run check does not run ${app}; the application checks are their own CI steps (§2.1/4)`);
+  for (const appCommand of ['typecheck', 'test:app', 'tsc', 'vitest', 'next']) {
+    assert.ok(!pkg.scripts.check.includes(appCommand), `npm run check does not run ${appCommand}; the application checks are their own CI steps (§2.1/4)`);
   }
+});
+
+test('CI installs only with npm ci --ignore-scripts, once per job, and no step may fail without failing the run (Q0-257-5)', async () => {
+  const ci = await readFile('.github/workflows/ci.yml', 'utf8');
+  const installs = (text) => [...workflowJobs(text).values()].map((job) => [job.name,
+    job.steps.flatMap((s) => (s.run ?? '').split('\n')).filter((line) => /\bnpm (?:ci|install|i|add|update|rebuild)\b|\bnpx\b|\byarn\b|\bpnpm\b/.test(line)).map((line) => line.trim())]);
+  assert.deepEqual(installs(ci), [['bootstrap', ['npm ci --ignore-scripts']], ['application', ['npm ci --ignore-scripts']]],
+    'one npm ci --ignore-scripts in each job, and no other install');
+  const code = ci.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n');
+  assert.doesNotMatch(code, /continue-on-error/, 'no step or job is continue-on-error');
+  // The negative controls: Q0's M40 (a second, plain npm ci) and M45 (continue-on-error on the release age).
+  const plain = ci.replace('      - name: Verify the application dependencies\n', '      - name: Reinstall\n        run: npm ci\n      - name: Verify the application dependencies\n');
+  assert.deepEqual(installs(plain)[1], ['application', ['npm ci --ignore-scripts', 'npm ci']], 'a second, plain npm ci is seen');
+  const soft = ci.replace("      - name: Release age of new lockfile entries (network)\n        if: github.event_name == 'pull_request'\n",
+    "      - name: Release age of new lockfile entries (network)\n        if: github.event_name == 'pull_request'\n        continue-on-error: true\n");
+  assert.notEqual(soft, ci);
+  assert.match(soft.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n'), /continue-on-error/, 'a continue-on-error is seen');
+});
+
+test('vitest runs the application tests and fails when there are none (Q0 N1)', async () => {
+  const config = await readFile('vitest.config.ts', 'utf8');
+  assert.match(config, /^ {4}passWithNoTests: false,$/m, 'a deleted test file must fail `npm run test:app`, not pass it');
+  assert.doesNotMatch(config, /passWithNoTests: true/);
+  assert.match(config, /include: \['apps\/\*\*\/\*\.test\.ts', 'apps\/\*\*\/\*\.test\.tsx', 'src\/\*\*\/\*\.test\.ts', 'src\/\*\*\/\*\.test\.tsx'\]/, 'the application\'s tests, and only those');
 });
 
 test('npm run check needs no node_modules: nothing the tooling tier runs imports an application package', async () => {
@@ -171,13 +287,33 @@ test('npm run check needs no node_modules: nothing the tooling tier runs imports
   };
   const files = (await Promise.all(['scripts', 'test-kits', 'tests'].map(walk))).flat();
   assert.ok(files.length > 50, `the walk reaches the tooling tier (${files.length} modules)`);
+  // ONE exception, pinned here by name and by what it imports: the boundary guard's parsed reader, which
+  // CI runs in the application job (--require-parser) and which no test reaches (the suite's import
+  // closure refuses a package, ALLOWED_DEPENDENCIES = []). It stands where §2.1/4's lint step stands
+  // while ESLint is deferred (C0-257-1, A1-257-1).
+  // The exception is RFC-2026-029's own since its Amendment 2026-10-12 (the Owner's answer of 07:24:27Z):
+  // §3.2's typescript cell, as the allowlist copy reads it, admits this one file and no other.
+  const PARSER = 'scripts/app-boundaries-parser.mjs';
+  const PARSER_IMPORTS = ['typescript', 'typescript/unstable/ast', 'typescript/unstable/sync'];
+  const allowlist = JSON.parse(await readFile('scripts/app-dependency-allowlist.json', 'utf8'));
+  assert.deepEqual(allowlist.development.find((row) => row.name === 'typescript').imports, [PARSER], 'the file pinned here is the one §3.2 admits');
   const bare = [];
+  const parserImports = [];
+  const importers = [];
   for (const file of files) {
     for (const { specifier } of extractImports(await readFile(file, 'utf8')).imports) {
-      if (!specifier.startsWith('node:') && !specifier.startsWith('./') && !specifier.startsWith('../')) bare.push(`${file} imports ${specifier}`);
+      if (specifier.endsWith('/app-boundaries-parser.mjs') || specifier.endsWith('/verify-app-boundaries.mjs')) importers.push(`${file} imports ${specifier}`);
+      if (specifier.startsWith('node:') || specifier.startsWith('./') || specifier.startsWith('../')) continue;
+      if (file === PARSER) parserImports.push(specifier); else bare.push(`${file} imports ${specifier}`);
     }
   }
   assert.deepEqual(bare, [], 'a tooling module importing a package would need node_modules to run');
+  assert.deepEqual(parserImports.sort(), PARSER_IMPORTS, `${PARSER} imports typescript's parser API and nothing else`);
+  assert.deepEqual(importers, ['scripts/verify-app-boundaries.mjs imports ./app-boundaries-parser.mjs'],
+    'only the CLI loads the parsed reader, and no module imports the CLI: no test reaches either');
+  const cli = await readFile('scripts/verify-app-boundaries.mjs', 'utf8');
+  assert.match(cli, /await import\('\.\/app-boundaries-parser\.mjs'\)/, 'the CLI loads it dynamically, so it runs without node_modules');
+  assert.match(cli, /process\.argv\.includes\('--require-parser'\)/, 'and fails when CI requires it and it cannot load');
 });
 
 test('the web skeleton wires Tailwind through PostCSS, keeps telemetry off, needs no sharp and has no data path', async () => {

@@ -578,6 +578,10 @@ export const DIGESTED_FLOOR = [
   // WP-1A-A0-002 (2026-10-12, RFC-2026-029 §8): the application tier's guards, the allowlist copy they
   // read, their suites and the type check's negative-control fixture.
   'scripts/app-dependency-allowlist.json',
+  // The first review round on PR #257 (2026-10-12): the boundary rules moved into a library the suite
+  // imports, and the TypeScript parser's reader, which only the CLI loads, in CI's application job.
+  'scripts/app-boundaries.mjs',
+  'scripts/app-boundaries-parser.mjs',
   'scripts/verify-app-boundaries.mjs',
   'scripts/verify-app-dependencies.mjs',
   'scripts/verify-release-age.mjs',
