@@ -333,8 +333,15 @@ jobs:
             exit 1
           fi
           npm run check
+      # NO BIN LINKS HERE (A1-257-6). `npm run` puts node_modules/.bin first on PATH, and
+      # `--ignore-scripts` does not stop npm linking a package's `bin` there, so a package whose bin is
+      # named `node` or `npm` would run in their place inside `npm run check`, before the database
+      # guards below. Nothing this job runs needs a package binary (`npm run check` is dependency-free,
+      # and the steps that run installed code are the application job's), so it installs with
+      # `--no-bin-links`. The dependency guard also refuses a lockfile bin named after a common
+      # command (scripts/verify-app-dependencies.mjs), for the installs that do link bins.
       - name: Clean install
-        run: npm ci --ignore-scripts
+        run: npm ci --ignore-scripts --no-bin-links
       # Invoked BY THE WORKFLOW, not by the script it audits. `npm run check` can be
       # neutered by its own scripts.check string -- a trailing `&` backgrounds the chain so
       # the shell returns 0 before any exit code matters, and replacing every `&&` with `||`

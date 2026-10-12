@@ -38,6 +38,14 @@ export const LIFECYCLE_SCRIPTS = ['preinstall', 'install', 'postinstall', 'prepa
 // An exact version: no range, tag, alias, URL, path or workspace protocol.
 const EXACT_VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const SHA512 = /^sha512-[A-Za-z0-9+/]{86}==$/;
+// A1-257-6: `npm run` puts node_modules/.bin first on PATH, and `--ignore-scripts` does not stop npm
+// linking a package's `bin` there, so a bin named after a command a script or a CI step runs would run
+// in its place, inside the job that runs it. The bootstrap job installs with `--no-bin-links`
+// (.github/workflows/ci.yml); the application job and a local install link bins, so no lockfile entry
+// may carry a bin named after one of these commands.
+export const SHADOWED_COMMANDS = ['node', 'npm', 'npx', 'git', 'sh', 'bash', 'zsh', 'env', 'psql', 'pg_ctl', 'initdb', 'curl',
+  'wget', 'tar', 'gzip', 'make', 'python', 'python3', 'ruby', 'perl', 'ssh', 'scp', 'docker', 'gh', 'sudo', 'cp', 'mv', 'rm',
+  'cat', 'ls', 'test', 'true', 'false'];
 
 export async function loadAllowlist(path = ALLOWLIST_PATH) {
   return JSON.parse(await readFile(path, 'utf8'));
@@ -379,6 +387,15 @@ export function checkLockfile(lock, manifests) {
     if (manifests[`${workspace}/package.json`]) compare(workspace, manifests[`${workspace}/package.json`], `workspace ${workspace}`);
   }
   for (const [key, entry] of Object.entries(packages)) {
+    // Every entry, the root and the workspaces included: npm links a workspace's bins too. A `bin`
+    // string is linked under the package's own name (without its scope).
+    const bins = typeof entry?.bin === 'string' ? [nameOf(key, entry).split('/').pop()] : Object.keys(entry?.bin ?? {});
+    for (const bin of bins) {
+      const linked = String(bin).split('/').pop().toLowerCase();
+      if (SHADOWED_COMMANDS.includes(linked)) {
+        problems.push(`${key || 'the root package'} declares a bin named ${JSON.stringify(bin)}, which npm links into node_modules/.bin, first on PATH under \`npm run\`, in place of the ${linked} command (A1-257-6)`);
+      }
+    }
     if (key === '' || workspaces.has(key)) continue;
     if (!key.startsWith('node_modules/') || key.split('/').some((s) => s === '..' || s === '.')) {
       problems.push(`package-lock.json entry ${JSON.stringify(key)} is neither the root, a declared workspace nor a node_modules path`);

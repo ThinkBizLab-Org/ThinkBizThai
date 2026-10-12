@@ -81,10 +81,12 @@ RFC-2026-029's Amendment 2026-10-12 records this answer, in the option's words, 
 deferred; that record is part of the amendment the press direction (c) reaches. Beyond the Owner's words, and marked
 there as A0's reading (C0-257-1, C0-257-2, R0-257-2): the same guard holds §2.1/3 (`@ts-ignore` not used,
 `@ts-expect-error` only with a reason, no `any` in application code) and stands as §2.1/4's lint step, as its own CI
-step, while ESLint is deferred. Its rules need no dependency and run in `npm run check` with none; in CI the guard also
-reads the sources with TypeScript's parser, through the `typescript` package §3.2 already lists, and that step fails if
-the parser cannot load. Whether that use of an installed package sits inside the option's "ไม่มี dependency" is A0's
-reading too, and is named to the Owner in the press report.
+step, while ESLint is deferred. Its rules other than `any` need no dependency and run in `npm run check` with none; in
+CI the guard also reads the sources with TypeScript's parser, through the `typescript` package §3.2 already lists, and
+that step fails if the parser cannot load. The `any` rule needs the parser, so it runs only in CI's parsed run, not in
+`npm run check`. Whether that use of an installed package sits inside the option's "ไม่มี dependency" was put to the
+Owner, who answered at 07:24:27Z: `อนุญาตให้ guard import typescript (Recommended)` (§5.1, §6 (a)). It is his decision,
+not A0's reading.
 
 **(c) Who presses.** The Owner's direction of 2026-10-11 (disposition of that date, §3 (b)) is extended to the licence
 amendment, as it travels in the `WP-1A-A0-002` skeleton pull request: A0 may press that pull request once C0, A1, Q0 and
@@ -152,7 +154,8 @@ its own, or any further widening of a §3 cell is proposed, A0 asks again.
 
 **(b) The `application` required check.** After #257 merges, A0 adds the `application` job to the required status
 checks of `main`'s branch protection through `gh api`, once, changing nothing else in branch protection, and records the
-command and the before and after state in this package's evidence. Until then GitHub can merge a head whose
+`gh api` command, with the before and after state, in this disposition, as the option said
+(`บันทึกคำสั่งนี้ใน disposition`). Until then GitHub can merge a head whose
 `application` job is red, so A0 presses #257 only with that job green on its final head (§3 (c), "CI is green on it").
 A0's reading, not the Owner's words: "ไม่แตะค่าอื่น" means the other required checks, the review rules and every other
 protection setting stay as they are, so the call adds one context to the existing list rather than replacing the

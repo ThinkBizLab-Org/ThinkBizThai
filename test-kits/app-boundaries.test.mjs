@@ -1,9 +1,14 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import {
+  ALIAS_COMPILER_OPTIONS,
+  ALIAS_PACKAGE_FIELDS,
   checkBoundaries,
+  checkJsxPragmas,
   checkRepositoryImports,
   checkResolutionConfigs,
   checkSecretsAndMigrations,
@@ -71,8 +76,10 @@ test('the application sources keep the §6.3 boundaries and §8/5 on the reposit
   assert.deepEqual(checkTypeDirectives(files), []);
   assert.deepEqual(checkSecretsAndMigrations(files, await collectDirectories('.'), allowlist), []);
   const configs = await collectResolutionConfigs('.');
-  assert.ok(configs.has('tsconfig.json') && configs.has('apps/web/tsconfig.json') && configs.has('apps/web/next.config.ts'),
-    `the alias walk reaches every resolution config (${[...configs.keys()].join(', ')})`);
+  assert.ok(configs.has('tsconfig.json') && configs.has('apps/web/tsconfig.json') && configs.has('apps/web/next.config.ts')
+    && configs.has('tsconfig.base.json') && configs.has('package.json') && configs.has('apps/web/package.json') && configs.has('vitest.config.ts'),
+    `the alias walk reaches every resolution config and package.json (${[...configs.keys()].join(', ')})`);
+  assert.deepEqual(checkJsxPragmas(files), []);
   assert.deepEqual(checkResolutionConfigs(configs, allowlist), []);
   const repository = await collectRepositoryCode('.');
   assert.ok(repository.has('scripts/app-boundaries-parser.mjs') && repository.has('test-kits/app-boundaries.test.mjs') && !repository.has('apps/web/app/page.tsx'),
@@ -219,7 +226,7 @@ test('Q-029-1: a path alias in a tsconfig or a next.config is refused until the 
   const check = (configs, copy = allowlist) => checkResolutionConfigs(tree(configs), copy);
   const fails = (problems, pattern, why) => assert.ok(problems.some((p) => pattern.test(p)), `${why}: ${problems.join(' | ') || 'no problem reported'}`);
   const json = (value) => JSON.stringify(value);
-  assert.deepEqual(check({ 'tsconfig.json': json({ extends: './tsconfig.base.json', include: ['apps/**/*.ts'] }), 'apps/web/next.config.ts': 'export default { images: { unoptimized: true } };\n' }), []);
+  assert.deepEqual(check({ 'tsconfig.json': json({ extends: './tsconfig.base.json', include: ['apps/**/*.ts'] }), 'tsconfig.base.json': '{}', 'apps/web/next.config.ts': 'export default { images: { unoptimized: true } };\n' }), []);
   fails(check({ 'tsconfig.json': json({ compilerOptions: { paths: { zod: ['./node_modules/pg'] } } }) }), /tsconfig\.json sets compilerOptions\.paths/, 'an alias of an allowlisted name onto pg');
   fails(check({ 'apps/web/tsconfig.json': json({ compilerOptions: { baseUrl: '.' } }) }), /sets compilerOptions\.baseUrl/, 'a baseUrl');
   fails(check({ 'tsconfig.base.json': json({ compilerOptions: { rootDirs: ['src', 'apps'] } }) }), /sets compilerOptions\.rootDirs/, 'rootDirs');
@@ -310,4 +317,160 @@ test('Amendment 2026-10-12: typescript is imported by scripts/app-boundaries-par
   assert.match(cli, /\.\.\.checkRepositoryImports\(repository, allowlist, \{ extract: repositoryExtract \}\),/, 'and judges it, through the parser when it is loaded');
   assert.match(cli, /\.\.\.checkRepositoryImports\(files, allowlist, \{ extract \}\),/, 'and its negative controls run the rule');
   assert.match(cli, /'Amendment 2026-10-12: typescript imported by a script other than the parser'/, 'with a control for a script importing typescript');
+});
+
+test('A1-257-5: a compiler config is followed along its extends chain, whatever its files are named, and an alias anywhere in the chain fails', async () => {
+  const allowlist = await loadAllowlist();
+  const json = (value) => JSON.stringify(value);
+  const BASE = { 'tsconfig.base.json': json({ compilerOptions: { strict: true } }), 'package.json': json({ name: 'r', private: true, workspaces: ['apps/web'] }), 'apps/web/package.json': json({ name: '@r/web', private: true }) };
+  const check = (configs, copy = allowlist) => checkResolutionConfigs(tree({ ...BASE, ...configs }), copy);
+  const fails = (problems, pattern, why) => assert.ok(problems.some((p) => pattern.test(p)), `${why}: ${problems.join(' | ') || 'no problem reported'}`);
+  const paths = { compilerOptions: { paths: { zod: ['../../db/probe-a1/target.ts'] } } };
+  assert.deepEqual(check({ 'apps/web/tsconfig.json': json({ extends: './base.json' }), 'apps/web/base.json': json({ extends: '../../tsconfig.base.json' }) }), [], 'a clean chain through a file of any name passes');
+  // A1's first route, as A1 measured it: apps/web/tsconfig.json -> ./base.json (paths) -> the repository base.
+  fails(check({ 'apps/web/tsconfig.json': json({ extends: './base.json' }), 'apps/web/base.json': json({ extends: '../../tsconfig.base.json', ...paths }) }),
+    /apps\/web\/base\.json sets compilerOptions\.paths/, "A1's base.json");
+  fails(check({ 'apps/web/tsconfig.json': json({ extends: './base' }), 'apps/web/base.json': json(paths) }), /apps\/web\/base\.json sets compilerOptions\.paths/, 'an extends with .json left off, as tsc appends it');
+  fails(check({ 'tsconfig.json': json({ extends: './a.json' }), 'a.json': json({ extends: './conf/b.json' }), 'conf/b.json': json({ compilerOptions: { baseUrl: '..' } }) }),
+    /conf\/b\.json sets compilerOptions\.baseUrl/, 'two links down');
+  fails(check({ 'tsconfig.json': json({ extends: ['./tsconfig.base.json', './more.json'] }), 'more.json': json({ compilerOptions: { rootDirs: ['a', 'b'] } }) }),
+    /more\.json sets compilerOptions\.rootDirs/, 'the second entry of an extends array');
+  for (const option of ['jsxImportSource', 'jsxFactory', 'jsxFragmentFactory', 'reactNamespace']) {
+    fails(check({ 'apps/web/tsconfig.json': json({ extends: './base.json' }), 'apps/web/base.json': json({ compilerOptions: { [option]: '../../db/probe-a1/rt' } }) }),
+      new RegExp(`apps/web/base\\.json sets compilerOptions\\.${option}`), `${option} inherited through the chain`);
+    fails(check({ 'tsconfig.base.json': json({ compilerOptions: { [option]: 'x' } }) }), new RegExp(`tsconfig\\.base\\.json sets compilerOptions\\.${option}`), `${option} in a tsconfig`);
+  }
+  assert.deepEqual(ALIAS_COMPILER_OPTIONS, ['paths', 'baseUrl', 'rootDirs', 'jsxImportSource', 'jsxFactory', 'jsxFragmentFactory', 'reactNamespace']);
+  fails(check({ 'apps/web/tsconfig.json': json({ extends: './missing.json' }) }), /extends "\.\/missing\.json", which is not a file in this repository the guard has read \(no apps\/web\/missing\.json\)/, 'a file the guard has not read');
+  fails(check({ 'apps/web/tsconfig.json': json({ extends: '../../../outside.json' }) }), /which is not a file in this repository the guard has read \(it leaves the repository/, 'a path leaving the repository');
+  fails(check({ 'tsconfig.json': json({ extends: './node_modules/@tsconfig/next/tsconfig.json' }) }), /enters a directory the guard does not read/, 'a path into node_modules');
+  fails(check({ 'tsconfig.json': json({ extends: '/etc/tsconfig.json' }) }), /it is an absolute path or a URL/, 'an absolute path');
+  fails(check({ 'tsconfig.json': json({ extends: '@tsconfig/next/tsconfig.json' }) }), /the package @tsconfig\/next resolves through node_modules, and only this repository's own workspaces resolve inside it/, 'a package from the registry');
+  fails(check({ 'tsconfig.json': json({ extends: 7 }) }), /extends 7, which is not a file in this repository/, 'an extends that is not a string');
+  // A package specifier that resolves inside the repository: one of its own workspaces, by a path in it.
+  assert.deepEqual(check({ 'tsconfig.json': json({ extends: '@r/web/tsconfig.shared.json' }), 'apps/web/tsconfig.shared.json': '{}' }), [], 'a workspace file, named through its package');
+  fails(check({ 'tsconfig.json': json({ extends: '@r/web/shared' }), 'apps/web/shared.json': json(paths) }), /apps\/web\/shared\.json sets compilerOptions\.paths/, 'and the file it names is read like any other');
+  fails(check({ 'tsconfig.json': json({ extends: '@r/web' }) }), /it names no file inside the workspace @r\/web/, 'a workspace named with no file');
+  fails(check({ 'tsconfig.json': json({ extends: '@r/web/../../x.json' }) }), /it names no file inside the workspace @r\/web/, 'a workspace path climbing out');
+  fails(check({ 'apps/web/package.json': json({ name: '@r/web', private: true, exports: { './t.json': './other.json' } }), 'tsconfig.json': json({ extends: '@r/web/t.json' }), 'apps/web/t.json': '{}' }),
+    /the workspace @r\/web remaps its files through `exports`/, 'a workspace whose exports would remap the path');
+  assert.deepEqual(check({ 'a.json': json({ extends: './tsconfig.json' }), 'tsconfig.json': json({ extends: './a.json' }) }), [], 'a cycle ends where it closes');
+  const admitted = { ...allowlist, resolutionAliases: { allowed: [{ file: 'apps/web/base.json', option: 'paths' }] } };
+  assert.deepEqual(check({ 'apps/web/tsconfig.json': json({ extends: './base.json' }), 'apps/web/base.json': json(paths) }, admitted), [], 'an allowlist entry admits that file and option');
+  fails(check({ 'apps/web/tsconfig.json': json({ extends: './base.json', ...paths }), 'apps/web/base.json': '{}' }, admitted), /apps\/web\/tsconfig\.json sets compilerOptions\.paths/, 'and only that file');
+
+  // The walk reads the chain from disk, where TypeScript reads it: A1's tree, written to a scratch directory.
+  const root = await mkdtemp(join(tmpdir(), 'app-boundaries-'));
+  try {
+    const write = async (path, text) => { await mkdir(join(root, path, '..'), { recursive: true }); await writeFile(join(root, path), text); };
+    for (const [path, text] of Object.entries(BASE)) await write(path, text);
+    await write('apps/web/tsconfig.json', json({ extends: './base' }));
+    await write('apps/web/base.json', json({ extends: './conf/deep' }));
+    await write('apps/web/conf/deep.json', json({ extends: '../../../tsconfig.base.json', ...paths }));
+    await write('apps/web/node_modules/x/tsconfig.json', json(paths));
+    await write('apps/web/next.config.ts', 'export default {};\n');
+    await write('apps/web/vitest.config.mts', 'export default {};\n');
+    const configs = await collectResolutionConfigs(root);
+    assert.deepEqual([...configs.keys()].sort(), ['apps/web/base.json', 'apps/web/conf/deep.json', 'apps/web/next.config.ts', 'apps/web/package.json', 'apps/web/tsconfig.json', 'apps/web/vitest.config.mts', 'package.json', 'tsconfig.base.json'],
+      'every link of the chain is read whatever its name, two links down, and nothing under node_modules is');
+    fails(checkResolutionConfigs(configs, allowlist), /apps\/web\/conf\/deep\.json sets compilerOptions\.paths/, 'the walked chain is refused');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('A1-257-5: a next.config imports only allowlisted packages and node: builtins, so no configuration reaches it from another module', async () => {
+  const allowlist = await loadAllowlist();
+  const check = (source, options) => checkResolutionConfigs(tree({ 'apps/web/next.config.ts': source }), allowlist, options);
+  const fails = (problems, pattern, why) => assert.ok(problems.some((p) => pattern.test(p)), `${why}: ${problems.join(' | ') || 'no problem reported'}`);
+  assert.deepEqual(check("import type { NextConfig } from 'next';\nimport { join } from 'node:path';\n/// <reference types=\"next\" />\nexport default { distDir: join('.', '.next') } satisfies NextConfig;\n"), [],
+    'an allowlisted package and a node: builtin pass');
+  // A1's second route, as A1 measured it: the alias keys arrive by a spread from apps/web/next-extra.ts.
+  fails(check("import type { NextConfig } from 'next';\nimport { extra } from './next-extra';\nconst config: NextConfig = { ...extra };\nexport default config;\n"),
+    /apps\/web\/next\.config\.ts imports \.\/next-extra: a next\.config imports only allowlisted packages and `node:` builtins/, "A1's sibling module");
+  fails(check("import type { Extra } from './types';\nexport default {} as Extra;\n"), /imports \.\/types: a next\.config imports only/, 'a type-only local import');
+  fails(check("export * from '../shared/config';\n"), /imports \.\.\/shared\/config: a next\.config imports only/, 'a re-export');
+  fails(check("export default (await import('./extra.mjs')).default;\n"), /imports \.\/extra\.mjs: a next\.config imports only/, 'a dynamic import');
+  fails(check("const extra = require('./extra.cjs');\nmodule.exports = extra;\n"), /next\.config\.ts: `require` at offset \d+: CommonJS loading/, 'a require');
+  fails(check("import { readFileSync } from 'fs';\nexport default JSON.parse(readFileSync('x.json', 'utf8'));\n"), /imports fs: a next\.config imports only/, 'a builtin not written as node:');
+  fails(check("import pad from 'left-pad';\nexport default pad;\n"), /imports left-pad: a next\.config imports only/, 'a package the allowlist does not name');
+  fails(check("import x from 'https://example.com/x.mjs';\nexport default x;\n"), /imports https:\/\/example\.com\/x\.mjs/, 'a URL');
+  fails(check("/// <reference path=\"./extra.d.ts\" />\nexport default {};\n"), /imports \.\/extra\.d\.ts/, 'a reference to a local file');
+  fails(check("export default { turbopack: { resolveAlias: { zod: 'pg' } } };\n"), /names `resolveAlias`/, 'the keyword refusal stands');
+  // The imports are read by the reader the CLI hands over: the parsed reader in CI.
+  const stand = () => ({ found: [{ specifier: './seen-by-the-parser', kind: 'import' }], refusals: [] });
+  fails(check('export default {};\n', { extract: stand }), /imports \.\/seen-by-the-parser/, 'an import only the given reader reports');
+  const cli = await readFile('scripts/verify-app-boundaries.mjs', 'utf8');
+  assert.match(cli, /const configExtract = parser \? parsedExtract\(parser, configs\) : extractSpecifiers;/, 'the CLI reads the configs through the parser when it is loaded');
+  assert.match(cli, /\.\.\.checkResolutionConfigs\(configs, allowlist, \{ extract: configExtract \}\),/, 'and judges them with it');
+  assert.match(cli, /checkResolutionConfigs\(configs, allowlist, \{ extract: parsedExtract\(parser, configs\) \}\)/, 'its alias controls run through the parser too');
+  for (const control of ["'A1-257-5: an extends into a JSON not named tsconfig, holding paths'", "'A1-257-5: a next.config spreading an object from a sibling module'", "'A1-257-5: jsxImportSource in a tsconfig'"]) {
+    assert.ok(cli.includes(control), `the CLI holds the control ${control} before it reads the repository`);
+  }
+});
+
+test('A1-257-5: a @jsxImportSource, @jsx or @jsxFrag pragma in application code fails, whichever reader runs', async () => {
+  const check = (files) => checkJsxPragmas(tree(files));
+  const fails = (problems, pattern, why) => assert.ok(problems.some((p) => pattern.test(p)), `${why}: ${problems.join(' | ') || 'no problem reported'}`);
+  // A1's third route, as A1 measured it: every JSX element of the page imports ../../../db/probe-a1/rt/jsx-runtime.
+  fails(check({ 'apps/web/app/page.tsx': "/** @jsxImportSource ../../../db/probe-a1/rt */\nexport default function Page() { return <main />; }\n" }),
+    /apps\/web\/app\/page\.tsx:1 uses the `@jsxImportSource` pragma/, "A1's pragma");
+  fails(check({ 'apps/web/app/x.tsx': 'export const a = 1;\n/* @jsx h */\n' }), /x\.tsx:2 uses the `@jsx` pragma/, '@jsx');
+  fails(check({ 'src/modules/k/application/x.tsx': '// @jsxFrag Fragment\n' }), /x\.tsx:1 uses the `@jsxFrag` pragma/, '@jsxFrag under src/');
+  fails(check({ 'apps/web/app/x.ts': '/** @JSXImportSource ./rt */\n' }), /uses the `@JSXImportSource` pragma/, 'in another letter case, which TypeScript reads too');
+  fails(check({ 'apps/web/app/x.jsx': "export const s = '@jsxImportSource x';\n" }), /uses the `@jsxImportSource` pragma/, 'spelled in a string, which costs nothing to refuse');
+  assert.deepEqual(check({ 'apps/web/app/x.tsx': 'export const jsx = 1; // a jsx note, @jsxs aside\n', 'spikes/WP-X/a.tsx': '/** @jsxImportSource x */\n', 'test-kits/x.tsx': '/* @jsx h */\n', 'apps/web/app/g.css': '/* @jsx */\n' }), [],
+    'a word that is not a pragma, and files outside application code, pass');
+  // Both readers: the rule reads the text, and the CLI applies it to its controls and to the repository
+  // whichever reader it runs (it is not imported here, so its wiring is read as text).
+  const cli = await readFile('scripts/verify-app-boundaries.mjs', 'utf8');
+  assert.equal(cli.match(/\.\.\.checkJsxPragmas\(files\),/g)?.length, 2, 'the CLI judges its controls and the repository with it');
+  assert.ok(cli.includes("'A1-257-5: a @jsxImportSource pragma in a page'"), 'and holds a control for it');
+});
+
+test('a next.config naming modularizeImports or swcPlugins, and a vitest.config naming alias or resolve, fail unless the allowlist names them', async () => {
+  const allowlist = await loadAllowlist();
+  const check = (configs, copy = allowlist) => checkResolutionConfigs(tree(configs), copy);
+  const fails = (problems, pattern, why) => assert.ok(problems.some((p) => pattern.test(p)), `${why}: ${problems.join(' | ') || 'no problem reported'}`);
+  // Each rewrites what a specifier loads: modularizeImports rewrites an import's path, swcPlugins runs a
+  // compiler plugin over every file, and Vite's resolve.alias (or vitest's test.alias) points a specifier elsewhere.
+  fails(check({ 'apps/web/next.config.ts': "export default { modularizeImports: { zod: { transform: '../../db/probe/{{member}}' } } };\n" }),
+    /apps\/web\/next\.config\.ts names `modularizeImports`/, 'a next.config rewriting an import through modularizeImports');
+  fails(check({ 'apps/web/next.config.mjs': "export default { experimental: { 'swcPlugins': [['./probe-plugin.wasm', {}]] } };\n" }),
+    /apps\/web\/next\.config\.mjs names `swcPlugins`/, 'a next.config running an SWC plugin, its key quoted');
+  const vitest = "import { defineConfig } from 'vitest/config';\nexport default defineConfig({ resolve: { alias: { zod: './db/probe/target.ts' } } });\n";
+  const problems = check({ 'vitest.config.ts': vitest });
+  fails(problems, /^vitest\.config\.ts names `resolve`/, 'a vitest.config with resolve.alias, by its resolve');
+  fails(problems, /^vitest\.config\.ts names `alias`/, 'and by its alias');
+  fails(check({ 'apps/web/vitest.config.mts': "export default { test: { alias: { zod: 'pg' } } };\n" }), /apps\/web\/vitest\.config\.mts names `alias`/, "vitest's own test.alias, in a nested config");
+  assert.deepEqual(check({ 'vitest.config.ts': "import { defineConfig } from 'vitest/config';\nexport default defineConfig({ test: { include: ['apps/**/*.test.ts'], environment: 'node' } });\n",
+    'apps/web/next.config.ts': 'export default { images: { unoptimized: true } };\n' }), [], 'a vitest.config and a next.config naming neither pass');
+  const admitted = { ...allowlist, resolutionAliases: { allowed: [{ file: 'vitest.config.ts', option: 'resolve' }, { file: 'vitest.config.ts', option: 'alias' }] } };
+  assert.deepEqual(check({ 'vitest.config.ts': vitest }, admitted), [], 'an allowlist entry admits that file and option');
+  fails(check({ 'apps/web/vitest.config.ts': vitest }, admitted), /apps\/web\/vitest\.config\.ts names `resolve`/, 'and only that file');
+  const cli = await readFile('scripts/verify-app-boundaries.mjs', 'utf8');
+  for (const control of ["'a next.config rewriting an import through modularizeImports'", "'a next.config running an SWC plugin'", "'a vitest.config with resolve.alias'"]) {
+    assert.ok(cli.includes(control), `the CLI holds the control ${control} before it reads the repository`);
+  }
+});
+
+test('Q0-257r2-1: a browser, imports, exports or other module map in a package.json fails unless the allowlist names it', async () => {
+  const allowlist = await loadAllowlist();
+  const json = (value) => JSON.stringify(value);
+  const ROOT = json({ name: 'r', private: true, workspaces: ['apps/web'] });
+  const check = (web, copy = allowlist, root = ROOT) => checkResolutionConfigs(tree({ 'package.json': root, 'apps/web/package.json': json({ name: '@r/web', private: true, ...web }) }), copy);
+  const fails = (problems, pattern, why) => assert.ok(problems.some((p) => pattern.test(p)), `${why}: ${problems.join(' | ') || 'no problem reported'}`);
+  assert.deepEqual(check({ scripts: { build: 'next build' }, dependencies: { next: '16.3.8' } }), [], 'a package.json with no module map passes');
+  // Q0's probe, as Q0 measured it: the client bundle loads ./lib/alt.ts where the code imports ./lib/probe.
+  fails(check({ browser: { './lib/probe.ts': './lib/alt.ts' } }), /apps\/web\/package\.json declares `browser`/, "Q0's browser field");
+  fails(check({ imports: { '#db': 'pg' } }), /declares `imports`/, "Q0's imports field");
+  fails(check({ exports: { '.': './lib/x.js' } }), /declares `exports`/, 'an exports map');
+  for (const field of ALIAS_PACKAGE_FIELDS) fails(check({ [field]: {} }), new RegExp(`declares \`${field}\``), `the ${field} field`);
+  assert.deepEqual(ALIAS_PACKAGE_FIELDS, ['browser', 'imports', 'exports', 'alias', 'react-native', 'typesVersions']);
+  fails(check({}, allowlist, json({ name: 'r', private: true, workspaces: ['apps/web'], browser: './x.js' })), /^package\.json declares `browser`/, 'the root package.json');
+  fails(checkResolutionConfigs(tree({ 'apps/web/package.json': '{ "name": "x", }' }), allowlist), /apps\/web\/package\.json is not plain JSON/, 'a package.json the guard cannot read');
+  const admitted = { ...allowlist, resolutionAliases: { allowed: [{ file: 'apps/web/package.json', option: 'imports' }] } };
+  assert.deepEqual(check({ imports: { '#x': './x.js' } }, admitted), [], 'an allowlist entry admits that file and field');
+  fails(check({ browser: {} }, admitted), /declares `browser`/, 'and only that field');
+  fails(check({}, admitted, json({ name: 'r', imports: {} })), /^package\.json declares `imports`/, 'and only that file');
 });

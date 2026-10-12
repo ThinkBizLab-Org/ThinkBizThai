@@ -624,8 +624,9 @@ that holds, §8/4's "lint errors" are the errors of the guard `scripts/verify-ap
 The following is A0's reading of that answer, not the Owner's words. ESLint was also what §2.1/3 relied on (`any` "a
 lint error in application code") and the lint step of §2.1/4's CI checks. While ESLint is deferred, the same guard holds
 them: it refuses `@ts-ignore`, `@ts-nocheck`, an `@ts-expect-error` with no reason on its line, and any `any` type in
-application code, and it runs as its own CI step where §2.1/4's lint step would run. The guard's rules need no
-dependency, and `npm run check` runs them with none.
+application code, and it runs as its own CI step where §2.1/4's lint step would run. The guard's rules other than
+`any` need no dependency, and `npm run check` runs them with none; the `any` rule needs the parser (next paragraph), so
+it is held only in CI's parsed run, not in `npm run check`.
 
 In CI the guard also reads the sources with TypeScript's own parser, through the `typescript` package §3.2 lists
 (nothing is installed for it), because a parser sees what a text scan misreads, and an `any` type cannot be told from
@@ -633,8 +634,8 @@ other text without one; that CI step fails if the parser cannot load. That impor
 option: the Owner allowed it, by name and by file, in a second answer on 2026-10-12 (next paragraphs).
 
 **`typescript` in the boundary guard's parser (§3.2).** The first review round on the skeleton pull request (#257;
-A1-257-1) showed that the dependency-free text reader can be made to miss an import, and that a guard which cannot be
-evaded needs TypeScript's parser, through the `typescript` package already installed (no package is added). §3.2's cell
+A1-257-1) showed that the dependency-free text reader can be made to miss an import, and that a guard that is much
+harder to evade needs TypeScript's parser, through the `typescript` package already installed (no package is added). §3.2's cell
 for `typescript` read "nowhere (a CLI)", and the ESLint option's description spoke of a guard "ที่ไม่มี dependency", so A0
 asked. Asked 2026-10-12T07:08:30Z and answered 07:24:27Z (UTC, the transcript's stamps) through the question tool of
 session `c2816eec`, the Owner chose `อนุญาตให้ guard import typescript (Recommended)`, whose description read:
@@ -653,8 +654,10 @@ So §3.2's `typescript` cell now reads "nowhere, except `scripts/app-boundaries-
   `scripts/`, `test-kits/`, `tests/`, `db/`, `evidence/`, `apps/`, `src/` or anywhere else, imports `typescript` or any
   path inside it; a file of the same name in another directory is not this file.
 - **Its parser API only.** The file imports `typescript`, `typescript/unstable/ast` and `typescript/unstable/sync`, and
-  no other package, to read source files' syntax trees for the boundary guard. It compiles, emits and runs nothing it
-  reads, and it refuses to run under any `typescript` version but the one the root `package.json` pins (§4.2).
+  no other package, to read source files' syntax trees for the boundary guard. TypeScript 7's API does that by running
+  the compiler's native binary, the one `tsc` runs in the same CI job, as a child process, and handing it the files
+  from memory; the guard reads the trees it returns. It compiles, emits and runs nothing it reads, and it refuses to
+  run under any `typescript` version but the one the root `package.json` pins (§4.2).
 - **Run in CI.** The file is loaded only by `node scripts/verify-app-boundaries.mjs`, which CI runs with
   `--require-parser` in its `application` job. No test imports it, so `npm run check` still runs no dependency code
   (§2.1/4, §8/6).

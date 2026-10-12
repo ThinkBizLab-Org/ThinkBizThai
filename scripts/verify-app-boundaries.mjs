@@ -4,6 +4,7 @@ import { realpathSync } from 'node:fs';
 import {
   CODE,
   checkBoundaries,
+  checkJsxPragmas,
   checkRepositoryImports,
   checkResolutionConfigs,
   checkSecretsAndMigrations,
@@ -16,8 +17,8 @@ import {
 } from './app-boundaries.mjs';
 import { ALLOWLIST_PATH, loadAllowlist } from './verify-app-dependencies.mjs';
 
-// RFC-2026-029 §8/4 (the §6.3 boundaries), §2.1/3 (no `@ts-ignore`, a reasoned `@ts-expect-error`, no
-// `any`) and §8/5, as a guard (WP-1A-A0-002). The rules are scripts/app-boundaries.mjs's; this is the
+// RFC-2026-029 §8/4 (the §6.3 boundaries, path aliases and JSX pragmas included), §2.1/3 (no
+// `@ts-ignore`, a reasoned `@ts-expect-error`, no `any`) and §8/5, as a guard (WP-1A-A0-002). The rules are scripts/app-boundaries.mjs's; this is the
 // command that applies them to the repository. It also holds §3's cells over every code file outside
 // the application tree, for the packages they import (checkRepositoryImports), so that `typescript` is
 // imported by scripts/app-boundaries-parser.mjs alone (Amendment 2026-10-12).
@@ -76,15 +77,38 @@ export const CONTROLS = [
     /test-kits\/x\.test\.mjs imports typescript\/unstable\/sync/],
   ['Amendment 2026-10-12: typescript imported by a page', { 'apps/web/app/x.ts': "import ts from 'typescript';\nexport default ts;\n" },
     /apps\/web\/app\/x\.ts imports typescript: RFC-2026-029 allows typescript only nowhere, except/],
+  ['A1-257-5: a @jsxImportSource pragma in a page', { 'apps/web/app/x.tsx': '/** @jsxImportSource ../../../db/probe/rt */\nexport const e = <b>x</b>;\n' },
+    /apps\/web\/app\/x\.tsx:1 uses the `@jsxImportSource` pragma/],
+  ['A1-257-5: a @jsx and a @jsxFrag pragma in a module', { 'src/modules/identity-workspace/application/x.tsx': '/* @jsx h */\n/* @jsxFrag F */\nexport const e = 1;\n' },
+    /x\.tsx:2 uses the `@jsxFrag` pragma/],
 ];
 
-// Alias controls: the resolution configs are read from their text, by either reader.
+// Alias controls: the resolution configs (tsconfigs, next.config.*, vitest.config.*, package.json) are
+// read from their text, and a next.config's imports through the parsed reader (A1-257-5).
 export const ALIAS_CONTROLS = [
   ['an alias to pg through tsconfig paths', { 'tsconfig.json': JSON.stringify({ compilerOptions: { paths: { zod: ['./node_modules/pg'] } } }) }, /sets compilerOptions\.paths/],
   ['a baseUrl', { 'apps/web/tsconfig.json': JSON.stringify({ compilerOptions: { baseUrl: '.' } }) }, /sets compilerOptions\.baseUrl/],
   ['a turbopack resolveAlias', { 'apps/web/next.config.ts': "export default { turbopack: { resolveAlias: { zod: 'pg' } } };\n" }, /names `resolveAlias`/],
   ['a webpack hook', { 'apps/web/next.config.ts': "export default { 'webpack': (c: unknown) => c };\n" }, /names `webpack`/],
+  ['a next.config rewriting an import through modularizeImports', { 'apps/web/next.config.ts': "export default { modularizeImports: { zod: { transform: '../../db/probe/{{member}}' } } };\n" },
+    /next\.config\.ts names `modularizeImports`/],
+  ['a next.config running an SWC plugin', { 'apps/web/next.config.ts': "export default { experimental: { swcPlugins: [['./probe-plugin.wasm', {}]] } };\n" }, /next\.config\.ts names `swcPlugins`/],
+  ['a vitest.config with resolve.alias', { 'vitest.config.ts': "import { defineConfig } from 'vitest/config';\nexport default defineConfig({ resolve: { alias: { zod: './db/probe/target.ts' } } });\n" },
+    /vitest\.config\.ts names `(?:resolve|alias)`/],
   ['a tsconfig extended from a package', { 'tsconfig.json': JSON.stringify({ extends: '@tsconfig/next/tsconfig.json' }) }, /is not a file in this repository/],
+  ['A1-257-5: an extends into a JSON not named tsconfig, holding paths', {
+    'tsconfig.base.json': '{}',
+    'apps/web/tsconfig.json': JSON.stringify({ extends: './base.json' }),
+    'apps/web/base.json': JSON.stringify({ extends: '../../tsconfig.base.json', compilerOptions: { paths: { zod: ['../../db/probe/target.ts'] } } }),
+  }, /apps\/web\/base\.json sets compilerOptions\.paths/],
+  ['A1-257-5: jsxImportSource in a tsconfig', { 'apps/web/tsconfig.json': JSON.stringify({ compilerOptions: { jsxImportSource: '../../db/probe/rt' } }) }, /sets compilerOptions\.jsxImportSource/],
+  ['A1-257-5: a next.config spreading an object from a sibling module', {
+    'apps/web/next.config.ts': "import type { NextConfig } from 'next';\nimport { extra } from './next-extra';\nconst config: NextConfig = { ...extra };\nexport default config;\n",
+  }, /next\.config\.ts imports \.\/next-extra: a next\.config imports only allowlisted packages/],
+  ['Q0-257r2-1: a browser field in a workspace package.json', {
+    'package.json': JSON.stringify({ name: 'r', private: true, workspaces: ['apps/web'] }),
+    'apps/web/package.json': JSON.stringify({ name: '@r/web', private: true, browser: { './lib/probe.ts': './lib/alt.ts' } }),
+  }, /apps\/web\/package\.json declares `browser`/],
 ];
 
 function judge(files, allowlist, extract) {
@@ -92,6 +116,7 @@ function judge(files, allowlist, extract) {
     ...checkBoundaries(files, allowlist, { extract }),
     ...checkRepositoryImports(files, allowlist, { extract }),
     ...checkTypeDirectives(files),
+    ...checkJsxPragmas(files),
     ...checkSecretsAndMigrations(files, [], allowlist),
   ];
 }
@@ -112,8 +137,9 @@ export function runControls(parser, allowlist) {
     const problems = judge(files, allowlist, parsedExtract(parser, files));
     if (!problems.some((p) => pattern.test(p))) failures.push(`control "${name}" was not refused: ${problems.join(' | ') || 'no problem reported'}`);
   }
-  for (const [name, configs, pattern] of ALIAS_CONTROLS) {
-    const problems = checkResolutionConfigs(tree(configs), allowlist);
+  for (const [name, overrides, pattern] of ALIAS_CONTROLS) {
+    const configs = tree(overrides);
+    const problems = checkResolutionConfigs(configs, allowlist, { extract: parsedExtract(parser, configs) });
     if (!problems.some((p) => pattern.test(p))) failures.push(`control "${name}" was not refused: ${problems.join(' | ') || 'no problem reported'}`);
   }
   return failures;
@@ -154,12 +180,17 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   // reader too when it is loaded, so a `typescript` import the text reader would misread is still seen.
   const repository = await collectRepositoryCode('.');
   const repositoryExtract = parser ? parsedExtract(parser, repository) : extractSpecifiers;
+  // Every resolution config, the files their `extends` chains reach included; a next.config's imports
+  // are read by the parsed reader too when it is loaded (A1-257-5).
+  const configs = await collectResolutionConfigs('.');
+  const configExtract = parser ? parsedExtract(parser, configs) : extractSpecifiers;
   const problems = [
     ...checkBoundaries(files, allowlist, { extract }),
     ...checkRepositoryImports(repository, allowlist, { extract: repositoryExtract }),
     ...checkTypeDirectives(files),
+    ...checkJsxPragmas(files),
     ...checkSecretsAndMigrations(files, await collectDirectories('.'), allowlist),
-    ...checkResolutionConfigs(await collectResolutionConfigs('.'), allowlist),
+    ...checkResolutionConfigs(configs, allowlist, { extract: configExtract }),
   ];
   parser?.close();
   if (problems.length > 0) {

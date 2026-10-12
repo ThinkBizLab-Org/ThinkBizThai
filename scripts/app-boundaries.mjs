@@ -46,13 +46,24 @@ import { stripNonCode } from './verify-test-coverage-floor.mjs';
 // JSX without a parser, so `npm run check` (the text reader) does not hold §2.1/3's `any`; the CI step
 // does, on every head. The two comment directives are read from the text by both.
 //
-// PATH ALIASES ARE REFUSED, not resolved (Q-029-1, A1-257-1's alias note). A `paths`, `baseUrl` or
-// `rootDirs` in any tsconfig, an `extends` that leaves the repository, and an `alias`, `resolveAlias`,
-// `webpack` or `tsconfigPath` in any next.config.* are refused unless scripts/app-dependency-
-// allowlist.json's resolutionAliases names that file and option (none does), because each can make the
-// bundler load `pg` under an allowlisted name. A bare specifier that is not an allowlisted package or a
-// Node builtin is refused too, so `@modules/<key>` fails here until the package that configures it
-// teaches the guard to resolve it.
+// PATH ALIASES ARE REFUSED, not resolved (Q-029-1, A1-257-1's alias note), in what the tools LOAD, not
+// in what a file is named (A1-257-5, Q0-257r2-1). Every tsconfig*.json and jsconfig*.json is followed
+// along its `extends` chain to the file TypeScript would read, whatever that file is called; an
+// `extends` that leaves the repository, or names a package that is not one of the repository's own
+// workspaces, is refused. In every file of a chain a `paths`, `baseUrl` or `rootDirs` is refused, and so
+// are `jsxImportSource`, `jsxFactory`, `jsxFragmentFactory` and `reactNamespace`, which name the module
+// the compiler imports for every JSX element. In any next.config.* an `alias`, `resolveAlias`, `webpack`,
+// `tsconfigPath`, `modularizeImports` (which rewrites an import's path) or `swcPlugins` (which runs a
+// compiler plugin over every file) is refused, and so is any import of a local file, a URL or a package
+// the allowlist does not name (only `node:` builtins and allowlisted packages), so its configuration
+// cannot come from a sibling module. In any vitest.config.* an `alias` or `resolve` is refused (Vite's
+// `resolve.alias`, and vitest's own `test.alias`, can point a specifier at another module). In any package.json a `browser`, `imports`, `exports`, `alias`, `react-native` or
+// `typesVersions` map is refused. Each is refused unless scripts/app-dependency-allowlist.json's
+// resolutionAliases names that file and option (none does), because each can make the bundler load
+// `pg` under an allowlisted name. A JSX pragma (`@jsxImportSource`, `@jsx`, `@jsxFrag`) in application
+// code is refused by checkJsxPragmas, below, for the same reason. A bare specifier that is not an
+// allowlisted package or a Node builtin is refused too, so `@modules/<key>` fails here until the
+// package that configures it teaches the guard to resolve it.
 
 const SOURCE = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs|css)$/;
 export const CODE = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
@@ -407,12 +418,92 @@ export function checkTypeDirectives(files) {
   return problems;
 }
 
-// --- module resolution aliases (Q-029-1; A1-257-1's alias note) -----------------------------------
+// A1-257-5: a JSX pragma names the module the compiler imports for every JSX element of its file
+// (`/** @jsxImportSource x */` makes SWC and tsc import `x/jsx-runtime`; `@jsx` and `@jsxFrag` name the
+// factory the classic runtime calls). That import is written in no statement, so neither reader sees it
+// and no edge is recorded: a pragma naming `src/modules/platform-kernel/adapters/` would reach it from
+// apps/web unseen. So the three pragmas are refused in application code (apps/, src/), read from the
+// text like the §2.1/3 directives above: the same refusal whichever reader the CLI runs, in a comment or
+// anywhere else, and in any letter case (TypeScript reads pragma names case-insensitively).
+export function checkJsxPragmas(files) {
+  const problems = [];
+  for (const [path, raw] of files) {
+    if (raw === null || !isApplicationCode(path)) continue;
+    for (const m of raw.matchAll(/@jsx(?:ImportSource|Frag)?(?![\w$-])/gi)) {
+      problems.push(`${path}:${raw.slice(0, m.index).split('\n').length} uses the \`${m[0]}\` pragma, which makes the compiler load a module no statement names; the boundary guard cannot follow it, so none is admitted (A1-257-5)`);
+    }
+  }
+  return problems;
+}
 
-const RESOLUTION_CONFIG = /(^|\/)(?:tsconfig[^/]*\.json|jsconfig[^/]*\.json|next\.config\.[a-z]+)$/;
+// --- module resolution aliases (Q-029-1; A1-257-1's alias note; A1-257-5; Q0-257r2-1) -------------
 
-// Every tsconfig*.json, jsconfig*.json and next.config.* in the tree, outside node_modules, .next,
-// .git and .claude (harness worktrees).
+const RESOLUTION_CONFIG = /(^|\/)(?:tsconfig[^/]*\.json|jsconfig[^/]*\.json|next\.config\.[a-z]+|vitest\.config\.[a-z]+|package\.json)$/;
+const COMPILER_CONFIG = /(^|\/)[tj]sconfig[^/]*\.json$/;
+const NEXT_CONFIG = /(^|\/)next\.config\.[a-z]+$/;
+const VITEST_CONFIG = /(^|\/)vitest\.config\.[a-z]+$/;
+const PACKAGE_MANIFEST = /(^|\/)package\.json$/;
+// The compiler options that make a specifier load another file (`paths`, `baseUrl`, `rootDirs`), or make
+// every JSX element import a module no statement names (`jsxImportSource`, `jsxFactory`,
+// `jsxFragmentFactory`, `reactNamespace`).
+export const ALIAS_COMPILER_OPTIONS = ['paths', 'baseUrl', 'rootDirs', 'jsxImportSource', 'jsxFactory', 'jsxFragmentFactory', 'reactNamespace'];
+// The package.json fields a bundler, Node or TypeScript reads to load a file other than the one a
+// specifier names: the `browser` field's file map (Q0-257r2-1), subpath `imports` and `exports`, the
+// `alias` and `react-native` maps some bundlers read, and TypeScript's `typesVersions`.
+export const ALIAS_PACKAGE_FIELDS = ['browser', 'imports', 'exports', 'alias', 'react-native', 'typesVersions'];
+
+const inRepository = (path) => !(path === '..' || path.startsWith('../') || posix.isAbsolute(path))
+  && !path.split('/').some((segment) => SKIPPED_NAMES.has(segment)) && path.split('/')[0] !== '.claude';
+
+// The repository's own workspace packages, by name: the package.json files the root's `workspaces`
+// names, which npm links into node_modules under their names.
+function workspacePackages(configs) {
+  const parse = (raw) => { try { return JSON.parse(raw); } catch { return null; } };
+  const root = parse(configs.get('package.json') ?? 'null');
+  const patterns = Array.isArray(root?.workspaces) ? root.workspaces.filter((w) => typeof w === 'string') : [];
+  const found = new Map();
+  for (const [path, raw] of configs) {
+    if (!PACKAGE_MANIFEST.test(path) || path === 'package.json' || raw === null) continue;
+    const directory = path.slice(0, -'/package.json'.length);
+    const manifest = parse(raw);
+    if (typeof manifest?.name === 'string' && (patterns.includes(directory) || matches(directory, patterns))) found.set(manifest.name, { directory, manifest });
+  }
+  return found;
+}
+
+// Where TypeScript looks for the file an `extends` names (its getExtendsConfigPath): a path relative to
+// the config's directory, with `.json` appended when no file has the name as written; or a package
+// specifier, resolved through node_modules. Only a workspace of this repository resolves a package
+// specifier to a file the guard can read, and only by a path inside it, with no `exports` map to
+// remap that path. Anything else is refused: an absolute path, a URL, a path that leaves the
+// repository or enters node_modules, .next, .git or .claude, and any other package.
+export function extendsCandidates(from, specifier, workspaces) {
+  if (typeof specifier !== 'string' || specifier === '') return { refused: 'it is not a path' };
+  const written = specifier.replace(/\\/g, '/');
+  const candidates = (base) => (base.endsWith('.json') ? [base] : [base, `${base}.json`]);
+  if (/^\.\.?\//.test(written)) {
+    const base = posix.normalize(posix.join(posix.dirname(from), written));
+    return inRepository(base) ? { candidates: candidates(base) } : { refused: 'it leaves the repository or enters a directory the guard does not read' };
+  }
+  if (posix.isAbsolute(written) || /^[a-z][a-z0-9+.-]*:/i.test(written)) return { refused: 'it is an absolute path or a URL' };
+  const name = packageNameOf(written);
+  const workspace = workspaces.get(name);
+  if (!workspace) return { refused: `the package ${name} resolves through node_modules, and only this repository's own workspaces resolve inside it` };
+  if (workspace.manifest.exports !== undefined) return { refused: `the workspace ${name} remaps its files through \`exports\`` };
+  const inside = written.slice(name.length + 1);
+  const base = posix.normalize(posix.join(workspace.directory, inside));
+  if (inside === '' || !base.startsWith(`${workspace.directory}/`) || !inRepository(base)) return { refused: `it names no file inside the workspace ${name}` };
+  return { candidates: candidates(base) };
+}
+
+const parseJson = (raw) => { try { return { value: JSON.parse(raw) }; } catch (error) { return { error }; } };
+const extendsOf = (config) => [config?.extends].flat().filter((x) => x !== undefined);
+
+// Every tsconfig*.json, jsconfig*.json, next.config.*, vitest.config.* and package.json in the tree, outside
+// node_modules, .next, .git and .claude (harness worktrees); and every file a compiler config's
+// `extends` chain reaches, whatever its name (A1-257-5: `"extends": "./base.json"`), read from where
+// TypeScript would read it. A chain step the guard cannot place is left out here, and
+// checkResolutionConfigs refuses it.
 export async function collectResolutionConfigs(root = '.') {
   const found = new Map();
   const walk = async (directory) => {
@@ -427,36 +518,96 @@ export async function collectResolutionConfigs(root = '.') {
     }
   };
   await walk('');
+  const workspaces = workspacePackages(found);
+  const queue = [...found.keys()].filter((path) => COMPILER_CONFIG.test(path));
+  while (queue.length > 0) {
+    const path = queue.shift();
+    const raw = found.get(path);
+    const config = raw === null ? {} : parseJson(raw).value;
+    for (const parent of extendsOf(config)) {
+      const { candidates = [] } = extendsCandidates(path, parent, workspaces);
+      for (const candidate of candidates) {
+        if (found.has(candidate)) break;
+        let stat;
+        try { stat = await lstat(posix.join(root, candidate)); } catch { continue; }
+        found.set(candidate, stat.isFile() ? await readFile(posix.join(root, candidate), 'utf8') : null);
+        queue.push(candidate);
+        break;
+      }
+    }
+  }
   return found;
 }
 
-// Fails closed: a tsconfig the guard cannot parse as JSON may hide an alias, so it is refused; and in a
-// next.config.* the words are matched in the raw text, comments and strings included (a quoted
-// `'webpack'` key is still a webpack hook).
-export function checkResolutionConfigs(configs, allowlist) {
+// Fails closed: a compiler config the guard cannot parse as JSON may hide an alias, so it is refused,
+// and so is an `extends` whose file the guard has not read; in a next.config.* and a vitest.config.* the
+// words are matched in the raw text, comments and strings included (a quoted `'webpack'` key is still a
+// webpack hook), and a next.config's imports are read by `extract` (the text reader by default, the
+// parsed reader in the CLI).
+export function checkResolutionConfigs(configs, allowlist, { extract = extractSpecifiers } = {}) {
   const problems = [];
   const allowed = (file, option) => (allowlist.resolutionAliases?.allowed ?? []).some((e) => e.file === file && e.option === option);
+  const packages = new Set([...allowlist.runtime, ...allowlist.development].map((row) => row.name));
   for (const [path, raw] of configs) {
     if (raw === null) { problems.push(`${path} is not a regular file; the guard reads no resolution config it cannot place`); continue; }
-    if (/next\.config\.[a-z]+$/.test(path)) {
-      for (const m of raw.matchAll(/(?<![\w$])(alias|resolveAlias|webpack|tsconfigPath)(?![\w$])/g)) {
+    if (NEXT_CONFIG.test(path)) {
+      for (const m of raw.matchAll(/(?<![\w$])(alias|resolveAlias|webpack|tsconfigPath|modularizeImports|swcPlugins)(?![\w$])/g)) {
         if (!allowed(path, m[1])) problems.push(`${path} names \`${m[1]}\`, which can make the bundler load a module other than the one a specifier names; no alias is admitted until the guard resolves it (RFC-2026-029 Q-029-1)`);
+      }
+      // A1-257-5: an object spread from a sibling module carries whatever keys it holds past the word
+      // scan above, so next.config.* imports nothing but allowlisted packages and `node:` builtins.
+      const { found, refusals } = extract(raw, path);
+      for (const refusal of refusals) problems.push(`${path}: ${refusal}`);
+      for (const { specifier, kind } of found) {
+        const bare = kind !== 'reference-path' && !/^[./]/.test(specifier) && !/^[a-z][a-z0-9+.-]*:/i.test(specifier);
+        if (/^node:[a-z_/]+$/.test(specifier) || (bare && packages.has(packageNameOf(specifier)))) continue;
+        problems.push(`${path} imports ${specifier}: a next.config imports only allowlisted packages and \`node:\` builtins, so no configuration reaches it from another module (A1-257-5)`);
       }
       continue;
     }
-    let config;
-    try { config = JSON.parse(raw); } catch (error) {
+    if (VITEST_CONFIG.test(path)) {
+      // Vite's `resolve.alias` (and vitest's `test.alias`) can point a specifier at another module in
+      // the tests, so a vitest.config names neither word, in its raw text, until the guard resolves it.
+      for (const m of raw.matchAll(/(?<![\w$])(alias|resolve)(?![\w$])/g)) {
+        if (!allowed(path, m[1])) problems.push(`${path} names \`${m[1]}\`, which can make Vite load a module other than the one a specifier names; no alias is admitted until the guard resolves it (RFC-2026-029 Q-029-1)`);
+      }
+      continue;
+    }
+    if (PACKAGE_MANIFEST.test(path)) {
+      const { value: manifest, error } = parseJson(raw);
+      if (error) { problems.push(`${path} is not plain JSON (${error.message}); a package.json the guard cannot read may hide a module map`); continue; }
+      for (const field of ALIAS_PACKAGE_FIELDS) {
+        if (manifest?.[field] !== undefined && !allowed(path, field)) {
+          problems.push(`${path} declares \`${field}\`, which can make a bundler, Node or TypeScript load a module other than the one a specifier names; none is admitted until the guard resolves it (Q0-257r2-1, RFC-2026-029 Q-029-1)`);
+        }
+      }
+    }
+  }
+  // Every compiler config, and every file its `extends` chain reaches, whatever that file is named
+  // (A1-257-5). A file reached twice is read once; a cycle stops where it closes.
+  const workspaces = workspacePackages(configs);
+  const queue = [...configs.keys()].filter((path) => COMPILER_CONFIG.test(path) && configs.get(path) !== null);
+  const seen = new Set(queue);
+  while (queue.length > 0) {
+    const path = queue.shift();
+    const { value: config, error } = parseJson(configs.get(path));
+    if (error) {
       problems.push(`${path} is not plain JSON (${error.message}); a tsconfig the guard cannot read may hide a path alias`);
       continue;
     }
-    for (const option of ['paths', 'baseUrl', 'rootDirs']) {
+    for (const option of ALIAS_COMPILER_OPTIONS) {
       if (config?.compilerOptions?.[option] !== undefined && !allowed(path, option)) {
-        problems.push(`${path} sets compilerOptions.${option}, a path alias the boundary guard does not resolve; none is admitted until it does (RFC-2026-029 Q-029-1)`);
+        problems.push(`${path} sets compilerOptions.${option}, which can make the compiler or the bundler load a module other than the one a specifier names; none is admitted until the guard resolves it (RFC-2026-029 Q-029-1, A1-257-5)`);
       }
     }
-    for (const parent of [config?.extends].flat().filter((x) => x !== undefined)) {
-      if (typeof parent !== 'string' || !/^\.\.?\//.test(parent)) {
-        problems.push(`${path} extends ${JSON.stringify(parent)}, which is not a file in this repository; an inherited \`paths\` would be one the guard never reads`);
+    for (const parent of extendsOf(config)) {
+      const { candidates, refused } = extendsCandidates(path, parent, workspaces);
+      const target = candidates?.find((candidate) => configs.has(candidate));
+      if (refused || target === undefined) {
+        problems.push(`${path} extends ${JSON.stringify(parent)}, which is not a file in this repository the guard has read (${refused ?? `no ${candidates.join(' or ')}`}); an inherited \`paths\` would be one the guard never reads`);
+      } else if (configs.get(target) !== null && !seen.has(target)) {
+        seen.add(target);
+        queue.push(target);
       }
     }
   }

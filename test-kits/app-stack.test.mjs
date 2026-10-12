@@ -253,8 +253,13 @@ test('CI installs only with npm ci --ignore-scripts, once per job, and no step m
   const ci = await readFile('.github/workflows/ci.yml', 'utf8');
   const installs = (text) => [...workflowJobs(text).values()].map((job) => [job.name,
     job.steps.flatMap((s) => (s.run ?? '').split('\n')).filter((line) => /\bnpm (?:ci|install|i|add|update|rebuild)\b|\bnpx\b|\byarn\b|\bpnpm\b/.test(line)).map((line) => line.trim())]);
-  assert.deepEqual(installs(ci), [['bootstrap', ['npm ci --ignore-scripts']], ['application', ['npm ci --ignore-scripts']]],
-    'one npm ci --ignore-scripts in each job, and no other install');
+  assert.deepEqual(installs(ci), [['bootstrap', ['npm ci --ignore-scripts --no-bin-links']], ['application', ['npm ci --ignore-scripts']]],
+    'one npm ci --ignore-scripts in each job, and no other install; the bootstrap job links no package bin (A1-257-6)');
+  // A1-257-6's negative control: the bootstrap install without --no-bin-links, as it stood at 82a1741f, is seen.
+  const linked = ci.replace('      - name: Clean install\n        run: npm ci --ignore-scripts --no-bin-links\n', '      - name: Clean install\n        run: npm ci --ignore-scripts\n');
+  assert.notEqual(linked, ci);
+  assert.deepEqual(installs(linked)[0], ['bootstrap', ['npm ci --ignore-scripts']], 'a bootstrap install that links bins is seen');
+  assert.notDeepEqual(installs(linked), installs(ci));
   const code = ci.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n');
   assert.doesNotMatch(code, /continue-on-error/, 'no step or job is continue-on-error');
   // The negative controls: Q0's M40 (a second, plain npm ci) and M45 (continue-on-error on the release age).
@@ -314,6 +319,61 @@ test('npm run check needs no node_modules: nothing the tooling tier runs imports
   const cli = await readFile('scripts/verify-app-boundaries.mjs', 'utf8');
   assert.match(cli, /await import\('\.\/app-boundaries-parser\.mjs'\)/, 'the CLI loads it dynamically, so it runs without node_modules');
   assert.match(cli, /process\.argv\.includes\('--require-parser'\)/, 'and fails when CI requires it and it cannot load');
+});
+
+// Q0-257r2-2: the parsed reader's own safeguards, read from the two files' text (no test may import
+// either: the parser imports `typescript`, and the CLI loads the parser). Each problem names a safeguard
+// that is gone; the test below shows the real files have none, and that each of Q0's mutations is seen.
+function parsedReaderSafeguards(cli, parser) {
+  const problems = [];
+  // The negative controls run, and a failed one ends the run with exit 1, before the parsed reader is
+  // handed the repository (M71: `const failures = [];`).
+  if (!/^ {4}parser = parserModule\.createParser\(\);\n {4}const failures = runControls\(parser, allowlist\);\n {4}if \(failures\.length > 0\) \{\n(?: {6}.*\n){1,6}? {6}process\.exit\(1\);\n {4}\}\n {4}extract = parsedExtract\(parser, files\);\n/m.test(cli)) {
+    problems.push('the CLI does not run runControls on the parser it created, and exit 1 on a failure, before it reads the repository through that parser');
+  }
+  if (!/^export function runControls\(parser, allowlist\) \{\n {2}const failures = \[\];\n[\s\S]*?\n {2}for \(const \[name, overrides, pattern\] of CONTROLS\) \{[\s\S]*?\n {2}for \(const \[name, overrides, pattern\] of ALIAS_CONTROLS\) \{[\s\S]*?\n {2}return failures;\n\}\n/m.test(cli)) {
+    problems.push('runControls does not hold every control and return its failures');
+  }
+  const controlsAt = cli.indexOf('const failures = runControls(parser, allowlist);');
+  if (controlsAt === -1 || controlsAt > cli.indexOf('= await collectRepositoryCode(\'.\');') || controlsAt > cli.indexOf('= await collectResolutionConfigs(\'.\');')) {
+    problems.push('the controls run after the repository is read');
+  }
+  // The parser refuses any typescript but the version the root package.json pins, before it starts the
+  // compiler (M69: `if (false) {`).
+  if (!/^const PINNED = JSON\.parse\(readFileSync\(new URL\('\.\.\/package\.json', import\.meta\.url\), 'utf8'\)\)\.devDependencies\?\.typescript;$/m.test(parser)) {
+    problems.push('the parser does not read its pinned typescript version from the root package.json');
+  }
+  if (!/^export function createParser\(\) \{\n {2}if \(typeof typescript\.version !== 'string' \|\| typescript\.version !== PINNED\) \{\n {4}throw new Error\(/m.test(parser)) {
+    problems.push('createParser does not refuse, first, a typescript version other than the pinned one');
+  }
+  if (parser.indexOf('throw new Error(`the parsed boundary reader is measured on typescript') > parser.indexOf('new API(')) {
+    problems.push('the compiler is started before the version is checked');
+  }
+  return problems;
+}
+
+test("Q0-257r2-2: the parsed reader's own safeguards hold: its negative controls run first, and it refuses an unpinned typescript", async () => {
+  const cli = await readFile('scripts/verify-app-boundaries.mjs', 'utf8');
+  const parser = await readFile('scripts/app-boundaries-parser.mjs', 'utf8');
+  assert.deepEqual(parsedReaderSafeguards(cli, parser), []);
+  const pkg = JSON.parse(await readFile('package.json', 'utf8'));
+  const lock = JSON.parse(await readFile('package-lock.json', 'utf8'));
+  assert.match(pkg.devDependencies.typescript, /^\d+\.\d+\.\d+$/, 'the pin the parser reads is one exact version');
+  assert.equal(lock.packages['node_modules/typescript'].version, pkg.devDependencies.typescript, 'and it is the version the lockfile installs');
+  // The negative controls: Q0's M71 and M69, and the controls moved after the repository read.
+  const swap = (text, from, to) => { assert.ok(text.includes(from), from); return text.replace(from, to); };
+  const m71 = swap(cli, '    const failures = runControls(parser, allowlist);', '    const failures = [];');
+  assert.match(parsedReaderSafeguards(m71, parser).join(), /does not run runControls/, "Q0's M71: the controls skipped");
+  const hollow = swap(cli, '  return failures;\n}\n\nasync function loadParserModule', '  return [];\n}\n\nasync function loadParserModule');
+  assert.match(parsedReaderSafeguards(hollow, parser).join(), /runControls does not hold every control/, 'runControls returning nothing');
+  const noExit = swap(cli, "      for (const failure of failures) console.error(`  ${failure}`);\n      process.exit(1);\n", "      for (const failure of failures) console.error(`  ${failure}`);\n");
+  assert.match(parsedReaderSafeguards(noExit, parser).join(), /does not run runControls/, 'a failed control that does not end the run');
+  const late = swap(swap(cli, '  const repository = await collectRepositoryCode(\'.\');\n', ''), '  const files = await collectSources(\'.\');\n', '  const files = await collectSources(\'.\');\n  const repository = await collectRepositoryCode(\'.\');\n');
+  assert.match(parsedReaderSafeguards(late, parser).join(), /the controls run after the repository is read/, 'the controls moved after the repository read');
+  const m69 = swap(parser, "  if (typeof typescript.version !== 'string' || typescript.version !== PINNED) {", '  if (false) {');
+  assert.match(parsedReaderSafeguards(cli, m69).join(), /createParser does not refuse, first, a typescript version/, "Q0's M69: the version check removed");
+  const unpinned = swap(parser, '.devDependencies?.typescript;', ".devDependencies?.typescript ?? '*';");
+  assert.match(parsedReaderSafeguards(cli, unpinned).join(), /does not read its pinned typescript version/, 'a fallback pin');
 });
 
 test('the web skeleton wires Tailwind through PostCSS, keeps telemetry off, needs no sharp and has no data path', async () => {

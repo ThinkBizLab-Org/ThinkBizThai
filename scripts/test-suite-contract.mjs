@@ -156,9 +156,14 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   // The Owner's answer of 2026-10-12 07:24:27Z (RFC-2026-029 Amendment 2026-10-12, typescript in the
   // parser): app-dependencies 12 to 13 (the typescript cell and its copy), app-boundaries 14 to 15 (an
   // import of typescript anywhere but the parser fails). No test removed or renamed.
-  'test-kits/app-dependencies.test.mjs': 13,
-  'test-kits/app-boundaries.test.mjs': 15,
-  'test-kits/app-stack.test.mjs': 10,
+  // The second review round on PR #257 (2026-10-12; A1-257-5, A1-257-6, Q0-257r2-1, Q0-257r2-2):
+  // app-dependencies 13 to 14 (a lockfile bin named after a common command), app-boundaries 15 to 19
+  // (the extends chain, next.config's imports, the JSX pragmas, package.json module maps), app-stack
+  // 10 to 11 (the parsed reader's own safeguards). No test removed or renamed. Then app-boundaries 19
+  // to 20 (a next.config's modularizeImports and swcPlugins, a vitest.config's alias and resolve).
+  'test-kits/app-dependencies.test.mjs': 14,
+  'test-kits/app-boundaries.test.mjs': 20,
+  'test-kits/app-stack.test.mjs': 11,
 };
 
 // Independent review eighteen answered the question the per-file floor was written to close, and
@@ -353,10 +358,12 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   // controls assert through one helper, mustFail, which this count sees once. The first review round on
   // PR #257 (2026-10-12), the guard's own counts: app-dependencies 26 to 50, app-boundaries 16 to 39,
   // app-stack 43 to 71. The typescript widening (Amendment 2026-10-12): app-dependencies 50 to 59,
-  // app-boundaries 39 to 49, app-stack 71 to 72.
-  'test-kits/app-dependencies.test.mjs': 59,
-  'test-kits/app-boundaries.test.mjs': 49,
-  'test-kits/app-stack.test.mjs': 72,
+  // app-boundaries 39 to 49, app-stack 71 to 72. The second review round on PR #257 (2026-10-12):
+  // app-dependencies 59 to 65, app-boundaries 49 to 71, app-stack 72 to 85. Then app-boundaries 71 to
+  // 75 (modularizeImports, swcPlugins and the vitest.config alias rule).
+  'test-kits/app-dependencies.test.mjs': 65,
+  'test-kits/app-boundaries.test.mjs': 75,
+  'test-kits/app-stack.test.mjs': 85,
 };
 
 // Independent review eighteen defeated the test-count floor by hollowing a suite while preserving
@@ -415,10 +422,13 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   // check' is renamed 'CI runs the application checks in a job of their own, after every guard of the
   // bootstrap job (A1-257-4)', as the steps moved to their own job; all three name digests move. The
   // typescript widening (Amendment 2026-10-12) adds one test to each of the first two; app-stack's names
-  // are unchanged.
-  'test-kits/app-dependencies.test.mjs': '73a62dc5dd1581f5',
-  'test-kits/app-boundaries.test.mjs': '773252c60daf1487',
-  'test-kits/app-stack.test.mjs': '5970a03b4f91bd57',
+  // are unchanged. The second review round on PR #257 (2026-10-12) adds one test to app-dependencies
+  // (A1-257-6), four to app-boundaries (A1-257-5's three routes, Q0-257r2-1) and one to app-stack
+  // (Q0-257r2-2); none is renamed, and all three name digests move. Then one more to app-boundaries
+  // (modularizeImports, swcPlugins and the vitest.config alias rule); none is renamed.
+  'test-kits/app-dependencies.test.mjs': '491abfa45804df35',
+  'test-kits/app-boundaries.test.mjs': '9b246805825d06ef',
+  'test-kits/app-stack.test.mjs': 'a698476cdafa9475',
 };
 
 // How many reversals `ratchets-bite.test.mjs` puts through a suite. Independent review twenty

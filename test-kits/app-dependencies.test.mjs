@@ -15,6 +15,7 @@ import {
   parseRfcTerms,
   parseWhereCell,
   readRepository,
+  SHADOWED_COMMANDS,
   verifyAll,
 } from '../scripts/verify-app-dependencies.mjs';
 
@@ -364,4 +365,33 @@ test('Amendment 2026-10-12: typescript\'s §3.2 cell admits scripts/app-boundari
   fails(compareAllowlistWithRfc(allowlist, rfc.replace(tsLine, '| `typescript` | `tsc --noEmit` | D1 | nowhere (a CLI) |')), /development: the RFC lists typescript \(D1, "nowhere \(a CLI\)"\) and the copy does not/, 'the RFC reverted and the copy not');
   fails(compareAllowlistWithRfc(allowlist, rfc.replace(tsLine, '| `typescript` | `tsc --noEmit` | D1 | nowhere, except `scripts/**` (parser API; RFC amendment 2026-10-12) |')),
     /typescript: the cell "nowhere, except `scripts\/\*\*`[^"]*" names/, 'the RFC widened to a glob');
+});
+
+test('A1-257-6: a lockfile entry whose bin is named after a common command fails, so no package can stand in for it on PATH', async () => {
+  const { manifests, lock } = await repository();
+  const bins = Object.entries(lock.packages).flatMap(([key, value]) => Object.keys(value.bin ?? {}).map((bin) => `${key.replace(/^node_modules\//, '')}:${bin}`)).sort();
+  assert.deepEqual(bins, ['baseline-browser-mapping:baseline-browser-mapping', 'jiti:jiti', 'nanoid:nanoid', 'next:next', 'rolldown:rolldown', 'semver:semver',
+    'typescript:tsc', 'vite:vite', 'vitest:vitest', 'why-is-node-running:why-is-node-running'], "today's ten bins, as A1 measured them; none shadows a command");
+  assert.deepEqual(checkLockfile(lock, manifests).filter((p) => /A1-257-6/.test(p)), []);
+  assert.deepEqual(SHADOWED_COMMANDS, ['node', 'npm', 'npx', 'git', 'sh', 'bash', 'zsh', 'env', 'psql', 'pg_ctl', 'initdb', 'curl', 'wget', 'tar', 'gzip', 'make',
+    'python', 'python3', 'ruby', 'perl', 'ssh', 'scp', 'docker', 'gh', 'sudo', 'cp', 'mv', 'rm', 'cat', 'ls', 'test', 'true', 'false']);
+  const synthetic = rootManifests();
+  assert.deepEqual(checkLockfile(lockFor(synthetic, { 'node_modules/x': entry('x', '1.0.0', { bin: { 'x-cli': 'cli.js' } }) }), synthetic), [], 'a bin with its own name passes');
+  const fails = (packages, pattern, why) => {
+    const problems = checkLockfile(lockFor(synthetic, packages), synthetic);
+    assert.ok(problems.some((p) => pattern.test(p)), `${why}: ${problems.join(' | ') || 'no problem reported'}`);
+  };
+  // A1's probe, as A1 measured it: a package declaring bins named node and git, installed with --ignore-scripts.
+  fails({ 'node_modules/x': entry('x', '1.0.0', { bin: { node: 'x.js', git: 'x.js' } }) }, /node_modules\/x declares a bin named "node", .* in place of the node command \(A1-257-6\)/, "A1's node bin");
+  fails({ 'node_modules/x': entry('x', '1.0.0', { bin: { node: 'x.js', git: 'x.js' } }) }, /declares a bin named "git"/, "A1's git bin");
+  for (const command of SHADOWED_COMMANDS) {
+    fails({ 'node_modules/y': entry('y', '1.0.0', { bin: { [command]: 'y.js' } }) }, new RegExp(`declares a bin named "${command}"`), `a bin named ${command}`);
+  }
+  fails({ 'node_modules/a/node_modules/npm': entry('npm', '1.0.0', { bin: 'cli.js' }) }, /node_modules\/a\/node_modules\/npm declares a bin named "npm", .* in place of the npm command/, 'a string bin, linked under the package name');
+  fails({ 'node_modules/@s/sh': entry('@s/sh', '1.0.0', { bin: 'run.js' }) }, /in place of the sh command/, 'a scoped package, linked without its scope');
+  fails({ 'node_modules/z': entry('z', '1.0.0', { bin: { Node: 'z.js' } }) }, /in place of the node command/, 'in another letter case');
+  fails({ 'node_modules/b': entry('b', '1.0.0', { bin: { psql: 'b.js' } }) }, /declares a bin named "psql"/, "a database client the bootstrap job's guards run");
+  const workspaceBin = lockFor(synthetic);
+  workspaceBin.packages['apps/web'].bin = { npx: 'x.js' };
+  assert.ok(checkLockfile(workspaceBin, synthetic).some((p) => /^apps\/web declares a bin named "npx"/.test(p)), 'a workspace\'s own bin, which npm links too');
 });
