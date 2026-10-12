@@ -837,6 +837,131 @@ function localTarget(from, spec) {
 // problem, and a data file adds nothing.
 const WALK_READS = /\.(?:[cm]?js|json)$/i;
 const CODE_NOT_READ = /\.(?:[cm]?ts|tsx|jsx|node|wasm)$/i;
+
+// THE STRING-NAME EXCEPTIONS (RFC-2026-007 Amendment 2026-10-13; the Product Owner's answer of 2026-10-12T20:28:22Z,
+// evidence/WP-0A-A0-004/product-owner-disposition-2026-10-13-lane-walk-ts.md). PR #257 added guards and guard tests that
+// name the application's TypeScript files by strings, and the string rule below made each such mention a problem, so
+// every pull request printed governance. Each entry is one EXACT pair [namer, named]: a JavaScript module the walk reads,
+// and a file of code the walk cannot read that a string in it names. The namer reads the named file as data (text it
+// matches, a path it lists or compares, a key of a synthetic tree it builds in memory or in a scratch directory) or
+// hands it to a tool the bootstrap job's guards do not run (tsc reading a project, which compiles and runs nothing).
+// For such a pair, and in the string rule only, the mention is not a problem. Nothing else changes:
+//   - the named file still joins the closure, so a change to it is governance as before;
+//   - an import of it read from code (`jsRefs`) or found by the raw scan (`backstopSpecs`), and a module load named by
+//     an expression (`opaque`), stay problems, from an excused namer too;
+//   - a pair is per namer: another module naming the same file is not excused.
+// No glob and no directory prefix: each entry names two files. The list is checked at every classification
+// (`exceptionProblems`), failing closed: an entry that is not two normalized repository paths (a JavaScript namer, a
+// named file of code the walk cannot read) and a duplicate are each a problem; so, when its named file is at the head,
+// is an entry whose namer is not, and one whose namer is but the walk read no string in it that spells the file (as
+// written, or with an extension the walk's resolution adds). An entry whose named file is NOT at the head excuses
+// nothing there and is not checked at run time, so a pair may be listed for a file a guard's fixture names before a
+// pull request creates it (R0-259-1: the platform-kernel files below, which WP-1A-A0-003 will create); once the file
+// exists, the run-time check applies. The throwaway repositories the tests and CI build hold this classifier and none
+// of the named files. The foundation contract test pins the list exactly and, on the repository as it stands, that every
+// entry's namer spells its file (`governanceClosure(...).mentioned`, whether or not the file exists) and that the
+// entries whose file is at the head are exactly the pairs the string rule finds with no exception; so a mention the list
+// does not name, a mention that left, and a listed file that left the repository each fail `npm run check`. The residual
+// is in RFC-2026-007 Amendment 2026-10-13 §D.
+// The uses, by namer (measured at main 40267ae9, the merge of PR #257):
+//   scripts/app-boundaries.mjs lists vitest.config.ts among the root configs it reads as text for the boundary check,
+//     and names the kind vitest.config;
+//   scripts/verify-app-boundaries.mjs uses the four, and two platform-kernel files not yet in the repository, as keys
+//     of synthetic trees its negative controls build in memory, and lists the page among the clean tracked paths;
+//   scripts/verify-test-coverage-floor.mjs lists the two fixtures among the files the integrity manifest must digest;
+//   scripts/verify-typecheck-control.mjs reads the fixture as text for its expected errors, and compares the paths in
+//     the output of tsc (run on a project file, --noEmit) with it;
+//   test-kits/app-boundaries.test.mjs uses the five, and three platform-kernel files not yet in the repository, as keys
+//     of synthetic trees (in memory, or written to a scratch directory), expects them in what the walks collect, and
+//     reads two as text to check their shapes;
+//   test-kits/app-dependencies.test.mjs expects vitest.config.ts as a glob in a parsed allowlist cell;
+//   test-kits/app-stack.test.mjs reads the five as text and matches them, writes synthetic compiler output that names
+//     two of them, and passes a platform-kernel adapter path not yet in the repository to the build-graph judge;
+//   test-kits/db/foundation-contract.test.mjs uses the page as a changed path of a synthetic diff, and pins this list
+//     (and so names every file in it);
+//   test-kits/repository-json.test.mjs lists three as the TypeScript files the tooling tier admits;
+//   scripts/db/classify-review-tier.mjs (this file) names every file in it in this list.
+const EXCEPTION = (namer, named) => Object.freeze([namer, named]);
+export const STRING_NAME_EXCEPTIONS = Object.freeze([
+  EXCEPTION('scripts/app-boundaries.mjs', 'vitest.config.ts'),
+  EXCEPTION('scripts/db/classify-review-tier.mjs', 'apps/web/app/layout.tsx'),
+  EXCEPTION('scripts/db/classify-review-tier.mjs', 'apps/web/app/page.test.tsx'),
+  EXCEPTION('scripts/db/classify-review-tier.mjs', 'apps/web/app/page.tsx'),
+  EXCEPTION('scripts/db/classify-review-tier.mjs', 'apps/web/next.config.ts'),
+  EXCEPTION('scripts/db/classify-review-tier.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'),
+  EXCEPTION('scripts/db/classify-review-tier.mjs', 'src/modules/platform-kernel/application/run.ts'),
+  EXCEPTION('scripts/db/classify-review-tier.mjs', 'src/modules/platform-kernel/index.ts'),
+  EXCEPTION('scripts/db/classify-review-tier.mjs', 'test-kits/typecheck-control/mistyped.ts'),
+  EXCEPTION('scripts/db/classify-review-tier.mjs', 'test-kits/typecheck-control/shape.ts'),
+  EXCEPTION('scripts/db/classify-review-tier.mjs', 'vitest.config.ts'),
+  EXCEPTION('scripts/verify-app-boundaries.mjs', 'apps/web/app/page.test.tsx'),
+  EXCEPTION('scripts/verify-app-boundaries.mjs', 'apps/web/app/page.tsx'),
+  EXCEPTION('scripts/verify-app-boundaries.mjs', 'apps/web/next.config.ts'),
+  EXCEPTION('scripts/verify-app-boundaries.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'),
+  EXCEPTION('scripts/verify-app-boundaries.mjs', 'src/modules/platform-kernel/index.ts'),
+  EXCEPTION('scripts/verify-app-boundaries.mjs', 'vitest.config.ts'),
+  EXCEPTION('scripts/verify-test-coverage-floor.mjs', 'test-kits/typecheck-control/mistyped.ts'),
+  EXCEPTION('scripts/verify-test-coverage-floor.mjs', 'test-kits/typecheck-control/shape.ts'),
+  EXCEPTION('scripts/verify-typecheck-control.mjs', 'test-kits/typecheck-control/mistyped.ts'),
+  EXCEPTION('test-kits/app-boundaries.test.mjs', 'apps/web/app/layout.tsx'),
+  EXCEPTION('test-kits/app-boundaries.test.mjs', 'apps/web/app/page.test.tsx'),
+  EXCEPTION('test-kits/app-boundaries.test.mjs', 'apps/web/app/page.tsx'),
+  EXCEPTION('test-kits/app-boundaries.test.mjs', 'apps/web/next.config.ts'),
+  EXCEPTION('test-kits/app-boundaries.test.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'),
+  EXCEPTION('test-kits/app-boundaries.test.mjs', 'src/modules/platform-kernel/application/run.ts'),
+  EXCEPTION('test-kits/app-boundaries.test.mjs', 'src/modules/platform-kernel/index.ts'),
+  EXCEPTION('test-kits/app-boundaries.test.mjs', 'vitest.config.ts'),
+  EXCEPTION('test-kits/app-dependencies.test.mjs', 'vitest.config.ts'),
+  EXCEPTION('test-kits/app-stack.test.mjs', 'apps/web/app/layout.tsx'),
+  EXCEPTION('test-kits/app-stack.test.mjs', 'apps/web/app/page.tsx'),
+  EXCEPTION('test-kits/app-stack.test.mjs', 'apps/web/next.config.ts'),
+  EXCEPTION('test-kits/app-stack.test.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'),
+  EXCEPTION('test-kits/app-stack.test.mjs', 'test-kits/typecheck-control/mistyped.ts'),
+  EXCEPTION('test-kits/app-stack.test.mjs', 'vitest.config.ts'),
+  EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'apps/web/app/layout.tsx'),
+  EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'apps/web/app/page.test.tsx'),
+  EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'apps/web/app/page.tsx'),
+  EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'apps/web/next.config.ts'),
+  EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'),
+  EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'src/modules/platform-kernel/application/run.ts'),
+  EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'src/modules/platform-kernel/index.ts'),
+  EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'test-kits/typecheck-control/mistyped.ts'),
+  EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'test-kits/typecheck-control/shape.ts'),
+  EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'vitest.config.ts'),
+  EXCEPTION('test-kits/repository-json.test.mjs', 'test-kits/typecheck-control/mistyped.ts'),
+  EXCEPTION('test-kits/repository-json.test.mjs', 'test-kits/typecheck-control/shape.ts'),
+  EXCEPTION('test-kits/repository-json.test.mjs', 'vitest.config.ts'),
+]);
+const exceptionKey = (namer, named) => JSON.stringify([namer, named]);
+// A repository path as an entry must spell it: relative, normalized, no glob or escape character, no `.` or `..`.
+const exactPath = (p) => typeof p === 'string' && p.length > 0 && p.length <= 1024 && posix.normalize(p) === p
+  && !p.startsWith('/') && !p.endsWith('/') && !/[*?[\]{}!\\\0]/.test(p) && p.split('/').every((s) => s !== '.' && s !== '..');
+// What is wrong with a list of string-name exceptions at one head (`files`, null when not known) after the walk has
+// recorded in `used` the entries it applied: each a problem, so the pull request is governance (fail closed).
+export function exceptionProblems(list, files = null, used = new Set()) {
+  const problems = [];
+  if (!Array.isArray(list)) return ['the string-name exceptions are not a list, so none can be checked'];
+  const seen = new Set();
+  for (const entry of list) {
+    const shown = (() => { try { return JSON.stringify(entry); } catch { return String(entry); } })();
+    const what = `the string-name exception ${shown}`;
+    if (!Array.isArray(entry) || entry.length !== 2) { problems.push(`${what} is not one [namer, named] pair`); continue; }
+    const [namer, named] = entry;
+    if (!exactPath(namer) || !exactPath(named)) { problems.push(`${what} does not name two files by exact repository paths (no glob, no directory)`); continue; }
+    if (!CODE_MODULE.test(namer)) { problems.push(`${what} names a namer the walk does not read as JavaScript`); continue; }
+    if (!CODE_NOT_READ.test(named)) { problems.push(`${what} names a file the string rule does not hold against it (only code the walk cannot read is excused)`); continue; }
+    const key = exceptionKey(namer, named);
+    if (seen.has(key)) { problems.push(`${what} is listed twice`); continue; }
+    seen.add(key);
+    // An entry can excuse a mention only of a file at the head. With its named file absent it excuses nothing there and
+    // is not checked here, so a pair may be listed for a file a guard's fixture names before a pull request creates it
+    // (R0-259-1); that its namer still spells such a file is pinned by the suite on the repository (`mentioned` below).
+    if (files === null || !files.has(named)) continue;
+    if (!files.has(namer)) problems.push(`${what} is stale: ${JSON.stringify(named)} is at the head and ${JSON.stringify(namer)} is not, so the entry no longer has a reason`);
+    else if (!used.has(key)) problems.push(`${what} is stale: the walk read no string in ${JSON.stringify(namer)} that names ${JSON.stringify(named)}, so the entry no longer has a reason`);
+  }
+  return problems;
+}
 // Module resolution as node does it for the forms this repository can use (Q0-255R2-1 on PR #255): the exact path; the
 // path with `.js`, `.mjs`, `.cjs`, `.json`, `.ts`, `.mts` or `.cts` added; a directory's `package.json` `main` (read the
 // same way), then its `index.js`, `index.mjs` or `index.cjs`. Returns { path } or { problem } or null (nothing there).
@@ -895,12 +1020,21 @@ function resolveModule(base, files, read, candidate = false) {
 //   - with `strings` (the default), a string that names a code module (`stringNames`), resolved from the module's
 //     directory and from the repository root: a `.js`, `.mjs` or `.cjs` file joins the closure and is read in turn; one
 //     node could run as code the walk cannot read (`.ts`, `.mts`, `.cts`, `.tsx`, `.jsx`, `.node`, `.wasm`) is a
-//     problem; a data file adds nothing. The harness's walk for its path literals passes `strings: false`.
+//     problem, unless [module, file] is in `excused` (STRING_NAME_EXCEPTIONS by default), when the file joins the
+//     closure all the same and the entry is recorded in `used`; a data file adds nothing. The harness's walk for its
+//     path literals passes `strings: false`.
 // `links` maps each path at the head that is a symbolic link or a gitlink to its mode: node loads what a link points at
 // and the walk reads only the link's text, so a link the walk reaches is a problem (A1-255r2-1 on PR #255, round two);
 // `governanceClosure` makes every other link at the head a problem too. Returns { modules: Map(path -> the root that
 // reaches it), named: Set(the modules reached through a string on the way), problems: [...] }.
-export function importClosure(roots, readHead, files = null, read = moduleReader(readHead), links = null, { strings = true } = {}) {
+export function importClosure(roots, readHead, files = null, read = moduleReader(readHead), links = null,
+  { strings = true, excused = STRING_NAME_EXCEPTIONS, used = null } = {}) {
+  const pairs = (Array.isArray(excused) ? excused : []).filter((e) => Array.isArray(e) && e.length === 2);
+  const excusedKeys = new Set(pairs.map(([a, b]) => exceptionKey(a, b)));
+  // namer -> the files listed for it: a string of the namer that spells one of them (as written, or with an extension
+  // the walk's resolution adds) is a mention, recorded in `used` whether or not the file is at the head.
+  const listedFor = new Map();
+  for (const [a, b] of pairs) listedFor.set(a, (listedFor.get(a) ?? new Set()).add(b));
   const modules = new Map();
   const problems = [];
   const queue = [];
@@ -953,12 +1087,17 @@ export function importClosure(roots, readHead, files = null, read = moduleReader
     for (const s of m.strings) {
       for (const base of new Set([resolveRel(path, s), posix.normalize(s)])) {
         if (base.startsWith('../') || base === '..' || base.startsWith('/') || base === path) continue;
+        const listed = listedFor.get(path);
+        if (listed && used) for (const spelt of [base, ...RESOLVE_EXTS.map((e) => base + e)]) if (listed.has(spelt)) used.add(exceptionKey(path, spelt));
         const r = resolveModule(base, files, read, true);
         if (r === null) continue;
         if (r.problem) { problems.push(`${JSON.stringify(path)} names ${JSON.stringify(s)}: ${r.problem}`); continue; }
         if (r.path === path) continue;
-        if (CODE_NOT_READ.test(r.path)) problems.push(`${JSON.stringify(path)} names ${JSON.stringify(s)}, which resolves to ${JSON.stringify(r.path)}, code node can run and the walk cannot read`);
-        else if (!CODE_MODULE.test(r.path)) continue;
+        if (CODE_NOT_READ.test(r.path)) {
+          const key = exceptionKey(path, r.path);
+          if (excusedKeys.has(key)) used?.add(key);
+          else problems.push(`${JSON.stringify(path)} names ${JSON.stringify(s)}, which resolves to ${JSON.stringify(r.path)}, code node can run and the walk cannot read`);
+        } else if (!CODE_MODULE.test(r.path)) continue;
         add(r.path, root, true);
       }
     }
@@ -1007,9 +1146,12 @@ const kindOfPatterns = (matched) => (matched.some((g) => g.kind === 'never') ? '
 //     by imports alone, each read whole: the string rule does not widen it), `additive` (C0-255-1, A1-255-1a, Q0-255-1
 //     on PR #255);
 //   - `problems`: what could not be read, which makes the pull request governance (fail closed), among them every
-//     symbolic link or gitlink at the head (`links`, path -> mode), wherever it is (PR #255, round three).
-// `paths` are the changed paths, used as the roots' universe when the files at the head are not known.
-export function governanceClosure({ paths = [], files = null, readHead = null, read = null, links = null } = {}) {
+//     symbolic link or gitlink at the head (`links`, path -> mode), wherever it is (PR #255, round three), and every
+//     string-name exception that is malformed or stale at the head (`exceptionProblems`, RFC-2026-007 Amendment 2026-10-13).
+// `paths` are the changed paths, used as the roots' universe when the files at the head are not known. `excused` is the
+// list of string-name exceptions (STRING_NAME_EXCEPTIONS unless a caller passes another); what is wrong with it at the
+// head is a problem too (`exceptionProblems`).
+export function governanceClosure({ paths = [], files = null, readHead = null, read = null, links = null, excused = STRING_NAME_EXCEPTIONS } = {}) {
   if (typeof readHead !== 'function' && typeof read !== 'function') {
     return { modules: new Map(), data: new Map(), problems: ['no reader of the head was given, so the modules the governance code files import are unknown'] };
   }
@@ -1023,8 +1165,9 @@ export function governanceClosure({ paths = [], files = null, readHead = null, r
     if (matched.some((g) => g.kind !== 'additive')) guardRoots.push(p);
     else if (!additiveRoots.includes(p)) additiveRoots.push(p);
   }
-  const guard = importClosure(guardRoots, null, files, reader, links);
-  const additive = importClosure(additiveRoots, null, files, reader, links);
+  const used = new Set();
+  const guard = importClosure(guardRoots, null, files, reader, links, { excused, used });
+  const additive = importClosure(additiveRoots, null, files, reader, links, { excused, used });
   const harness = importClosure(GOVERNANCE_IMPORT_ROOTS, null, files, reader, links, { strings: false });
   const linkProblems = [];
   for (const [p, mode] of links ?? []) {
@@ -1048,7 +1191,8 @@ export function governanceClosure({ paths = [], files = null, readHead = null, r
       }
     }
   }
-  return { modules, data, problems: [...new Set([...linkProblems, ...guard.problems, ...additive.problems])] };
+  const stale = exceptionProblems(excused, files, used);
+  return { modules, data, mentioned: used, problems: [...new Set([...linkProblems, ...guard.problems, ...additive.problems, ...stale])] };
 }
 
 // Whether a changed test file's subject is a governance path (C0-255-2, A1-255-1c on PR #255): a `*.test.mjs` (or
@@ -1080,9 +1224,10 @@ export function testSubject(path, read, isGov, files = null) {
 // `ownership.branch` read at the base (undefined or null when it could not be read); `files` the set of paths at the
 // head; `readHead(path)` reads a file at the head and throws when it cannot; `modes` maps paths at the head to their git
 // modes, of which only a symbolic link's or a gitlink's matters (LINK_MODES): such a path is never read as a module.
+// `excused` is the list of string-name exceptions the walk applies (STRING_NAME_EXCEPTIONS unless a caller passes another).
 // Returns { lane, reasons, additiveEligible }.
 export function laneOf({ paths, tier, recordsOnly, headRef = undefined, auditBranch = undefined, files = null, readHead = null,
-  changes = null, repo = undefined, headRepo = undefined, modes = null } = {}) {
+  changes = null, repo = undefined, headRepo = undefined, modes = null, excused = STRING_NAME_EXCEPTIONS } = {}) {
   if (!Array.isArray(paths) || paths.length === 0 || !paths.every((p) => typeof p === 'string' && p.length > 0)) {
     return { lane: 'governance', reasons: ['no list of changed paths to place (fail closed: governance)'], additiveEligible: false };
   }
@@ -1093,7 +1238,7 @@ export function laneOf({ paths, tier, recordsOnly, headRef = undefined, auditBra
   const read = typeof readHead === 'function'
     ? moduleReader((p) => { if (links.has(p)) throw new Error(`${p} is a link`); return readHead(p); })
     : null;
-  const closure = governanceClosure({ paths: all, files, read, links });
+  const closure = governanceClosure({ paths: all, files, read, links, excused });
   // The kind of a governance path, or null: the patterns decide for a path they name; otherwise the walk does.
   const govKind = (p) => {
     const matched = GOVERNANCE_PATTERNS.filter((g) => g.re.test(p));

@@ -107,8 +107,11 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // links and gitlinks; the raw scan's gap memo, timed; the head branch compared case-sensitively: 94 to 98. The third
 // review round (2026-10-11, no migration; C0-255r2-1, A1-255r3-1, A1-255r3-2, R0-255r2-1, Q0-255R2-1, Q0-255R2-2): five
 // tests -- a link anywhere; a URL or absolute import; the string rule; resolution as node resolves; Q0's three
-// unpinned behaviours: 98 to 103.
-  'test-kits/db/foundation-contract.test.mjs': 103,
+// unpinned behaviours: 98 to 103. RFC-2026-007 Amendment 2026-10-13 (2026-10-13, no migration; the lane walk and the
+// TypeScript files PR #257 added): six tests -- the string-name exceptions pinned; the records lane on the repository as
+// it stands; the records lane once the platform-kernel files exist (R0-259-1); an unexcused mention; an excused namer's
+// import; a stale or malformed entry: 103 to 109.
+  'test-kits/db/foundation-contract.test.mjs': 109,
   'test-kits/db/rls-assertions.test.mjs': 20,
 // Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
 // -- 296 to 301 tests and 2101 to 2130 assertions -- and the assertion half moved only
@@ -334,8 +337,9 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // tests added and the two earlier ones adjusted; the guard's own count. 1490 to 1525 with the second review round on
 // PR #255 (2026-10-11, no migration): four lane tests added and the patterns test given nine tool files; the guard's
 // own count. 1525 to 1556 with the third review round on PR #255 (2026-10-11, no migration): five lane tests added, and
-// two earlier ones adjusted for a link anywhere and the string rule; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 1556,
+// two earlier ones adjusted for a link anywhere and the string rule; the guard's own count. 1556 to 1592 with RFC-2026-007
+// Amendment 2026-10-13 (2026-10-13, no migration): six lane tests added, none changed; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 1592,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.
@@ -397,8 +401,9 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   // RFC-2026-034 §8 item 2 (2026-10-11): foundation-contract and branch-scope each gain tests (no test removed or
   // renamed); both name digests move. They move again with the first review round on PR #255 (four and two tests
   // added, none removed or renamed), and foundation-contract's again with the second (four tests added, none removed or
-  // renamed) and the third (five tests added, none removed or renamed).
-  'test-kits/db/foundation-contract.test.mjs': '3b824cbb80cc6a2c',
+  // renamed) and the third (five tests added, none removed or renamed). foundation-contract's moves again with RFC-2026-007
+  // Amendment 2026-10-13 (six tests added, none removed or renamed).
+  'test-kits/db/foundation-contract.test.mjs': 'f3a2bc18cacb55aa',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
   'tests/db/identity/identity-isolation.test.mjs': '25aa50b576c0925b',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
