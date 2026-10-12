@@ -160,3 +160,82 @@ checks of `main`'s branch protection through `gh api`, once, changing nothing el
 A0's reading, not the Owner's words: "ไม่แตะค่าอื่น" means the other required checks, the review rules and every other
 protection setting stay as they are, so the call adds one context to the existing list rather than replacing the
 protection object.
+
+## 7. The press question, after every role had passed on PR #257's final head (verbatim)
+
+Asked 2026-10-12T15:18:30Z, answered 15:19:55Z (UTC, the transcript's stamps; local time 22:18–22:19), through the
+question tool of session `c2816eec`, as one call of one question. The question, its header, every option shown with its
+description, and the answer are copied from that call's record and the tool result that follows it. Recorded after the
+merge, as the chosen option's description orders (`บันทึกคำตอบใน record หลัง merge`). As in §2 and §5, this records the
+Owner's words and A0's reading of them; it is not a role verdict.
+
+### 7.1 Press #257
+
+**Q:** "#257 (skeleton แอป) ผ่านครบ 4 role แล้ว (A1 ไม่มี finding ค้าง) — ก่อนผมกด merge มี 2 เรื่องที่ role บอกว่าเป็นการตัดสินของคุณ: (1) ความเสี่ยงที่เหลือ: โค้ดที่ repo รันเองใน CI หลัง guard (test, หน้าเว็บตอน build) ยังแก้ไฟล์ได้ — คุมด้วยการรีวิวทุก PR ไม่ใช่ guard; (2) Q0-257r6-1 (Low): safeguard 3 จุดของ guard ยังไม่มี test ยึด (ไม่พบทางใช้จริง) — จะให้ทำอย่างไร?"
+
+- **Options shown:**
+  - "ยอมรับความเสี่ยง (1) + กด merge เลย (2) ทำต่อทีหลัง (Recommended)" — "บันทึกคำตอบใน record หลัง merge → กด merge → ตั้ง application เป็น required check → เปิด PR เล็กเพิ่ม test ให้ 3 จุดนั้นภายหลัง"
+  - "แก้ (2) ก่อน แล้วค่อย merge" — "เพิ่ม test ใน #257 เลย — ต้องให้ 4 role อ่านอีกรอบ (ประมาณ 1–2 ชั่วโมง)"
+  - "ยังไม่ merge" — "ผมอยากดูเองก่อน"
+- **A:** "ยอมรับความเสี่ยง (1) + กด merge เลย (2) ทำต่อทีหลัง (Recommended)"
+
+## 8. What this answer directs, and §6 (b)'s record
+
+**(a) The residual, accepted as a recorded risk.** Item (1) of the question is the residual RFC-2026-029's Amendment
+2026-10-12 states in its paragraph "Build configuration, and what the build included": code the repository itself runs
+in CI after the guard has read the tree (a test under `npm run test:app`, a page's own code when `next build` prerenders
+it, build-time code it imports) could still write files or change the build's output, and "That residual is held by
+review of every pull request, not by a check (A1-257-10)." A1's re-read five (`a1-reread5-2026-10-12-pr257.md` §3) left
+it to him: "Whether the Owner accepts it as a recorded risk or wants a check later is the Owner's decision." R0's re-read
+five (§6) asked A0 to name it in the press question as A0's account, not a check, and the question did. His answer
+accepts it (`ยอมรับความเสี่ยง (1)`): it stands as a recorded risk, held by review of every pull request, and no check
+for it is owed under this answer. A0's reading, not the Owner's words: the acceptance reaches that residual as the
+amendment states it and nothing wider; a later package may still propose a check for it.
+
+**(b) Q0-257r6-1, owed as a follow-up pull request.** Item (2) is Q0's finding Q0-257r6-1 (Low;
+`q0-reread5-2026-10-12-pr257.md` §7): three safeguards of review rounds three to five fail no test when broken — (a) the
+build-graph check's controls runner (`runBuildControls`), (b) the boundary CLI's rule that its two readers agree, and (c)
+the rule against calls in next.config and postcss.config — with no route found. His answer (`(2) ทำต่อทีหลัง`) and the
+option's description (`เปิด PR เล็กเพิ่ม test ให้ 3 จุดนั้นภายหลัง`) make the tests a small pull request after the
+merge, not a condition of it. Q0 names the tests wanted in the same section; under Q0's carry clause (§8 of that file)
+the pull request that answers Q0-257r6-1 needs Q0 again. The answer gives it no date.
+
+**(c) The order the option names.** Its description lists: record the answer after the merge, press, set `application`
+as a required check, open the small test pull request later. A0 pressed PR #257 at 2026-10-12T15:55:17Z
+(`gh pr merge 257 --merge --match-head-commit bef3249effd4d4bc078c042f2297b57cf37831d0`; merge commit
+`40267ae99a0b189871faa2804c8069c1b7722bf6`), set the required check at 15:55:34Z (below), and this section is the
+record. The test pull request is still owed.
+
+**(d) §6 (b)'s record: the `application` required check.** After the merge A0 read `main`'s required status checks,
+then ran:
+
+```
+gh api -X PATCH repos/ThinkBizLab-Org/ThinkBizThai/branches/main/protection/required_status_checks --input <file>
+```
+
+with `<file>` holding
+
+```json
+{"strict":true,"checks":[{"context":"bootstrap","app_id":15368},{"context":"application","app_id":15368}]}
+```
+
+and read the same resource back. The same command printed `2026-10-12T15:55:34Z` (`date -u`) after the read-back.
+
+Before (`gh api repos/ThinkBizLab-Org/ThinkBizThai/branches/main/protection/required_status_checks`, 15:55:23Z):
+
+```json
+{"url":"https://api.github.com/repos/ThinkBizLab-Org/ThinkBizThai/branches/main/protection/required_status_checks","strict":true,"contexts":["bootstrap"],"contexts_url":"https://api.github.com/repos/ThinkBizLab-Org/ThinkBizThai/branches/main/protection/required_status_checks/contexts","checks":[{"context":"bootstrap","app_id":15368}]}
+```
+
+After (the read-back):
+
+```json
+{"url":"https://api.github.com/repos/ThinkBizLab-Org/ThinkBizThai/branches/main/protection/required_status_checks","strict":true,"contexts":["bootstrap","application"],"contexts_url":"https://api.github.com/repos/ThinkBizLab-Org/ThinkBizThai/branches/main/protection/required_status_checks/contexts","checks":[{"context":"bootstrap","app_id":15368},{"context":"application","app_id":15368}]}
+```
+
+A0's reading of "ไม่แตะค่าอื่น" (§6 (b)), not the Owner's words: `strict` stays `true`; `bootstrap` stays exactly as it
+was, pinned to `app_id` 15368 (GitHub Actions), which is why the call names that `app_id` for both checks rather than
+sending bare context names; `application` is the one check added, pinned to the same app. The call writes the
+required-status-checks resource only, not the protection object. A0 read that resource before and after and did not read
+the rest of `main`'s protection (review rules and other settings) on either side of the call. R0-257-7 asked for this
+record; whether it is closed is R0's to write.
