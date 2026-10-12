@@ -1,0 +1,72 @@
+{
+  "$comment": "The machine-readable copy of RFC-2026-029 §3.1 and §3.2 (RFC-2026-029 §8/1), with §3.4/2's licence list and the licence exceptions of its Amendment 2026-10-12. `name`, `decision` and `where` are the RFC's table cells verbatim; `imports` is the path rule each `where` cell states, as globs. test-kits/app-dependencies.test.mjs parses the RFC's tables and fails if this copy and the RFC disagree. Read by scripts/verify-app-dependencies.mjs and scripts/verify-app-boundaries.mjs. Editing this file does not amend the RFC: the RFC is changed first (§3.4/1, §3.4/7), and this copy follows it.",
+  "source": "architecture/decisions/RFC-2026-029-application-tier-stack.md",
+  "compositionRoot": [
+    "apps/web/composition/**",
+    "apps/worker/composition/**",
+    "apps/web/instrumentation.ts",
+    "apps/web/instrumentation-client.ts",
+    "apps/web/sentry.*.config.ts",
+    "apps/web/next.config.ts",
+    "apps/worker/instrumentation.ts",
+    "apps/worker/instrumentation-client.ts",
+    "apps/worker/sentry.*.config.ts",
+    "apps/worker/next.config.ts"
+  ],
+  "adapters": [
+    "src/modules/*/adapters/**"
+  ],
+  "runtime": [
+    { "name": "next", "decision": "D1", "where": "`apps/**`", "imports": ["apps/**"] },
+    { "name": "react", "decision": "D1", "where": "`apps/**`", "imports": ["apps/**"] },
+    { "name": "react-dom", "decision": "D1", "where": "`apps/**`", "imports": ["apps/**"] },
+    { "name": "@supabase/supabase-js", "decision": "D3, D5", "where": "adapters, and `apps/web/composition/**`", "imports": ["src/modules/*/adapters/**", "apps/web/composition/**"] },
+    { "name": "@supabase/ssr", "decision": "D4, D5", "where": "`apps/web/composition/**` only", "imports": ["apps/web/composition/**"] },
+    { "name": "pg", "decision": "D5, D6", "where": "`src/modules/platform-kernel/adapters/**` (the job store, MOD-000) only; never reachable from `apps/web` (§6.3/5)", "imports": ["src/modules/platform-kernel/adapters/**"] },
+    { "name": "zod", "decision": "D1", "where": "anywhere under `apps/` and `src/`", "imports": ["apps/**", "src/**"] },
+    { "name": "next-intl", "decision": "D12", "where": "`apps/web/**`", "imports": ["apps/web/**"] },
+    { "name": "@sentry/nextjs", "decision": "D9", "where": "the composition root of `apps/web` and `apps/worker` only", "imports": ["apps/web/composition/**", "apps/worker/composition/**", "apps/web/instrumentation.ts", "apps/web/instrumentation-client.ts", "apps/web/sentry.*.config.ts", "apps/web/next.config.ts", "apps/worker/instrumentation.ts", "apps/worker/instrumentation-client.ts", "apps/worker/sentry.*.config.ts", "apps/worker/next.config.ts"] },
+    { "name": "radix-ui", "decision": "D12", "where": "`apps/web/components/**`", "imports": ["apps/web/components/**"] },
+    { "name": "class-variance-authority", "decision": "D12", "where": "`apps/web/components/**`", "imports": ["apps/web/components/**"] },
+    { "name": "clsx", "decision": "D12", "where": "`apps/web/components/**`, `apps/web/lib/utils.ts`", "imports": ["apps/web/components/**", "apps/web/lib/utils.ts"] },
+    { "name": "tailwind-merge", "decision": "D12", "where": "`apps/web/components/**`, `apps/web/lib/utils.ts`", "imports": ["apps/web/components/**", "apps/web/lib/utils.ts"] },
+    { "name": "lucide-react", "decision": "D12", "where": "`apps/web/components/**`", "imports": ["apps/web/components/**"] }
+  ],
+  "development": [
+    { "name": "typescript", "decision": "D1", "where": "nowhere (a CLI)", "imports": [] },
+    { "name": "@types/node", "decision": "D1", "where": "nowhere (ambient types)", "imports": [] },
+    { "name": "@types/react", "decision": "D1", "where": "nowhere (ambient types)", "imports": [] },
+    { "name": "@types/react-dom", "decision": "D1", "where": "nowhere (ambient types)", "imports": [] },
+    { "name": "@types/pg", "decision": "D5", "where": "nowhere (ambient types)", "imports": [] },
+    { "name": "tailwindcss", "decision": "D12", "where": "`apps/web/**/*.css` (`@import`) only", "imports": ["apps/web/**/*.css"] },
+    { "name": "@tailwindcss/postcss", "decision": "D12", "where": "`apps/web/postcss.config.mjs` only", "imports": ["apps/web/postcss.config.mjs"] },
+    { "name": "postcss", "decision": "D12", "where": "`apps/web/postcss.config.mjs` only", "imports": ["apps/web/postcss.config.mjs"] },
+    { "name": "eslint", "decision": "D1", "where": "`eslint.config.mjs` at the root only", "imports": ["eslint.config.mjs"] },
+    { "name": "eslint-config-next", "decision": "D1", "where": "`eslint.config.mjs` at the root only", "imports": ["eslint.config.mjs"] },
+    { "name": "vitest", "decision": "D1", "where": "`**/*.test.ts`, `**/*.test.tsx` and `vitest.config.ts` only", "imports": ["**/*.test.ts", "**/*.test.tsx", "vitest.config.ts"] },
+    { "name": "@playwright/test", "decision": "D1", "where": "`tests/e2e/**` and `playwright.config.ts` only", "imports": ["tests/e2e/**", "playwright.config.ts"] },
+    { "name": "@axe-core/playwright", "decision": "D1", "where": "`tests/e2e/**` only", "imports": ["tests/e2e/**"] }
+  ],
+  "providerSdks": ["@supabase/supabase-js", "@supabase/ssr", "pg", "@sentry/nextjs"],
+  "framework": ["next", "react", "react-dom"],
+  "refusedImports": [
+    { "specifier": "next/font/google", "why": "fetches fonts from Google at build time (RFC-2026-029 §8/8)" }
+  ],
+  "licences": {
+    "accepted": ["MIT", "ISC", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "0BSD"],
+    "exceptions": [
+      { "licence": "CC-BY-4.0", "packages": ["^caniuse-lite$"], "named": "caniuse-lite" },
+      { "licence": "MPL-2.0", "packages": ["^lightningcss$", "^lightningcss-(android|darwin|freebsd|linux|win32)-[a-z0-9-]+$"], "named": "lightningcss" },
+      { "licence": "LGPL-3.0-or-later", "packages": ["^@img/sharp-libvips-[a-z0-9-]+$", "^@img/sharp-[a-z0-9-]+$"], "named": "@img/sharp-libvips-*" }
+    ],
+    "amendment": "Amendment 2026-10-12",
+    "lockfileFallback": {}
+  },
+  "workerCredential": {
+    "$comment": "RFC-2026-029 §2.7/3 and §8/5. No document names the worker credential's environment variable yet; WORKER_DATABASE_URL is the name A0 reserves for it in WP-1A-A0-002 so that the guard has something to hold. WP-1A-A0-004, which writes the dispatcher, either uses this name or changes it here in the same pull request. app_worker_login is RFC-2026-028's login role.",
+    "names": ["WORKER_DATABASE_URL", "app_worker_login"],
+    "allowedUnder": ["apps/worker/composition/**"]
+  },
+  "releaseAgeDays": 7,
+  "releaseAgeExceptions": []
+}

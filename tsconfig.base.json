@@ -1,0 +1,22 @@
+{
+  "$comment": "RFC-2026-029 §2.1/2: the six flags below are the RFC's; turning any of them off is a change to that RFC. skipLibCheck is allowed (it skips third-party declaration files, not ours). Guarded by test-kits/app-stack.test.mjs.",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+    "allowJs": false,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "es2022"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
+    "types": ["node"]
+  }
+}

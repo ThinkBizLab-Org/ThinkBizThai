@@ -1,0 +1,6 @@
+{
+  "$comment": "The project Next.js reads when it builds apps/web. It extends the repository base, so the RFC-2026-029 §2.1/2 flags are the same here as in `npm run typecheck`.",
+  "extends": "../../tsconfig.base.json",
+  "include": ["types/**/*.ts", "**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", ".next"]
+}

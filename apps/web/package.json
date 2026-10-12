@@ -1,0 +1,19 @@
+{
+  "name": "@thinkbizthai/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ThinkBizThai web application (RFC-2026-029 §6.1; MOD-900 product-web)",
+  "scripts": {
+    "build": "next build"
+  },
+  "dependencies": {
+    "next": "16.3.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "postcss": "8.5.28",
+    "tailwindcss": "4.3.3"
+  }
+}

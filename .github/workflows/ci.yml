@@ -11,6 +11,10 @@ permissions:
 jobs:
   bootstrap:
     runs-on: ubuntu-24.04
+    # RFC-2026-029 §4.7: Next.js telemetry is off in CI. Every step sees it, so no build, test or
+    # type check run here can send it (WP-1A-A0-002).
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
     # A Postgres service container, not a Supabase project. A shared test database is fought over by
     # concurrent runs — one job's db-reset-test drops what another is asserting against — and the
     # failures are intermittent and expensive to chase. A container is per-run and isolated.
@@ -310,6 +314,18 @@ jobs:
             *) unclassified "the base's classifier printed lane ${lane} with tier ${tier}, which do not agree (fail closed)" "${work}/out" ;;
           esac
           report "tier: ${tier}" "lane: ${lane}" "the base's classifiers exited 0 on ${BASE_SHA}..HEAD; the lane's readers are named in RFC-2026-034 §2.2, and an additive-eligible governance pull request stays governance until A1 and Q0 confirm in writing" "${work}/out"
+      # RFC-2026-029 §8/6 and §2.1/4 (WP-1A-A0-002): `npm run check` is the dependency-free, offline
+      # tooling check, and still passes with no node_modules directory present. This step proves it on
+      # every head: it runs the check BEFORE the clean install below, and fails if a node_modules
+      # directory is already there to lean on. It runs after the two classification steps above, which
+      # stay the last steps before any of the pull request's own code runs (RFC-2026-007 §E).
+      - name: Validate repository bootstrap with no node_modules
+        run: |
+          if [ -e node_modules ]; then
+            echo "node_modules exists before the clean install, so this run cannot show that npm run check needs none (RFC-2026-029 §8/6)"
+            exit 1
+          fi
+          npm run check
       - name: Clean install
         run: npm ci --ignore-scripts
       # Invoked BY THE WORKFLOW, not by the script it audits. `npm run check` can be
@@ -358,6 +374,44 @@ jobs:
           # is present and the merge-base of HEAD and the base branch is reachable by SHA --
           # which the pull_request event supplies directly.
           node scripts/verify-branch-scope.mjs "$BASE_SHA" "$package_id"
+
+      # THE APPLICATION TIER (RFC-2026-029 §8; RFC-2026-034 §8 item 4; WP-1A-A0-002). These run after the
+      # clean install and outside `npm run check`, which stays the dependency-free tooling check
+      # (RFC-2026-029 §2.1/4): a broken or compromised install must not be able to disable the guards
+      # that would report it. The two dependency-free guards are also run inside `npm run check` by
+      # test-kits/app-dependencies.test.mjs and test-kits/app-boundaries.test.mjs; they are invoked
+      # here by the workflow as well, for the reason RFC-2026-007 gives for the test-integrity guard.
+      #
+      #   §8/1, §8/2 and §3.4/2: every package.json against the allowlist, exact versions, registry-only
+      #     lockfile entries with sha512 integrity, and every lockfile licence;
+      #   §8/4 and §8/5: the §6.3 import boundaries, as a guard script because the Product Owner deferred
+      #     ESLint (2026-10-12), and the migration source, service-role and worker-credential rules;
+      #   §8/3: `tsc --noEmit` with the §2.1 flags, and its negative control, which must FAIL on a
+      #     deliberately mistyped fixture with one marked error per flag;
+      #   RFC-2026-034 §8 item 4: the application tests (`vitest run`) on every head;
+      #   the web build, which needs no network (fonts are not fetched, telemetry is off above);
+      #   §4.6: `npm audit` for runtime dependencies, and §4.8 / §8/9: the publish age of every
+      #     lockfile entry the pull request adds or changes. Both read the registry, so they need the
+      #     network, and are kept out of `npm run check`.
+      - name: Verify the application dependencies
+        run: node scripts/verify-app-dependencies.mjs
+      - name: Verify the application boundaries
+        run: node scripts/verify-app-boundaries.mjs
+      - name: Type-check the application
+        run: npm run typecheck
+      - name: Type-check negative control
+        run: node scripts/verify-typecheck-control.mjs
+      - name: Application tests
+        run: npm run test:app
+      - name: Build the web application
+        run: npm run build --workspace apps/web
+      - name: Vulnerability audit (network)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Release age of new lockfile entries (network)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/verify-release-age.mjs "$BASE_SHA"
 
       # The database half, after `npm run check`, so a red suite fails first and this step's output
       # never has to be read to discover the repository is broken.

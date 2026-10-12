@@ -575,6 +575,21 @@ export const DIGESTED_FLOOR = [
   'test-kits/db/ws905-fixture.mjs',
   'tests/db/identity/isolation-cases.mjs',
   'tests/db/identity/run-isolation.mjs',
+  // WP-1A-A0-002 (2026-10-12, RFC-2026-029 §8): the application tier's guards, the allowlist copy they
+  // read, their suites and the type check's negative-control fixture.
+  'scripts/app-dependency-allowlist.json',
+  'scripts/verify-app-boundaries.mjs',
+  'scripts/verify-app-dependencies.mjs',
+  'scripts/verify-release-age.mjs',
+  'scripts/verify-typecheck-control.mjs',
+  'test-kits/app-boundaries.test.mjs',
+  'test-kits/app-dependencies.test.mjs',
+  'test-kits/app-stack.test.mjs',
+  'test-kits/typecheck-control/mistyped.ts',
+  'test-kits/typecheck-control/plain.js',
+  'test-kits/typecheck-control/shape.ts',
+  'test-kits/typecheck-control/tsconfig.allowjs.json',
+  'test-kits/typecheck-control/tsconfig.json',
 ];
 
 // A file that has ever been digested stays digested. See DIGESTED_FLOOR above for why.

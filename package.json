@@ -8,6 +8,9 @@
     "node": "24.20.0",
     "npm": "11.19.0"
   },
+  "workspaces": [
+    "apps/web"
+  ],
   "scripts": {
     "check": "npm run verify:coverage-floor && node scripts/verify-toolchain.mjs && npm run scan:secrets && npm run validate:protocol && npm run test:bootstrap",
     "regenerate:manifest": "node scripts/regenerate-integrity-manifest.mjs",
@@ -20,6 +23,15 @@
     "check:handoff": "node scripts/refresh-author-handoff.mjs --check",
     "check:scope": "node scripts/verify-branch-scope.mjs",
     "verify": "node scripts/verify-clean-run.mjs",
-    "commit": "node scripts/commit-when-clean.mjs"
+    "commit": "node scripts/commit-when-clean.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:app": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3"
   }
 }

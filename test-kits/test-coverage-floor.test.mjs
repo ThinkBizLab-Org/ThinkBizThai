@@ -371,40 +371,56 @@ test('the clean-run reporter separates a failing count from a failing test', asy
   assert.ok(!steps.includes('npm run verify'), 'verify wraps check; check must not invoke verify');
 });
 
-test('the repository declares no dependency and no lifecycle script', async () => {
+test('the root declares only allowlisted development dependencies, and no package.json a lifecycle script', async () => {
   // Probing the npm layer: `package.json` accepted `"dependencies": {"left-pad": "^1.3.0"}` and
   // `"preinstall": "node -e …"` at exit 0. CI runs `npm ci --ignore-scripts`, so a lifecycle
   // script does not execute there today — but that flag is one edit away, and a developer running
   // `npm install` has no such protection. **A preinstall script runs before every guard in this
   // repository**, which is a stronger position than any bypass found so far.
   //
-  // Zero dependencies is a stated property of this repository and was asserted by nothing.
+  // Zero dependencies was a stated property of this repository until RFC-2026-029 (approved
+  // 2026-10-11) admitted the application tier's packages. WP-1A-A0-002 installs the first of them: the
+  // root package.json now holds the application's DEVELOPMENT tools (§3.2) and `apps/web` its own
+  // packages, and scripts/verify-app-dependencies.mjs holds every package.json to the allowlist. What
+  // stays true of the root, and is asserted here, is that it declares no runtime, optional or peer
+  // dependency, and that no package.json in the tree declares a lifecycle script.
   const { readFile } = await import('node:fs/promises');
   const manifest = JSON.parse(await readFile('package.json', 'utf8'));
-  for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
+  for (const field of ['dependencies', 'optionalDependencies', 'peerDependencies']) {
     assert.equal(manifest[field], undefined,
-      `package.json declares ${field}; this repository runs on the pinned toolchain and nothing else`);
+      `package.json declares ${field}; the root holds the tooling tier and the application's development tools only`);
   }
+  const allowlist = JSON.parse(await readFile('scripts/app-dependency-allowlist.json', 'utf8'));
+  const development = allowlist.development.map((row) => row.name);
+  const unlisted = Object.keys(manifest.devDependencies ?? {}).filter((name) => !development.includes(name));
+  assert.deepEqual(unlisted, [], `the root devDependencies name packages outside RFC-2026-029 §3.2: ${unlisted.join(', ')}`);
 
   // npm runs these around install, before anything here can look at the tree.
   const LIFECYCLE = [
     'preinstall', 'install', 'postinstall', 'prepare', 'prepublish', 'prepublishOnly',
     'prepack', 'postpack', 'preuninstall', 'uninstall', 'postuninstall', 'dependencies',
   ];
-  const present = LIFECYCLE.filter((name) => manifest.scripts?.[name] !== undefined);
-  assert.deepEqual(present, [], `package.json declares npm lifecycle script(s): ${present.join(', ')}`);
+  for (const path of ['package.json', ...(manifest.workspaces ?? []).map((w) => `${w}/package.json`)]) {
+    const declared = JSON.parse(await readFile(path, 'utf8'));
+    const present = LIFECYCLE.filter((name) => declared.scripts?.[name] !== undefined);
+    assert.deepEqual(present, [], `${path} declares npm lifecycle script(s): ${present.join(', ')}`);
+  }
 
   // And the script set is pinned, so a new script cannot appear unremarked — the same reason the
-  // chain is pinned step by step.
+  // chain is pinned step by step. `typecheck` and `test:app` are the application checks CI runs as
+  // their own steps (RFC-2026-029 §8/3, RFC-2026-034 §8 item 4); `check` does not call them.
   assert.deepEqual(Object.keys(manifest.scripts).sort(), [
     'check', 'check:handoff', 'check:scope', 'commit', 'record:verification', 'refresh:handoff',
-    'regenerate:manifest', 'scan:secrets', 'test:bootstrap', 'validate:protocol', 'verify',
+    'regenerate:manifest', 'scan:secrets', 'test:app', 'test:bootstrap', 'typecheck', 'validate:protocol', 'verify',
     'verify:coverage-floor',
   ]);
+  assert.equal(manifest.scripts.typecheck, 'tsc --noEmit');
+  assert.equal(manifest.scripts['test:app'], 'vitest run');
 
   const ci = await readFile('.github/workflows/ci.yml', 'utf8');
   assert.match(ci, /npm ci --ignore-scripts/,
     'CI must install with --ignore-scripts; without it a lifecycle script runs before every guard');
+  assert.doesNotMatch(ci, /npm install\b/, 'CI never runs npm install (RFC-2026-029 §4.4)');
 });
 
 test('no npm configuration file redirects what npm run executes', async () => {
@@ -439,7 +455,10 @@ test('package.json carries no field nobody declared', async () => {
   // work package and `freeze_approved` in the catalog index.
   const { readFile } = await import('node:fs/promises');
   const manifest = JSON.parse(await readFile('package.json', 'utf8'));
-  assert.deepEqual(Object.keys(manifest).sort(), ["description", "engines", "name", "packageManager", "private", "scripts", "version"]);
+  // WP-1A-A0-002 (RFC-2026-029 §4.1, §3.2): `workspaces` names apps/web, and `devDependencies` holds the
+  // application's development tools; both are reviewed lines, and the dependency guard reads them.
+  assert.deepEqual(Object.keys(manifest).sort(), ["description", "devDependencies", "engines", "name", "packageManager", "private", "scripts", "version", "workspaces"]);
+  assert.deepEqual(manifest.workspaces, ['apps/web'], 'the one workspace is apps/web; apps/worker joins when its first code lands');
 });
 
 

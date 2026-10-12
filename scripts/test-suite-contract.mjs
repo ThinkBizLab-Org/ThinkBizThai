@@ -145,6 +145,12 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/work-package-discovery.test.mjs': 1,
   'test-kits/work-package-ownership.test.mjs': 8,
   'test-kits/authority-dispositions.test.mjs': 3,
+  // WP-1A-A0-002 (2026-10-12, RFC-2026-029 §8): the application tier's three suites -- the dependency
+  // allowlist, lockfile and licences (§8/1, §8/2, §3.4/2); the §6.3 boundaries and §8/5; the type check's
+  // flags and control, the release age, the CI wiring and §8/6.
+  'test-kits/app-dependencies.test.mjs': 9,
+  'test-kits/app-boundaries.test.mjs': 9,
+  'test-kits/app-stack.test.mjs': 7,
 };
 
 // Independent review eighteen answered the question the per-file floor was written to close, and
@@ -327,12 +333,19 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/repository-json.test.mjs': 18,
   'test-kits/role-separation.test.mjs': 8,
   'test-kits/secret-scan.test.mjs': 116,
-  'test-kits/test-coverage-floor.test.mjs': 127,
+  // WP-1A-A0-002 (2026-10-12): 127 to 140, the guard's own count. main read 135 under a floor of 127;
+  // the dependency test, rewritten for RFC-2026-029's first install, and the package.json field pin add five.
+  'test-kits/test-coverage-floor.test.mjs': 140,
   'test-kits/toolchain-contract.test.mjs': 3,
   'test-kits/verification-record.test.mjs': 14,
   'test-kits/work-package-discovery.test.mjs': 2,
   'test-kits/work-package-ownership.test.mjs': 8,
   'test-kits/authority-dispositions.test.mjs': 8,
+  // WP-1A-A0-002 (2026-10-12): the guard's own counts. app-boundaries reads low because its negative
+  // controls assert through one helper, mustFail, which this count sees once.
+  'test-kits/app-dependencies.test.mjs': 26,
+  'test-kits/app-boundaries.test.mjs': 16,
+  'test-kits/app-stack.test.mjs': 43,
 };
 
 // Independent review eighteen defeated the test-count floor by hollowing a suite while preserving
@@ -377,12 +390,18 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/repository-json.test.mjs': '7e434c46d2b5cd7a',
   'test-kits/role-separation.test.mjs': '00a4c859fecdbbae',
   'test-kits/secret-scan.test.mjs': '29224e8a816a48e5',
-  'test-kits/test-coverage-floor.test.mjs': '0748d7a12d9b2d7b',
+  // WP-1A-A0-002 (2026-10-12): 'the repository declares no dependency and no lifecycle script' is renamed
+  // 'the root declares only allowlisted development dependencies, and no package.json a lifecycle script'
+  // now that RFC-2026-029 admits the application's packages; the name digest moves with it.
+  'test-kits/test-coverage-floor.test.mjs': '85a095277bb7704b',
   'test-kits/toolchain-contract.test.mjs': '593ef9010e698df4',
   'test-kits/verification-record.test.mjs': '550b0a1ed6388295',
   'test-kits/work-package-discovery.test.mjs': 'a3920136781048b6',
   'test-kits/work-package-ownership.test.mjs': 'edeaf529d5267bba',
   'test-kits/authority-dispositions.test.mjs': 'dd031bcd9460744c',
+  'test-kits/app-dependencies.test.mjs': 'de39fb561e9464ad',
+  'test-kits/app-boundaries.test.mjs': '5a724545ff236d28',
+  'test-kits/app-stack.test.mjs': '33880c750745fd4a',
 };
 
 // How many reversals `ratchets-bite.test.mjs` puts through a suite. Independent review twenty

@@ -370,8 +370,19 @@ const TYPESCRIPT_PROJECT = /^tsconfig(\..+)?\.json$/i;
 // entry is a linked git worktree holding a full checkout, so walking it reports this
 // repository's own files back as if they were extra ones. The `seen > 100` assertion below is
 // what stops this exemption from quietly becoming a hole.
-const NOT_WALKED = new Set(['node_modules', '.git']);
+const NOT_WALKED = new Set(['node_modules', '.git', '.next']);
 const NOT_WALKED_PATHS = new Set(['.claude/worktrees']);
+// RFC-2026-029 (approved 2026-10-11) is the RFC this guard said would come: it decides the APPLICATION
+// tier is TypeScript checked by `tsc --noEmit`, with the dependency and the lockfile that requires
+// (WP-1A-A0-002 installs them). It leaves the tooling tier exactly as RFC-2026-011 decided (§2.1/4), so
+// TypeScript is admitted where the application lives and nowhere else: under apps/, src/ and spikes/
+// (§6.1), the root project files `tsc` and vitest read, and the negative-control fixture that
+// scripts/verify-typecheck-control.mjs hands to `tsc` as data (§8/3), which is never imported or run.
+// `.next` is build output.
+const APPLICATION_TIER = /^(apps|src|spikes)\//;
+const APPLICATION_PROJECT_FILES = new Set(['tsconfig.json', 'tsconfig.base.json', 'vitest.config.ts',
+  'test-kits/typecheck-control/mistyped.ts', 'test-kits/typecheck-control/shape.ts',
+  'test-kits/typecheck-control/tsconfig.json', 'test-kits/typecheck-control/tsconfig.allowjs.json']);
 
 test('the tooling tier is JavaScript, and nothing has quietly become TypeScript', async () => {
   const found = [];
@@ -384,6 +395,8 @@ test('the tooling tier is JavaScript, and nothing has quietly become TypeScript'
       if (entry.isDirectory()) { await walk(path); continue; }
       if (!entry.isFile()) continue;
       seen += 1;
+      const relative = path.replace(/^\.\//, '');
+      if (APPLICATION_TIER.test(relative) || APPLICATION_PROJECT_FILES.has(relative)) continue;
       if (TYPESCRIPT_SOURCE.test(entry.name)) {
         found.push(`${path} — a TypeScript source file. Node strips its types and never checks them, so what it declares is a claim nothing verifies. RFC-2026-011 decided this tier is JavaScript ESM; supersede it with another RFC, not with a file extension.`);
       }

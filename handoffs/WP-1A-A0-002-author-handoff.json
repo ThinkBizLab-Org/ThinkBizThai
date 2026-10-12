@@ -1,0 +1,113 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-1A-A0-002",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "in_review",
+  "base_revision": "8c9a32bad4a5a3763caaff20d3a2ba9dded4fe6b",
+  "head_revision_or_patch_checksum": "8c9a32bad4a5a3763caaff20d3a2ba9dded4fe6b",
+  "task_ids": [
+    "WP-1A-A0-002",
+    "skeleton-2026-10-12"
+  ],
+  "files_added": [],
+  "files_modified": [],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "RFC-2026-001",
+    "RFC-2026-007",
+    "RFC-2026-011",
+    "RFC-2026-029",
+    "RFC-2026-034"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "THIS PACKAGE'S FIRST INCREMENT: the application skeleton of RFC-2026-029 (apps/web, Next.js App Router, TypeScript strict, Tailwind), its lockfile, the RFC-2026-029 §8 guards and CI steps, and RFC-2026-034 §8 item 4 (CI runs the application tests). The cited range is this branch's own commits on main 8c9a32ba.",
+    "The Product Owner's direction of 2026-10-11 (evidence/WP-1A-A0-001/product-owner-disposition-2026-10-12-rfc-029-approval.md §3 (b)) and his three answers of 2026-10-12 (asked 02:37:33Z, answered 02:39:15Z; evidence/WP-1A-A0-002/product-owner-disposition-2026-10-12-skeleton-licences.md): the three transitive licence families accepted, recorded as RFC-2026-029 Amendment 2026-10-12; ESLint not installed now; A0 may press this pull request, amendment included, once C0, A1, Q0 and R0 pass on its final head and CI is green.",
+    "Resolved with --before=2026-10-05 from a clean resolution of the two package.json files (npm install --package-lock-only, byte-identical twice); npm ci --ignore-scripts leaves it byte-identical. TypeScript is 7.0.2, the newest published before that date, measured to work with tsc, the negative control and next build 16.3.8.",
+    "The worker credential's environment variable is named nowhere; scripts/app-dependency-allowlist.json reserves WORKER_DATABASE_URL for the §8/5 guard, for WP-1A-A0-004 to use or change."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "§8/1 allowlist copy and its parity with the RFC; §8/2 exact versions and registry/sha512 lockfile with inBundle handling; licences under §3.4/2 and Amendment 2026-10-12",
+      "result": "pass for author self-check (node scripts/verify-app-dependencies.mjs exit 0; test-kits/app-dependencies.test.mjs 9/9); independent reading owed"
+    },
+    {
+      "criterion": "§8/3 tsc --noEmit with the §2.1 flags and a negative control",
+      "result": "pass for author self-check (npm run typecheck exit 0; node scripts/verify-typecheck-control.mjs exit 0, and exit 1 with noImplicitOverride flipped off); independent reading owed"
+    },
+    {
+      "criterion": "§8/4 the §6.3 boundaries and §8/5, as a dependency-free guard, each with a negative control",
+      "result": "pass for author self-check (node scripts/verify-app-boundaries.mjs exit 0; test-kits/app-boundaries.test.mjs 9/9); independent reading owed"
+    },
+    {
+      "criterion": "§8/6 npm run check with no node_modules; §8/8 record; §8/9 and §4.8 release age; §4.6 audit; RFC-2026-034 §8 item 4 application tests in CI",
+      "result": "pass for author self-check; the CI steps run only once pushed; independent reading owed"
+    }
+  ],
+  "tests": [
+    {
+      "command": "node scripts/verify-app-dependencies.mjs",
+      "exit_code": 0,
+      "result": "172 registry entries with sha512, 6 bundled, licences accepted"
+    },
+    {
+      "command": "node scripts/verify-app-boundaries.mjs",
+      "exit_code": 0,
+      "result": "8 source files keep §6.3 and §8/5"
+    },
+    {
+      "command": "npm run typecheck",
+      "exit_code": 0,
+      "result": "tsc --noEmit clean"
+    },
+    {
+      "command": "node scripts/verify-typecheck-control.mjs",
+      "exit_code": 0,
+      "result": "6 marked errors, TS6504, flags in both projects"
+    },
+    {
+      "command": "npm run test:app",
+      "exit_code": 0,
+      "result": "1 file, 1 test"
+    },
+    {
+      "command": "npm run build --workspace apps/web",
+      "exit_code": 0,
+      "result": "static build; also with sharp removed and with outbound network denied"
+    },
+    {
+      "command": "npm audit --omit=dev --audit-level=high",
+      "exit_code": 0,
+      "result": "0 vulnerabilities"
+    },
+    {
+      "command": "node scripts/verify-release-age.mjs 8c9a32ba",
+      "exit_code": 0,
+      "result": "172 new entries, newest @types/node@26.6.4 at 2026-10-01T22:39:22Z"
+    }
+  ],
+  "security_privacy_cost_impact": "The first third-party code in the repository: 178 lockfile packages, installed with --ignore-scripts from the npm registry with sha512 integrity, under licences §3.4/2 accepts or Amendment 2026-10-12 names. No provider SDK, no credential, no customer data, no provider call. Next.js telemetry is off in CI and in the config. One entry (fsevents, macOS-only, optional) carries the registry's hasInstallScript flag and runs nothing; it goes to A1 under §8/8.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "No contract changes. The tooling tier is unchanged and npm run check stays dependency-free; the application checks are their own CI steps.",
+  "known_limitations": [
+    "RFC-2026-029 §8/4 asks for lint errors; the boundaries are a guard script because the Owner deferred ESLint. The guard is a scanner, not a parser: it inherits stripNonCode's misreads (in TSX a closing tag is read as a regex start and blanks the rest of its line), and it does not resolve path aliases, so `@modules/<key>` (Q-029-1) fails until it is taught them.",
+    "The release-age and audit steps read the registry at CI time; a registry outage fails them.",
+    "Disclosed for A1: the author's first install attempt in the worktree ran without --ignore-scripts and --before because a shell variable did not split; it was reverted completely and nothing from it is kept. The only package in the resolved tree carrying the registry's install-script flag is fsevents (optional, macOS only, through vitest), whose own package.json declares no install script; it was not installed by that attempt."
+  ],
+  "open_risks_or_blockers": [
+    "GOVERNANCE, tier H, full path: C0, A1, Q0 and R0 on the final head; A0 may press under the Owner's directions of 2026-10-11 and 2026-10-12, which reach this pull request only."
+  ],
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert pull request removes apps/web, the tsconfig and vitest files, the guards, their suites, data and fixture, the CI steps and the RFC amendment, and returns package.json and package-lock.json to their root-only form (RFC-2026-029 §12).",
+  "recommended_next_work_packages": [
+    "WP-1A-A5-002 (design tokens and components with no data path) and WP-1A-A0-003 (tenant context and API envelope) on the skeleton; RFC-2026-034 §8 item 5 once Q-034-2 is answered."
+  ],
+  "reviewer_instructions": [
+    "Read evidence/WP-1A-A0-002/product-owner-disposition-2026-10-12-skeleton-licences.md against the session transcript and RFC-2026-029's Amendment 2026-10-12 against it.",
+    "Reproduce the lockfile: copy package.json and apps/web/package.json to an empty directory and run npm install --package-lock-only --ignore-scripts --engine-strict --before=2026-10-05; compare byte for byte.",
+    "Run npm ci --ignore-scripts, then every command in work-packages/WP-1A-A0-002.json deterministic_commands.verify; then remove node_modules and run npm run check."
+  ],
+  "superseded_by": null,
+  "outputs": null
+}

@@ -551,3 +551,56 @@ close; §2.7 is what it should cite.
 Revert the merge commit through a reviewed revert pull request. Before `WP-1A-A0-002` lands, reverting
 removes a decision and changes no file anything runs. After it lands, the skeleton's installation is
 reverted with it, in the same revert or first; no data, schema or migration depends on either.
+
+## Amendment 2026-10-12 — licences of named transitive packages, accepted by the Owner (WP-1A-A0-002)
+
+Status of this amendment: the Product Owner's decision, recorded here by `/claude/a0_atlas` (A0) under
+`WP-1A-A0-002`, which installs the first packages. It amends §3.4/2 only. It admits no direct dependency, moves no name
+between §3.1 and §3.2, widens no "where it may be imported" cell and changes no other section.
+
+**What was found.** Resolving the skeleton's minimum set (`next`, `react`, `react-dom`, `typescript`, the three
+`@types/*`, `tailwindcss`, `@tailwindcss/postcss`, `postcss`, `vitest`) with `npm install --ignore-scripts
+--before=2026-10-05`, every direct dependency is MIT or Apache-2.0, but three licence families outside §3.4/2's list
+arrive transitively: `CC-BY-4.0` (`caniuse-lite`, browser-support data `next` needs), `MPL-2.0` (`lightningcss` and its
+per-platform binaries, the CSS compiler Tailwind CSS and Vite use) and `LGPL-3.0-or-later` (`@img/sharp-libvips-*`, and
+the `@img/sharp-*` builds licensed `Apache-2.0 AND LGPL-3.0-or-later`, which reach the lockfile as optional packages
+through `next` → `sharp`). §3.4/2 says anything outside its list "is named in the request and decided there".
+
+**The question and the answer, verbatim.** Asked 2026-10-12T02:37:33Z and answered 02:39:15Z (UTC, the transcript's
+stamps) through the question tool of session `c2816eec`. The question said that each is used unmodified, which
+ordinarily does not oblige us to open our own code, and that A0 is not a lawyer (`ผมไม่ใช่ทนาย`) and a lawyer should be
+asked for legal certainty. The Owner chose `ยอมรับ 3 license นี้สำหรับ transitive (Recommended)`, whose description
+read `บันทึกคำตัดสินของคุณเป็น amendment สั้น ๆ ใน RFC-029 §3.4 (เฉพาะ CC-BY-4.0, MPL-2.0, LGPL-3.0 ของ package ที่ระบุ
+ใช้แบบไม่แก้ไข) + guard ที่ตรวจ license ทุกตัวใน lockfile ต่อจากนี้`. The questions, every option shown and the answers
+are transcribed in `evidence/WP-1A-A0-002/product-owner-disposition-2026-10-12-skeleton-licences.md`.
+
+**The rule it adds to §3.4/2.** These licences are accepted for these named **transitive** packages, used unmodified,
+and for no other package:
+
+| Licence | Packages |
+|---|---|
+| `CC-BY-4.0` | `caniuse-lite` |
+| `MPL-2.0` | `lightningcss` and its per-platform binaries (`lightningcss-<platform>`) |
+| `LGPL-3.0-or-later` | `@img/sharp-libvips-*`, and the `@img/sharp-*` builds whose licence is `Apache-2.0 AND LGPL-3.0-or-later` (with or without `MIT` beside them), optional through `next` → `sharp` |
+
+Any other licence outside §3.4/2's list, anywhere in the lockfile, still needs its own decision under §3.4/1-2. A
+direct dependency under one of these licences is not covered: it is a new decision. A package that patches or vendors
+one of these is not "used unmodified" and is not covered either.
+
+**How it is held.** `scripts/verify-app-dependencies.mjs` reads every lockfile entry's `license` field and fails on any
+licence that is neither in §3.4/2's list nor covered by a row above (named package, transitive, that licence), with
+tests and negative controls in `test-kits/app-dependencies.test.mjs`. Its machine copy of the rows is
+`scripts/app-dependency-allowlist.json`, held against this section's text by the same test. The skeleton's
+`next.config.ts` sets `images: { unoptimized: true }`, so `next build` does not need `sharp`; that was measured by
+building with `sharp` and every `@img/*` package removed.
+
+**ESLint deferred, and §8/4.** In the same call the Owner chose `ไม่ใส่ตอนนี้ (Recommended)` for ESLint, so `eslint` and
+`eslint-config-next` are not installed now. While that holds, §8/4's "lint errors" are errors of the dependency-free
+guard `scripts/verify-app-boundaries.mjs`, each §6.3 boundary with a negative control in
+`test-kits/app-boundaries.test.mjs`; §3.2's `eslint` rows stay on the allowlist unused.
+
+**Who presses.** The Owner's answer to the third question of the same call, `A0 กดได้เมื่อ 4 role ผ่าน (Recommended)`
+(description: `ขยายสิทธิ์ที่ให้ไว้ให้ครอบคลุม amendment เรื่อง license นี้ใน PR skeleton เท่านั้น`), extends his
+direction of 2026-10-11 (§10, note) to this amendment, travelling in the `WP-1A-A0-002` skeleton pull request only: A0 may
+press that pull request once C0, A1, Q0 and R0 have passed on its final head and CI is green on it, with `RFC-2026-025`
+§5 item 6's other conditions kept. It reaches no other amendment of this RFC.

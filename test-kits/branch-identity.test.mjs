@@ -136,6 +136,7 @@ const BRANCH_OWNERSHIP = {
   'agent/claude/WP-0A-A0-009-service-path-corrected': 'WP-0A-A0-009',
   'agent/claude/WP-0A-A0-010-g0-conditional-exit': 'WP-0A-A0-010',
   'agent/claude/WP-1A-A0-001-stack-rfc': 'WP-1A-A0-001',
+  'agent/claude/WP-1A-A0-002-skeleton': 'WP-1A-A0-002',
 };
 
 test('the whole branch-to-package mapping is pinned, not four rows of it', async () => {
