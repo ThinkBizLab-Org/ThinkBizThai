@@ -457,3 +457,43 @@ test('A1-257-7: after the build, what it included is held to §6.3, and the chec
   assert.match(cli, /if \(failures\.length > 0\) \{\n(?: {4}.*\n){1,3} {4}process\.exit\(1\);\n {2}\}/, 'and a failed control ends the run');
   assert.doesNotMatch(cli, /^import .* from '(?!node:|\.\/)/m, 'the check imports no package: it runs on what the build wrote, not on what it installed');
 });
+
+test('A1-257-9, A1-257-8, C0-257r4-2: the application job runs every step with NODE_OPTIONS empty, and the records say what the graph check does not see', async () => {
+  const ci = await readFile('.github/workflows/ci.yml', 'utf8');
+  // Job-level, beside the telemetry switch, so every step has it; no step, and no write to $GITHUB_ENV, sets it again.
+  const nodeOptions = (text) => {
+    const app = workflowJobs(text).get('application');
+    return {
+      job: /^ {4}env:\n {6}NEXT_TELEMETRY_DISABLED: '1'\n {6}NODE_OPTIONS: ''$/m.test(app.head.join('\n')),
+      steps: app.steps.filter((s) => /NODE_OPTIONS|GITHUB_ENV/.test(s.raw)).map((s) => s.name ?? s.uses),
+    };
+  };
+  assert.deepEqual(nodeOptions(ci), { job: true, steps: [] }, 'NODE_OPTIONS is empty for the whole application job, and nothing sets it again (A1-257-9)');
+  // The negative controls: the job-level line removed, and a step that sets it again.
+  const without = ci.replace("      NEXT_TELEMETRY_DISABLED: '1'\n      NODE_OPTIONS: ''\n", "      NEXT_TELEMETRY_DISABLED: '1'\n");
+  assert.notEqual(without, ci);
+  assert.equal(nodeOptions(without).job, false, 'a job without it is seen');
+  const reset = ci.replace('      - name: Build the web application\n', '      - name: Build the web application\n        env:\n          NODE_OPTIONS: --import ./db/probe/preload.mjs\n');
+  assert.notEqual(reset, ci);
+  assert.deepEqual(nodeOptions(reset).steps, ['Build the web application'], 'a step that sets it again is seen');
+  const exported = ci.replace('        run: npm run build --workspace apps/web\n', '        run: |\n          echo "NODE_OPTIONS=--import ./x.mjs" >> "$GITHUB_ENV"\n          npm run build --workspace apps/web\n');
+  assert.notEqual(exported, ci);
+  assert.deepEqual(nodeOptions(exported).steps, ['Build the web application'], 'a write to $GITHUB_ENV is seen');
+
+  // The records stop claiming that the graph check closes the class "whatever route a module took", and
+  // say what holds code that runs during the build instead (A1-257-9's last paragraph).
+  const rfc = await readFile('architecture/decisions/RFC-2026-029-application-tier-stack.md', 'utf8');
+  const graph = await readFile('scripts/verify-app-build-graph.mjs', 'utf8');
+  const library = await readFile('scripts/app-boundaries.mjs', 'utf8');
+  for (const [name, text] of [['ci.yml', ci], ['RFC-2026-029', rfc], ['verify-app-build-graph.mjs', graph], ['app-boundaries.mjs', library]]) {
+    assert.doesNotMatch(text.replace(/\s+/g, ' '), /whatever route|closes the class|What the shapes miss/, `${name} does not say the graph check closes the class`);
+  }
+  const paragraph = rfc.slice(rfc.indexOf('**Build configuration, and what the build included'), rfc.indexOf('**`typescript` in the boundary guard\'s parser (§3.2).**')).replace(/\s+/g, ' ');
+  assert.match(paragraph, /reads what the build output names/);
+  assert.match(paragraph, /It does not see code that runs during the build \(a preload, a loader, a PostCSS or Babel plugin\)[^.]*: that is held by the configuration shapes, the `\.config\/` and `\.env` refusals and the empty `NODE_OPTIONS`, not by the graph check/);
+  assert.match(paragraph, /anything under a `\.config\/` directory/);
+  const status = rfc.slice(rfc.indexOf('Status of this amendment:'), rfc.indexOf('**What was found.**')).replace(/\s+/g, ' ');
+  assert.match(status, /\(below, "Build configuration, and what the build included"\)/, 'the status paragraph names the new paragraph (C0-257r4-2)');
+  assert.match(ci.replace(/\n\s*# ?/g, ' '), /code that runs during the build \(a preload, a loader, a PostCSS or Babel plugin\) can change the output/);
+  assert.match(graph.replace(/\n\/\/ ?/g, ' '), /`next\/dynamic\(\.\.\., \{ ssr: false \}\)` is not rendered on the server and may be in client chunks alone, so it may be an exception this check does not see \(not measured; C0-257r4-2\)/);
+});

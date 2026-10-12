@@ -561,8 +561,10 @@ Status of this amendment: the Product Owner's decisions, recorded here by `/clau
 `WP-1A-A0-002`, which installs the first packages. It amends §3.4/2. It also records, in the words of the Owner's ESLint
 option of the same call, how §8/4 is held while ESLint is deferred, and A0's reading of what that holds for §2.1/3 and
 §2.1/4's lint step (below, "ESLint deferred"). By the Owner's second answer of the same day it widens one "where it may
-be imported" cell, `typescript`'s in §3.2, to one file (below, "`typescript` in the boundary guard's parser"). It admits
-no direct dependency, moves no name between §3.1 and §3.2, widens no other cell and changes no other rule.
+be imported" cell, `typescript`'s in §3.2, to one file (below, "`typescript` in the boundary guard's parser"). It also
+gives A0's account, not the Owner's words, of how the guard holds §6.3 against build configuration and what CI checks
+around the build (below, "Build configuration, and what the build included"). It admits no direct dependency, moves no
+name between §3.1 and §3.2, widens no other cell and changes no other rule.
 
 **What was found.** Resolving the skeleton's minimum set (`next`, `react`, `react-dom`, `typescript`, the three
 `@types/*`, `tailwindcss`, `@tailwindcss/postcss`, `postcss`, `vitest`) with `npm install --ignore-scripts
@@ -640,14 +642,21 @@ made the bundler or vitest load a module no import statement names. So the guard
 allowlisted shapes, not to a list of refused words: every `next.config.*`, `vitest.config.*` and `postcss.config.*` must
 be, statement by statement and key by key, the shape `scripts/app-dependency-allowlist.json` states for its kind
 (`configShapes`), read by the dependency-free text reader and, in CI, by TypeScript's parser as well, the two readings
-required to agree; a Babel configuration, a PostCSS configuration other than `postcss.config.*`, a `vite.config.*` and a
-vitest workspace file are refused wherever they stand. What is admitted and what is refused is listed once, in that
-file's `configShapes.$comment` (and `resolutionAliases.$comment` for compiler options and package.json maps), and is not
-restated here. After `next build`, CI's `application` job also runs `scripts/verify-app-build-graph.mjs`, which reads
-what the build included (its file traces, its server and build source maps, its module ids) and fails on any
-repository file outside `apps/web/**` and `src/modules/**`, a platform-kernel adapter, `pg`, or a package no allowlisted
-package depends on: a check of what the bundler loaded, whatever route it took. It needs no dependency and runs its
-negative controls first, A1-257-7's three routes among them as their builds showed them.
+required to agree; a Babel configuration, a PostCSS configuration other than `postcss.config.*` (every other name on
+the search list Turbopack reads, taken from the installed Next.js 16.3.8), anything under a `.config/` directory, a
+`vite.config.*` and a vitest workspace file are refused wherever they stand. What is admitted and what is refused, and
+where the PostCSS list was read, is stated once, in that file's `configShapes.$comment` (and `resolutionAliases.$comment`
+for compiler options and package.json maps), and is not restated here. The guard also refuses a tracked `.env*` file
+under `apps/`, `src/` or at the root, `.env.example` excepted, because Next.js loads one into the build and a
+`NODE_OPTIONS` in it preloads a module into every build worker (A1-257-9); and CI's `application` job sets
+`NODE_OPTIONS` to an empty value for every step. After `next build`, that job also runs
+`scripts/verify-app-build-graph.mjs`, which reads what the build output names (its file traces, its server and build
+source maps, its module ids) and fails on any repository file outside `apps/web/**` and `src/modules/**`, a
+platform-kernel adapter, `pg`, or a package no allowlisted package depends on. It needs no dependency and runs its
+negative controls first, A1-257-7's three routes among them as their builds showed them. It does not see code that runs
+during the build (a preload, a loader, a PostCSS or Babel plugin), which can change the output after the traces and maps
+are written: that is held by the configuration shapes, the `.config/` and `.env` refusals and the empty `NODE_OPTIONS`,
+not by the graph check (A1-257-8, A1-257-9).
 
 **`typescript` in the boundary guard's parser (§3.2).** The first review round on the skeleton pull request (#257;
 A1-257-1) showed that the dependency-free text reader can be made to miss an import, and that a guard that is much

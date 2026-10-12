@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -8,17 +9,20 @@ import {
   ALIAS_COMPILER_OPTIONS,
   ALIAS_PACKAGE_FIELDS,
   CONFIG_PACKAGE_FIELDS,
+  POSTCSS_SEARCH_NAMES,
   REFUSED_CONFIG_FILES,
   checkBoundaries,
   checkJsxPragmas,
   checkRepositoryImports,
   checkResolutionConfigs,
   checkSecretsAndMigrations,
+  checkTrackedFiles,
   checkTypeDirectives,
   collectDirectories,
   collectRepositoryCode,
   collectResolutionConfigs,
   collectSources,
+  collectTrackedFiles,
   configKindOf,
   configShapeProblems,
   extractSpecifiers,
@@ -583,7 +587,7 @@ test('A1-257-7: a Babel, extra PostCSS, Vite or vitest workspace configuration a
   fails(check({ '.postcssrc': '{}' }), /^\.postcssrc is a PostCSS configuration/, '.postcssrc');
   fails(check({ 'vite.config.ts': 'export default {};\n' }), /^vite\.config\.ts is a Vite configuration/, 'a vite.config');
   fails(check({ 'apps/web/vitest.workspace.ts': 'export default [];\n' }), /is a vitest workspace file/, 'a vitest workspace');
-  assert.equal(REFUSED_CONFIG_FILES.length, 5);
+  assert.equal(REFUSED_CONFIG_FILES.length, 6, 'five kinds of file, and since A1-257-8 anything under a .config/ directory');
   const json = (value) => JSON.stringify(value);
   fails(check({ 'apps/web/package.json': json({ name: '@r/web', private: true, babel: { plugins: ['./probe-babel.cjs'] } }) }), /apps\/web\/package\.json declares `babel`, a Babel configuration/, 'a babel key');
   fails(check({ 'package.json': json({ name: 'r', private: true, postcss: { plugins: { './x.js': {} } } }) }), /^package\.json declares `postcss`, a PostCSS configuration/, 'a postcss key');
@@ -613,4 +617,108 @@ test('A1-257-7: a Tailwind @plugin or @config in CSS is read as an import and he
   await mustFail({ 'apps/web/app/globals.css': "@plugin './plugin.js';\n", 'apps/web/app/plugin.js': "import pg from 'pg';\nexport default pg;\n" }, /apps\/web\/app\/plugin\.js imports pg/, 'a local plugin is read as application code');
   const cli = await readFile('scripts/verify-app-boundaries.mjs', 'utf8');
   assert.ok(cli.includes("'A1-257-7: a Tailwind @plugin loading a module from outside the application'"), 'the CLI holds a control for it');
+});
+
+test('A1-257-8, C0-257r4-1: every PostCSS configuration name Turbopack reads but postcss.config.*, and anything under a .config/ directory, fails wherever it stands', async () => {
+  const allowlist = await loadAllowlist();
+  const check = (configs) => checkResolutionConfigs(tree(configs), allowlist);
+  const fails = (problems, pattern, why) => assert.ok(problems.some((p) => pattern.test(p)), `${why}: ${problems.join(' | ') || 'no problem reported'}`);
+  // The list is Turbopack's own (Next.js 16.3.8), as the installed binary holds it; the allowlist says where it came from.
+  assert.equal(POSTCSS_SEARCH_NAMES.length, 27);
+  assert.equal(new Set(POSTCSS_SEARCH_NAMES).size, 27);
+  assert.deepEqual(POSTCSS_SEARCH_NAMES.filter((n) => n.startsWith('.config/')), ['', '.json', '.yaml', '.yml', '.js', '.mjs', '.cjs', '.ts', '.mts', '.cts'].map((e) => `.config/postcssrc${e}`));
+  assert.match(allowlist.configShapes.$comment, /search list of Turbopack in Next\.js 16\.3\.8, read on 2026-10-12 from the strings of the installed @next\/swc-darwin-arm64 16\.3\.8 binary/);
+  assert.match(allowlist.configShapes.$comment, /any file under a `\.config\/` directory \(A1-257-8, C0-257r4-1\)/);
+  // A1's and C0's files, as they built and probed them: each fails, by name, before any shape is read.
+  fails(check({ 'apps/web/.config/postcssrc.json': JSON.stringify({ plugins: { '@tailwindcss/postcss': {}, '../../../../../db/probe-a1/pc.mjs': {} } }) }),
+    /^apps\/web\/\.config\/postcssrc\.json is a file under a `\.config\/` directory, where build tools look for their own configuration .*\(A1-257-8, C0-257r4-1\)$/, "A1's apps/web/.config/postcssrc.json");
+  fails(check({ '.config/postcssrc.mjs': "export default { plugins: { 'postcss-import': {} } };\n" }), /^\.config\/postcssrc\.mjs is a file under a `\.config\/` directory/, "C0's .config/postcssrc.mjs");
+  // Every name on the list, at the root, in apps/web and in a module: refused, or (postcss.config.*) held to the shape.
+  for (const directory of ['', 'apps/web/', 'src/modules/x/']) {
+    for (const name of POSTCSS_SEARCH_NAMES) {
+      const path = `${directory}${name}`;
+      const problems = check({ [path]: '{ "plugins": { "@tailwindcss/postcss": {} } }' });
+      if (name.startsWith('postcss.config.')) {
+        assert.equal(configKindOf(path), 'postcss.config', path);
+        fails(problems, /is not the allowlisted postcss\.config shape: a statement no allowlisted shape holds/, `${path}, JSON where a program must stand`);
+      } else {
+        fails(problems, new RegExp(`^${path.replace(/[.]/g, '\\.')} is (?:a PostCSS configuration other than postcss\\.config\\.\\*|a file under a \`\\.config\\/\` directory)`), path);
+      }
+    }
+  }
+  fails(check({ 'apps/web/.config/anything.json': '{}' }), /is a file under a `\.config\/` directory/, 'not only PostCSS: any file there');
+  // The walk reads them on disk, a .config entry that is a symbolic link included, and not inside node_modules.
+  const root = await mkdtemp(join(tmpdir(), 'app-boundaries-config-'));
+  try {
+    const write = async (path, text) => { await mkdir(join(root, path, '..'), { recursive: true }); await writeFile(join(root, path), text); };
+    for (const path of ['apps/web/.config/postcssrc.json', '.config/postcssrc.mjs', 'src/modules/x/.config/tool/settings', 'apps/web/node_modules/x/.config/postcssrc.json']) await write(path, '{}');
+    await mkdir(join(root, 'db'), { recursive: true });
+    await symlink('../apps', join(root, 'db/.config'));
+    const configs = await collectResolutionConfigs(root);
+    assert.deepEqual([...configs.keys()].sort(), ['.config/postcssrc.mjs', 'apps/web/.config/postcssrc.json', 'db/.config', 'src/modules/x/.config/tool/settings']);
+    const problems = checkResolutionConfigs(configs, allowlist);
+    assert.equal(problems.length, 4, problems.join(' | '));
+    assert.ok(problems.every((p) => /is a file under a `\.config\/` directory/.test(p)), problems.join(' | '));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+  const cli = await readFile('scripts/verify-app-boundaries.mjs', 'utf8');
+  for (const control of ["'A1-257-8: a PostCSS configuration in apps/web/.config/, which Turbopack reads ahead of postcss.config.mjs'", "'C0-257r4-1: a .config/postcssrc.mjs at the root'"]) {
+    assert.ok(cli.includes(control), `the CLI holds the control ${control}`);
+  }
+});
+
+test('A1-257-9: a tracked .env file under apps/, src/ or at the root fails, .env.example excepted; an untracked one is not the rule\'s', async () => {
+  const fails = (problems, pattern, why) => assert.ok(problems.some((p) => pattern.test(p)), `${why}: ${problems.join(' | ') || 'no problem reported'}`);
+  assert.deepEqual(checkTrackedFiles(collectTrackedFiles('.')), [], 'the repository as it stands tracks none');
+  assert.ok(collectTrackedFiles('.').includes('apps/web/next.config.ts'), 'and the list is the repository\'s');
+  for (const path of ['apps/web/.env', '.env', '.env.local', '.env.production', '.env.production.local', 'apps/web/.env.development.local', 'src/modules/x/.env', 'apps/.env.test']) {
+    fails(checkTrackedFiles([path]), new RegExp(`^${path.replace(/[.]/g, '\\.')} is a tracked environment file: Next\\.js loads it into the build.*\\(A1-257-9\\)$`), path);
+  }
+  assert.deepEqual(checkTrackedFiles(['.env.example', 'apps/web/.env.example', 'db/.env', 'scripts/.env.test', 'apps/web/app/env.ts', 'apps/web/lib/.environment/x.ts']), [],
+    'a template, and files outside apps/, src/ and the root, or not named .env*, are not this rule\'s');
+  fails(checkTrackedFiles(['apps/web/.config/postcssrc.json']), /^apps\/web\/\.config\/postcssrc\.json is a tracked file under a `\.config\/` directory/, 'a tracked .config/ file (A1-257-8)');
+  fails(checkTrackedFiles(null), /the tracked files could not be listed/, 'a list git could not give fails closed');
+  // A1's route, in a repository of its own: apps/web/.env setting NODE_OPTIONS, force-added past .gitignore.
+  const root = await mkdtemp(join(tmpdir(), 'app-boundaries-env-'));
+  try {
+    const git = (...args) => { const r = spawnSync('git', args, { cwd: root, encoding: 'utf8' }); assert.equal(r.status, 0, `git ${args.join(' ')}: ${r.stderr}`); };
+    git('-c', 'init.defaultBranch=main', 'init', '-q');
+    await mkdir(join(root, 'apps/web'), { recursive: true });
+    await writeFile(join(root, '.gitignore'), '.env*\n!.env.example\n');
+    await writeFile(join(root, 'apps/web/.env'), 'NODE_OPTIONS=--import ../../db/probe-a1/preload.mjs\n');
+    await writeFile(join(root, 'apps/web/.env.local'), 'NEXT_PUBLIC_X=1\n');
+    await writeFile(join(root, 'apps/web/.env.example'), 'NEXT_PUBLIC_X=\n');
+    git('add', '.gitignore', 'apps/web/.env.example');
+    assert.deepEqual(checkTrackedFiles(collectTrackedFiles(root)), [], 'before the force-add: the template is tracked, the local file is not');
+    git('add', '-f', 'apps/web/.env');
+    assert.deepEqual(collectTrackedFiles(root).sort(), ['.gitignore', 'apps/web/.env', 'apps/web/.env.example']);
+    const problems = checkTrackedFiles(collectTrackedFiles(root));
+    assert.equal(problems.length, 1, problems.join(' | '));
+    assert.match(problems[0], /^apps\/web\/\.env is a tracked environment file/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+  assert.equal(collectTrackedFiles(tmpdir()), null, 'outside a repository git lists nothing, and the guard says so');
+  const cli = await readFile('scripts/verify-app-boundaries.mjs', 'utf8');
+  assert.ok(cli.includes("'A1-257-9: a tracked apps/web/.env setting NODE_OPTIONS'"), 'the CLI holds the control');
+  assert.match(cli, /\n {4}\.\.\.checkTrackedFiles\(collectTrackedFiles\('\.'\)\),\n/, 'and applies the rule to the repository');
+  assert.match(cli, /\n {2}for \(const \[name, paths, pattern\] of TRACKED_CONTROLS\) \{\n/, 'and runs every tracked-file control');
+});
+
+test('A1 advisory (round four): the text reader ends a // comment at CR, U+2028 and U+2029 as at LF, so a key written after one is read, as the compiler reads it', async () => {
+  const allowlist = await loadAllowlist();
+  const NEXT = 'apps/web/next.config.ts';
+  const body = (terminator) => "import type { NextConfig } from 'next';\nconst config: NextConfig = {\n  images: { unoptimized: true },\n"
+    + `  // note${terminator}turbopack: { resolveAlias: { zod: '../../db/x.ts' } },\n  reactStrictMode: true,\n};\nexport default config;\n`;
+  for (const [name, terminator] of [['LF', '\n'], ['CR', '\r'], ['U+2028', '\u2028'], ['U+2029', '\u2029'], ['CR LF', '\r\n']]) {
+    const reading = readConfigShape(body(terminator));
+    assert.deepEqual(reading.refusals, [], name);
+    const keys = reading.statements.find((st) => st.kind === 'const').value.object.map(([key]) => key);
+    assert.deepEqual(keys, ['images', 'turbopack', 'reactStrictMode'], `${name}: the key after the comment is read`);
+    const problems = checkResolutionConfigs(tree({ [NEXT]: body(terminator) }), allowlist);
+    assert.ok(problems.some((p) => /`turbopack` is a key the allowlisted shape does not name/.test(p)), `${name}: ${problems.join(' | ') || 'no problem reported'}`);
+  }
+  // A comment that runs to the end of the file still ends there.
+  assert.deepEqual(readConfigShape('export default {};\n// last line, no terminator').refusals, []);
 });

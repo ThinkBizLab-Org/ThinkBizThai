@@ -165,10 +165,13 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   // configuration held to allowlisted shapes, and the check of what the build included: app-boundaries
   // 20 to 23 (every route against the shapes; Babel, .postcssrc, vite.config and workspace files; a
   // Tailwind @plugin or @config read as an import), app-stack 11 to 12 (the build-graph check). No test
-  // removed; two renamed (below).
+  // removed; two renamed (below). The fourth round (2026-10-12; A1-257-8, A1-257-9, C0-257r4-1, -2,
+  // A1's comment-terminator advisory): app-boundaries 23 to 26 (PostCSS names and .config/, tracked
+  // .env files, the `//` comment's line terminators), app-stack 12 to 13 (NODE_OPTIONS empty for the
+  // application job, and the records' account of what the graph check does not see). No test removed.
   'test-kits/app-dependencies.test.mjs': 14,
-  'test-kits/app-boundaries.test.mjs': 23,
-  'test-kits/app-stack.test.mjs': 12,
+  'test-kits/app-boundaries.test.mjs': 26,
+  'test-kits/app-stack.test.mjs': 13,
 };
 
 // Independent review eighteen answered the question the per-file floor was written to close, and
@@ -366,10 +369,11 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   // app-boundaries 39 to 49, app-stack 71 to 72. The second review round on PR #257 (2026-10-12):
   // app-dependencies 59 to 65, app-boundaries 49 to 71, app-stack 72 to 85. Then app-boundaries 71 to
   // 75 (modularizeImports, swcPlugins and the vitest.config alias rule). The third review round on PR
-  // #257 (2026-10-12, A1-257-7): app-boundaries 75 to 96, app-stack 85 to 106.
+  // #257 (2026-10-12, A1-257-7): app-boundaries 75 to 96, app-stack 85 to 106. The fourth round
+  // (2026-10-12; A1-257-8, A1-257-9): app-boundaries 96 to 124, app-stack 106 to 120.
   'test-kits/app-dependencies.test.mjs': 65,
-  'test-kits/app-boundaries.test.mjs': 96,
-  'test-kits/app-stack.test.mjs': 106,
+  'test-kits/app-boundaries.test.mjs': 124,
+  'test-kits/app-stack.test.mjs': 120,
 };
 
 // Independent review eighteen defeated the test-count floor by hollowing a suite while preserving
@@ -439,9 +443,11 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   // no configuration reaches it from another module or file', and 'a next.config naming
   // modularizeImports or swcPlugins, and a vitest.config naming alias or resolve, fail unless the
   // allowlist names them' ends 'unless the allowlisted shape names them'. Both name digests move.
+  // The fourth round on PR #257 (2026-10-12; A1-257-8, A1-257-9, C0-257r4-1, -2) adds three tests to
+  // app-boundaries and one to app-stack; none is renamed, and both name digests move.
   'test-kits/app-dependencies.test.mjs': '491abfa45804df35',
-  'test-kits/app-boundaries.test.mjs': '83fed23caf7aeb59',
-  'test-kits/app-stack.test.mjs': 'ecb21902afc6219f',
+  'test-kits/app-boundaries.test.mjs': '0e6d6443f1208ebf',
+  'test-kits/app-stack.test.mjs': '19976176a2517c8d',
 };
 
 // How many reversals `ratchets-bite.test.mjs` puts through a suite. Independent review twenty

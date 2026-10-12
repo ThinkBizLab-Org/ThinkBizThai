@@ -1306,8 +1306,13 @@ jobs:
     runs-on: ubuntu-24.04
     # RFC-2026-029 §4.7: Next.js telemetry is off in CI. Every step sees it, so no build, test or
     # type check run here can send it.
+    # A1-257-9: NODE_OPTIONS is set, empty, for every step. Next.js adopts a key from a `.env` file only
+    # when the environment does not define it, and passes NODE_OPTIONS on to its build workers, so a
+    # `.env` that names a module to preload is not adopted here (the boundary guard also refuses a
+    # tracked `.env*`). No step sets it again.
     env:
       NEXT_TELEMETRY_DISABLED: '1'
+      NODE_OPTIONS: ''
     steps:
       # The same checkout as the bootstrap job, for the same reasons: the branch by name, no persisted
       # credential, the full history (the release age reads the base's lockfile), and the commit
@@ -1349,11 +1354,14 @@ jobs:
         run: npm run test:app
       - name: Build the web application
         run: npm run build --workspace apps/web
-      # A1-257-7: what the build actually included -- the file traces, the server and build source maps
-      # and the module ids -- is held to RFC-2026-029 §6.3: nothing outside apps/web/** and
-      # src/modules/**, no platform-kernel adapter, no pg, no package an allowlisted package does not
-      # reach. Dependency-free; its negative controls run first. It closes the class the build
-      # configuration's allowlisted shapes are held against, whatever route a module took.
+      # A1-257-7: what the build output names -- the file traces, the server and build source maps and
+      # the module ids -- is held to RFC-2026-029 §6.3: nothing outside apps/web/** and src/modules/**,
+      # no platform-kernel adapter, no pg, no package an allowlisted package does not reach.
+      # Dependency-free; its negative controls run first. It backs up the build configuration's
+      # allowlisted shapes and does not replace them: code that runs during the build (a preload, a
+      # loader, a PostCSS or Babel plugin) can change the output after the traces and maps are written,
+      # and is held by those shapes, the guard's `.env` and `.config/` refusals and the empty
+      # NODE_OPTIONS above, not by this check (A1-257-8, A1-257-9).
       - name: Verify what the build included
         run: node scripts/verify-app-build-graph.mjs
       - name: Vulnerability audit (network)

@@ -10,9 +10,10 @@ import { ALLOWLIST_PATH, loadAllowlist } from './verify-app-dependencies.mjs';
 // The boundary guard (scripts/verify-app-boundaries.mjs) reads the sources and the configuration
 // before the build; three review rounds each found another configuration route (a path alias, a
 // module map, a loader, a Babel plugin, a key read from another file) that made the bundler load a
-// module no statement names. The configuration is now held to allowlisted shapes; this check closes
-// the class from the other side. After `next build`, in CI's application job, it reads what the
-// bundler and Next.js's file tracer say they included:
+// module no statement names. The configuration is now held to allowlisted shapes; this check backs
+// those shapes up from the other side, and does not replace them. After `next build`, in CI's
+// application job, it reads what the build output names -- what the bundler and Next.js's file tracer
+// say they included:
 //
 //   - every `*.nft.json` trace's `files` (the files a server entry needs at run time);
 //   - every source map's `sources` (and `sections[].map.sources`): the modules bundled into a server
@@ -26,11 +27,21 @@ import { ALLOWLIST_PATH, loadAllowlist } from './verify-app-dependencies.mjs';
 // application tree may import (pg excluded, §6.3/5). Turbopack's own runtime (`[turbopack]`,
 // `[turbopack-node]`) is not a repository file. A source it cannot place fails closed.
 //
+// WHAT IT DOES NOT SEE (A1-257-8, A1-257-9). It reads what the output names, not what ran to make it.
+// Code that runs during the build -- a NODE_OPTIONS preload, a loader, a PostCSS or Babel plugin loaded
+// by `require` -- is named in no trace, map or module id, and can change the output after the traces
+// and maps are written. That is held before the build, by the configuration shapes and refused files of
+// scripts/app-boundaries.mjs (a `.config/` directory and every PostCSS name but postcss.config.*
+// among them), by its refusal of a tracked `.env*` file, and by CI's NODE_OPTIONS set to '' for the
+// whole application job; not by this check.
+//
 // Client chunks carry no module path in a production build and no source map (productionBrowserSourceMaps
-// is not in the next.config shape: it would publish the source). Every client component is also
-// rendered on the server, so its modules are in the server chunks read here; what only a browser
-// condition would select is a package's own `browser` map inside node_modules, which stays inside a
-// reachable package.
+// is not in the next.config shape: it would publish the source). A client component rendered on the
+// server has its modules in the server chunks read here. A module reached only through
+// `next/dynamic(..., { ssr: false })` is not rendered on the server and may be in client chunks alone,
+// so it may be an exception this check does not see (not measured; C0-257r4-2); its import statements
+// are still read by the boundary guard. What only a browser condition would select is a package's own
+// `browser` map inside node_modules, which stays inside a reachable package.
 //
 // Dependency-free (node: builtins only), so `npm run check` drives these rules through
 // test-kits/app-stack.test.mjs; the CLI runs its negative controls before it reads the build:

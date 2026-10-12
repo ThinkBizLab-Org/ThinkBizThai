@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { lstat, readFile, readdir } from 'node:fs/promises';
 import { isBuiltin } from 'node:module';
 import { posix } from 'node:path';
@@ -72,10 +73,18 @@ import { stripNonCode } from './verify-test-coverage-floor.mjs';
 // below fails closed on anything outside that grammar; in CI the TypeScript parser reads the same file
 // into the same form and the two readings must agree (scripts/app-boundaries-parser.mjs, readShape). A
 // Babel configuration (`.babelrc`, `.babelrc.*`, `babel.config.*`, a package.json `babel` key), a PostCSS
-// configuration other than postcss.config.* (`.postcssrc*`, a package.json `postcss` key), a
-// `vite.config.*` and a `vitest.workspace.*` are refused wherever they stand: the tools load them on
-// their own and the guard reads no shape for them. What the shapes miss, the build-graph check
-// (scripts/verify-app-build-graph.mjs) sees in what `next build` actually included.
+// configuration other than postcss.config.* (every other name on the search list Turbopack 16.3.8
+// reads, POSTCSS_SEARCH_NAMES below, and a package.json `postcss` key), any file under a `.config/`
+// directory (A1-257-8, C0-257r4-1), a `vite.config.*` and a `vitest.workspace.*` are refused wherever
+// they stand: the tools load them on their own and the guard reads no shape for them.
+//
+// WHAT RUNS DURING THE BUILD (A1-257-9). A tracked `.env*` file under apps/, src/ or at the root (all but
+// `.env.example`) is refused (checkTrackedFiles): Next.js loads one into the build's environment, and a
+// NODE_OPTIONS there preloads a module into every build worker. CI also sets NODE_OPTIONS to '' for
+// the whole application job. The build-graph check (scripts/verify-app-build-graph.mjs) reads what the
+// build output names; code that runs during the build (a preload, a loader, a PostCSS or Babel plugin)
+// can change that output after the traces and maps are written, so it is held here, by the shapes, the
+// refused files and those two rules, and not by the graph check.
 
 const SOURCE = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs|css)$/;
 export const CODE = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
@@ -411,6 +420,45 @@ export function checkSecretsAndMigrations(files, directories, allowlist) {
   return problems;
 }
 
+// --- tracked files the build reads on its own (A1-257-9, A1-257-8) ----------------------------------
+
+// A1-257-9: Next.js (@next/env) loads `.env.production.local`, `.env.local`, `.env.production` and `.env`
+// from the project directory into the build's environment, adopting each key the environment does not
+// already define, and passes NODE_OPTIONS on to every build worker: a committed `.env` holding
+// `NODE_OPTIONS=--import <a module anywhere>` runs that module in every worker, after the files the
+// build-graph check reads are written. `.env*` is in .gitignore, but `git add -f` tracks one. So every
+// TRACKED file whose name starts `.env`, under apps/ or src/ or at the root, is refused, `.env.example`
+// alone excepted (a template Next.js does not load). Tracked, not on disk: a developer's own untracked
+// `.env.local` is not this rule's, and nothing untracked reaches CI. A file under a `.config/`
+// directory is refused here too when it is tracked (A1-257-8), whether or not the configuration walk
+// above reads its directory. CI also runs the whole application job with NODE_OPTIONS set to '', so a
+// value from a `.env` the guard did not see would not be adopted either.
+const TRACKED_ENV_FILE = /^(?:(?:apps|src)\/(?:[^/]+\/)*)?\.env[^/]*$/;
+
+// The repository's tracked paths (`git ls-files`: the index, so a file staged with `git add -f` counts),
+// or null when git cannot list them; checkTrackedFiles refuses a null list rather than pass it.
+export function collectTrackedFiles(root = '.') {
+  try {
+    return execFileSync('git', ['ls-files', '-z', '--cached'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).split('\0').filter((path) => path !== '');
+  } catch {
+    return null;
+  }
+}
+
+export function checkTrackedFiles(paths) {
+  if (!Array.isArray(paths)) return ['the tracked files could not be listed (`git ls-files` failed), so the guard cannot tell a committed `.env` or `.config/` file from none (A1-257-8, A1-257-9)'];
+  const problems = [];
+  for (const path of paths) {
+    if (TRACKED_ENV_FILE.test(path) && posix.basename(path) !== '.env.example') {
+      problems.push(`${path} is a tracked environment file: Next.js loads it into the build, where a NODE_OPTIONS in it runs a module in every build worker; none but .env.example is tracked under apps/, src/ or at the root (A1-257-9)`);
+    }
+    if (IN_CONFIG_DIRECTORY.test(path)) {
+      problems.push(`${path} is a tracked file under a \`.config/\` directory, where build tools look for their own configuration (Turbopack: \`.config/postcssrc*\`); none is admitted (A1-257-8, C0-257r4-1)`);
+    }
+  }
+  return problems;
+}
+
 // §2.1/3: "`@ts-ignore` is not used. `@ts-expect-error` is allowed only with a reason on the same line."
 // Read from the text of every application source file (apps/, src/; not the type-check control's
 // fixtures under test-kits/), in a comment or anywhere else: a directive spelled inside a string is
@@ -455,6 +503,8 @@ export function checkJsxPragmas(files) {
 // --- module resolution aliases (Q-029-1; A1-257-1's alias note; A1-257-5; Q0-257r2-1) -------------
 
 const RESOLUTION_CONFIG = /(^|\/)(?:tsconfig[^/]*\.json|jsconfig[^/]*\.json|(?:next|vitest|postcss|babel|vite)\.config\.[a-z]+|\.babelrc(?:\.[a-z]+)?|\.postcssrc(?:\.[a-z]+)?|vitest\.workspace\.[a-z]+|package\.json)$/;
+// A `.config` entry, or anything under one, wherever it stands (A1-257-8, C0-257r4-1).
+const IN_CONFIG_DIRECTORY = /(^|\/)\.config(\/|$)/;
 const COMPILER_CONFIG = /(^|\/)[tj]sconfig[^/]*\.json$/;
 const PACKAGE_MANIFEST = /(^|\/)package\.json$/;
 // The compiler options that make a specifier load another file (`paths`, `baseUrl`, `rootDirs`), or make
@@ -514,7 +564,8 @@ const parseJson = (raw) => { try { return { value: JSON.parse(raw) }; } catch (e
 const extendsOf = (config) => [config?.extends].flat().filter((x) => x !== undefined);
 
 // Every tsconfig*.json, jsconfig*.json, build configuration (next, vitest, postcss; and the Babel,
-// PostCSS, Vite and vitest-workspace files refused outright) and package.json in the tree, outside
+// PostCSS, Vite and vitest-workspace files and every file under a `.config/` directory, refused
+// outright) and package.json in the tree, outside
 // node_modules, .next, .git and .claude (harness worktrees); and every file a compiler config's
 // `extends` chain reaches, whatever its name (A1-257-5: `"extends": "./base.json"`), read from where
 // TypeScript would read it. A chain step the guard cannot place is left out here, and
@@ -529,7 +580,7 @@ export async function collectResolutionConfigs(root = '.') {
       const path = directory ? `${directory}/${entry.name}` : entry.name;
       if (path === '.claude') continue;
       if (entry.isDirectory()) { await walk(path); continue; }
-      if (RESOLUTION_CONFIG.test(path)) found.set(path, entry.isFile() ? await readFile(posix.join(root, path), 'utf8') : null);
+      if (RESOLUTION_CONFIG.test(path) || IN_CONFIG_DIRECTORY.test(path)) found.set(path, entry.isFile() ? await readFile(posix.join(root, path), 'utf8') : null);
     }
   };
   await walk('');
@@ -561,14 +612,37 @@ export async function collectResolutionConfigs(root = '.') {
 export const CONFIG_KINDS = { 'next.config': /(^|\/)next\.config\.[a-z]+$/, 'vitest.config': /(^|\/)vitest\.config\.[a-z]+$/, 'postcss.config': /(^|\/)postcss\.config\.[a-z]+$/ };
 export const configKindOf = (path) => Object.keys(CONFIG_KINDS).find((kind) => CONFIG_KINDS[kind].test(path)) ?? null;
 
+// The names Turbopack (Next.js 16.3.8, the skeleton's `next build`) looks for a PostCSS configuration
+// under, in its order (A1-257-8, C0-257r4-1). Read on 2026-10-12 from the installed package: the
+// strings of @next/swc-darwin-arm64 16.3.8's binary hold them together, after the PostCSS transform's
+// evaluation script (`.postcssrc` and `.postcssrc.json` stored once, shared with longer names). Next's
+// webpack mode (next/dist/lib/find-config.js: a package.json `postcss` key, `.postcssrc.json`,
+// `postcss.config.json`, `.postcssrc.js`, `postcss.config.{js,mjs,cjs}`) and Vite 8.3.2's
+// postcss-load-config, which vitest uses (a package.json `postcss` key, `.postcssrc` and
+// `.postcssrc.{json,yaml,yml,ts,cts,mts,js,cjs,mjs}`, `postcss.config.{ts,cts,mts,js,cjs,mjs}`), name
+// no file outside this list. Every name but `postcss.config.*` is refused below: `.postcssrc*` by its
+// own pattern, `.config/postcssrc*` with everything under a `.config/` directory; a `postcss.config.*`
+// is held to its allowlisted shape (a `postcss.config.json` cannot be one, and fails).
+export const POSTCSS_SEARCH_NAMES = [
+  '.postcssrc', '.postcssrc.json', '.postcssrc.yaml', '.postcssrc.yml', '.postcssrc.js', '.postcssrc.mjs', '.postcssrc.cjs',
+  '.postcssrc.ts', '.postcssrc.mts', '.postcssrc.cts',
+  '.config/postcssrc', '.config/postcssrc.json', '.config/postcssrc.yaml', '.config/postcssrc.yml', '.config/postcssrc.js',
+  '.config/postcssrc.mjs', '.config/postcssrc.cjs', '.config/postcssrc.ts', '.config/postcssrc.mts', '.config/postcssrc.cts',
+  'postcss.config.js', 'postcss.config.mjs', 'postcss.config.cjs', 'postcss.config.ts', 'postcss.config.mts', 'postcss.config.cts',
+  'postcss.config.json',
+];
+
 // Configuration a build tool loads on its own, for which the guard reads no shape: refused wherever it
 // stands. Next.js picks up a Babel configuration by itself, and a Babel plugin rewrites any import
-// (A1-257-7's third route); PostCSS reads `.postcssrc*` as readily as postcss.config.*; vitest reads a
-// vite.config.* or a workspace file where it finds one.
+// (A1-257-7's third route); PostCSS reads `.postcssrc*` and `.config/postcssrc*` ahead of
+// postcss.config.* (POSTCSS_SEARCH_NAMES); a `.config/` directory is where tools search for their own
+// configuration, so nothing under one is admitted (A1-257-8); vitest reads a vite.config.* or a
+// workspace file where it finds one.
 export const REFUSED_CONFIG_FILES = [
   [/(^|\/)\.babelrc(?:\.[a-z]+)?$/, 'a Babel configuration'],
   [/(^|\/)babel\.config\.[a-z]+$/, 'a Babel configuration'],
   [/(^|\/)\.postcssrc(?:\.[a-z]+)?$/, 'a PostCSS configuration other than postcss.config.*'],
+  [IN_CONFIG_DIRECTORY, 'a file under a `.config/` directory, where build tools look for their own configuration (Turbopack: `.config/postcssrc*`)', 'A1-257-8, C0-257r4-1'],
   [/(^|\/)vite\.config\.[a-z]+$/, 'a Vite configuration, which vitest reads in place of a vitest.config'],
   [/(^|\/)vitest\.workspace\.[a-z]+$/, 'a vitest workspace file, which names further configurations'],
 ];
@@ -578,6 +652,7 @@ export const CONFIG_PACKAGE_FIELDS = ['babel', 'postcss'];
 
 const CONFIG_PUNCTUATION = ['??=', '{', '}', '(', ')', '[', ']', ',', ';', ':', '.', '='];
 const IDENTIFIER = /[A-Za-z_$][A-Za-z0-9_$]*/y;
+const LINE_TERMINATOR = /[\n\r\u2028\u2029]/g;
 
 // The text reader of a build configuration: dependency-free, and closed. It tokenizes comments, plain
 // string literals (no escape, no template), identifiers and the punctuation above, and refuses any
@@ -597,7 +672,10 @@ export function readConfigShape(raw) {
     const c = raw[i];
     if (/\s/.test(c)) { i += 1; continue; }
     if (/^\/\/\/\s*<(?:reference|amd)/.test(raw.slice(i, i + 40))) return { statements: [], refusals: [`a triple-slash directive at offset ${i}`] };
-    if (raw.startsWith('//', i)) { const end = raw.indexOf('\n', i); i = end === -1 ? raw.length : end; continue; }
+    // A `//` comment ends at the first line terminator, as JavaScript and TypeScript end it: LF, CR,
+    // U+2028 or U+2029 (A1's advisory: ended at LF alone, a key written after a CR or U+2028 on the
+    // comment's line was skipped by this reader and read by the compiler).
+    if (raw.startsWith('//', i)) { LINE_TERMINATOR.lastIndex = i; const end = LINE_TERMINATOR.exec(raw); i = end === null ? raw.length : end.index; continue; }
     if (raw.startsWith('/*', i)) {
       const end = raw.indexOf('*/', i + 2);
       if (end === -1) return { statements: [], refusals: [`an unterminated comment at offset ${i}`] };
@@ -811,7 +889,7 @@ export function checkResolutionConfigs(configs, allowlist, { readShape = readCon
   for (const [path, raw] of configs) {
     const refusedFile = REFUSED_CONFIG_FILES.find(([pattern]) => pattern.test(path));
     if (refusedFile) {
-      problems.push(`${path} is ${refusedFile[1]}, which a build tool loads on its own and the guard reads no shape for; none is admitted (A1-257-7)`);
+      problems.push(`${path} is ${refusedFile[1]}, which a build tool loads on its own and the guard reads no shape for; none is admitted (${refusedFile[2] ?? 'A1-257-7'})`);
       continue;
     }
     if (raw === null) { problems.push(`${path} is not a regular file; the guard reads no resolution config it cannot place`); continue; }

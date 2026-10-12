@@ -8,11 +8,13 @@ import {
   checkRepositoryImports,
   checkResolutionConfigs,
   checkSecretsAndMigrations,
+  checkTrackedFiles,
   checkTypeDirectives,
   collectDirectories,
   collectRepositoryCode,
   collectResolutionConfigs,
   collectSources,
+  collectTrackedFiles,
   extractSpecifiers,
   readConfigShape,
 } from './app-boundaries.mjs';
@@ -22,7 +24,9 @@ import { ALLOWLIST_PATH, loadAllowlist } from './verify-app-dependencies.mjs';
 // `@ts-ignore`, a reasoned `@ts-expect-error`, no `any`) and §8/5, as a guard (WP-1A-A0-002). The rules are scripts/app-boundaries.mjs's; this is the
 // command that applies them to the repository. It also holds §3's cells over every code file outside
 // the application tree, for the packages they import (checkRepositoryImports), so that `typescript` is
-// imported by scripts/app-boundaries-parser.mjs alone (Amendment 2026-10-12).
+// imported by scripts/app-boundaries-parser.mjs alone (Amendment 2026-10-12). And it refuses a tracked
+// `.env*` file under apps/, src/ or at the root (`.env.example` excepted) and any tracked file under a
+// `.config/` directory, read from `git ls-files` (checkTrackedFiles; A1-257-9, A1-257-8).
 //
 //   node scripts/verify-app-boundaries.mjs                   the parsed reader if `typescript` loads,
 //                                                            else the dependency-free text reader
@@ -141,6 +145,22 @@ export const ALIAS_CONTROLS = [
   }, shapeOf('vitest.config')],
   ['a postcss.config loading a local plugin', { 'apps/web/postcss.config.mjs': "export default { plugins: { './probe-plugin.js': {} } };\n" },
     /`plugins\.\.\/probe-plugin\.js` is a key the allowlisted shape does not name/],
+  ['A1-257-8: a PostCSS configuration in apps/web/.config/, which Turbopack reads ahead of postcss.config.mjs', {
+    'apps/web/.config/postcssrc.json': JSON.stringify({ plugins: { '@tailwindcss/postcss': {}, '../../../../../db/probe/pc.mjs': {} } }),
+  }, /^apps\/web\/\.config\/postcssrc\.json is a file under a `\.config\/` directory/],
+  ['C0-257r4-1: a .config/postcssrc.mjs at the root', { '.config/postcssrc.mjs': "export default { plugins: { 'postcss-import': {} } };\n" },
+    /^\.config\/postcssrc\.mjs is a file under a `\.config\/` directory/],
+];
+
+// Tracked-file controls (A1-257-9, A1-257-8): lists of tracked paths, each of which must be refused,
+// and one clean list that must pass. Read from the path, not the content: no `.env` but `.env.example`
+// is tracked under apps/, src/ or at the root, whatever it holds.
+export const CLEAN_TRACKED = ['package.json', 'apps/web/app/page.tsx', 'apps/web/postcss.config.mjs', '.env.example', 'apps/web/.env.example', 'db/foundation/README.md'];
+export const TRACKED_CONTROLS = [
+  ['A1-257-9: a tracked apps/web/.env setting NODE_OPTIONS', ['apps/web/.env'], /^apps\/web\/\.env is a tracked environment file/],
+  ['A1-257-9: a tracked .env.production.local at the root', ['.env.production.local'], /^\.env\.production\.local is a tracked environment file/],
+  ['A1-257-9: a tracked .env.local in a module', ['src/modules/x/.env.local'], /^src\/modules\/x\/\.env\.local is a tracked environment file/],
+  ['A1-257-8: a tracked file under apps/web/.config/', ['apps/web/.config/postcssrc.json'], /^apps\/web\/\.config\/postcssrc\.json is a tracked file under a `\.config\/` directory/],
 ];
 
 function judge(files, allowlist, extract) {
@@ -193,6 +213,12 @@ export function runControls(parser, allowlist) {
     const problems = checkResolutionConfigs(configs, allowlist, { readShape: parsedShape(parser, configs) });
     if (!problems.some((p) => pattern.test(p))) failures.push(`control "${name}" was not refused: ${problems.join(' | ') || 'no problem reported'}`);
   }
+  const cleanTracked = checkTrackedFiles(CLEAN_TRACKED);
+  if (cleanTracked.length > 0) failures.push(`the clean tracked list was refused: ${cleanTracked.join(' | ')}`);
+  for (const [name, paths, pattern] of TRACKED_CONTROLS) {
+    const problems = checkTrackedFiles([...CLEAN_TRACKED, ...paths]);
+    if (!problems.some((p) => pattern.test(p))) failures.push(`control "${name}" was not refused: ${problems.join(' | ') || 'no problem reported'}`);
+  }
   return failures;
 }
 
@@ -242,6 +268,8 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
     ...checkJsxPragmas(files),
     ...checkSecretsAndMigrations(files, await collectDirectories('.'), allowlist),
     ...checkResolutionConfigs(configs, allowlist, { readShape: configShape }),
+    // A tracked `.env*` or `.config/` file (A1-257-9, A1-257-8), read from `git ls-files`.
+    ...checkTrackedFiles(collectTrackedFiles('.')),
   ];
   parser?.close();
   if (problems.length > 0) {
@@ -253,7 +281,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   const others = `; ${repository.size} other code file(s) import no package outside their §3 cell (typescript: the parser only, Amendment 2026-10-12)`;
   if (parser) {
     console.log(`application boundaries: ${count} source file(s) keep RFC-2026-029 §6.3, §2.1/3 and §8/5, read by the TypeScript parser `
-      + `(${CONTROLS.length + ALIAS_CONTROLS.length + 2} negative and positive controls held first)${others}`);
+      + `(${CONTROLS.length + ALIAS_CONTROLS.length + TRACKED_CONTROLS.length + 3} negative and positive controls held first)${others}`);
   } else {
     console.log(`application boundaries: ${count} source file(s) keep RFC-2026-029 §6.3, the §2.1/3 directives and §8/5, read by the dependency-free text reader${others}. `
       + '`typescript` did not load, so the parsed checks (the full import reading and §2.1/3\'s `any`) were not run here; CI runs them with --require-parser');
