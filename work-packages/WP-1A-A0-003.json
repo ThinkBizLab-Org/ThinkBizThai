@@ -1,0 +1,215 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-1A-A0-003",
+  "title": "Tenant context and API envelope — the platform-kernel's first code: CTR-TEN-001 resolver, CTR-API-001 envelope, CTR-ERR-001 stable errors and the CTR-IDM-001 outcome, as pure TypeScript with fakes and consumer tests",
+  "gate": "G1",
+  "priority": "P0",
+  "status": "in_progress",
+  "required_skill_profiles": {
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy"
+    ]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
+    "tester_agent_run_id": "/claude/q0_sentinel",
+    "integration_owner_agent_run_id": "/claude/r0_steward",
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
+    "product_reviewer_agent_run_id": null,
+    "product_reviewer_note": "Null because no product step is gated here, not because one was waived: this package writes src/modules/platform-kernel/** only, with no page, route, copy or apps/web file; error message keys are A0's inference until A5's message catalog exists (open_blockers, Q6). A reviewer who reads any of it as a product surface should say so; the slot then needs a run, not a note."
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": false,
+    "cross_vendor_exception": "Every assigned run is Anthropic claude-opus. As for WP-1A-A0-001 and WP-1A-A0-002, the exception rests on the register's own fallback (docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md:527): when no cross-vendor capacity exists, use an independent agent per run and record the exception. No cross-vendor run is available to this package, and this field is that record. What remains is all of CONTRIBUTING_AGENTS.md § Separation of duties: four distinct agent_run_ids in the four roles plus the conditional Security reviewer, no run approves its own work, and every role file opens with RFC-2026-024 §3/4's disclosure that it is a subagent of the Author's run."
+  },
+  "accountable_owners": [
+    "A0"
+  ],
+  "required_human_authorities": [
+    "Product Owner's direction of 2026-10-12 (asked 19:36:39Z, answered 19:38:08Z UTC; evidence/WP-1A-A0-003/product-owner-disposition-2026-10-13-package-tool-config-press.md): `A0 กดได้เมื่อ 4 role ผ่าน + ครอบคลุมกรณีแบบเดียวกัน (Recommended)`. A0 may press a pull request that is governance only because it creates a WP-1A package manifest of the 2026-10-08 G1/G2 plan, adds a new code path to tsconfig.json's include, and/or adds that package's branch row to test-kits/branch-identity.test.mjs with the integrity-manifest regeneration, once C0, A1, Q0 and R0 pass on its final head and CI is green on both jobs; never dependencies, CI, guards, allowlists, RFCs or CONTRIBUTING_AGENTS.md, which still go to the Owner.",
+    "The package's code increments are risk-lane work under RFC-2026-034 §2.2 (\"Module code\": src/modules/platform-kernel): A1 and Q0 pass on the final head and A0 presses; the round audit (§2.3) carries C0's and R0's readings, and only R0's verdict there moves the package past in_review."
+  ],
+  "purpose": "The 2026-10-08 G1/G2 plan's WP-1A-A0-003 (tenant context runtime and API envelope, PLF-001) is the platform-kernel's first code (MOD-000, owner A0, register §4.2). RFC-2026-029 §7 allows code, fakes and consumer tests against CTR-TEN/API/ERR/IDM, all Candidate, as reversible work under RFC-2026-034 §2.1. This package writes that code as pure TypeScript under src/modules/platform-kernel/: a resolver that derives a trusted CTR-TEN-001 context from an authenticated principal and an untrusted scope selection through a directory port, the CTR-API-001 envelope builders, CTR-ERR-001 stable errors that carry no internal detail, and the CTR-IDM-001 replay/conflict outcome, each checked against the catalog's own fixtures. Its first pull request (PR-G) only opens the package: this manifest, src/** in tsconfig.json's include so `npm run typecheck` reads the code, and the branch row. The provider-bound increment (Supabase session, §8/7 cookies, the real directory adapter, composition wiring) is a later one.",
+  "scope": {
+    "include": [
+      "PR-G (governance; the Owner's direction of 2026-10-12T19:38:08Z): this manifest; `\"src/**/*.ts\", \"src/**/*.tsx\"` added to tsconfig.json's include and nothing else; this package's BRANCH_OWNERSHIP row in test-kits/branch-identity.test.mjs and the regenerated test-kits/integrity-manifest.json; the disposition record and the author handoff.",
+      "src/modules/platform-kernel/domain/: pure TypeScript with no I/O, globals, provider SDK, Next.js or React (RFC-2026-029 §6.3/2): the CTR-TEN-001 record and its checker, tenant scope (workspace, business, page), stable errors (CTR-ERR-001) with a factory that never copies a cause, message or stack and always writes empty details, the CTR-API-001 envelope (success, error, accepted) and its checker, and the CTR-IDM-001 record and its replay/conflict/independent outcome. Each checker accepts exactly what the shipped schema accepts; stricter rules live in the resolver and builders, each marked as A0's inference.",
+      "src/modules/platform-kernel/application/: the ports (authenticated principal, a tenant access directory, a request-id source), the tenant-context resolver (client selection treated as untrusted input; a cross-tenant or unknown scope refused with one uniform error that does not reveal existence; server-minted request and correlation ids; the context frozen and branded so a forged or JSON-rebuilt context is refused), and a runner that turns any thrown value into an internal-error envelope carrying none of its text.",
+      "src/modules/platform-kernel/index.ts as the module's public surface; fakes (a table-driven directory with synthetic ids, a deterministic id source) and vitest consumer tests beside the code, driven by contract-catalog/shared-kernel/<id>/ fixtures, run by `npm run test:app` in CI's application job.",
+      "Reversible work only (RFC-2026-034 §2.1, RFC-2026-029 §7): synthetic data, no provider, no Supabase, no credential, no migration, no package installed."
+    ],
+    "exclude": [
+      "The provider-bound increment: the Supabase session and supabase-js wrapped with the user's JWT, the session cookies of RFC-2026-029 §8/7, the real tenant access directory adapter (with its RFC-021 read path or reviewed database function), and composition wiring in apps/web/composition. WP-1A-A1-001 and WP-0A-CON-008, which the 2026-10-08 plan lists as this package's dependencies, gate only that increment, not the pure-TypeScript code above (open_blockers, Q8).",
+      "Any dependency, lockfile, CI, guard, guard data or allowlist change, path alias (Q-029-1), RFC or CONTRIBUTING_AGENTS.md edit; any change to contract-catalog/** or docs/** (contract gaps go to the contract owners as findings).",
+      "Any apps/web file: apps/web/** is WP-1A-A0-002's writable path, and RFC-2026-029 §6.3/5 bars apps/web from src/modules/platform-kernel/adapters/**.",
+      "Any other tool configuration (tsconfig.base.json, apps/web/tsconfig.json, vitest.config.ts, next.config.ts) and any tsconfig field other than the two include patterns."
+    ]
+  },
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-022"
+  ],
+  "contracts_consumed": [
+    "CTR-TEN-001",
+    "CTR-API-001",
+    "CTR-ERR-001",
+    "CTR-IDM-001"
+  ],
+  "contracts_produced": [],
+  "dependencies": {
+    "required_work_packages": [
+      "WP-1A-A0-002"
+    ],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "branch": "agent/claude/WP-1A-A0-003-tenant-envelope",
+    "writable_paths": [
+      "src/modules/platform-kernel/**",
+      "evidence/WP-1A-A0-003/**",
+      "handoffs/WP-1A-A0-003-*.json",
+      "work-packages/WP-1A-A0-003.json"
+    ],
+    "read_only_paths": [
+      "README.md",
+      "docs/**",
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "contract-catalog/**",
+      "db/**",
+      "apps/**"
+    ],
+    "forbidden_paths": [
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx",
+      ".npmrc",
+      "supabase/**",
+      "spikes/**",
+      "migrations/**",
+      "src/modules/platform-kernel/adapters/**"
+    ],
+    "amends_without_owning": {
+      "paths": [
+        "tsconfig.json",
+        "test-kits/branch-identity.test.mjs",
+        "test-kits/integrity-manifest.json"
+      ],
+      "rationale": "Each file is another package's output, so each is named here. tsconfig.json (WP-1A-A0-002's): `\"src/**/*.ts\", \"src/**/*.tsx\"` added to include and nothing else, so `npm run typecheck` reads src/ as WP-1A-A0-002's open_blockers owe to the first package that creates it; test-kits/app-stack.test.mjs's pins on the file still hold. test-kits/branch-identity.test.mjs (WP-0A-CON-008's): this package's branch added to BRANCH_OWNERSHIP, one row, as WP-1A-A0-002 did; the resolution test's ref list is unchanged, as for WP-1A-A0-002. test-kits/integrity-manifest.json (WP-0A-A0-002's): regenerated by npm run regenerate:manifest, recording only the changed digest of branch-identity.test.mjs. All three travel in PR-G under the Owner's direction of 2026-10-12T19:38:08Z."
+    }
+  },
+  "inputs": {
+    "files": [
+      "CONTRIBUTING_AGENTS.md",
+      "architecture/decisions/RFC-2026-029-application-tier-stack.md",
+      "architecture/decisions/RFC-2026-034-fast-lane.md",
+      "contract-catalog/shared-kernel/index.json",
+      "contract-catalog/shared-kernel/ctr-ten-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-ten-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-api-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-api-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-err-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-err-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-idm-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-idm-001/manifest.json",
+      "test-kits/contracts/json-schema-subset.mjs",
+      "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs",
+      "scripts/app-boundaries.mjs",
+      "tsconfig.json",
+      "vitest.config.ts",
+      "evidence/WP-1A-A0-003/product-owner-disposition-2026-10-13-package-tool-config-press.md"
+    ],
+    "fixtures": [
+      "contract-catalog/shared-kernel/ctr-ten-001/examples/",
+      "contract-catalog/shared-kernel/ctr-api-001/examples/",
+      "contract-catalog/shared-kernel/ctr-err-001/examples/",
+      "contract-catalog/shared-kernel/ctr-idm-001/examples/"
+    ]
+  },
+  "outputs": {
+    "files": [
+      "evidence/WP-1A-A0-003/product-owner-disposition-2026-10-13-package-tool-config-press.md",
+      "work-packages/WP-1A-A0-003.json"
+    ],
+    "contracts": []
+  },
+  "acceptance_criteria": [
+    "PR-G: `npm run typecheck` includes src/**/*.ts and src/**/*.tsx and still passes with no src/ directory; test-kits/app-stack.test.mjs's tsconfig pins pass; the branch resolves to WP-1A-A0-003 alone; npm run check is green.",
+    "Each checker (tenant context, stable error, envelope, idempotency record) accepts every valid fixture and rejects every invalid fixture its contract manifest lists, and the listed fixtures equal the files in examples/; pinned constants (reference bounds, the private-reference pattern, the API version) equal the schemas' values.",
+    "The resolver refuses a missing principal (auth), a client-supplied actor, locale, timezone or id, a page without a business, and a scope the directory does not admit; a member of one workspace selecting another gets an error byte-identical to the one for a nonexistent workspace; a failing directory yields a temporary error with nothing copied from the failure.",
+    "A context not minted by the resolver (an `as` cast, a JSON round trip) is refused by the envelope builders; envelope request and correlation ids equal the context's, and an error's correlation id equals the envelope's.",
+    "No stable error or envelope carries a thrown value's message, name or stack, and every error's details is empty (CTR-ERR-001's maxProperties 0).",
+    "The idempotency outcome gives replay, conflict (an ERR `conflict`) and independent per CTR-IDM-001, with the blake3 witness accepted and no hash algorithm pinned.",
+    "node scripts/verify-app-boundaries.mjs --require-parser passes over src/ (§6.3, no `any`, no @ts-ignore); `npm run test:app` runs the new tests in CI's application job; nothing under domain/ imports node:, a provider SDK, Next.js or React."
+  ],
+  "required_tests": [
+    "npm run check",
+    "npm run typecheck",
+    "npm run test:app",
+    "node scripts/verify-app-boundaries.mjs --require-parser"
+  ],
+  "deterministic_commands": {
+    "setup": [
+      "npm ci --ignore-scripts"
+    ],
+    "verify": [
+      "npm run check",
+      "node scripts/verify-app-boundaries.mjs --require-parser",
+      "npm run typecheck",
+      "npm run test:app"
+    ],
+    "package_evidence": [
+      "node scripts/validate-work-packages.mjs",
+      "node scripts/validate-work-package-ownership.mjs",
+      "node scripts/validate-work-package-role-separation.mjs work-packages/WP-1A-A0-003.json",
+      "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-003",
+      "npm run check:handoff"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert through a reviewed revert pull request. Reverting PR-G drops tsconfig.json's two src/** include patterns, the WP-1A-A0-003 branch row and its integrity-manifest digest, this manifest and its evidence; reverting a code increment removes src/modules/platform-kernel/** with its tests and fakes. Nothing else imports the module until a composition increment wires it, and no data, schema, migration or provider depends on it.",
+  "open_blockers": [
+    "AUTHOR COMPLETE ONLY. C0, A1, Q0 and R0 have not read this package. The Author moves it to in_review and no further.",
+    "PR-G is GOVERNANCE (tsconfig.json is tool configuration under RFC-2026-034 §2.2): all four roles read it; A0 presses only under the Owner's direction of 2026-10-12T19:38:08Z, with CI green on both jobs.",
+    "Q1 (CTR-API-001, blocks the provider-bound increment): `tenant_context` is required on `kind: \"error\"`, so no contract shape exists for a failure before a tenant is known (unauthenticated, non-member, cross-tenant). The pure-TypeScript increment returns a bare stable error from the resolver; the wire form needs a Candidate change by the contract's owner (A0), such as an optional tenant_context on error or a pre-tenant error shape.",
+    "Q2: CTR-TEN-001's ids are unbounded, CTR-API-001 caps them at 128, and the database narrows them to ^[A-Za-z0-9._:-]{1,128}$ (db/foundation/migrations/174_job_tenant_context.sql, which says the narrowing is owed to CTR-TEN-001's owner); CTR-ERR-001's correlation_id is unbounded too. Whether TEN adopts the bound before freeze is open. The resolver mints within it, as A0's inference.",
+    "Q3 (A1 as co-owner of CTR-TEN-001): the schema accepts page_context_profile_id without business_profile_id; the resolver refuses it, mirroring app.member_scope_admits_page. Part of TEN's pending scope matrix (its freeze_boundary).",
+    "Q4: who presses PR-G — answered by the Owner on 2026-10-12T19:38:08Z (evidence/WP-1A-A0-003/product-owner-disposition-2026-10-13-package-tool-config-press.md).",
+    "Q5: whether an inbound correlation_id from the client is ever honoured, or always minted, depends on CTR-OBS-001's propagation rules (WP-1A-A6-002). Until then the resolver accepts one only in the minted shape; always minting is the safer reading.",
+    "Q6: no error-code or message-key taxonomy exists, and the fixtures mix `errors.` (ctr-err-001) and `error.` (ctr-api-001) prefixes. Platform-kernel's codes (tenant.unauthenticated, tenant.scope.denied, platform.temporary, platform.internal) are A0's inference until A5's message catalog (register §5.2, \"Thai mapping key\") exists.",
+    "Q7: register §5.2 still lists CTR-API and CTR-IDM as Draft, while contract-catalog/shared-kernel/index.json and their manifests say Candidate (RFC-010's promotions of 2026-09-02). RFC-2026-029 §7 relies on the index. docs/** is read-only here, so the discrepancy is recorded, not edited.",
+    "Q8: the 2026-10-08 plan lists WP-1A-A1-001 and WP-0A-CON-008 as dependencies. Under RFC-2026-034 §2.1 and RFC-2026-029 §7 they gate only the provider-bound increment (Supabase session, §8/7 cookies, the real directory, composition wiring), not the pure-TypeScript code on Candidate contracts; dependencies.required_work_packages names WP-1A-A0-002 only for that reason.",
+    "R4 (owed to a later increment): WP-1A-A0-002's writable_paths apps/web/** is broader than RFC-2026-029 §6.2's ownership and would collide with a WP-1A-A0-003 composition output (validate-work-package-ownership exit 70); the composition increment must narrow that manifest through R0 or declare the file under amends_without_owning.",
+    "R7 (raise with Q0): vitest .test.ts files are not under the integrity manifest or the test-suite floor, so deleting one src test goes unnoticed unless all vitest tests vanish; adding a floor is a governance edit, not part of this package."
+  ],
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "test_verified",
+    "integration_verified"
+  ]
+}

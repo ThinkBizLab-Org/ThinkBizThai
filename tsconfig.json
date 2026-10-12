@@ -1,6 +1,6 @@
 {
   "$comment": "What `npm run typecheck` (`tsc --noEmit`, RFC-2026-029 §2.1/1 and §8/3) checks: the application tier and its root configuration. The tooling tier (scripts/, test-kits/, tests/, db/) stays JavaScript ESM and is not part of this project (RFC-2026-011).",
   "extends": "./tsconfig.base.json",
-  "include": ["apps/**/*.ts", "apps/**/*.tsx", "vitest.config.ts"],
+  "include": ["apps/**/*.ts", "apps/**/*.tsx", "src/**/*.ts", "src/**/*.tsx", "vitest.config.ts"],
   "exclude": ["node_modules", "**/node_modules", "apps/**/.next", "test-kits/**"]
 }
