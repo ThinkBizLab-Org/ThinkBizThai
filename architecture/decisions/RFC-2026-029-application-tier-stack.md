@@ -1,12 +1,14 @@
 # RFC-2026-029 — The application tier's stack: Next.js and TypeScript checked by `tsc`, the dependency allowlist, and where the code goes
 
-Status: **In review** — drafted 2026-10-08 by `/claude/a0_atlas` (A0) under `WP-1A-A0-001`. The decisions it writes down (D1–D6, D9, D11 and D12 of A0's G1/G2 plan) were accepted by the Owner on 2026-10-08 in chat, verbatim `รับตามแนะนำทั้งหมด รวม RFC-030 ด้วย ลุยเลย` ("accept all as recommended, including RFC-030, go"), transcribed with its limits in `evidence/WP-1A-A0-001/product-owner-decision-2026-10-08-g1-plan.md`. Those words accepted recommendations; they did not approve this text, which did not exist yet. This RFC decides dependencies, the lockfile and the application tier's language, so it is a governance change: under `RFC-2026-025` §5 item 6 the Owner merges it personally, and that merge is its approval. **Not in effect until merged.** Nothing in this document installs a package, adds a lockfile entry, creates `apps/` or `src/`, changes CI, or provisions a provider.
-Revised: 2026-10-08, in the first review round at `7d2c430c` (`evidence/WP-1A-A0-001/a0-closure-2026-10-08.md` maps every finding to its line): §2.7/1 states the boundary as the database's grants and requires `HttpOnly` session cookies (A1 F2); §2.7/3, §2.8, §6.1 and Q-029-2 move the worker's credential and the dispatcher into a deployment of their own, `apps/worker`, so that no request-path runtime can read it (A1 F1, R0 R5; `RFC-2026-028` §3.3/2); §3.1 confines the provider SDKs to module `adapters/` and named composition-root files and keeps MOD-900's prohibition (C0 F1, R0 R2, Q0 Q2); §3.2 says where each development package may be imported (Q0 Q1); §3.4/6 routes version changes of security-relevant packages to A1 and §4.8 adds a release-age rule (A1 F3); §4.2 keeps `.npmrc` out and the exit-90 guard unchanged (C0 F2, R0 R4, A1 I3); §7 follows the register's four rungs and waits for the G0 exit record (C0 F3, R0 R1, R0 R3); §2.4 carries the plan's inference mark and its Pro plan (C0 F5, R0 R7); §2.10 extends scrubbing to the browser (A1 F5); §8 gains checks for the worker credential, cookies and each package's install-time behaviour (A1 F4); §9, §10 and §11 record the unmeasured points and the register edit no package can make yet (C0 F4, F6-F8). Still In review; the revision approves nothing.
+Status: **Approved 2026-10-11 UTC (2026-10-12 local) by the Product Owner; in effect when he merges this PR personally.** Asked through the session's question tool (session `c2816eec`, asked 18:42:55Z, answered 18:46:09Z), he chose `อนุมัติ RFC-029 ตามที่เขียน + ปรับ §7 ตาม RFC-034 (Recommended)`: this text is approved as written, with §7 aligned to `RFC-2026-034` §2.1. The question, its options and his answer are transcribed in `evidence/WP-1A-A0-001/product-owner-disposition-2026-10-12-rfc-029-approval.md`, with his direction, in the same answer, on who presses the skeleton pull request (§10). This RFC decides dependencies, the lockfile and the application tier's language, so it is a governance change: under `RFC-2026-025` §5 item 6 the Owner merges this PR personally, as the option he chose says (`คุณกด merge เอง`), and no delegation covers it. Nothing in this document installs a package, adds a lockfile entry, creates `apps/` or `src/`, changes CI, or provisions a provider.
+History: drafted 2026-10-08 by `/claude/a0_atlas` (A0) under `WP-1A-A0-001`, status **In review**. The decisions it writes down (D1–D6, D9, D11 and D12 of A0's G1/G2 plan) were accepted by the Owner on 2026-10-08 in chat, verbatim `รับตามแนะนำทั้งหมด รวม RFC-030 ด้วย ลุยเลย` ("accept all as recommended, including RFC-030, go"), transcribed with its limits in `evidence/WP-1A-A0-001/product-owner-decision-2026-10-08-g1-plan.md`. Those words accepted recommendations; they did not approve this text, which did not exist yet. The draft said the Owner's personal merge would be its approval and that it was not in effect until merged. It reached `main` through PR #215 (`4b5dac8e`, 2026-10-08T10:21:38Z) with this line still reading In review, and was read as In review from then until the Owner's answer above, whose question names that state (`ตอนนี้อยู่บน main แต่สถานะ 'In review'`).
+Revised: 2026-10-08, in the first review round at `7d2c430c` (`evidence/WP-1A-A0-001/a0-closure-2026-10-08.md` maps every finding to its line): §2.7/1 states the boundary as the database's grants and requires `HttpOnly` session cookies (A1 F2); §2.7/3, §2.8, §6.1 and Q-029-2 move the worker's credential and the dispatcher into a deployment of their own, `apps/worker`, so that no request-path runtime can read it (A1 F1, R0 R5; `RFC-2026-028` §3.3/2); §3.1 confines the provider SDKs to module `adapters/` and named composition-root files and keeps MOD-900's prohibition (C0 F1, R0 R2, Q0 Q2); §3.2 says where each development package may be imported (Q0 Q1); §3.4/6 routes version changes of security-relevant packages to A1 and §4.8 adds a release-age rule (A1 F3); §4.2 keeps `.npmrc` out and the exit-90 guard unchanged (C0 F2, R0 R4, A1 I3); §7 follows the register's four rungs and waits for the G0 exit record (C0 F3, R0 R1, R0 R3); §2.4 carries the plan's inference mark and its Pro plan (C0 F5, R0 R7); §2.10 extends scrubbing to the browser (A1 F5); §8 gains checks for the worker credential, cookies and each package's install-time behaviour (A1 F4); §9, §10 and §11 record the unmeasured points and the register edit no package can make yet (C0 F4, F6-F8). It was then still In review; that revision approved nothing.
+Revised: 2026-10-12, on the Owner's answer: §7 is rewritten to `RFC-2026-034` §2.1, which answers the RFC-2026-029 half of A1-251r2-5 (whether it closes it is A1's reading) (`evidence/WP-0A-A0-001/a1-reread2-2026-10-11-pr251.md`). The status line, the note in §10 and the sentences in §7 and §11 that relied on the old §7 or on facts it dated (PR #214 open, Draft contracts) follow from it. Nothing else changes.
 Date: 2026-10-08
 Author: `/claude/a0_atlas` (A0 Architecture/Integration; owner of root config, lockfile and composition root under the register's §4.3); drafted by a subagent of that run
 Reviewer sought: `/claude/c0_contract_reviewer` (review), `/claude/a1_bastion` (Security: the request path, the worker credential, the service-role exclusion and the dependency supply chain), `/claude/q0_sentinel` (test), `/claude/r0_steward` (Integration Owner: CI and the lockfile)
 Answers: the remaining half of `OPEN-018` (`docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md:127`, "TypeScript/Node/Next.js assumption ห้าม lockfile จนประกาศ" — no lockfile until announced); `RFC-2026-011`'s deferral ("The application tier's language is NOT decided here … decided with the stack at G1"); the condition in `CONTRIBUTING_AGENTS.md` § Verification and handoff that no dependency is introduced "without a new approved RFC"
-Depends on: `RFC-2026-001` (approved; Node `24.20.0`, npm `11.19.0`, `npm ci --ignore-scripts`), `RFC-2026-011` (approved; the tooling tier is JavaScript ESM), `RFC-2026-012` (approved; server-only mutation, Realtime unresolved at its §Limitations), `RFC-2026-017` (approved; `service_role` reserved for migration and platform administration), `RFC-2026-019` (approved; the request path is `authenticated`, command functions are owned by `app_command`), `RFC-2026-021` (approved; the client read allowlist starts empty), `RFC-2026-028` (approved; the worker's login role), `RFC-2026-025` (approved; who merges governance)
+Depends on: `RFC-2026-001` (approved; Node `24.20.0`, npm `11.19.0`, `npm ci --ignore-scripts`), `RFC-2026-011` (approved; the tooling tier is JavaScript ESM), `RFC-2026-012` (approved; server-only mutation, Realtime unresolved at its §Limitations), `RFC-2026-017` (approved; `service_role` reserved for migration and platform administration), `RFC-2026-019` (approved; the request path is `authenticated`, command functions are owned by `app_command`), `RFC-2026-021` (approved; the client read allowlist starts empty), `RFC-2026-028` (approved; the worker's login role), `RFC-2026-025` (approved; who merges governance); `RFC-2026-034` (approved 2026-10-11, PR #251; §7 rests on its §2.1)
 Does not answer: D0 (how G0 exits; `WP-0A-A0-010`), D7 (where Meta tokens are stored), D8 (email provider), D10 (storage provider), D13/D14 (package naming, legal entity and domain). Each is named in §11 so that silence here is not read as a decision.
 
 ---
@@ -384,44 +386,69 @@ directory, no copy of a migration anywhere else, and no Supabase CLI `db push` a
 staging and production are migrated by the DATA-DEC-02 wrapper (`WP-1A-A1-001`). If a `supabase/` directory
 is ever needed for local configuration, it holds no migrations, and a guard asserts so.
 
-## 7. What stays a spike until its contracts freeze
+## 7. What may be merged, and what stays a spike
 
+This section follows `RFC-2026-034` §2.1, which the Owner approved on 2026-10-11 and which is on `main` (PR #251).
 The register sets what a consumer may do at each freeze level (`sprint-0a-decision-register-contract-catalog-th.md`
-§5.1, `:186-191`), and this RFC adopts its four rungs as written, lowering none of them:
+§5.1, `:186-191`). RFC-2026-034 §3 amends §5.1 lines 190–191 and the register's line 373 as to writing and merging
+application code; this RFC reads the rungs as so amended and lowers none of them further:
 
-| Level | What the register allows | Where that code may live here |
-|---|---|---|
-| Draft | "exploratory spike เท่านั้น" (an exploratory spike only) | `spikes/<work-package-id>/` or its own branch; never imported (§6.3/3) |
-| Candidate v1 | fakes, fixtures and consumer tests | fakes, fixtures and contract tests, in the module's test files or `test-kits/` |
-| Frozen v1 | "เขียน implementation ได้" (implementation may be written) | on its branch or under `spikes/`; not merged into `src/modules/` or `apps/` |
-| Integrated v1 | "merge consumer ได้" (a consumer may be merged) | merged into `src/modules/` or `apps/` |
+| Level | What the register allows | Under RFC-2026-034 §2.1, for application code | Where that code may live here |
+|---|---|---|---|
+| Draft | "exploratory spike เท่านั้น" (an exploratory spike only) | unchanged | `spikes/<work-package-id>/` or its own branch; never imported (§6.3/3) |
+| Candidate v1 | fakes, fixtures and consumer tests | application code, fakes and consumer tests may be written and merged, as reversible work | merged into `src/modules/` and `apps/`; fakes, fixtures and contract tests in the module's test files or `test-kits/` |
+| Frozen v1 | "เขียน implementation ได้" (implementation may be written) | as Candidate v1; it is also the level every contract a deploy serving users needs first (below) | merged into `src/modules/` and `apps/` |
+| Integrated v1 | "merge consumer ได้" (a consumer may be merged) | as Frozen v1 | merged into `src/modules/` and `apps/` |
 
-So **code that implements or consumes a contract is merged into `src/modules/` or `apps/` only when every
-contract it implements or consumes is Integrated v1**, and below that it lives where the table says. On
-`main` today no shared-kernel contract is Frozen (`contract-catalog/shared-kernel/index.json`: 9 Candidate,
-5 Draft), and `CONTRIBUTING_AGENTS.md` § Current gate constraint limits work before G0 to spikes,
-prototypes, fixtures, fake adapters, contract tests and reversible foundation.
+So, **before the G0 exit closes** (RFC-2026-034 §2.1), **code that implements or consumes a contract may be merged into
+`src/modules/` or `apps/` once every contract it implements or consumes is at `Candidate` or above**, and only as
+reversible work:
 
-**Nothing in the table lands before the G0 exit record.** The plan the Owner accepted orders
-`WP-0A-A0-010` (D0) before this package and this package before the skeleton, so every row below also waits
-for `WP-0A-A0-010` to be merged; writing this RFC, which installs nothing, is the only step taken ahead of it.
+- **Synthetic data only.** No real customer data.
+- **Migrations on local and CI databases only.** Migrations run on local databases and on CI's throwaway
+  service-container database. Nothing is applied to a hosted or production project.
+- **No external provider bound.** Providers are faked. No provider account is bound, sandbox and test accounts
+  included, and no credential of any provider is used. Hosted staging and provider sandboxes are a later decision
+  (RFC-2026-034 §2.1).
+
+Code that implements or consumes a contract still at `Draft` stays a spike under `spikes/<work-package-id>/` (or on its
+own branch) and is never imported from `apps/` or `src/` (§6.3/3). Code that implements or consumes no contract, such as
+the skeleton or components with no data path, is merged under the same reversibility; that follows from the rule
+above and from `CONTRIBUTING_AGENTS.md` § Current gate constraint, not from new text in RFC-2026-034.
+
+**`Frozen` before production use.** Before any paid beta, real customer data, or production deploy that serves users,
+every contract that deploy uses is `Frozen` under `RFC-2026-031`. A breaking change to a `Candidate` contract follows
+its owner and the RFC path. Freeze pull requests and changes to a `Frozen` contract keep RFC-2026-031's own role rules
+(§4 there), whatever their lane (RFC-2026-034 §2.1).
+
+Who reads each pull request of this code is set by RFC-2026-034 §2.2's lanes, not by this section. A merge under this
+section does not move a contract's level. It does not close the G0 exit either, which stays "decided, conditional"
+(RFC-2026-034 §2.1). On `main` at `3070d888` all fourteen shared-kernel contracts are `Candidate` and none is `Frozen`
+(`contract-catalog/shared-kernel/index.json`). `CONTRIBUTING_AGENTS.md` § Current gate constraint states the same rule
+as this section (RFC-2026-034 §7 (a)).
+
+**The G0 exit record came first, as the plan ordered.** The plan the Owner accepted orders `WP-0A-A0-010` (D0) before
+this package and this package before the skeleton. `WP-0A-A0-010` was merged by PR #214 (`56d97d7a`), so that order
+holds. The skeleton also waits for the Owner to merge the pull request that approves this RFC.
 
 The package ids are A0's proposed ids from the 2026-10-08 plan (`.claude/g1-g2-plan-2026-10-08.md`, outside
-the repository); no manifest exists for any of them yet. If D13 renames them, the rows follow the new names.
+the repository). If D13 renames them, the rows follow the new names.
 
-| Package | Contracts it needs | What may land, after `WP-0A-A0-010` is merged |
+| Package | Contracts it needs (level on `main` at `3070d888`) | What may be merged |
 |---|---|---|
-| `WP-1A-A0-002` skeleton, boundary lint, CI | none (CTR-MOD-001 is read as a registry, not implemented) | an empty, reversible skeleton, once this RFC is also merged |
+| `WP-1A-A0-002` skeleton, boundary lint, CI | none (CTR-MOD-001 is read as a registry, not implemented) | an empty, reversible skeleton, once the Owner has merged the pull request that approves this RFC |
 | `WP-1A-A5-002` design tokens and components | none | components with no data path |
-| `WP-1A-Q0-001` test foundation | PRT-BAS-001 (Draft) | a spike until PRT-BAS-001 is Candidate v1; then fakes and contract tests |
-| `WP-1A-A0-003` tenant context and API envelope | CTR-TEN/API/ERR/IDM | per rung, contract by contract |
-| `WP-1A-A0-004` job worker and outbox relay | CTR-JOB-001, CTR-EVT-001 | per rung, contract by contract |
-| `WP-1A-A5-001` notification store | CTR-NTF-001 (Draft) | a spike |
-| `WP-1A-A6-002` observability | CTR-OBS-001 (Draft), CTR-FLG-001, CTR-MOD-001 | per rung; the CTR-OBS-001 parts a spike |
-| `WP-1A-A5-003` app shell | CTR-ERR-001, CTR-API-001 | the parts with no data path; the data-bound parts per rung |
+| `WP-1A-Q0-001` test foundation | PRT-BAS-001 (Draft in the register, `:237`; not in `contract-catalog/`) | a spike until PRT-BAS-001 is `Candidate`; then fakes, contract tests and code, as reversible work |
+| `WP-1A-A0-003` tenant context and API envelope | CTR-TEN/API/ERR/IDM (all Candidate) | code, fakes and consumer tests, as reversible work |
+| `WP-1A-A0-004` job worker and outbox relay | CTR-JOB-001, CTR-EVT-001 (both Candidate) | code, fakes and consumer tests, as reversible work, run against local and CI databases only; the worker is not provisioned (§2.7/3) |
+| `WP-1A-A5-001` notification store | CTR-NTF-001 (Candidate) | code, fakes and consumer tests, as reversible work |
+| `WP-1A-A6-002` observability | CTR-OBS-001, CTR-FLG-001, CTR-MOD-001 (all Candidate) | code, fakes and consumer tests, as reversible work; Sentry is a provider, so no Sentry project is bound |
+| `WP-1A-A5-003` app shell | CTR-ERR-001, CTR-API-001 (both Candidate) | the shell, its data-bound parts included, as reversible work |
 
-Provisioning (Supabase projects, the two Vercel projects, credentials: `WP-1A-A6-001`, `WP-1A-A1-001`) binds a
-provider and also waits for the G0 exit record.
+Provisioning binds a provider: the Supabase projects, the two Vercel projects and their credentials (`WP-1A-A6-001`,
+`WP-1A-A1-001`). RFC-2026-034 §2.1 keeps provider accounts, sandboxes included, and provider credentials out of
+reversible work, so provisioning waits for the later decision that opens them. Production use also waits for the
+`Frozen` rule above.
 
 ## 8. What a build must check once code exists
 
@@ -499,13 +526,21 @@ they exist, this RFC is a rule held by review alone, and it says so.
   added now, because none has §3.4/1's answers; `WP-1A-A0-002` brings the ones it actually needs as one
   dated amendment with those answers, which is one governance merge rather than several.
 
+**2026-10-11 UTC (2026-10-12 local).** The Owner approved this text as written (status line). He was not asked these
+questions one by one: Q-029-1, Q-029-5 and Q-029-7 remain A0's recommendations, not his answers, and Q-029-2, Q-029-3,
+Q-029-4 and Q-029-6 stay with the packages named above (C0-256-1, R0-256-1). **Who presses the skeleton (note).** In the same answer the Owner directed that A0 may press
+the `WP-1A-A0-002` skeleton pull request once C0, A1, Q0 and R0 have passed on its final head and CI is green on it,
+with `RFC-2026-025` §5 item 6's other conditions kept. The direction reaches that pull request only. It does not reach
+this RFC or any amendment to its allowlist (§3.4/1), Q-029-7's dated amendment included. The words, and A0's reading of
+their reach, are in `evidence/WP-1A-A0-001/product-owner-disposition-2026-10-12-rfc-029-approval.md` §3 (b).
+
 ## 11. What this does not decide
 
-D0 (G0 exit: `WP-0A-A0-010`). Marking `OPEN-018` closed in the register is owed once this RFC is merged,
-and **no package can make that edit today**: at `bd019c9c` no manifest lists a `docs/` path among its
-`writable_paths`, and `WP-0A-A0-010` as proposed in PR #214 holds `docs/**` read-only (C0 F4). A0 names the
-package that makes it when the register next needs an edit; until then the register reads OPEN-018 as open
-and this RFC, once merged, is what answers it. Also not decided here: D7 (secret store for Meta tokens),
+D0 (G0 exit: `WP-0A-A0-010`). Marking `OPEN-018` closed in the register is owed once the Owner merges the
+pull request that approves this RFC, and **no package can make that edit today**: at `3070d888` no manifest lists a
+`docs/` path among its `writable_paths`, and `WP-0A-A0-010`, merged by PR #214, holds `docs/**` read-only (C0 F4).
+A0 names the package that makes it when the register next needs an edit; until then the register reads OPEN-018 as
+open and this RFC, once in effect, is what answers it. Also not decided here: D7 (secret store for Meta tokens),
 D8 (email provider and sender domain), D10 (storage provider), D13 (work-package naming) and D14 (legal
 entity, domain, e-mail). The text of
 `WP-0A-DB-00.required_human_authorities` that still offers the service-role key is that package's record to
