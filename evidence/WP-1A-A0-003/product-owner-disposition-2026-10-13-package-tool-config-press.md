@@ -18,8 +18,12 @@ the Owner's words and of A0's reading of them. It is not a role verdict and appr
   package's branch row to `test-kits/branch-identity.test.mjs` with the regenerated `test-kits/integrity-manifest.json`;
   and **PR-1**, the pure-TypeScript code under `src/modules/platform-kernel/**`, in the risk lane.
 - PR-G is governance under RFC-2026-034 §2.2: `tsconfig.json` is tool configuration, which the classifier places as
-  governance and which no additive exception moves. RFC-2026-025 §5 item 6 has the Owner press governance personally,
-  except where a direction of his reaches the pull request. The 2026-10-08 direction §10.2
+  governance and which no additive exception moves. RFC-2026-025 §5 item 6 reads, in its last bullet, "**A PR that
+  changes governance (an RFC, `CONTRIBUTING_AGENTS.md`, CI or a gate) is merged by the Owner personally**, never by
+  delegation", and in its third, "The delegation must be given after the PR it names exists, or must name its sequence
+  explicitly." The Owner's directions to A0 to press named governance pull requests are recorded exceptions to that
+  rule (PR #211's; the 2026-10-08 direction §10.2), and RFC-2026-034 §2.2 recognises such standing directions as given
+  under it (§3 (d) below; quoted after C0-259-2). The 2026-10-08 direction §10.2
   (`evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md`) covers "governance PRs
   inside the approved G0-exit/G1/G2 plan"; whether it reaches a tool-configuration change made for a plan package was
   not certain, so A0 asked.
@@ -40,16 +44,18 @@ Asked 2026-10-12T19:36:39Z, answered 19:38:08Z, through the session's question t
 
 ## 3. What the answer directs
 
-**(a) Who presses.** A0 may press a pull request that is governance **only** because it does one or more of:
+**(a) Who presses.** A0 may press a pull request that is governance **only** because, for one WP-1A package of the
+2026-10-08 G1/G2 plan, it does one or more of the following (the words "one or more of" are A0's reading of the "+"
+in the option's description, corrected after C0-259-1):
 
-1. creates the manifest of a WP-1A package of the 2026-10-08 G1/G2 plan (`work-packages/WP-1A-*.json`);
-2. adds a new code path to `tsconfig.json`'s `include`;
-3. adds that package's branch row to `test-kits/branch-identity.test.mjs` (`BRANCH_OWNERSHIP`), with the regeneration
-   of `test-kits/integrity-manifest.json` that the row needs,
+1. creates that package's manifest (`work-packages/WP-1A-*.json`);
+2. adds to `tsconfig.json`'s `include` the path where that package's code lives;
+3. adds that package's own branch row to `test-kits/branch-identity.test.mjs` (`BRANCH_OWNERSHIP`), with the
+   regeneration of `test-kits/integrity-manifest.json` that the row needs,
 
 once C0, A1, Q0 and R0 have passed on its final head and CI is green on it, on both jobs (`bootstrap` and
 `application`), with RFC-2026-025 §5 item 6's other conditions kept (the head contains current `main`; no security
-finding of any grade is open against it). The Owner may still press it himself.
+finding of any grade is open against it; the sequence condition, (d) below). The Owner may still press it himself.
 
 **(b) What it never reaches.** As the option's description says (`ไม่รวม dependency, CI, guard, RFC (พวกนั้นยังถามคุณ)`),
 these still go to the Owner, and a pull request carrying any of them is outside this direction even if it also does
@@ -59,6 +65,23 @@ or runner, or its data or allowlist; an RFC (`architecture/decisions/**`); and `
 **(c) The first pull request it reaches.** PR-G of `WP-1A-A0-003` on branch
 `agent/claude/WP-1A-A0-003-tenant-envelope`: `work-packages/WP-1A-A0-003.json`, `tsconfig.json`'s two `src/**`
 patterns, the branch row, the regenerated integrity manifest, this record and the package's author handoff.
+
+**(d) RFC-2026-025 §5 item 6's sequence condition (A0's reading, added after C0-259-2; a role may disagree).** The
+Owner answered at 19:38:08Z; PR #259 was opened at 2026-10-12T21:02:40Z, after the answer, so the delegation was not
+given after the pull request existed. A0 reads the condition's second branch as met:
+
+- **For PR-G (#259):** the question names it by its sequence and content: "แบ่งเป็น 2 PR: PR-G (เล็ก, governance) =
+  สร้าง manifest ของ package + ให้ tsconfig ตรวจ src/** ด้วย (บรรทัดเดียว)". #259 is that pull request and carries that
+  content and nothing governance besides the branch row and its digest, which the option's description names
+  ("tsconfig include/branch").
+- **For later pull requests (the standing part, "ครอบคลุมกรณีแบบเดียวกัน"):** the named sequence is, on A0's reading,
+  the WP-1A rows of the 2026-10-08 plan ("ตามแผน G1/G2" in the option's description), one opening pull request per
+  package, each limited to (a) 1–3. That is the same footing as the 2026-10-08 direction §10.2 ("governance PRs inside
+  the approved G0-exit/G1/G2 plan"). A0 reads it as needing nothing more; if a role reads it otherwise, A0 asks the
+  Owner again before pressing such a pull request.
+
+This direction is an exception to §5 item 6's last bullet of the same kind as PR #211's and §10.2's, given in the
+Owner's own words; it changes no rule.
 
 ## 4. A0's reading of "กรณีแบบเดียวกัน" (marked as A0's, not the Owner's words)
 
