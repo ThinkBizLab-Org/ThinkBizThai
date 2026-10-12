@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "8c9a32bad4a5a3763caaff20d3a2ba9dded4fe6b",
-  "head_revision_or_patch_checksum": "6b1b9e1ece923f749b2a2098bfa58fe9737deec0",
+  "head_revision_or_patch_checksum": "c1e235b8ac406b923a9ce0c53f9e71beb3bf2b86",
   "task_ids": [
     "WP-1A-A0-002",
     "skeleton-2026-10-12"
@@ -21,11 +21,15 @@
     "apps/web/postcss.config.mjs",
     "apps/web/tsconfig.json",
     "apps/web/types/next.d.ts",
+    "evidence/WP-1A-A0-002/a1-reread-2026-10-12-pr257.md",
     "evidence/WP-1A-A0-002/a1-review-2026-10-12-pr257.md",
+    "evidence/WP-1A-A0-002/c0-reread-2026-10-12-pr257.md",
     "evidence/WP-1A-A0-002/c0-review-2026-10-12-pr257.md",
     "evidence/WP-1A-A0-002/dependency-answers-2026-10-12.md",
     "evidence/WP-1A-A0-002/product-owner-disposition-2026-10-12-skeleton-licences.md",
+    "evidence/WP-1A-A0-002/q0-reread-2026-10-12-pr257.md",
     "evidence/WP-1A-A0-002/q0-review-2026-10-12-pr257.md",
+    "evidence/WP-1A-A0-002/r0-reread-2026-10-12-pr257.md",
     "evidence/WP-1A-A0-002/r0-review-2026-10-12-pr257.md",
     "handoffs/WP-1A-A0-002-author-handoff.json",
     "scripts/app-boundaries-parser.mjs",
@@ -80,7 +84,7 @@
   "acceptance_results": [
     {
       "criterion": "§8/1 allowlist copy held exactly to RFC §3 (where-cells and licence rows); §8/2 exact versions and registry/sha512 with inBundle handling; licences under §3.4/2 and Amendment 2026-10-12",
-      "result": "pass for author self-check (verify-app-dependencies exit 0; app-dependencies.test.mjs 13/13); independent reading owed"
+      "result": "pass for author self-check (verify-app-dependencies exit 0; app-dependencies.test.mjs 14/14); independent reading owed"
     },
     {
       "criterion": "§8/3 tsc --noEmit with the §2.1 flags and a negative control",
@@ -88,11 +92,11 @@
     },
     {
       "criterion": "§8/4 the §6.3 boundaries, §2.1/3 and §8/5 with negative controls, parsed in CI; typescript imported by scripts/app-boundaries-parser.mjs only",
-      "result": "pass for author self-check (verify-app-boundaries --require-parser exit 0, 22 controls; app-boundaries.test.mjs 15/15); independent reading owed"
+      "result": "pass for author self-check (verify-app-boundaries --require-parser exit 0, 31 controls; app-boundaries.test.mjs 20/20); independent reading owed"
     },
     {
       "criterion": "§8/6 npm run check with no node_modules; §8/8 record; §8/9 and §4.8 release age tied to the RFC; §4.6 audit; RFC-2026-034 §8 item 4 application tests in CI",
-      "result": "pass for author self-check (npm run check 802/802 with and without node_modules); the CI jobs run only once pushed; independent reading owed"
+      "result": "pass for author self-check (npm run check 809/809 with and without node_modules); the CI jobs run only once pushed; independent reading owed"
     }
   ],
   "tests": [
@@ -141,7 +145,7 @@
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes. The tooling tier is unchanged and npm run check stays dependency-free; the application checks run in their own CI job.",
   "known_limitations": [
-    "RFC-2026-029 §8/4 asks for lint errors; with ESLint deferred by the Owner the boundaries and §2.1/3 are held by scripts/verify-app-boundaries.mjs, which in CI (--require-parser) reads every file through TypeScript's parser (the Owner allowed that import, 2026-10-12T07:24:27Z); without node_modules (npm run check) it falls back to a dependency-free text reader that also refuses an import after a JSX closing tag, and the `any` rule is held only by the parsed run. Path aliases (tsconfig paths/baseUrl, next.config aliases) are refused until an allowlist entry names one.",
+    "RFC-2026-029 §8/4 asks for lint errors; with ESLint deferred by the Owner the boundaries and §2.1/3 are held by scripts/verify-app-boundaries.mjs, which in CI (--require-parser) reads every file through TypeScript's parser (the Owner allowed that import, 2026-10-12T07:24:27Z); without node_modules (npm run check) it falls back to a dependency-free text reader that also refuses an import after a JSX closing tag, and the `any` rule is held only by the parsed run. Module-resolution configuration is refused until an allowlist entry names it: tsconfig paths/baseUrl/rootDirs and JSX options along every followed extends chain, @jsxImportSource/@jsx/@jsxFrag pragmas, next.config aliases, webpack, modularizeImports, swcPlugins and any local import, vitest.config alias/resolve, and package.json browser/imports/exports/alias maps. The bootstrap job installs with --no-bin-links and the lockfile may hold no bin named like a common command (A1-257-6).",
     "The release-age and audit steps read the registry at CI time; a registry outage fails them.",
     "Locally, npm run check fails after a next build because the secret scanner walks apps/web/.next/; delete it first. CI is not affected (the build runs in the application job). The scanner's owner, WP-0A-A0-003, owes a decision (R0-257-3).",
     "Until the application job is a required status check of main, a red application job does not block a merge in GitHub; the Owner directed A0 to add it through gh api after this PR merges, changing nothing else. A0 presses only on all jobs green.",
