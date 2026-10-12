@@ -1,0 +1,5 @@
+{
+  "$comment": "The negative control's project for the type errors (RFC-2026-029 §8/3). It extends the repository base and overrides nothing, so the errors tsc reports here are the base's flags at work.",
+  "extends": "../../tsconfig.base.json",
+  "files": ["mistyped.ts", "shape.ts"]
+}

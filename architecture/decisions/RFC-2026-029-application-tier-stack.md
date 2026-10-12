@@ -223,11 +223,12 @@ Sentry through functions the composition root exports. This RFC does not amend M
 
 No development package is imported by code that runs in a deployment: nothing under `apps/**` other than
 the files named in the last column, and nothing under `src/**` other than test files, imports one (§6.3/4).
-`typescript` and the `@types/*` packages are never imported by name.
+The `@types/*` packages are never imported by name. `typescript` is imported by one file only,
+`scripts/app-boundaries-parser.mjs`, for its parser API, which CI runs (Amendment 2026-10-12).
 
 | Package | Why | Decision | Where it may be imported |
 |---|---|---|---|
-| `typescript` | `tsc --noEmit` | D1 | nowhere (a CLI) |
+| `typescript` | `tsc --noEmit` | D1 | nowhere, except `scripts/app-boundaries-parser.mjs` (parser API; RFC amendment 2026-10-12) |
 | `@types/node` | types | D1 | nowhere (ambient types) |
 | `@types/react` | types | D1 | nowhere (ambient types) |
 | `@types/react-dom` | types | D1 | nowhere (ambient types) |
@@ -532,7 +533,9 @@ Q-029-4 and Q-029-6 stay with the packages named above (C0-256-1, R0-256-1). **W
 the `WP-1A-A0-002` skeleton pull request once C0, A1, Q0 and R0 have passed on its final head and CI is green on it,
 with `RFC-2026-025` §5 item 6's other conditions kept. The direction reaches that pull request only. It does not reach
 this RFC or any amendment to its allowlist (§3.4/1), Q-029-7's dated amendment included. The words, and A0's reading of
-their reach, are in `evidence/WP-1A-A0-001/product-owner-disposition-2026-10-12-rfc-029-approval.md` §3 (b).
+their reach, are in `evidence/WP-1A-A0-001/product-owner-disposition-2026-10-12-rfc-029-approval.md` §3 (b). On
+2026-10-12 the Owner extended it to Amendment 2026-10-12 as it travels in that pull request: the licence decision and,
+by a second answer the same day, the widening of `typescript`'s §3.2 cell ("Who presses", below).
 
 ## 11. What this does not decide
 
@@ -551,3 +554,161 @@ close; §2.7 is what it should cite.
 Revert the merge commit through a reviewed revert pull request. Before `WP-1A-A0-002` lands, reverting
 removes a decision and changes no file anything runs. After it lands, the skeleton's installation is
 reverted with it, in the same revert or first; no data, schema or migration depends on either.
+
+## Amendment 2026-10-12 — licences of named transitive packages, and `typescript` in the boundary guard's parser, accepted by the Owner (WP-1A-A0-002)
+
+Status of this amendment: the Product Owner's decisions, recorded here by `/claude/a0_atlas` (A0) under
+`WP-1A-A0-002`, which installs the first packages. It amends §3.4/2. It also records, in the words of the Owner's ESLint
+option of the same call, how §8/4 is held while ESLint is deferred, and A0's reading of what that holds for §2.1/3 and
+§2.1/4's lint step (below, "ESLint deferred"). By the Owner's second answer of the same day it widens one "where it may
+be imported" cell, `typescript`'s in §3.2, to one file (below, "`typescript` in the boundary guard's parser"). It also
+gives A0's account, not the Owner's words, of how the guard holds §6.3 against build configuration and what CI checks
+around the build (below, "Build configuration, and what the build included"). It admits no direct dependency, moves no
+name between §3.1 and §3.2, widens no other cell and changes no other rule.
+
+**What was found.** Resolving the skeleton's minimum set (`next`, `react`, `react-dom`, `typescript`, the three
+`@types/*`, `tailwindcss`, `@tailwindcss/postcss`, `postcss`, `vitest`) with `npm install --ignore-scripts
+--before=2026-10-05`, every direct dependency is MIT or Apache-2.0, but three licence families outside §3.4/2's list
+arrive transitively: `CC-BY-4.0` (`caniuse-lite`, browser-support data `next` needs), `MPL-2.0` (`lightningcss` and its
+per-platform binaries, the CSS compiler Tailwind CSS and Vite use) and `LGPL-3.0-or-later` (`@img/sharp-libvips-*`, and
+the `@img/sharp-*` builds licensed `Apache-2.0 AND LGPL-3.0-or-later`, which reach the lockfile as optional packages
+through `next` → `sharp`). §3.4/2 says anything outside its list "is named in the request and decided there".
+
+**The question and the answer, verbatim.** Asked 2026-10-12T02:37:33Z and answered 02:39:15Z (UTC, the transcript's
+stamps) through the question tool of session `c2816eec`. The question said that each is used unmodified, which
+ordinarily does not oblige us to open our own code, and that A0 is not a lawyer (`ผมไม่ใช่ทนาย`) and a lawyer should be
+asked for legal certainty. The Owner chose `ยอมรับ 3 license นี้สำหรับ transitive (Recommended)`, whose description
+read:
+
+`บันทึกคำตัดสินของคุณเป็น amendment สั้น ๆ ใน RFC-029 §3.4 (เฉพาะ CC-BY-4.0, MPL-2.0, LGPL-3.0 ของ package ที่ระบุ ใช้แบบไม่แก้ไข) + guard ที่ตรวจ license ทุกตัวใน lockfile ต่อจากนี้`
+
+The questions, every option shown and the answers are transcribed in
+`evidence/WP-1A-A0-002/product-owner-disposition-2026-10-12-skeleton-licences.md`.
+
+**The rule it adds to §3.4/2.** These licences are accepted for these named **transitive** packages, used unmodified,
+and for no other package:
+
+| Licence | Packages |
+|---|---|
+| `CC-BY-4.0` | `caniuse-lite` |
+| `MPL-2.0` | `lightningcss` and its per-platform binaries (`lightningcss-<platform>`) |
+| `LGPL-3.0-or-later` | `@img/sharp-libvips-*`, and the `@img/sharp-*` builds whose licence is `Apache-2.0 AND LGPL-3.0-or-later` (with or without `MIT` beside them), optional through `next` → `sharp` |
+
+Any other licence outside §3.4/2's list, anywhere in the lockfile, still needs its own decision under §3.4/1-2. A
+direct dependency under one of these licences is not covered: it is a new decision. A package that patches or vendors
+one of these is not "used unmodified" and is not covered either.
+
+Three readings in this table are A0's, not the Owner's words, which named `caniuse-lite`, `lightningcss` and
+`sharp/libvips`: that `lightningcss`'s per-platform binaries are part of the `lightningcss` he named (the guard reads
+`<platform>` as an operating system npm names, `android`, `darwin`, `freebsd`, `linux` or `win32`, followed by its
+architecture, so `lightningcss-plugin` is not one); that `@img/sharp-wasm32`, licensed
+`Apache-2.0 AND LGPL-3.0-or-later AND MIT`, is one of the `@img/sharp-*` builds (MIT is on §3.4/2's list already); and
+that "used unmodified" excludes a package that patches or vendors one of them. A reviewer who reads any of them
+differently should say so.
+
+**How it is held.** `scripts/verify-app-dependencies.mjs` reads every lockfile entry's `license` field and fails on any
+licence that is neither in §3.4/2's list nor covered by a row above (a named package, transitive, under the exact
+expression its row states), with tests and negative controls in `test-kits/app-dependencies.test.mjs`. Its machine
+copy of the rows is
+`scripts/app-dependency-allowlist.json`, held against this section's table by the same test: the table is read row by
+row into each licence, its package spellings and the exact licence expressions it admits, and the copy must equal it
+both ways, so a row deleted here, a pattern widened there or an expression the row does not state fails. The skeleton's
+`next.config.ts` sets `images: { unoptimized: true }`, so `next build` does not need `sharp`; that was measured by
+building with `sharp` and every `@img/*` package removed.
+
+**ESLint deferred, and §8/4.** In the same call the Owner chose `ไม่ใส่ตอนนี้ (Recommended)` for ESLint, whose
+description read `ตรวจขอบเขต import (§6.3) ด้วย guard script ที่ไม่มี dependency แทน — ESLint ค่อยพิจารณาทีหลัง` (check the
+import boundaries of §6.3 with a guard script that has no dependency instead; ESLint to be considered later). So
+`eslint` and `eslint-config-next` are not installed now, and §3.2's `eslint` rows stay on the allowlist unused. While
+that holds, §8/4's "lint errors" are the errors of the guard `scripts/verify-app-boundaries.mjs` (its rules in
+`scripts/app-boundaries.mjs`), each §6.3 boundary with a negative control in `test-kits/app-boundaries.test.mjs`.
+
+The following is A0's reading of that answer, not the Owner's words. ESLint was also what §2.1/3 relied on (`any` "a
+lint error in application code") and the lint step of §2.1/4's CI checks. While ESLint is deferred, the same guard holds
+them: it refuses `@ts-ignore`, `@ts-nocheck`, an `@ts-expect-error` with no reason on its line, and any `any` type in
+application code, and it runs as its own CI step where §2.1/4's lint step would run. The guard's rules other than
+`any` need no dependency, and `npm run check` runs them with none; the `any` rule needs the parser (next paragraph), so
+it is held only in CI's parsed run, not in `npm run check`.
+
+In CI the guard also reads the sources with TypeScript's own parser, through the `typescript` package §3.2 lists
+(nothing is installed for it), because a parser sees what a text scan misreads, and an `any` type cannot be told from
+other text without one; that CI step fails if the parser cannot load. That import is not A0's reading of the ESLint
+option: the Owner allowed it, by name and by file, in a second answer on 2026-10-12 (next paragraphs).
+
+**Build configuration, and what the build included (§6.3, §8/4).** A0's account of how the guard holds §6.3 against
+build configuration, not the Owner's words; it adds no rule and no dependency. Three review rounds on the skeleton pull
+request (#257: A1-257-1, A1-257-5, A1-257-7, Q0-257r2-1, Q0-257r3-1, R0-257-8) each found a configuration route that
+made the bundler or vitest load a module no import statement names. So the guard holds build configuration to
+allowlisted shapes, not to a list of refused words: every `next.config.*`, `vitest.config.*` and `postcss.config.*` must
+be, statement by statement and key by key, the shape `scripts/app-dependency-allowlist.json` states for its kind
+(`configShapes`), read by the dependency-free text reader and, in CI, by TypeScript's parser as well, the two readings
+required to agree; a Babel configuration, a PostCSS configuration other than `postcss.config.*` (every other name on
+the search list Turbopack reads, taken from the installed Next.js 16.3.8), anything under a `.config/` directory, a
+`vite.config.*` and a vitest workspace file are refused wherever they stand. What is admitted and what is refused, and
+where the PostCSS list was read, is stated once, in that file's `configShapes.$comment` (and `resolutionAliases.$comment`
+for compiler options and package.json maps), and is not restated here. The guard also refuses a tracked `.env*` file
+under `apps/`, `src/` or at the root, `.env.example` excepted, because Next.js loads one into the build and a
+`NODE_OPTIONS` in it preloads a module into every build worker (A1-257-9); CI's `application` job sets `NODE_OPTIONS`
+to an empty value for every step (a root `.npmrc`, which could set it for `npm run`, is refused by the test-integrity
+guard in the `bootstrap` job). Every workspace `package.json` declares exactly the `scripts` the same file's
+`workspaceScripts` gives it (`apps/web`: `build` = `next build`), so no `prebuild` or `postbuild` hook and no changed
+build command runs around `next build`; the root's scripts are pinned by the test-integrity tooling (A1-257-10). Names
+are matched in any letter case. CI runs the guard a second time as the step immediately before `next build`. After
+`next build`, that job also runs `scripts/verify-app-build-graph.mjs`, which reads what the build output names (its file
+traces, its server and build source maps, its module ids) and fails on any repository file outside `apps/web/**` and
+`src/modules/**`, a platform-kernel adapter, `pg`, or a package no allowlisted package depends on. It needs no
+dependency and runs its negative controls first, A1-257-7's three routes among them as their builds showed them. It
+reads what the output names, not what ran to make it. The shapes, the refusals, the pinned scripts and the empty
+`NODE_OPTIONS` hold what configuration can make a build tool load (a loader, a PostCSS or Babel plugin, a preload, an
+npm hook); they do not hold all code that runs. Code the repository itself runs in CI after the guard has read the
+tree (a test under `npm run test:app`, a page's own code when `next build` prerenders it, build-time code it imports,
+each with the Node builtins the guard admits) could still write files, a refused configuration file among them, or
+change the build's output after the traces and maps are written. The guard's second run catches a refused file such
+code has left on disk by then, not one written later or by a process still running. That residual is held by review of
+every pull request, not by a check (A1-257-10).
+
+**`typescript` in the boundary guard's parser (§3.2).** The first review round on the skeleton pull request (#257;
+A1-257-1) showed that the dependency-free text reader can be made to miss an import, and that a guard that is much
+harder to evade needs TypeScript's parser, through the `typescript` package already installed (no package is added). §3.2's cell
+for `typescript` read "nowhere (a CLI)", and the ESLint option's description spoke of a guard "ที่ไม่มี dependency", so A0
+asked. Asked 2026-10-12T07:08:30Z and answered 07:24:27Z (UTC, the transcript's stamps) through the question tool of
+session `c2816eec`, the Owner chose `อนุญาตให้ guard import typescript (Recommended)`, whose description read:
+
+`เพิ่ม amendment แคบ ๆ ใน RFC-029: typescript import ได้เฉพาะไฟล์ scripts/app-boundaries-parser.mjs (ใช้ parser API อย่างเดียว, รันใน CI) — ใน PR skeleton เดียวกัน และ A0 กดได้เมื่อ 4 role ผ่าน`
+
+(add a narrow amendment to RFC-029: `typescript` may be imported only by the file `scripts/app-boundaries-parser.mjs`,
+using the parser API only, run in CI; in the same skeleton pull request, and A0 may press once the four roles pass.)
+The question, both options and the answer are transcribed in
+`evidence/WP-1A-A0-002/product-owner-disposition-2026-10-12-skeleton-licences.md` §5.
+
+So §3.2's `typescript` cell now reads "nowhere, except `scripts/app-boundaries-parser.mjs` (parser API; RFC amendment
+2026-10-12)", and the sentence above that table says the same. Its exact reach:
+
+- **One file, by its path.** `scripts/app-boundaries-parser.mjs` may import `typescript`. No other file, under
+  `scripts/`, `test-kits/`, `tests/`, `db/`, `evidence/`, `apps/`, `src/` or anywhere else, imports `typescript` or any
+  path inside it; a file of the same name in another directory is not this file.
+- **Its parser API only.** The file imports `typescript`, `typescript/unstable/ast` and `typescript/unstable/sync`, and
+  no other package, to read source files' syntax trees for the boundary guard. TypeScript 7's API does that by running
+  the compiler's native binary, the one `tsc` runs in the same CI job, as a child process, and handing it the files
+  from memory; the guard reads the trees it returns. It compiles, emits and runs nothing it reads, and it refuses to
+  run under any `typescript` version but the one the root `package.json` pins (§4.2).
+- **Run in CI.** The file is loaded only by `node scripts/verify-app-boundaries.mjs`, which CI runs with
+  `--require-parser` in its `application` job. No test imports it, so `npm run check` still runs no dependency code
+  (§2.1/4, §8/6).
+
+Nothing else moves: `typescript` stays a §3.2 development dependency, no package is added, no name moves between §3.1
+and §3.2, no other cell widens, and §3.2's rule that no development package is imported by code that runs in a
+deployment stands. The copy in `scripts/app-dependency-allowlist.json` admits exactly that one path, read from the cell
+by `parseWhereCell`'s "nowhere, except" form, which admits only backticked single files and refuses a glob or a
+directory. `checkBoundaries` (`scripts/app-boundaries.mjs`) holds the cell over the application tree and
+`checkRepositoryImports` over every other code file in the repository, so an import of `typescript` anywhere else
+fails; the negative controls are in `test-kits/app-boundaries.test.mjs`, `test-kits/app-dependencies.test.mjs` and the
+guard's own controls in `scripts/verify-app-boundaries.mjs`.
+
+**Who presses.** The Owner's answer to the third question of the same call, `A0 กดได้เมื่อ 4 role ผ่าน (Recommended)`
+(description: `ขยายสิทธิ์ที่ให้ไว้ให้ครอบคลุม amendment เรื่อง license นี้ใน PR skeleton เท่านั้น`), extends his
+direction of 2026-10-11 (§10, note) to this amendment, travelling in the `WP-1A-A0-002` skeleton pull request only: A0 may
+press that pull request once C0, A1, Q0 and R0 have passed on its final head and CI is green on it, with `RFC-2026-025`
+§5 item 6's other conditions kept. The Owner's answer of 07:24:27Z says the same of the `typescript` widening above
+(`ใน PR skeleton เดียวกัน และ A0 กดได้เมื่อ 4 role ผ่าน`), so the direction covers that widening too, as it travels in the
+skeleton pull request only. It reaches no other amendment of this RFC.

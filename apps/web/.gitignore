@@ -1,0 +1,4 @@
+# Written by `next build` and `next dev`; it imports types from .next/, which a clean clone does not
+# have. apps/web/types/next.d.ts carries the references `tsc --noEmit` needs (WP-1A-A0-002).
+next-env.d.ts
+.next/

@@ -145,6 +145,37 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/work-package-discovery.test.mjs': 1,
   'test-kits/work-package-ownership.test.mjs': 8,
   'test-kits/authority-dispositions.test.mjs': 3,
+  // WP-1A-A0-002 (2026-10-12, RFC-2026-029 §8): the application tier's three suites -- the dependency
+  // allowlist, lockfile and licences (§8/1, §8/2, §3.4/2); the §6.3 boundaries and §8/5; the type check's
+  // flags and control, the release age, the CI wiring and §8/6. The first review round on PR #257
+  // (2026-10-12; A1-257-1..4, Q0-257-1..5, R0-257-1, C0-257-1): app-dependencies 9 to 12 (the where cells
+  // read exactly, the licence rows both ways, the release-age day count and exceptions); app-boundaries
+  // 9 to 14 (the closing-tag refusal, the §2.1/3 directives, the alias refusals, the reader hook, the
+  // secret key); app-stack 7 to 10 (the guard before the first check, the application job, the installs
+  // and continue-on-error, vitest's passWithNoTests). No test removed; one renamed (the CI wiring).
+  // The Owner's answer of 2026-10-12 07:24:27Z (RFC-2026-029 Amendment 2026-10-12, typescript in the
+  // parser): app-dependencies 12 to 13 (the typescript cell and its copy), app-boundaries 14 to 15 (an
+  // import of typescript anywhere but the parser fails). No test removed or renamed.
+  // The second review round on PR #257 (2026-10-12; A1-257-5, A1-257-6, Q0-257r2-1, Q0-257r2-2):
+  // app-dependencies 13 to 14 (a lockfile bin named after a common command), app-boundaries 15 to 19
+  // (the extends chain, next.config's imports, the JSX pragmas, package.json module maps), app-stack
+  // 10 to 11 (the parsed reader's own safeguards). No test removed or renamed. Then app-boundaries 19
+  // to 20 (a next.config's modularizeImports and swcPlugins, a vitest.config's alias and resolve).
+  // The third review round on PR #257 (2026-10-12; A1-257-7, Q0-257r3-1, R0-257-8, Q0 N12): build
+  // configuration held to allowlisted shapes, and the check of what the build included: app-boundaries
+  // 20 to 23 (every route against the shapes; Babel, .postcssrc, vite.config and workspace files; a
+  // Tailwind @plugin or @config read as an import), app-stack 11 to 12 (the build-graph check). No test
+  // removed; two renamed (below). The fourth round (2026-10-12; A1-257-8, A1-257-9, C0-257r4-1, -2,
+  // A1's comment-terminator advisory): app-boundaries 23 to 26 (PostCSS names and .config/, tracked
+  // .env files, the `//` comment's line terminators), app-stack 12 to 13 (NODE_OPTIONS empty for the
+  // application job, and the records' account of what the graph check does not see). No test removed.
+  // The fifth round (2026-10-12; A1-257-10 and A1's letter-case advisory): app-boundaries 26 to 28 (the
+  // workspace scripts pinned to the allowlist; configuration and .env names in any letter case),
+  // app-stack 13 to 15 (the guard's second run before the build; the records' account of the residual
+  // held by review). No test removed or renamed.
+  'test-kits/app-dependencies.test.mjs': 14,
+  'test-kits/app-boundaries.test.mjs': 28,
+  'test-kits/app-stack.test.mjs': 15,
 };
 
 // Independent review eighteen answered the question the per-file floor was written to close, and
@@ -327,12 +358,27 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/repository-json.test.mjs': 18,
   'test-kits/role-separation.test.mjs': 8,
   'test-kits/secret-scan.test.mjs': 116,
-  'test-kits/test-coverage-floor.test.mjs': 127,
+  // WP-1A-A0-002 (2026-10-12): 127 to 140, the guard's own count. main read 135 under a floor of 127;
+  // the dependency test, rewritten for RFC-2026-029's first install, and the package.json field pin add five.
+  'test-kits/test-coverage-floor.test.mjs': 140,
   'test-kits/toolchain-contract.test.mjs': 3,
   'test-kits/verification-record.test.mjs': 14,
   'test-kits/work-package-discovery.test.mjs': 2,
   'test-kits/work-package-ownership.test.mjs': 8,
   'test-kits/authority-dispositions.test.mjs': 8,
+  // WP-1A-A0-002 (2026-10-12): the guard's own counts. app-boundaries reads low because its negative
+  // controls assert through one helper, mustFail, which this count sees once. The first review round on
+  // PR #257 (2026-10-12), the guard's own counts: app-dependencies 26 to 50, app-boundaries 16 to 39,
+  // app-stack 43 to 71. The typescript widening (Amendment 2026-10-12): app-dependencies 50 to 59,
+  // app-boundaries 39 to 49, app-stack 71 to 72. The second review round on PR #257 (2026-10-12):
+  // app-dependencies 59 to 65, app-boundaries 49 to 71, app-stack 72 to 85. Then app-boundaries 71 to
+  // 75 (modularizeImports, swcPlugins and the vitest.config alias rule). The third review round on PR
+  // #257 (2026-10-12, A1-257-7): app-boundaries 75 to 96, app-stack 85 to 106. The fourth round
+  // (2026-10-12; A1-257-8, A1-257-9): app-boundaries 96 to 124, app-stack 106 to 120. The fifth round
+  // (2026-10-12; A1-257-10): app-boundaries 124 to 144, app-stack 120 to 137.
+  'test-kits/app-dependencies.test.mjs': 65,
+  'test-kits/app-boundaries.test.mjs': 144,
+  'test-kits/app-stack.test.mjs': 137,
 };
 
 // Independent review eighteen defeated the test-count floor by hollowing a suite while preserving
@@ -377,12 +423,38 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/repository-json.test.mjs': '7e434c46d2b5cd7a',
   'test-kits/role-separation.test.mjs': '00a4c859fecdbbae',
   'test-kits/secret-scan.test.mjs': '29224e8a816a48e5',
-  'test-kits/test-coverage-floor.test.mjs': '0748d7a12d9b2d7b',
+  // WP-1A-A0-002 (2026-10-12): 'the repository declares no dependency and no lifecycle script' is renamed
+  // 'the root declares only allowlisted development dependencies, and no package.json a lifecycle script'
+  // now that RFC-2026-029 admits the application's packages; the name digest moves with it.
+  'test-kits/test-coverage-floor.test.mjs': '85a095277bb7704b',
   'test-kits/toolchain-contract.test.mjs': '593ef9010e698df4',
   'test-kits/verification-record.test.mjs': '550b0a1ed6388295',
   'test-kits/work-package-discovery.test.mjs': 'a3920136781048b6',
   'test-kits/work-package-ownership.test.mjs': 'edeaf529d5267bba',
   'test-kits/authority-dispositions.test.mjs': 'dd031bcd9460744c',
+  // The first review round on PR #257 (2026-10-12): the three suites gain tests (above), and app-stack's
+  // 'CI runs the application checks as their own steps, after the clean install and outside npm run
+  // check' is renamed 'CI runs the application checks in a job of their own, after every guard of the
+  // bootstrap job (A1-257-4)', as the steps moved to their own job; all three name digests move. The
+  // typescript widening (Amendment 2026-10-12) adds one test to each of the first two; app-stack's names
+  // are unchanged. The second review round on PR #257 (2026-10-12) adds one test to app-dependencies
+  // (A1-257-6), four to app-boundaries (A1-257-5's three routes, Q0-257r2-1) and one to app-stack
+  // (Q0-257r2-2); none is renamed, and all three name digests move. Then one more to app-boundaries
+  // (modularizeImports, swcPlugins and the vitest.config alias rule); none is renamed. The third review
+  // round on PR #257 (2026-10-12, A1-257-7) adds three tests to app-boundaries and one to app-stack, and
+  // renames two of app-boundaries' for the rule they now hold: 'A1-257-5: a next.config imports only
+  // allowlisted packages and node: builtins, so no configuration reaches it from another module' is
+  // 'A1-257-5, A1-257-7: a next.config imports nothing but `import type { NextConfig } from 'next'`, so
+  // no configuration reaches it from another module or file', and 'a next.config naming
+  // modularizeImports or swcPlugins, and a vitest.config naming alias or resolve, fail unless the
+  // allowlist names them' ends 'unless the allowlisted shape names them'. Both name digests move.
+  // The fourth round on PR #257 (2026-10-12; A1-257-8, A1-257-9, C0-257r4-1, -2) adds three tests to
+  // app-boundaries and one to app-stack; none is renamed, and both name digests move. The fifth round
+  // (2026-10-12; A1-257-10, A1's letter-case advisory) adds two tests to each; none is renamed, and both
+  // name digests move.
+  'test-kits/app-dependencies.test.mjs': '491abfa45804df35',
+  'test-kits/app-boundaries.test.mjs': '3cf662a2b479fe79',
+  'test-kits/app-stack.test.mjs': '515929ee67465865',
 };
 
 // How many reversals `ratchets-bite.test.mjs` puts through a suite. Independent review twenty

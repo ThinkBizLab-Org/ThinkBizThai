@@ -310,8 +310,38 @@ jobs:
             *) unclassified "the base's classifier printed lane ${lane} with tier ${tier}, which do not agree (fail closed)" "${work}/out" ;;
           esac
           report "tier: ${tier}" "lane: ${lane}" "the base's classifiers exited 0 on ${BASE_SHA}..HEAD; the lane's readers are named in RFC-2026-034 §2.2, and an additive-eligible governance pull request stays governance until A1 and Q0 confirm in writing" "${work}/out"
+      # RFC-2026-029 §8/6 and §2.1/4 (WP-1A-A0-002): `npm run check` is the dependency-free, offline
+      # tooling check, and still passes with no node_modules directory present. The second step below
+      # proves it on every head: it runs the check BEFORE the clean install, and fails if a node_modules
+      # directory is already there to lean on.
+      #
+      # THE GUARD RUNS FIRST (R0-257-1). That check runs the pull request's own `scripts.check`, and on
+      # `main` the first repository code to run was the test-integrity guard below, which pins that
+      # string step by step (RFC-2026-007). A `scripts.check` rewritten to empty the guard file
+      # (`node -e "require('fs').writeFileSync('scripts/verify-test-coverage-floor.mjs','')"`) would
+      # otherwise run before the guard could refuse it, and the guard step after the install would then
+      # read the emptied file and pass. So the guard is invoked by the workflow here as well, before
+      # ANY `npm run check`, and it is dependency-free, so it needs no install. Both steps run after the
+      # two classification steps above, which stay the last steps before any of the pull request's own
+      # code runs (RFC-2026-007 §E). test-kits/app-stack.test.mjs pins the order.
+      - name: Verify test-integrity guard before the first npm run check
+        run: node scripts/verify-test-coverage-floor.mjs
+      - name: Validate repository bootstrap with no node_modules
+        run: |
+          if [ -e node_modules ]; then
+            echo "node_modules exists before the clean install, so this run cannot show that npm run check needs none (RFC-2026-029 §8/6)"
+            exit 1
+          fi
+          npm run check
+      # NO BIN LINKS HERE (A1-257-6). `npm run` puts node_modules/.bin first on PATH, and
+      # `--ignore-scripts` does not stop npm linking a package's `bin` there, so a package whose bin is
+      # named `node` or `npm` would run in their place inside `npm run check`, before the database
+      # guards below. Nothing this job runs needs a package binary (`npm run check` is dependency-free,
+      # and the steps that run installed code are the application job's), so it installs with
+      # `--no-bin-links`. The dependency guard also refuses a lockfile bin named after a common
+      # command (scripts/verify-app-dependencies.mjs), for the installs that do link bins.
       - name: Clean install
-        run: npm ci --ignore-scripts
+        run: npm ci --ignore-scripts --no-bin-links
       # Invoked BY THE WORKFLOW, not by the script it audits. `npm run check` can be
       # neutered by its own scripts.check string -- a trailing `&` backgrounds the chain so
       # the shell returns 0 before any exit code matters, and replacing every `&&` with `||`
@@ -1240,3 +1270,114 @@ jobs:
           # leaving it to be read here.
           control app.performance_snapshots   '[a-z0-9-]*metric-snapshot'  121
           echo "negative control: every family above failed the suite, as each must."
+
+  # THE APPLICATION TIER (RFC-2026-029 §8; RFC-2026-034 §8 item 4; WP-1A-A0-002), A JOB OF ITS OWN.
+  #
+  # Every step here runs code from the installed packages: `tsc` (TypeScript's native compiler),
+  # TypeScript's parser under the boundary guard, vitest with vite and rolldown, `next build` with SWC,
+  # lightningcss and Tailwind's oxide, and npm's audit against the registry. RFC-2026-029 §2.1/4 keeps
+  # them out of `npm run check` so that "a broken or compromised dependency install must not be able to
+  # disable the governance guards, which are what would report it". In the bootstrap job they would
+  # have run in the same workspace as the database foundation, its negative control and the RLS guards,
+  # where a compromised package could edit the checkout or put a shim on PATH before those steps ran
+  # (A1-257-4). So they run here: on a runner of their own, after the bootstrap job has finished every
+  # guard (`needs: bootstrap`), from a fresh checkout of the same commit and a fresh
+  # `npm ci --ignore-scripts`. Nothing this job does can reach the bootstrap job's runner.
+  #
+  #   §8/1, §8/2 and §3.4/2: every package.json against the allowlist, exact versions, registry-only
+  #     lockfile entries with sha512 integrity, every lockfile licence, and the copy held to the RFC;
+  #   §8/4, §2.1/3 and §8/5: the §6.3 import boundaries, @ts-ignore, a reasoned @ts-expect-error and
+  #     `any`, the migration source, service-role, secret-key and worker-credential rules, and no path
+  #     alias, read by TypeScript's parser (--require-parser fails the step if it cannot load), with the
+  #     guard's own negative controls held first. The Product Owner deferred ESLint (2026-10-12); this
+  #     step stands where §2.1/4's lint step stands until it lands;
+  #   §8/3: `tsc --noEmit` with the §2.1 flags, and its negative control, which must FAIL on a
+  #     deliberately mistyped fixture with one marked error per flag;
+  #   RFC-2026-034 §8 item 4: the application tests (`vitest run`) on every head;
+  #   the web build, which needs no network (fonts are not fetched, telemetry is off below);
+  #   §4.6: `npm audit` for runtime dependencies, and §4.8 / §8/9: the publish age of every lockfile
+  #     entry the pull request adds or changes. Both read the registry, so they need the network.
+  #
+  # The dependency and boundary guards are dependency-free in their text form and also run inside
+  # `npm run check` through test-kits/app-dependencies.test.mjs and test-kits/app-boundaries.test.mjs.
+  # No step here, or anywhere in this file, is continue-on-error, and this job installs exactly once.
+  application:
+    needs: bootstrap
+    runs-on: ubuntu-24.04
+    # RFC-2026-029 §4.7: Next.js telemetry is off in CI. Every step sees it, so no build, test or
+    # type check run here can send it.
+    # A1-257-9: NODE_OPTIONS is set, empty, for every step. Next.js adopts a key from a `.env` file only
+    # when the environment does not define it, and passes NODE_OPTIONS on to its build workers, so a
+    # `.env` that names a module to preload is not adopted here (the boundary guard also refuses a
+    # tracked `.env*`). No step sets it again.
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NODE_OPTIONS: ''
+    steps:
+      # The same checkout as the bootstrap job, for the same reasons: the branch by name, no persisted
+      # credential, the full history (the release age reads the base's lockfile), and the commit
+      # asserted to be the one this run reports on.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify the checkout is the commit this application run reports on
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          actual="$(git rev-parse HEAD)"
+          if [ -z "${EXPECTED_SHA}" ] || [ "${actual}" != "${EXPECTED_SHA}" ]; then
+            echo "checkout: HEAD is ${actual} but this run reports on '${EXPECTED_SHA}'. The branch moved after the event, or the expected commit is unknown; this run cannot report on a commit it did not test."
+            exit 1
+          fi
+          echo "checkout: HEAD ${actual} is the commit this run reports on"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.20.0
+          check-latest: false
+      - name: Verify pinned toolchain for the application
+        run: |
+          test "$(node --version)" = "v24.20.0"
+          test "$(npm --version)" = "11.19.0"
+      - name: Clean install for the application
+        run: npm ci --ignore-scripts
+      - name: Verify the application dependencies
+        run: node scripts/verify-app-dependencies.mjs
+      - name: Verify the application boundaries (parsed)
+        run: node scripts/verify-app-boundaries.mjs --require-parser
+      - name: Type-check the application
+        run: npm run typecheck
+      - name: Type-check negative control
+        run: node scripts/verify-typecheck-control.mjs
+      - name: Application tests
+        run: npm run test:app
+      # A1-257-10: the boundary guard again, as the step immediately before the build. The steps above
+      # run repository code (the type-check control, the application tests) after the guard's first
+      # reading of the tree; a refused configuration file one of them left on disk is seen here. A file
+      # written later, or by a process still running, is not: see the build-graph step's note.
+      - name: Verify the application boundaries again, before the build (parsed)
+        run: node scripts/verify-app-boundaries.mjs --require-parser
+      - name: Build the web application
+        run: npm run build --workspace apps/web
+      # A1-257-7: what the build output names -- the file traces, the server and build source maps and
+      # the module ids -- is held to RFC-2026-029 §6.3: nothing outside apps/web/** and src/modules/**,
+      # no platform-kernel adapter, no pg, no package an allowlisted package does not reach.
+      # Dependency-free; its negative controls run first. It backs up the build configuration's
+      # allowlisted shapes and does not replace them: it reads what the output names, not what ran to
+      # make it. The shapes, the guard's `.env` and `.config/` refusals, the pinned workspace scripts
+      # (no `prebuild` or `postbuild`) and the empty NODE_OPTIONS above hold what configuration can
+      # make a build tool load (A1-257-8, A1-257-9, A1-257-10). They do not hold all code that runs:
+      # code the repository itself runs in this job after the guard (a test, a page's own code when
+      # `next build` prerenders it, build-time code it imports) could still write files or change the
+      # build's output after the traces and maps are written. That residual is held by review of every
+      # pull request, not by a check (A1-257-10).
+      - name: Verify what the build included
+        run: node scripts/verify-app-build-graph.mjs
+      - name: Vulnerability audit (network)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Release age of new lockfile entries (network)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/verify-release-age.mjs "$BASE_SHA"

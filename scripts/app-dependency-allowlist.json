@@ -1,0 +1,105 @@
+{
+  "$comment": "The machine-readable copy of RFC-2026-029 §3.1 and §3.2 (RFC-2026-029 §8/1), with §3.4/2's licence list, the licence exceptions of its Amendment 2026-10-12 and §4.8's release age. `name`, `decision` and `where` are the RFC's table cells verbatim; `imports` is exactly the set of globs each `where` cell admits, read by a fixed grammar (scripts/verify-app-dependencies.mjs, parseWhereCell); `compositionRoot` and `adapters` are §3.1's two definitions; each licence exception is one item of the amendment's table, its package spellings and exact licence expressions as the table states them (parseLicenceTable). test-kits/app-dependencies.test.mjs parses the RFC's tables and fails if this copy and the RFC disagree. Read by scripts/verify-app-dependencies.mjs and scripts/verify-app-boundaries.mjs. Editing this file does not amend the RFC: the RFC is changed first (§3.4/1, §3.4/7), and this copy follows it.",
+  "source": "architecture/decisions/RFC-2026-029-application-tier-stack.md",
+  "compositionRoot": [
+    "apps/web/composition/**",
+    "apps/worker/composition/**",
+    "apps/web/instrumentation.ts",
+    "apps/web/instrumentation-client.ts",
+    "apps/web/sentry.*.config.ts",
+    "apps/web/next.config.ts",
+    "apps/worker/instrumentation.ts",
+    "apps/worker/instrumentation-client.ts",
+    "apps/worker/sentry.*.config.ts",
+    "apps/worker/next.config.ts"
+  ],
+  "adapters": [
+    "src/modules/*/adapters/**"
+  ],
+  "runtime": [
+    { "name": "next", "decision": "D1", "where": "`apps/**`", "imports": ["apps/**"] },
+    { "name": "react", "decision": "D1", "where": "`apps/**`", "imports": ["apps/**"] },
+    { "name": "react-dom", "decision": "D1", "where": "`apps/**`", "imports": ["apps/**"] },
+    { "name": "@supabase/supabase-js", "decision": "D3, D5", "where": "adapters, and `apps/web/composition/**`", "imports": ["src/modules/*/adapters/**", "apps/web/composition/**"] },
+    { "name": "@supabase/ssr", "decision": "D4, D5", "where": "`apps/web/composition/**` only", "imports": ["apps/web/composition/**"] },
+    { "name": "pg", "decision": "D5, D6", "where": "`src/modules/platform-kernel/adapters/**` (the job store, MOD-000) only; never reachable from `apps/web` (§6.3/5)", "imports": ["src/modules/platform-kernel/adapters/**"] },
+    { "name": "zod", "decision": "D1", "where": "anywhere under `apps/` and `src/`", "imports": ["apps/**", "src/**"] },
+    { "name": "next-intl", "decision": "D12", "where": "`apps/web/**`", "imports": ["apps/web/**"] },
+    { "name": "@sentry/nextjs", "decision": "D9", "where": "the composition root of `apps/web` and `apps/worker` only", "imports": ["apps/web/composition/**", "apps/worker/composition/**", "apps/web/instrumentation.ts", "apps/web/instrumentation-client.ts", "apps/web/sentry.*.config.ts", "apps/web/next.config.ts", "apps/worker/instrumentation.ts", "apps/worker/instrumentation-client.ts", "apps/worker/sentry.*.config.ts", "apps/worker/next.config.ts"] },
+    { "name": "radix-ui", "decision": "D12", "where": "`apps/web/components/**`", "imports": ["apps/web/components/**"] },
+    { "name": "class-variance-authority", "decision": "D12", "where": "`apps/web/components/**`", "imports": ["apps/web/components/**"] },
+    { "name": "clsx", "decision": "D12", "where": "`apps/web/components/**`, `apps/web/lib/utils.ts`", "imports": ["apps/web/components/**", "apps/web/lib/utils.ts"] },
+    { "name": "tailwind-merge", "decision": "D12", "where": "`apps/web/components/**`, `apps/web/lib/utils.ts`", "imports": ["apps/web/components/**", "apps/web/lib/utils.ts"] },
+    { "name": "lucide-react", "decision": "D12", "where": "`apps/web/components/**`", "imports": ["apps/web/components/**"] }
+  ],
+  "development": [
+    { "name": "typescript", "decision": "D1", "where": "nowhere, except `scripts/app-boundaries-parser.mjs` (parser API; RFC amendment 2026-10-12)", "imports": ["scripts/app-boundaries-parser.mjs"] },
+    { "name": "@types/node", "decision": "D1", "where": "nowhere (ambient types)", "imports": [] },
+    { "name": "@types/react", "decision": "D1", "where": "nowhere (ambient types)", "imports": [] },
+    { "name": "@types/react-dom", "decision": "D1", "where": "nowhere (ambient types)", "imports": [] },
+    { "name": "@types/pg", "decision": "D5", "where": "nowhere (ambient types)", "imports": [] },
+    { "name": "tailwindcss", "decision": "D12", "where": "`apps/web/**/*.css` (`@import`) only", "imports": ["apps/web/**/*.css"] },
+    { "name": "@tailwindcss/postcss", "decision": "D12", "where": "`apps/web/postcss.config.mjs` only", "imports": ["apps/web/postcss.config.mjs"] },
+    { "name": "postcss", "decision": "D12", "where": "`apps/web/postcss.config.mjs` only", "imports": ["apps/web/postcss.config.mjs"] },
+    { "name": "eslint", "decision": "D1", "where": "`eslint.config.mjs` at the root only", "imports": ["eslint.config.mjs"] },
+    { "name": "eslint-config-next", "decision": "D1", "where": "`eslint.config.mjs` at the root only", "imports": ["eslint.config.mjs"] },
+    { "name": "vitest", "decision": "D1", "where": "`**/*.test.ts`, `**/*.test.tsx` and `vitest.config.ts` only", "imports": ["**/*.test.ts", "**/*.test.tsx", "vitest.config.ts"] },
+    { "name": "@playwright/test", "decision": "D1", "where": "`tests/e2e/**` and `playwright.config.ts` only", "imports": ["tests/e2e/**", "playwright.config.ts"] },
+    { "name": "@axe-core/playwright", "decision": "D1", "where": "`tests/e2e/**` only", "imports": ["tests/e2e/**"] }
+  ],
+  "providerSdks": ["@supabase/supabase-js", "@supabase/ssr", "pg", "@sentry/nextjs"],
+  "framework": ["next", "react", "react-dom"],
+  "refusedImports": [
+    { "specifier": "next/font/google", "why": "fetches fonts from Google at build time (RFC-2026-029 §8/8)" }
+  ],
+  "licences": {
+    "accepted": ["MIT", "ISC", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "0BSD"],
+    "exceptions": [
+      { "licence": "CC-BY-4.0", "packages": ["caniuse-lite"], "expressions": ["CC-BY-4.0"] },
+      { "licence": "MPL-2.0", "packages": ["lightningcss", "lightningcss-<platform>"], "expressions": ["MPL-2.0"] },
+      { "licence": "LGPL-3.0-or-later", "packages": ["@img/sharp-libvips-*"], "expressions": ["LGPL-3.0-or-later"] },
+      { "licence": "LGPL-3.0-or-later", "packages": ["@img/sharp-*"], "expressions": ["Apache-2.0 AND LGPL-3.0-or-later", "Apache-2.0 AND LGPL-3.0-or-later AND MIT"] }
+    ],
+    "amendment": "Amendment 2026-10-12",
+    "lockfileFallback": {}
+  },
+  "workerCredential": {
+    "$comment": "RFC-2026-029 §2.7/3 and §8/5. No document names the worker credential's environment variable yet; WORKER_DATABASE_URL is the name A0 reserves for it in WP-1A-A0-002 so that the guard has something to hold. WP-1A-A0-004, which writes the dispatcher, either uses this name or changes it here in the same pull request. app_worker_login is RFC-2026-028's login role.",
+    "names": ["WORKER_DATABASE_URL", "app_worker_login"],
+    "allowedUnder": ["apps/worker/composition/**"]
+  },
+  "workspaceScripts": {
+    "$comment": "A1-257-10: `npm run build --workspace apps/web` runs the workspace's `prebuild`, `build` and `postbuild`, and a `postbuild` runs after `next build` has written what scripts/verify-app-build-graph.mjs reads. So every package.json but the root's declares exactly the scripts named here for its directory, each with exactly this command and no other script (a `pre*`/`post*` hook included), or no `scripts` at all; a directory not named here declares none (scripts/app-boundaries.mjs, workspaceScriptProblems). The root's scripts are pinned by the test-integrity tooling (scripts/verify-test-coverage-floor.mjs, test-kits/test-coverage-floor.test.mjs), not here. A script is added here only with the change that needs it, read by A1.",
+    "apps/web": { "build": "next build" }
+  },
+  "releaseAgeDays": 7,
+  "releaseAgeExceptions": [],
+  "resolutionAliases": {
+    "$comment": "RFC-2026-029 Q-029-1 (A1-257-1, A1-257-5, Q0-257r2-1): a `paths`, `baseUrl`, `rootDirs`, `jsxImportSource`, `jsxFactory`, `jsxFragmentFactory` or `reactNamespace` in any tsconfig or any file its `extends` chain reaches, an `extends` the guard cannot follow to a file in the repository, and a `browser`, `imports`, `exports`, `alias`, `react-native` or `typesVersions` map in any package.json can make the bundler load a module other than the one an import names, so scripts/app-boundaries.mjs refuses each of them unless an entry here names that file and option ({ \"file\": ..., \"option\": ... }). None is admitted today: no src/ exists, so no alias has been measured (Q-029-1 is owed to the first package that creates src/). Build configuration files are not admitted here but by configShapes, below.",
+    "allowed": []
+  },
+  "configShapes": {
+    "$comment": "RFC-2026-029 Q-029-1 (A1-257-7, Q0-257r3-1, R0-257-8, Q0 N12): the whole of what a build configuration may say. Every next.config.*, vitest.config.* and postcss.config.* in the tree is read by scripts/app-boundaries.mjs (readConfigShape; in CI also the TypeScript parser, scripts/app-boundaries-parser.mjs readShape, and the two readings must agree) as: the imports below and no other (`typeOnly` true admits `import type` only), the `process.env` defaults in `env` and no other statement, at most one `const` and exactly one `export default`, whose value is literal data written in the file (objects with written keys, arrays, strings, booleans) wrapped only in `call` (the one wrapper named) or `satisfies`/an annotation of a type in `types`. That value must fit `value` key by key: `true`/`false` admits that literal, \"boolean\" and \"string\" any value of that type, { \"$oneOf\": [...] } one of those strings, { \"$arrayOf\": s } an array of s, and any other object only the keys it names (each at most once; none is required). So a spread, a computed key, a function, a call, a value read from a file or from `process.env`, a `require`, a dynamic import, `createRequire`, a `node:` builtin or any key not named below fails: for next.config that includes `turbopack` (its `rules` loaders and `resolveAlias`), `experimental` (`swcPlugins`), `webpack`, `compiler`, `modularizeImports`, `transpilePackages`, `rewrites`, `redirects` and every key not named; for vitest.config `resolve`, `alias`, `plugins`, `setupFiles` and every key not named, and any `environment` but node; for postcss.config any plugin but `@tailwindcss/postcss` with no options. Refused wherever they stand, with no entry that admits them: `.babelrc`, `.babelrc.*`, `babel.config.*` and a `babel` key in any package.json; every PostCSS configuration name but `postcss.config.*` and a `postcss` key in any package.json; any file under a `.config/` directory (A1-257-8, C0-257r4-1); `vite.config.*`; `vitest.workspace.*`. The PostCSS names are the search list of Turbopack in Next.js 16.3.8, read on 2026-10-12 from the strings of the installed @next/swc-darwin-arm64 16.3.8 binary and copied into scripts/app-boundaries.mjs (POSTCSS_SEARCH_NAMES): `.postcssrc` and `.postcssrc.{json,yaml,yml,js,mjs,cjs,ts,mts,cts}`, `.config/postcssrc` and `.config/postcssrc.{json,yaml,yml,js,mjs,cjs,ts,mts,cts}`, then `postcss.config.{js,mjs,cjs,ts,mts,cts,json}`; Next's webpack mode (next/dist/lib/find-config.js) and Vite 8.3.2's postcss-load-config (vitest) name no file outside it, and both also read a package.json `postcss` key. Every one of these names is matched in any letter case (A1's advisory, round five: macOS opens `.Config/postcssrc.json` for `.config/postcssrc.json`). A shape is widened only with the change that needs the key, read by A1. The shapes and these refusals, with the guard's refusal of a tracked `.env*` file, CI's NODE_OPTIONS set to '' (A1-257-9) and the workspace scripts pinned by workspaceScripts below (A1-257-10), hold what configuration can make a build tool load (a loader, a PostCSS or Babel plugin, a preload, an npm hook). They do not hold all code that runs: code the repository itself runs in CI after the guard has read the tree (a test, a page's own code at prerender, build-time code it imports) could still write files or change the build's output, and that residual is held by review of every pull request, not by a check; CI runs the guard a second time immediately before the build, which catches a refused file left on disk by then, not one written later. scripts/verify-app-build-graph.mjs reads only what the build output names.",
+    "next.config": {
+      "imports": [{ "specifier": "next", "typeOnly": true, "names": ["NextConfig"] }],
+      "env": { "NEXT_TELEMETRY_DISABLED": "1" },
+      "call": null,
+      "types": ["NextConfig"],
+      "value": { "images": { "unoptimized": true }, "poweredByHeader": "boolean", "reactStrictMode": "boolean" }
+    },
+    "vitest.config": {
+      "imports": [{ "specifier": "vitest/config", "typeOnly": false, "names": ["defineConfig"] }],
+      "env": {},
+      "call": "defineConfig",
+      "types": [],
+      "value": { "test": { "include": { "$arrayOf": "string" }, "exclude": { "$arrayOf": "string" }, "environment": { "$oneOf": ["node"] }, "passWithNoTests": "boolean" } }
+    },
+    "postcss.config": {
+      "imports": [],
+      "env": {},
+      "call": null,
+      "types": [],
+      "value": { "plugins": { "@tailwindcss/postcss": {} } }
+    }
+  }
+}

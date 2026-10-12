@@ -1,0 +1,5 @@
+{
+  "$comment": "The negative control's project for \"allowJs\": false (RFC-2026-029 §2.1/2). Kept apart from tsconfig.json because tsc stops at the option error and reports no type error beside it.",
+  "extends": "../../tsconfig.base.json",
+  "files": ["plain.js"]
+}
