@@ -648,15 +648,24 @@ the search list Turbopack reads, taken from the installed Next.js 16.3.8), anyth
 where the PostCSS list was read, is stated once, in that file's `configShapes.$comment` (and `resolutionAliases.$comment`
 for compiler options and package.json maps), and is not restated here. The guard also refuses a tracked `.env*` file
 under `apps/`, `src/` or at the root, `.env.example` excepted, because Next.js loads one into the build and a
-`NODE_OPTIONS` in it preloads a module into every build worker (A1-257-9); and CI's `application` job sets
-`NODE_OPTIONS` to an empty value for every step. After `next build`, that job also runs
-`scripts/verify-app-build-graph.mjs`, which reads what the build output names (its file traces, its server and build
-source maps, its module ids) and fails on any repository file outside `apps/web/**` and `src/modules/**`, a
-platform-kernel adapter, `pg`, or a package no allowlisted package depends on. It needs no dependency and runs its
-negative controls first, A1-257-7's three routes among them as their builds showed them. It does not see code that runs
-during the build (a preload, a loader, a PostCSS or Babel plugin), which can change the output after the traces and maps
-are written: that is held by the configuration shapes, the `.config/` and `.env` refusals and the empty `NODE_OPTIONS`,
-not by the graph check (A1-257-8, A1-257-9).
+`NODE_OPTIONS` in it preloads a module into every build worker (A1-257-9); CI's `application` job sets `NODE_OPTIONS`
+to an empty value for every step (a root `.npmrc`, which could set it for `npm run`, is refused by the test-integrity
+guard in the `bootstrap` job). Every workspace `package.json` declares exactly the `scripts` the same file's
+`workspaceScripts` gives it (`apps/web`: `build` = `next build`), so no `prebuild` or `postbuild` hook and no changed
+build command runs around `next build`; the root's scripts are pinned by the test-integrity tooling (A1-257-10). Names
+are matched in any letter case. CI runs the guard a second time as the step immediately before `next build`. After
+`next build`, that job also runs `scripts/verify-app-build-graph.mjs`, which reads what the build output names (its file
+traces, its server and build source maps, its module ids) and fails on any repository file outside `apps/web/**` and
+`src/modules/**`, a platform-kernel adapter, `pg`, or a package no allowlisted package depends on. It needs no
+dependency and runs its negative controls first, A1-257-7's three routes among them as their builds showed them. It
+reads what the output names, not what ran to make it. The shapes, the refusals, the pinned scripts and the empty
+`NODE_OPTIONS` hold what configuration can make a build tool load (a loader, a PostCSS or Babel plugin, a preload, an
+npm hook); they do not hold all code that runs. Code the repository itself runs in CI after the guard has read the
+tree (a test under `npm run test:app`, a page's own code when `next build` prerenders it, build-time code it imports,
+each with the Node builtins the guard admits) could still write files, a refused configuration file among them, or
+change the build's output after the traces and maps are written. The guard's second run catches a refused file such
+code has left on disk by then, not one written later or by a process still running. That residual is held by review of
+every pull request, not by a check (A1-257-10).
 
 **`typescript` in the boundary guard's parser (§3.2).** The first review round on the skeleton pull request (#257;
 A1-257-1) showed that the dependency-free text reader can be made to miss an import, and that a guard that is much

@@ -28,6 +28,7 @@ import {
   extractSpecifiers,
   packageNameOf,
   readConfigShape,
+  workspaceScriptProblems,
 } from '../scripts/app-boundaries.mjs';
 import { loadAllowlist } from '../scripts/verify-app-dependencies.mjs';
 
@@ -721,4 +722,93 @@ test('A1 advisory (round four): the text reader ends a // comment at CR, U+2028 
   }
   // A comment that runs to the end of the file still ends there.
   assert.deepEqual(readConfigShape('export default {};\n// last line, no terminator').refusals, []);
+});
+
+test('A1-257-10: every workspace package.json declares exactly its allowlisted scripts, so a prebuild or postbuild hook or a changed build command fails', async () => {
+  const allowlist = await loadAllowlist();
+  const json = (value) => JSON.stringify(value);
+  const fails = (problems, pattern, why) => assert.ok(problems.some((p) => pattern.test(p)), `${why}: ${problems.join(' | ') || 'no problem reported'}`);
+  const ROOT = await readFile('package.json', 'utf8');
+  const WEB = JSON.parse(await readFile('apps/web/package.json', 'utf8'));
+  const check = (scripts, path = 'apps/web/package.json') => checkResolutionConfigs(tree({ 'package.json': ROOT, [path]: json({ ...WEB, scripts }) }), allowlist);
+  // The allowlist names apps/web's one script, and the repository's package.json files pass as they stand.
+  assert.deepEqual(Object.keys(allowlist.workspaceScripts).filter((k) => k !== '$comment'), ['apps/web']);
+  assert.deepEqual(allowlist.workspaceScripts['apps/web'], { build: 'next build' });
+  assert.match(allowlist.workspaceScripts.$comment, /A1-257-10[\s\S]*`postbuild`[\s\S]*no other script \(a `pre\*`\/`post\*` hook included\)/);
+  assert.deepEqual(WEB.scripts, { build: 'next build' }, 'apps/web declares the build and nothing else');
+  assert.deepEqual(checkResolutionConfigs(tree({ 'package.json': ROOT, 'apps/web/package.json': json(WEB) }), allowlist), [], 'the repository\'s package.json files pass');
+  assert.deepEqual(check(undefined), [], 'a workspace that declares no scripts runs none, and passes');
+  // A1's route 1, as A1 built it: a prebuild and a postbuild beside the unchanged build.
+  const hook = 'node ../../db/probe-a1/post.mjs';
+  fails(check({ prebuild: hook, build: 'next build' }), /^apps\/web\/package\.json declares the script `prebuild`, a hook npm runs around another script without being asked; .*\(build\) \(A1-257-10\)$/, "A1's prebuild");
+  fails(check({ build: 'next build', postbuild: hook }), /^apps\/web\/package\.json declares the script `postbuild`, a hook npm runs around another script/, "A1's postbuild");
+  fails(check({ build: `next build && ${hook}` }), /^apps\/web\/package\.json declares the script `build` as "next build && node \.\.\/\.\.\/db\/probe-a1\/post\.mjs", and the allowlist admits exactly "next build" \(A1-257-10\)$/, 'a changed build command');
+  fails(check({ build: 'next build --debug' }), /declares the script `build` as "next build --debug"/, 'a flag added to the build');
+  fails(check({ build: 'next build', dev: 'next dev' }), /declares the script `dev`; a workspace declares exactly/, 'any other script, not only a hook');
+  fails(check({ build: 'next build', pretest: hook, postinstall: hook }), /declares the script `pretest`, a hook/, 'a hook of another script');
+  fails(check({}), /declares `scripts` without `build`/, 'scripts declared without the build');
+  fails(check(['next build']), /declares `scripts` that is not an object of commands/, 'scripts that are not an object');
+  fails(check({ build: 'next build' }, 'db/tool/package.json'), /^db\/tool\/package\.json declares the script `build`; .*\(none\)/, 'a package.json in a directory the allowlist names no scripts for declares none');
+  // The root is the test-integrity tooling's: its names are pinned there, and this rule leaves it alone.
+  assert.deepEqual(workspaceScriptProblems('package.json', { scripts: { prebuild: hook } }, allowlist), []);
+  const floorTest = await readFile('test-kits/test-coverage-floor.test.mjs', 'utf8');
+  assert.match(floorTest, /assert\.deepEqual\(Object\.keys\(manifest\.scripts\)\.sort\(\), \[/, 'the root\'s script names are pinned by the test-integrity tooling');
+  const removed = { ...allowlist, workspaceScripts: { 'apps/web': { build: 'next build', postbuild: hook } } };
+  assert.deepEqual(checkResolutionConfigs(tree({ 'apps/web/package.json': json({ ...WEB, scripts: { build: 'next build', postbuild: hook } }) }), removed), [], 'the rule reads the allowlist, not a list written here');
+  // The walk reads the workspace's package.json from disk, as npm does.
+  const root = await mkdtemp(join(tmpdir(), 'app-boundaries-scripts-'));
+  try {
+    await mkdir(join(root, 'apps/web'), { recursive: true });
+    await writeFile(join(root, 'package.json'), ROOT);
+    await writeFile(join(root, 'apps/web/package.json'), json({ ...WEB, scripts: { build: 'next build', postbuild: hook } }));
+    const problems = checkResolutionConfigs(await collectResolutionConfigs(root), allowlist);
+    assert.equal(problems.length, 1, problems.join(' | '));
+    assert.match(problems[0], /^apps\/web\/package\.json declares the script `postbuild`/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+  const cli = await readFile('scripts/verify-app-boundaries.mjs', 'utf8');
+  for (const control of ["'A1-257-10: a prebuild hook in apps/web/package.json'", "'A1-257-10: a postbuild hook in apps/web/package.json'", "'A1-257-10: a changed build command in apps/web/package.json'"]) {
+    assert.ok(cli.includes(control), `the CLI holds the control ${control}`);
+  }
+});
+
+test("A1's advisory (round five): a configuration or environment file is refused, and collected, in any letter case", async () => {
+  const allowlist = await loadAllowlist();
+  const check = (configs) => checkResolutionConfigs(tree(configs), allowlist);
+  const fails = (problems, pattern, why) => assert.ok(problems.some((p) => pattern.test(p)), `${why}: ${problems.join(' | ') || 'no problem reported'}`);
+  const escape = (path) => path.replace(/[.]/g, '\\.');
+  // A1's probe: apps/web/.Config/postcssrc.json, which macOS opens for Turbopack's .config/postcssrc.json.
+  for (const path of ['apps/web/.Config/postcssrc.json', '.CONFIG/postcssrc.mjs', 'src/modules/x/.cOnFiG/tool']) {
+    fails(check({ [path]: '{}' }), new RegExp(`^${escape(path)} is a file under a \`\\.config\\/\` directory`), path);
+  }
+  for (const [path, what] of [['.PostCSSrc', 'a PostCSS configuration other'], ['apps/web/.POSTCSSRC.JSON', 'a PostCSS configuration other'], ['apps/web/Babel.config.js', 'a Babel configuration'],
+    ['.BabelRC', 'a Babel configuration'], ['apps/web/.babelrc.JSON', 'a Babel configuration'], ['Vite.config.ts', 'a Vite configuration'], ['apps/web/Vitest.Workspace.ts', 'a vitest workspace file']]) {
+    fails(check({ [path]: '{}' }), new RegExp(`^${escape(path)} is ${what}`), path);
+  }
+  // A build configuration in another letter case is held to its shape, as the tool would load it.
+  for (const [path, kind] of [['apps/web/PostCSS.config.js', 'postcss.config'], ['apps/web/Next.Config.TS', 'next.config'], ['Vitest.config.mts', 'vitest.config']]) {
+    assert.equal(configKindOf(path), kind, path);
+    fails(check({ [path]: "export default { plugins: { './probe.js': {} } };\n" }), new RegExp(`^${escape(path)} is not the allowlisted ${escape(kind)} shape`), path);
+  }
+  // Tracked environment and .config/ files, in any letter case; the template keeps its one spelling.
+  for (const path of ['apps/web/.ENV', '.Env.Local', 'src/modules/x/.ENV.production']) {
+    fails(checkTrackedFiles([path]), new RegExp(`^${escape(path)} is a tracked environment file`), path);
+  }
+  fails(checkTrackedFiles(['apps/web/.Config/postcssrc.json']), /is a tracked file under a `\.config\/` directory/, 'a tracked .Config/ file');
+  assert.deepEqual(checkTrackedFiles(['.env.example', 'apps/web/.env.example']), [], 'the template passes');
+  // The walk collects them from disk whatever their case, and nothing under node_modules.
+  const root = await mkdtemp(join(tmpdir(), 'app-boundaries-case-'));
+  try {
+    const write = async (path, text) => { await mkdir(join(root, path, '..'), { recursive: true }); await writeFile(join(root, path), text); };
+    for (const path of ['apps/web/.Config/postcssrc.json', 'apps/web/Babel.Config.JS', 'apps/web/node_modules/x/.Config/postcssrc.json']) await write(path, '{}');
+    const configs = await collectResolutionConfigs(root);
+    assert.deepEqual([...configs.keys()].sort(), ['apps/web/.Config/postcssrc.json', 'apps/web/Babel.Config.JS']);
+    assert.equal(checkResolutionConfigs(configs, allowlist).length, 2);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+  const cli = await readFile('scripts/verify-app-boundaries.mjs', 'utf8');
+  assert.ok(cli.includes('"A1 advisory (round five): a .Config/ directory in another letter case"'), 'the CLI holds a control for it');
+  assert.ok(cli.includes("'A1 advisory (round five): a tracked apps/web/.ENV in another letter case'"), 'and one for a tracked .ENV');
 });

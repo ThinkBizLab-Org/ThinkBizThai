@@ -78,13 +78,24 @@ import { stripNonCode } from './verify-test-coverage-floor.mjs';
 // directory (A1-257-8, C0-257r4-1), a `vite.config.*` and a `vitest.workspace.*` are refused wherever
 // they stand: the tools load them on their own and the guard reads no shape for them.
 //
-// WHAT RUNS DURING THE BUILD (A1-257-9). A tracked `.env*` file under apps/, src/ or at the root (all but
-// `.env.example`) is refused (checkTrackedFiles): Next.js loads one into the build's environment, and a
-// NODE_OPTIONS there preloads a module into every build worker. CI also sets NODE_OPTIONS to '' for
-// the whole application job. The build-graph check (scripts/verify-app-build-graph.mjs) reads what the
-// build output names; code that runs during the build (a preload, a loader, a PostCSS or Babel plugin)
-// can change that output after the traces and maps are written, so it is held here, by the shapes, the
-// refused files and those two rules, and not by the graph check.
+// WHAT RUNS DURING THE BUILD (A1-257-9, A1-257-10). A tracked `.env*` file under apps/, src/ or at the
+// root (all but `.env.example`) is refused (checkTrackedFiles): Next.js loads one into the build's
+// environment, and a NODE_OPTIONS there preloads a module into every build worker. CI also sets
+// NODE_OPTIONS to '' for the whole application job. Every workspace package.json declares exactly the
+// `scripts` scripts/app-dependency-allowlist.json's workspaceScripts gives it (apps/web: `build` = `next
+// build`), so no `prebuild` or `postbuild` hook and no changed build command runs around `next build`
+// (A1-257-10); the root's scripts are pinned by the test-integrity tooling. These rules hold what
+// configuration can make a build tool load. They do not hold all code that runs: code the repository
+// itself runs in CI after this guard has read the tree (a test, a page's own code when `next build`
+// prerenders it, build-time code it imports) could still write files or change the build's output, and
+// that residual is held by review of every pull request, not by a check. CI runs this guard a second
+// time immediately before the build, which catches a refused file left on disk by then, not one written
+// later. The build-graph check (scripts/verify-app-build-graph.mjs) reads what the build output names,
+// not what ran to make it.
+//
+// NAMES ARE MATCHED IN ANY LETTER CASE (A1's advisory, round five). macOS's file system is
+// case-insensitive, so a tool looking for `.config/postcssrc.json` opens `.Config/postcssrc.json`: every
+// pattern below that refuses or collects a configuration file by its name takes the `i` flag.
 
 const SOURCE = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs|css)$/;
 export const CODE = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
@@ -433,7 +444,7 @@ export function checkSecretsAndMigrations(files, directories, allowlist) {
 // directory is refused here too when it is tracked (A1-257-8), whether or not the configuration walk
 // above reads its directory. CI also runs the whole application job with NODE_OPTIONS set to '', so a
 // value from a `.env` the guard did not see would not be adopted either.
-const TRACKED_ENV_FILE = /^(?:(?:apps|src)\/(?:[^/]+\/)*)?\.env[^/]*$/;
+const TRACKED_ENV_FILE = /^(?:(?:apps|src)\/(?:[^/]+\/)*)?\.env[^/]*$/i;
 
 // The repository's tracked paths (`git ls-files`: the index, so a file staged with `git add -f` counts),
 // or null when git cannot list them; checkTrackedFiles refuses a null list rather than pass it.
@@ -502,11 +513,12 @@ export function checkJsxPragmas(files) {
 
 // --- module resolution aliases (Q-029-1; A1-257-1's alias note; A1-257-5; Q0-257r2-1) -------------
 
-const RESOLUTION_CONFIG = /(^|\/)(?:tsconfig[^/]*\.json|jsconfig[^/]*\.json|(?:next|vitest|postcss|babel|vite)\.config\.[a-z]+|\.babelrc(?:\.[a-z]+)?|\.postcssrc(?:\.[a-z]+)?|vitest\.workspace\.[a-z]+|package\.json)$/;
-// A `.config` entry, or anything under one, wherever it stands (A1-257-8, C0-257r4-1).
-const IN_CONFIG_DIRECTORY = /(^|\/)\.config(\/|$)/;
-const COMPILER_CONFIG = /(^|\/)[tj]sconfig[^/]*\.json$/;
-const PACKAGE_MANIFEST = /(^|\/)package\.json$/;
+// In any letter case (A1's advisory, round five): on a case-insensitive file system the tools open these.
+const RESOLUTION_CONFIG = /(^|\/)(?:tsconfig[^/]*\.json|jsconfig[^/]*\.json|(?:next|vitest|postcss|babel|vite)\.config\.[a-z]+|\.babelrc(?:\.[a-z]+)?|\.postcssrc(?:\.[a-z]+)?|vitest\.workspace\.[a-z]+|package\.json)$/i;
+// A `.config` entry, or anything under one, wherever it stands (A1-257-8, C0-257r4-1), in any letter case.
+const IN_CONFIG_DIRECTORY = /(^|\/)\.config(\/|$)/i;
+const COMPILER_CONFIG = /(^|\/)[tj]sconfig[^/]*\.json$/i;
+const PACKAGE_MANIFEST = /(^|\/)package\.json$/i;
 // The compiler options that make a specifier load another file (`paths`, `baseUrl`, `rootDirs`), or make
 // every JSX element import a module no statement names (`jsxImportSource`, `jsxFactory`,
 // `jsxFragmentFactory`, `reactNamespace`).
@@ -609,7 +621,8 @@ export async function collectResolutionConfigs(root = '.') {
 
 // The kind of build configuration a path is, by the name the tool looks for; its shape is
 // allowlist.configShapes[kind].
-export const CONFIG_KINDS = { 'next.config': /(^|\/)next\.config\.[a-z]+$/, 'vitest.config': /(^|\/)vitest\.config\.[a-z]+$/, 'postcss.config': /(^|\/)postcss\.config\.[a-z]+$/ };
+// In any letter case: a `PostCSS.config.js` is the file Turbopack opens for `postcss.config.js` on macOS.
+export const CONFIG_KINDS = { 'next.config': /(^|\/)next\.config\.[a-z]+$/i, 'vitest.config': /(^|\/)vitest\.config\.[a-z]+$/i, 'postcss.config': /(^|\/)postcss\.config\.[a-z]+$/i };
 export const configKindOf = (path) => Object.keys(CONFIG_KINDS).find((kind) => CONFIG_KINDS[kind].test(path)) ?? null;
 
 // The names Turbopack (Next.js 16.3.8, the skeleton's `next build`) looks for a PostCSS configuration
@@ -637,18 +650,52 @@ export const POSTCSS_SEARCH_NAMES = [
 // (A1-257-7's third route); PostCSS reads `.postcssrc*` and `.config/postcssrc*` ahead of
 // postcss.config.* (POSTCSS_SEARCH_NAMES); a `.config/` directory is where tools search for their own
 // configuration, so nothing under one is admitted (A1-257-8); vitest reads a vite.config.* or a
-// workspace file where it finds one.
+// workspace file where it finds one. Every pattern matches in any letter case (A1's advisory, round five).
 export const REFUSED_CONFIG_FILES = [
-  [/(^|\/)\.babelrc(?:\.[a-z]+)?$/, 'a Babel configuration'],
-  [/(^|\/)babel\.config\.[a-z]+$/, 'a Babel configuration'],
-  [/(^|\/)\.postcssrc(?:\.[a-z]+)?$/, 'a PostCSS configuration other than postcss.config.*'],
+  [/(^|\/)\.babelrc(?:\.[a-z]+)?$/i, 'a Babel configuration'],
+  [/(^|\/)babel\.config\.[a-z]+$/i, 'a Babel configuration'],
+  [/(^|\/)\.postcssrc(?:\.[a-z]+)?$/i, 'a PostCSS configuration other than postcss.config.*'],
   [IN_CONFIG_DIRECTORY, 'a file under a `.config/` directory, where build tools look for their own configuration (Turbopack: `.config/postcssrc*`)', 'A1-257-8, C0-257r4-1'],
-  [/(^|\/)vite\.config\.[a-z]+$/, 'a Vite configuration, which vitest reads in place of a vitest.config'],
-  [/(^|\/)vitest\.workspace\.[a-z]+$/, 'a vitest workspace file, which names further configurations'],
+  [/(^|\/)vite\.config\.[a-z]+$/i, 'a Vite configuration, which vitest reads in place of a vitest.config'],
+  [/(^|\/)vitest\.workspace\.[a-z]+$/i, 'a vitest workspace file, which names further configurations'],
 ];
 // The package.json keys that are such a configuration: Babel's and PostCSS's. Refused with no
 // allowlist route, like the files above.
 export const CONFIG_PACKAGE_FIELDS = ['babel', 'postcss'];
+
+// A1-257-10: `npm run build --workspace apps/web` runs the workspace's `prebuild`, then `build`, then
+// `postbuild`, and npm adds the two hooks without a word in the command; a `postbuild` runs after `next
+// build` has written the traces and maps scripts/verify-app-build-graph.mjs reads, and can rewrite them.
+// So every package.json but the root's declares `scripts` exactly as scripts/app-dependency-allowlist.json's
+// workspaceScripts gives them for its directory (apps/web: { "build": "next build" }), every key with its
+// command and no other key, or declares no `scripts` at all (then npm runs nothing); a package.json in a
+// directory the allowlist names no scripts for declares none. The root's scripts are not this rule's:
+// the test-integrity tooling pins them (scripts/verify-test-coverage-floor.mjs pins the check chain and
+// its commands; test-kits/test-coverage-floor.test.mjs pins the set of names, typecheck's and
+// test:app's commands among them, so a root `pre*`/`post*` hook fails `npm run check`).
+export function workspaceScriptProblems(path, manifest, allowlist) {
+  if (path === 'package.json' || manifest?.scripts === undefined) return [];
+  const directory = path.slice(0, -'/package.json'.length);
+  const entries = allowlist.workspaceScripts ?? {};
+  const admitted = Object.hasOwn(entries, directory) && directory !== '$comment' ? entries[directory] : {};
+  const scripts = manifest.scripts;
+  if (scripts === null || typeof scripts !== 'object' || Array.isArray(scripts)) {
+    return [`${path} declares \`scripts\` that is not an object of commands; a workspace declares exactly the scripts scripts/app-dependency-allowlist.json's workspaceScripts gives it (A1-257-10)`];
+  }
+  const problems = [];
+  for (const [name, command] of Object.entries(scripts)) {
+    if (!Object.hasOwn(admitted, name)) {
+      const hook = /^(?:pre|post)/.test(name) ? ', a hook npm runs around another script without being asked' : '';
+      problems.push(`${path} declares the script \`${name}\`${hook}; a workspace declares exactly the scripts scripts/app-dependency-allowlist.json's workspaceScripts gives it (${Object.keys(admitted).join(', ') || 'none'}) (A1-257-10)`);
+    } else if (command !== admitted[name]) {
+      problems.push(`${path} declares the script \`${name}\` as ${JSON.stringify(command)}, and the allowlist admits exactly ${JSON.stringify(admitted[name])} (A1-257-10)`);
+    }
+  }
+  for (const name of Object.keys(admitted).filter((key) => !Object.hasOwn(scripts, key))) {
+    problems.push(`${path} declares \`scripts\` without \`${name}\`; a workspace that declares scripts declares exactly the allowlisted ones (A1-257-10)`);
+  }
+  return problems;
+}
 
 const CONFIG_PUNCTUATION = ['??=', '{', '}', '(', ')', '[', ']', ',', ';', ':', '.', '='];
 const IDENTIFIER = /[A-Za-z_$][A-Za-z0-9_$]*/y;
@@ -911,6 +958,7 @@ export function checkResolutionConfigs(configs, allowlist, { readShape = readCon
       for (const field of CONFIG_PACKAGE_FIELDS) {
         if (manifest?.[field] !== undefined) problems.push(`${path} declares \`${field}\`, a ${field === 'babel' ? 'Babel' : 'PostCSS'} configuration a build tool loads on its own; none is admitted (A1-257-7)`);
       }
+      problems.push(...workspaceScriptProblems(path, manifest, allowlist));
     }
   }
   // Every compiler config, and every file its `extends` chain reaches, whatever that file is named

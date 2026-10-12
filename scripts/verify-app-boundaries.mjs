@@ -26,7 +26,11 @@ import { ALLOWLIST_PATH, loadAllowlist } from './verify-app-dependencies.mjs';
 // the application tree, for the packages they import (checkRepositoryImports), so that `typescript` is
 // imported by scripts/app-boundaries-parser.mjs alone (Amendment 2026-10-12). And it refuses a tracked
 // `.env*` file under apps/, src/ or at the root (`.env.example` excepted) and any tracked file under a
-// `.config/` directory, read from `git ls-files` (checkTrackedFiles; A1-257-9, A1-257-8).
+// `.config/` directory, read from `git ls-files` (checkTrackedFiles; A1-257-9, A1-257-8), and any
+// workspace package.json whose `scripts` are not exactly the allowlisted ones (A1-257-10). CI runs it
+// twice: after the install, and again immediately before the build, so a refused file that a test
+// left on disk is seen; one written later, or by a process still running, is not (A1-257-10: that
+// residual is held by review of every pull request, not by a check).
 //
 //   node scripts/verify-app-boundaries.mjs                   the parsed reader if `typescript` loads,
 //                                                            else the dependency-free text reader
@@ -150,6 +154,16 @@ export const ALIAS_CONTROLS = [
   }, /^apps\/web\/\.config\/postcssrc\.json is a file under a `\.config\/` directory/],
   ['C0-257r4-1: a .config/postcssrc.mjs at the root', { '.config/postcssrc.mjs': "export default { plugins: { 'postcss-import': {} } };\n" },
     /^\.config\/postcssrc\.mjs is a file under a `\.config\/` directory/],
+  // A1-257-10: npm runs a workspace's `prebuild` and `postbuild` around `npm run build --workspace apps/web`.
+  ['A1-257-10: a prebuild hook in apps/web/package.json', { 'apps/web/package.json': JSON.stringify({ name: '@r/web', private: true, scripts: { prebuild: 'node ../../db/probe/post.mjs', build: 'next build' } }) },
+    /^apps\/web\/package\.json declares the script `prebuild`, a hook npm runs around another script/],
+  ['A1-257-10: a postbuild hook in apps/web/package.json', { 'apps/web/package.json': JSON.stringify({ name: '@r/web', private: true, scripts: { build: 'next build', postbuild: 'node ../../db/probe/post.mjs' } }) },
+    /^apps\/web\/package\.json declares the script `postbuild`, a hook npm runs around another script/],
+  ['A1-257-10: a changed build command in apps/web/package.json', { 'apps/web/package.json': JSON.stringify({ name: '@r/web', private: true, scripts: { build: 'next build && node ../../db/probe/post.mjs' } }) },
+    /^apps\/web\/package\.json declares the script `build` as "next build && node \.\.\/\.\.\/db\/probe\/post\.mjs", and the allowlist admits exactly "next build"/],
+  // A1's advisory (round five): macOS opens `.Config/postcssrc.json` where Turbopack asks for `.config/postcssrc.json`.
+  ["A1 advisory (round five): a .Config/ directory in another letter case", { 'apps/web/.Config/postcssrc.json': JSON.stringify({ plugins: { '../../../db/probe/pc.mjs': {} } }) },
+    /^apps\/web\/\.Config\/postcssrc\.json is a file under a `\.config\/` directory/],
 ];
 
 // Tracked-file controls (A1-257-9, A1-257-8): lists of tracked paths, each of which must be refused,
@@ -161,6 +175,7 @@ export const TRACKED_CONTROLS = [
   ['A1-257-9: a tracked .env.production.local at the root', ['.env.production.local'], /^\.env\.production\.local is a tracked environment file/],
   ['A1-257-9: a tracked .env.local in a module', ['src/modules/x/.env.local'], /^src\/modules\/x\/\.env\.local is a tracked environment file/],
   ['A1-257-8: a tracked file under apps/web/.config/', ['apps/web/.config/postcssrc.json'], /^apps\/web\/\.config\/postcssrc\.json is a tracked file under a `\.config\/` directory/],
+  ['A1 advisory (round five): a tracked apps/web/.ENV in another letter case', ['apps/web/.ENV'], /^apps\/web\/\.ENV is a tracked environment file/],
 ];
 
 function judge(files, allowlist, extract) {

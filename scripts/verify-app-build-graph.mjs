@@ -27,13 +27,17 @@ import { ALLOWLIST_PATH, loadAllowlist } from './verify-app-dependencies.mjs';
 // application tree may import (pg excluded, §6.3/5). Turbopack's own runtime (`[turbopack]`,
 // `[turbopack-node]`) is not a repository file. A source it cannot place fails closed.
 //
-// WHAT IT DOES NOT SEE (A1-257-8, A1-257-9). It reads what the output names, not what ran to make it.
-// Code that runs during the build -- a NODE_OPTIONS preload, a loader, a PostCSS or Babel plugin loaded
-// by `require` -- is named in no trace, map or module id, and can change the output after the traces
-// and maps are written. That is held before the build, by the configuration shapes and refused files of
-// scripts/app-boundaries.mjs (a `.config/` directory and every PostCSS name but postcss.config.*
-// among them), by its refusal of a tracked `.env*` file, and by CI's NODE_OPTIONS set to '' for the
-// whole application job; not by this check.
+// WHAT IT DOES NOT SEE (A1-257-8, A1-257-9, A1-257-10). It reads what the output names, not what ran
+// to make it. Code that runs during the build -- a NODE_OPTIONS preload, a loader, a PostCSS or Babel
+// plugin loaded by `require`, an npm `postbuild` hook, a page's own code at prerender -- is named in no
+// trace, map or module id, and can change the output after the traces and maps are written. What
+// configuration can make a build tool load is held before the build, by the configuration shapes and
+// refused files of scripts/app-boundaries.mjs (a `.config/` directory and every PostCSS name but
+// postcss.config.* among them, in any letter case), its refusal of a tracked `.env*` file, its pin of
+// every workspace's `scripts`, and CI's NODE_OPTIONS set to '' for the whole application job. Code the
+// repository itself runs in CI after the guard (a test, a page at prerender, build-time code it imports)
+// could still write files or change the output; that residual is held by review of every pull
+// request, not by this check or any other.
 //
 // Client chunks carry no module path in a production build and no source map (productionBrowserSourceMaps
 // is not in the next.config shape: it would publish the source). A client component rendered on the

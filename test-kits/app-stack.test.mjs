@@ -233,6 +233,7 @@ test('CI runs the application checks in a job of their own, after every guard of
     ['Type-check the application', 'npm run typecheck'],
     ['Type-check negative control', 'node scripts/verify-typecheck-control.mjs'],
     ['Application tests', 'npm run test:app'],
+    ['Verify the application boundaries again, before the build (parsed)', 'node scripts/verify-app-boundaries.mjs --require-parser'],
     ['Build the web application', 'npm run build --workspace apps/web'],
     ['Verify what the build included', 'node scripts/verify-app-build-graph.mjs'],
     ['Vulnerability audit (network)', 'npm audit --omit=dev --audit-level=high'],
@@ -490,10 +491,77 @@ test('A1-257-9, A1-257-8, C0-257r4-2: the application job runs every step with N
   }
   const paragraph = rfc.slice(rfc.indexOf('**Build configuration, and what the build included'), rfc.indexOf('**`typescript` in the boundary guard\'s parser (§3.2).**')).replace(/\s+/g, ' ');
   assert.match(paragraph, /reads what the build output names/);
-  assert.match(paragraph, /It does not see code that runs during the build \(a preload, a loader, a PostCSS or Babel plugin\)[^.]*: that is held by the configuration shapes, the `\.config\/` and `\.env` refusals and the empty `NODE_OPTIONS`, not by the graph check/);
+  assert.match(paragraph, /It reads what the output names, not what ran to make it\./);
   assert.match(paragraph, /anything under a `\.config\/` directory/);
   const status = rfc.slice(rfc.indexOf('Status of this amendment:'), rfc.indexOf('**What was found.**')).replace(/\s+/g, ' ');
   assert.match(status, /\(below, "Build configuration, and what the build included"\)/, 'the status paragraph names the new paragraph (C0-257r4-2)');
-  assert.match(ci.replace(/\n\s*# ?/g, ' '), /code that runs during the build \(a preload, a loader, a PostCSS or Babel plugin\) can change the output/);
+  assert.match(ci.replace(/\n\s*# ?/g, ' '), /it reads what the output names, not what ran to make it/);
   assert.match(graph.replace(/\n\/\/ ?/g, ' '), /`next\/dynamic\(\.\.\., \{ ssr: false \}\)` is not rendered on the server and may be in client chunks alone, so it may be an exception this check does not see \(not measured; C0-257r4-2\)/);
+});
+
+// A1-257-10. The step that runs the boundary guard again: the one immediately before the build, after
+// every step that runs repository code, with the parsed reader required. Returns the problems.
+function guardBeforeBuild(steps) {
+  const GUARD = 'node scripts/verify-app-boundaries.mjs --require-parser';
+  const build = steps.findIndex((s) => s.run === 'npm run build --workspace apps/web');
+  if (build === -1) return ['no step builds the web application'];
+  const runs = steps.map((s, i) => [s, i]).filter(([s]) => s.run === GUARD).map(([, i]) => i);
+  const problems = [];
+  if (runs.length !== 2) problems.push(`the boundary guard runs ${runs.length} time(s); it runs after the install and again before the build`);
+  if (steps[build - 1]?.run !== GUARD) problems.push(`the step before the build is "${steps[build - 1]?.name}", not the boundary guard`);
+  const tests = steps.findIndex((s) => s.run === 'npm run test:app');
+  if (tests === -1 || tests > build - 1) problems.push('the guard\'s second run does not follow the application tests');
+  return problems;
+}
+
+test('A1-257-10: CI runs the boundary guard a second time, as the step immediately before the build, after the steps that run repository code', async () => {
+  const ci = await readFile('.github/workflows/ci.yml', 'utf8');
+  const steps = workflowJobs(ci).get('application').steps;
+  assert.deepEqual(guardBeforeBuild(steps), [], 'the guard runs again immediately before npm run build');
+  const names = steps.map((s) => s.name);
+  assert.deepEqual(names.slice(names.indexOf('Application tests'), names.indexOf('Build the web application') + 1),
+    ['Application tests', 'Verify the application boundaries again, before the build (parsed)', 'Build the web application']);
+  // The negative controls: the second run removed, moved before the tests, and run without the parser.
+  const SECOND = '      - name: Verify the application boundaries again, before the build (parsed)\n        run: node scripts/verify-app-boundaries.mjs --require-parser\n';
+  const removed = ci.replace(SECOND, '');
+  assert.notEqual(removed, ci);
+  assert.match(guardBeforeBuild(workflowJobs(removed).get('application').steps).join(' | '), /runs 1 time\(s\)[\s\S]*the step before the build is "Application tests"/, 'removed');
+  const early = removed.replace('      - name: Application tests\n', `${SECOND}      - name: Application tests\n`);
+  assert.notEqual(early, removed);
+  assert.match(guardBeforeBuild(workflowJobs(early).get('application').steps).join(' | '), /the step before the build is "Application tests"/, 'moved before the tests');
+  const bare = ci.replace(SECOND, SECOND.replace(' --require-parser\n', '\n'));
+  assert.notEqual(bare, ci);
+  assert.match(guardBeforeBuild(workflowJobs(bare).get('application').steps).join(' | '), /runs 1 time\(s\)[\s\S]*not the boundary guard/, 'without --require-parser');
+  // The comment says what it catches and what it does not.
+  assert.match(ci.replace(/\n\s*# ?/g, ' '), /A1-257-10: the boundary guard again, as the step immediately before the build\.[^]*A file written later, or by a process still running, is not/);
+});
+
+test('A1-257-10: the records say that code the repository runs in CI after the guard could still write files or change the output, and that this residual is held by review, not by a check', async () => {
+  const flat = (text) => text.replace(/\n\s*(?:#|\/\/) ?/g, ' ').replace(/\s+/g, ' ');
+  const rfc = await readFile('architecture/decisions/RFC-2026-029-application-tier-stack.md', 'utf8');
+  const paragraph = flat(rfc.slice(rfc.indexOf('**Build configuration, and what the build included'), rfc.indexOf('**`typescript` in the boundary guard\'s parser (§3.2).**')));
+  const ci = flat(await readFile('.github/workflows/ci.yml', 'utf8'));
+  const allowlist = await loadAllowlist();
+  const library = flat(await readFile('scripts/app-boundaries.mjs', 'utf8'));
+  const graph = flat(await readFile('scripts/verify-app-build-graph.mjs', 'utf8'));
+  const records = [['the RFC paragraph', paragraph], ['ci.yml', ci], ['configShapes.$comment', allowlist.configShapes.$comment], ['app-boundaries.mjs', library], ['verify-app-build-graph.mjs', graph]];
+  // A sentence that says build-time code is held by the shapes and refusals, as if that were all of it.
+  const COMPLETE = /(?:that|it) is held (?:here, )?by (?:the|those) (?:configuration )?shapes|is held by those shapes|The shapes and these refusals hold what runs during the build|That is held before the build, by the configuration shapes/;
+  for (const [name, text] of records) {
+    assert.match(text, /held by review of every pull request, not by (?:a|this) check/, `${name} names the residual and who holds it`);
+    assert.match(text, /could still write files/, `${name} says what that code could do`);
+    assert.match(text, /a test|a page/, `${name} names the code`);
+    assert.doesNotMatch(text, COMPLETE, `${name} does not say build-time code is held by the shapes and refusals as if that were complete`);
+  }
+  assert.match(paragraph, /\(a test under `npm run test:app`, a page's own code when `next build` prerenders it, build-time code it imports, each with the Node builtins the guard admits\)/);
+  assert.match(paragraph, /The guard's second run catches a refused file such code has left on disk by then, not one written later or by a process still running\./);
+  assert.match(paragraph, /no `prebuild` or `postbuild` hook and no changed build command runs around `next build`/);
+  // The negative control: each record as round four left it is refused by the same reading.
+  for (const old of [
+    'It does not see code that runs during the build (a preload, a loader, a PostCSS or Babel plugin), which can change the output after the traces and maps are written: that is held by the configuration shapes, the `.config/` and `.env` refusals and the empty `NODE_OPTIONS`, not by the graph check (A1-257-8, A1-257-9).',
+    'and is held by those shapes, the guard\'s `.env` and `.config/` refusals and the empty NODE_OPTIONS above, not by this check (A1-257-8, A1-257-9).',
+    "The shapes and these refusals hold what runs during the build (a loader, a PostCSS or Babel plugin), with the guard's refusal of a tracked `.env*` file and CI's NODE_OPTIONS set to '' (A1-257-9)",
+    'so it is held here, by the shapes, the refused files and those two rules, and not by the graph check.',
+    'That is held before the build, by the configuration shapes and refused files of scripts/app-boundaries.mjs',
+  ]) assert.match(old, COMPLETE, `the reading refuses round four's sentence: ${old.slice(0, 60)}`);
 });
