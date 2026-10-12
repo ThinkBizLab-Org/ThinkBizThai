@@ -7,6 +7,8 @@ import test from 'node:test';
 import {
   ALIAS_COMPILER_OPTIONS,
   ALIAS_PACKAGE_FIELDS,
+  CONFIG_PACKAGE_FIELDS,
+  REFUSED_CONFIG_FILES,
   checkBoundaries,
   checkJsxPragmas,
   checkRepositoryImports,
@@ -17,8 +19,11 @@ import {
   collectRepositoryCode,
   collectResolutionConfigs,
   collectSources,
+  configKindOf,
+  configShapeProblems,
   extractSpecifiers,
   packageNameOf,
+  readConfigShape,
 } from '../scripts/app-boundaries.mjs';
 import { loadAllowlist } from '../scripts/verify-app-dependencies.mjs';
 
@@ -233,10 +238,11 @@ test('Q-029-1: a path alias in a tsconfig or a next.config is refused until the 
   fails(check({ 'tsconfig.json': json({ extends: '@tsconfig/next/tsconfig.json' }) }), /extends "@tsconfig\/next\/tsconfig\.json", which is not a file in this repository/, 'an extends from a package');
   fails(check({ 'jsconfig.json': json({ compilerOptions: { paths: { '@/*': ['./*'] } } }) }), /jsconfig\.json sets compilerOptions\.paths/, 'a jsconfig');
   fails(check({ 'tsconfig.json': '{ // a comment\n "compilerOptions": {} }' }), /is not plain JSON/, 'a tsconfig the guard cannot read');
-  fails(check({ 'apps/web/next.config.ts': "export default { turbopack: { resolveAlias: { zod: 'pg' } } };\n" }), /names `resolveAlias`/, 'a turbopack alias');
-  fails(check({ 'apps/web/next.config.mjs': "export default { 'webpack': (c) => c };\n" }), /next\.config\.mjs names `webpack`/, 'a quoted webpack hook');
-  fails(check({ 'apps/web/next.config.ts': 'export default { typescript: { tsconfigPath: "./other.json" } };\n' }), /names `tsconfigPath`/, 'another tsconfig');
-  fails(check({ 'apps/web/next.config.ts': 'export default { experimental: { alias: {} } };\n' }), /names `alias`/, 'a bare alias key');
+  // A next.config is an allowlisted shape (A1-257-7): each of these keys is one the shape does not name.
+  fails(check({ 'apps/web/next.config.ts': "export default { turbopack: { resolveAlias: { zod: 'pg' } } };\n" }), /next\.config\.ts is not the allowlisted next\.config shape: `turbopack` is a key/, 'a turbopack alias');
+  fails(check({ 'apps/web/next.config.mjs': "export default { 'webpack': (c) => c };\n" }), /next\.config\.mjs is not the allowlisted next\.config shape/, 'a quoted webpack hook');
+  fails(check({ 'apps/web/next.config.ts': 'export default { typescript: { tsconfigPath: "./other.json" } };\n' }), /`typescript` is a key the allowlisted shape does not name/, 'another tsconfig');
+  fails(check({ 'apps/web/next.config.ts': 'export default { experimental: { alias: {} } };\n' }), /`experimental` is a key the allowlisted shape does not name/, 'a bare alias key');
   const admitted = { ...allowlist, resolutionAliases: { allowed: [{ file: 'tsconfig.json', option: 'paths' }] } };
   assert.deepEqual(check({ 'tsconfig.json': json({ compilerOptions: { paths: { '@modules/*': ['./src/modules/*'] } } }) }, admitted), [],
     'an entry in the allowlist admits that file and option, and only that one');
@@ -379,32 +385,40 @@ test('A1-257-5: a compiler config is followed along its extends chain, whatever 
   }
 });
 
-test('A1-257-5: a next.config imports only allowlisted packages and node: builtins, so no configuration reaches it from another module', async () => {
+test('A1-257-5, A1-257-7: a next.config imports nothing but `import type { NextConfig } from \'next\'`, so no configuration reaches it from another module or file', async () => {
   const allowlist = await loadAllowlist();
   const check = (source, options) => checkResolutionConfigs(tree({ 'apps/web/next.config.ts': source }), allowlist, options);
   const fails = (problems, pattern, why) => assert.ok(problems.some((p) => pattern.test(p)), `${why}: ${problems.join(' | ') || 'no problem reported'}`);
-  assert.deepEqual(check("import type { NextConfig } from 'next';\nimport { join } from 'node:path';\n/// <reference types=\"next\" />\nexport default { distDir: join('.', '.next') } satisfies NextConfig;\n"), [],
-    'an allowlisted package and a node: builtin pass');
-  // A1's second route, as A1 measured it: the alias keys arrive by a spread from apps/web/next-extra.ts.
+  assert.deepEqual(check("import type { NextConfig } from 'next';\nexport default { reactStrictMode: true } satisfies NextConfig;\n"), [], 'the one admitted import, type-only');
+  // A1-257-7's first route, as A1 built it: a node: builtin reads the keys from a sibling JSON file.
+  fails(check("import type { NextConfig } from 'next';\nimport { readFileSync } from 'node:fs';\n"
+    + "const config: NextConfig = { ...JSON.parse(readFileSync(new URL('./next-extra.json', import.meta.url), 'utf8')) };\nexport default config;\n"),
+  /next\.config\.ts is not the allowlisted next\.config shape/, "A1's node:fs route");
+  fails(check("import { join } from 'node:path';\nexport default { reactStrictMode: true };\n"), /the import of "node:path" is not one the shape admits/, 'a node: builtin, which round two admitted');
+  // A1-257-5's second route: the keys arrive by a spread from apps/web/next-extra.ts.
   fails(check("import type { NextConfig } from 'next';\nimport { extra } from './next-extra';\nconst config: NextConfig = { ...extra };\nexport default config;\n"),
-    /apps\/web\/next\.config\.ts imports \.\/next-extra: a next\.config imports only allowlisted packages and `node:` builtins/, "A1's sibling module");
-  fails(check("import type { Extra } from './types';\nexport default {} as Extra;\n"), /imports \.\/types: a next\.config imports only/, 'a type-only local import');
-  fails(check("export * from '../shared/config';\n"), /imports \.\.\/shared\/config: a next\.config imports only/, 'a re-export');
-  fails(check("export default (await import('./extra.mjs')).default;\n"), /imports \.\/extra\.mjs: a next\.config imports only/, 'a dynamic import');
-  fails(check("const extra = require('./extra.cjs');\nmodule.exports = extra;\n"), /next\.config\.ts: `require` at offset \d+: CommonJS loading/, 'a require');
-  fails(check("import { readFileSync } from 'fs';\nexport default JSON.parse(readFileSync('x.json', 'utf8'));\n"), /imports fs: a next\.config imports only/, 'a builtin not written as node:');
-  fails(check("import pad from 'left-pad';\nexport default pad;\n"), /imports left-pad: a next\.config imports only/, 'a package the allowlist does not name');
-  fails(check("import x from 'https://example.com/x.mjs';\nexport default x;\n"), /imports https:\/\/example\.com\/x\.mjs/, 'a URL');
-  fails(check("/// <reference path=\"./extra.d.ts\" />\nexport default {};\n"), /imports \.\/extra\.d\.ts/, 'a reference to a local file');
-  fails(check("export default { turbopack: { resolveAlias: { zod: 'pg' } } };\n"), /names `resolveAlias`/, 'the keyword refusal stands');
-  // The imports are read by the reader the CLI hands over: the parsed reader in CI.
-  const stand = () => ({ found: [{ specifier: './seen-by-the-parser', kind: 'import' }], refusals: [] });
-  fails(check('export default {};\n', { extract: stand }), /imports \.\/seen-by-the-parser/, 'an import only the given reader reports');
+    /next\.config\.ts is not the allowlisted next\.config shape/, "A1's sibling module");
+  fails(check("import type { Extra } from './types';\nexport default {};\n"), /the import of "\.\/types" is not one the shape admits/, 'a type-only local import');
+  fails(check("import { NextConfig } from 'next';\nexport default {};\n"), /the import of "next" is a value import, and the shape admits a type-only import \(`import type`\) only/, 'a value import of next');
+  fails(check("import type { NextConfig as C } from 'next';\nexport default {};\n"), /names `NextConfig` as `C`/, 'an aliased type');
+  fails(check("export * from '../shared/config';\n"), /is not the allowlisted next\.config shape/, 'a re-export');
+  fails(check("export default (await import('./extra.mjs')).default;\n"), /is not the allowlisted next\.config shape/, 'a dynamic import');
+  fails(check("const extra = require('./extra.cjs');\nmodule.exports = extra;\n"), /is not the allowlisted next\.config shape/, 'a require');
+  fails(check("import { createRequire } from 'node:module';\nconst r = createRequire(import.meta.url);\nexport default r('./x.cjs');\n"), /is not the allowlisted next\.config shape/, 'createRequire');
+  fails(check("import pad from 'left-pad';\nexport default pad;\n"), /the import of "left-pad" is not one the shape admits/, 'a package the shape does not name');
+  fails(check("import x from 'https://example.com/x.mjs';\nexport default x;\n"), /the import of "https:\/\/example\.com\/x\.mjs" is not one the shape admits/, 'a URL');
+  fails(check("/// <reference path=\"./extra.d.ts\" />\nexport default {};\n"), /a triple-slash directive/, 'a reference to a local file');
+  // The file is read by the reader the CLI hands over: in CI, the parsed reader, agreeing with the text reader.
+  const stand = () => ({ statements: [{ kind: 'import', specifier: './seen-by-the-parser', typeOnly: true, defaultName: null, named: [] }, { kind: 'export-default', value: { object: [] } }], refusals: [] });
+  fails(check('export default {};\n', { readShape: stand }), /the import of "\.\/seen-by-the-parser" is not one the shape admits/, 'an import only the given reader reports');
   const cli = await readFile('scripts/verify-app-boundaries.mjs', 'utf8');
-  assert.match(cli, /const configExtract = parser \? parsedExtract\(parser, configs\) : extractSpecifiers;/, 'the CLI reads the configs through the parser when it is loaded');
-  assert.match(cli, /\.\.\.checkResolutionConfigs\(configs, allowlist, \{ extract: configExtract \}\),/, 'and judges them with it');
-  assert.match(cli, /checkResolutionConfigs\(configs, allowlist, \{ extract: parsedExtract\(parser, configs\) \}\)/, 'its alias controls run through the parser too');
-  for (const control of ["'A1-257-5: an extends into a JSON not named tsconfig, holding paths'", "'A1-257-5: a next.config spreading an object from a sibling module'", "'A1-257-5: jsxImportSource in a tsconfig'"]) {
+  assert.match(cli, /const configShape = parser \? parsedShape\(parser, configs\) : readConfigShape;/, 'the CLI reads the configs through the parser when it is loaded');
+  assert.match(cli, /\.\.\.checkResolutionConfigs\(configs, allowlist, \{ readShape: configShape \}\),/, 'and judges them with it');
+  assert.match(cli, /checkResolutionConfigs\(configs, allowlist, \{ readShape: parsedShape\(parser, configs\) \}\)/, 'its alias controls run through the parser too');
+  assert.match(cli, /if \(JSON\.stringify\(result\.shape\) !== JSON\.stringify\(text\)\) return \{ statements: \[\], refusals: \['the TypeScript parser and the text reader read it differently'\] \};/,
+    'and the parsed reading counts only when the text reader reads the same');
+  for (const control of ["'A1-257-5: an extends into a JSON not named tsconfig, holding paths'", "'A1-257-5: a next.config spreading an object from a sibling module'", "'A1-257-5: jsxImportSource in a tsconfig'",
+    "'A1-257-7: a next.config reading its keys from a JSON file through node:fs'", "'A1-257-7, Q0-257r3-1: a turbopack.rules loader in next.config'", "'A1-257-7: a Babel configuration file'"]) {
     assert.ok(cli.includes(control), `the CLI holds the control ${control} before it reads the repository`);
   }
 });
@@ -428,26 +442,27 @@ test('A1-257-5: a @jsxImportSource, @jsx or @jsxFrag pragma in application code 
   assert.ok(cli.includes("'A1-257-5: a @jsxImportSource pragma in a page'"), 'and holds a control for it');
 });
 
-test('a next.config naming modularizeImports or swcPlugins, and a vitest.config naming alias or resolve, fail unless the allowlist names them', async () => {
+test('a next.config naming modularizeImports or swcPlugins, and a vitest.config naming alias or resolve, fail unless the allowlisted shape names them', async () => {
   const allowlist = await loadAllowlist();
   const check = (configs, copy = allowlist) => checkResolutionConfigs(tree(configs), copy);
   const fails = (problems, pattern, why) => assert.ok(problems.some((p) => pattern.test(p)), `${why}: ${problems.join(' | ') || 'no problem reported'}`);
   // Each rewrites what a specifier loads: modularizeImports rewrites an import's path, swcPlugins runs a
   // compiler plugin over every file, and Vite's resolve.alias (or vitest's test.alias) points a specifier elsewhere.
   fails(check({ 'apps/web/next.config.ts': "export default { modularizeImports: { zod: { transform: '../../db/probe/{{member}}' } } };\n" }),
-    /apps\/web\/next\.config\.ts names `modularizeImports`/, 'a next.config rewriting an import through modularizeImports');
+    /apps\/web\/next\.config\.ts is not the allowlisted next\.config shape: `modularizeImports` is a key/, 'a next.config rewriting an import through modularizeImports');
   fails(check({ 'apps/web/next.config.mjs': "export default { experimental: { 'swcPlugins': [['./probe-plugin.wasm', {}]] } };\n" }),
-    /apps\/web\/next\.config\.mjs names `swcPlugins`/, 'a next.config running an SWC plugin, its key quoted');
+    /apps\/web\/next\.config\.mjs is not the allowlisted next\.config shape: `experimental` is a key/, 'a next.config running an SWC plugin, its key quoted');
   const vitest = "import { defineConfig } from 'vitest/config';\nexport default defineConfig({ resolve: { alias: { zod: './db/probe/target.ts' } } });\n";
-  const problems = check({ 'vitest.config.ts': vitest });
-  fails(problems, /^vitest\.config\.ts names `resolve`/, 'a vitest.config with resolve.alias, by its resolve');
-  fails(problems, /^vitest\.config\.ts names `alias`/, 'and by its alias');
-  fails(check({ 'apps/web/vitest.config.mts': "export default { test: { alias: { zod: 'pg' } } };\n" }), /apps\/web\/vitest\.config\.mts names `alias`/, "vitest's own test.alias, in a nested config");
-  assert.deepEqual(check({ 'vitest.config.ts': "import { defineConfig } from 'vitest/config';\nexport default defineConfig({ test: { include: ['apps/**/*.test.ts'], environment: 'node' } });\n",
-    'apps/web/next.config.ts': 'export default { images: { unoptimized: true } };\n' }), [], 'a vitest.config and a next.config naming neither pass');
-  const admitted = { ...allowlist, resolutionAliases: { allowed: [{ file: 'vitest.config.ts', option: 'resolve' }, { file: 'vitest.config.ts', option: 'alias' }] } };
-  assert.deepEqual(check({ 'vitest.config.ts': vitest }, admitted), [], 'an allowlist entry admits that file and option');
-  fails(check({ 'apps/web/vitest.config.ts': vitest }, admitted), /apps\/web\/vitest\.config\.ts names `resolve`/, 'and only that file');
+  fails(check({ 'vitest.config.ts': vitest }), /^vitest\.config\.ts is not the allowlisted vitest\.config shape: `resolve` is a key/, 'a vitest.config with resolve.alias');
+  fails(check({ 'apps/web/vitest.config.mts': "import { defineConfig } from 'vitest/config';\nexport default defineConfig({ test: { alias: { zod: 'pg' } } });\n" }),
+    /apps\/web\/vitest\.config\.mts is not the allowlisted vitest\.config shape: `test\.alias` is a key/, "vitest's own test.alias, in a nested config");
+  fails(check({ 'vitest.config.ts': "export default { test: {} };\n" }), /the default export is not `defineConfig\(\{ \.\.\. \}\)`/, 'a vitest.config not wrapped as the shape says');
+  // R0-257-9: the word scan is gone, so `resolve` in a comment or a string is no longer a refusal.
+  assert.deepEqual(check({ 'vitest.config.ts': "import { defineConfig } from 'vitest/config';\n// path.resolve is not used here\nexport default defineConfig({ test: { include: ['apps/**/*.test.ts'], environment: 'node' } });\n",
+    'apps/web/next.config.ts': 'export default { images: { unoptimized: true } };\n' }), [], 'a vitest.config and a next.config of the allowlisted shapes pass');
+  const widened = JSON.parse(JSON.stringify(allowlist));
+  widened.configShapes['vitest.config'].value.resolve = { alias: { zod: 'string' } };
+  assert.deepEqual(check({ 'vitest.config.ts': vitest }, widened), [], 'a key is admitted by widening the allowlisted shape, and only so');
   const cli = await readFile('scripts/verify-app-boundaries.mjs', 'utf8');
   for (const control of ["'a next.config rewriting an import through modularizeImports'", "'a next.config running an SWC plugin'", "'a vitest.config with resolve.alias'"]) {
     assert.ok(cli.includes(control), `the CLI holds the control ${control} before it reads the repository`);
@@ -473,4 +488,129 @@ test('Q0-257r2-1: a browser, imports, exports or other module map in a package.j
   assert.deepEqual(check({ imports: { '#x': './x.js' } }, admitted), [], 'an allowlist entry admits that file and field');
   fails(check({ browser: {} }, admitted), /declares `browser`/, 'and only that field');
   fails(check({}, admitted, json({ name: 'r', imports: {} })), /^package\.json declares `imports`/, 'and only that file');
+});
+
+test('A1-257-7, Q0-257r3-1, R0-257-8, Q0 N12: every build configuration is held to its allowlisted shape, so each route the reviewers built fails', async () => {
+  const allowlist = await loadAllowlist();
+  const check = (path, source, copy = allowlist) => checkResolutionConfigs(tree({ [path]: source }), copy);
+  const fails = (problems, pattern, why) => assert.ok(problems.some((p) => pattern.test(p)), `${why}: ${problems.join(' | ') || 'no problem reported'}`);
+  const NEXT = 'apps/web/next.config.ts';
+  const next = (body, head = "import type { NextConfig } from 'next';\n") => `${head}const config: NextConfig = {\n  images: { unoptimized: true },\n${body}};\nexport default config;\n`;
+  // The skeleton's own three files pass, and the allowlist names exactly what they use.
+  for (const path of ['apps/web/next.config.ts', 'vitest.config.ts', 'apps/web/postcss.config.mjs']) {
+    assert.deepEqual(check(path, await readFile(path, 'utf8')), [], `${path} is of its allowlisted shape`);
+    assert.equal(configKindOf(path), path.match(/(next|vitest|postcss)\.config/)[0]);
+  }
+  assert.deepEqual(Object.keys(allowlist.configShapes).filter((k) => k !== '$comment'), ['next.config', 'vitest.config', 'postcss.config']);
+  assert.deepEqual(allowlist.configShapes['next.config'].value, { images: { unoptimized: true }, poweredByHeader: 'boolean', reactStrictMode: 'boolean' }, 'next.config: the keys the skeleton uses, and no other');
+  assert.deepEqual(allowlist.configShapes['next.config'].imports, [{ specifier: 'next', typeOnly: true, names: ['NextConfig'] }]);
+  assert.deepEqual(allowlist.configShapes['next.config'].env, { NEXT_TELEMETRY_DISABLED: '1' });
+  assert.deepEqual(Object.keys(allowlist.configShapes['vitest.config'].value.test), ['include', 'exclude', 'environment', 'passWithNoTests']);
+  assert.deepEqual(allowlist.configShapes['postcss.config'].value, { plugins: { '@tailwindcss/postcss': {} } });
+  assert.match(allowlist.configShapes.$comment, /`turbopack`[\s\S]*`experimental`[\s\S]*`webpack`[\s\S]*`compiler`[\s\S]*`modularizeImports`[\s\S]*`transpilePackages`[\s\S]*`rewrites`[\s\S]*`redirects`/, 'the comment lists what the shape leaves out');
+
+  // next.config: Q0-257r3-1 and A1-257-7's second route, the turbopack.rules loader; then each other form.
+  fails(check(NEXT, next("  turbopack: { rules: { '*.tsx': { loaders: ['./probe-loader.cjs'], as: '*.tsx' } } },\n")), /`turbopack` is a key the allowlisted shape does not name/, 'a turbopack.rules loader');
+  fails(check(NEXT, "export default { ['resolve' + 'Alias']: { zod: 'pg' } };\n"), /is not the allowlisted next\.config shape/, "Q0's computed key");
+  fails(check(NEXT, "export default { ['turbopack']: {} };\n"), /a key that is not written out/, 'a computed key of one string');
+  fails(check(NEXT, "export default { ...JSON.parse(process.env.NEXT_EXTRA ?? '{}') };\n"), /is not the allowlisted next\.config shape/, "Q0's process.env keys");
+  fails(check(NEXT, "export default { ...process.env };\n"), /a key that is not written out/, 'a spread of process.env');
+  fails(check(NEXT, next('  reactStrictMode: process.env.STRICT,\n')), /is not the allowlisted next\.config shape/, 'a value read from process.env');
+  fails(check(NEXT, next("  images: { unoptimized: true, loader: 'custom', loaderFile: './probe-loader.ts' },\n").replace('  images: { unoptimized: true },\n', '')), /`images\.loader` is a key the allowlisted shape does not name/, 'an image loader file, which is a module');
+  fails(check(NEXT, next('').replace('unoptimized: true', 'unoptimized: false')), /`images\.unoptimized` is false, and the shape admits only true/, 'sharp back in the build');
+  fails(check(NEXT, next("  poweredByHeader: 'no',\n")), /`poweredByHeader` is a string, and the shape admits a boolean/, 'a value of another type');
+  fails(check(NEXT, next('  reactStrictMode: true,\n  reactStrictMode: false,\n')), /`reactStrictMode` is written twice/, 'a key written twice');
+  fails(check(NEXT, next('  webpack: (config) => config,\n')), /is not the allowlisted next\.config shape/, 'a function value');
+  fails(check(NEXT, next('  rewrites() { return []; },\n')), /is not the allowlisted next\.config shape/, 'a method');
+  for (const key of ['experimental', 'compiler', 'transpilePackages', 'redirects', 'productionBrowserSourceMaps', 'distDir', 'output']) {
+    fails(check(NEXT, next(`  ${key}: true,\n`)), new RegExp(`\`${key}\` is a key the allowlisted shape does not name`), `the ${key} key`);
+  }
+  fails(check(NEXT, "export default async () => ({});\n"), /is not the allowlisted next\.config shape/, 'a config function');
+  fails(check(NEXT, "const a = {};\nconst b = {};\nexport default a;\n"), /more than one `const`/, 'two constants');
+  fails(check(NEXT, "export default {};\nexport default {};\n"), /2 default exports/, 'two default exports');
+  fails(check(NEXT, "let config = {};\nexport default config;\n"), /a statement no allowlisted shape holds/, 'a let');
+  fails(check(NEXT, "export const config = {};\n"), /expected default/, 'a named export');
+  fails(check(NEXT, "export default other;\n"), /`export default other` names no `const` of this file/, 'an export of a name the file does not declare');
+  fails(check(NEXT, "process.env.NODE_OPTIONS ??= '--require ./x.cjs';\nexport default {};\n"), /`process\.env\.NODE_OPTIONS \?\?= .*` is not a default the shape admits/, 'another environment default');
+  fails(check(NEXT, "process.env.NEXT_TELEMETRY_DISABLED ??= '0';\nexport default {};\n"), /is not a default the shape admits/, 'telemetry turned back on');
+  fails(check(NEXT, "import type { NextConfig } from 'next';\nexport default {} satisfies Other;\n"), /the type `Other` is not one the shape admits/, 'a type the shape does not name');
+  fails(check(NEXT, 'export default { a: `x` };\n'), /``` at offset \d+, which no allowlisted shape holds/, 'a template literal');
+  fails(check(NEXT, "export default { a: 'x\\u0041' };\n"), /a string at offset \d+ holds an escape/, 'an escape in a string');
+  fails(check(NEXT, 'export default { \\u0061: true };\n'), /`\\` at offset \d+/, 'an escape in an identifier');
+  fails(check(NEXT, 'export default { a: 1 };\n'), /`1` at offset \d+/, 'a number');
+  fails(check(NEXT, 'export default {}; /* open\n'), /an unterminated comment/, 'an unterminated comment');
+  fails(check(NEXT, "export default {}\n['a'];\n"), /more after a statement/, 'a statement that ASI would join to the next');
+
+  // vitest.config: R0-257-8 (a spread from an application module), Q0 N12 (an inline resolveId plugin), and the rest.
+  const V = 'vitest.config.ts';
+  const vitest = (body, head = "import { defineConfig } from 'vitest/config';\n") => `${head}export default defineConfig({\n${body}  test: { environment: 'node' },\n});\n`;
+  fails(check(V, vitest('  ...extra,\n', "import { defineConfig } from 'vitest/config';\nimport { extra } from './apps/web/lib/extra';\n")), /is not the allowlisted vitest\.config shape/, "R0's spread from apps/web/lib/extra");
+  fails(check(V, vitest("  plugins: [{ name: 'p', enforce: 'pre', resolveId(id) { return id; } }],\n")), /is not the allowlisted vitest\.config shape/, "Q0's inline resolveId plugin");
+  fails(check(V, vitest("  plugins: [],\n")), /`plugins` is a key the allowlisted shape does not name/, 'even an empty plugins list');
+  fails(check(V, vitest('').replace("environment: 'node'", "environment: './db/probe/env.ts'")), /`test\.environment` is "\.\/db\/probe\/env\.ts", and the shape admits only "node"/, 'a custom environment, which is a module');
+  for (const key of ['setupFiles', 'globalSetup', 'alias', 'deps', 'server', 'projects']) {
+    fails(check(V, vitest('').replace("test: { environment: 'node' }", `test: { ${key}: [] }`)), new RegExp(`\`test\\.${key}\` is a key the allowlisted shape does not name`), `test.${key}`);
+  }
+  fails(check(V, vitest('', "import { defineConfig } from 'vitest/node';\n")), /the import of "vitest\/node" is not one the shape admits/, 'defineConfig from another module');
+  fails(check(V, "import { defineConfig as d } from 'vitest/config';\nexport default d({ test: {} });\n"), /names `defineConfig` as `d`/, 'an aliased wrapper');
+  fails(check(V, "import { defineConfig } from 'vitest/config';\nexport default defineConfig({ test: {} }, {});\n"), /the default export is not `defineConfig\(\{ \.\.\. \}\)`/, 'a second argument');
+  fails(check(V, vitest('').replace("'node'", "'node', include: 'apps'")), /`test\.include` is a string, and the shape admits an array/, 'include as a string');
+
+  // postcss.config: only @tailwindcss/postcss, with no options, and no import.
+  const P = 'apps/web/postcss.config.mjs';
+  fails(check(P, "export default { plugins: { './probe-plugin.js': {} } };\n"), /`plugins\.\.\/probe-plugin\.js` is a key the allowlisted shape does not name/, 'a local plugin');
+  fails(check(P, "export default { plugins: { '@tailwindcss/postcss': { base: '../../db' } } };\n"), /`plugins\.@tailwindcss\/postcss\.base` is a key/, 'plugin options');
+  fails(check(P, "export default { plugins: ['@tailwindcss/postcss'] };\n"), /`plugins` is a array, and the shape admits an object of written keys/, 'the array form');
+  fails(check(P, "import tailwind from '@tailwindcss/postcss';\nexport default { plugins: [tailwind()] };\n"), /the import of "@tailwindcss\/postcss" is not one the shape admits/, 'a plugin imported as a value');
+  fails(check(P, "export default { plugins: {}, syntax: 'postcss-scss' };\n"), /`syntax` is a key the allowlisted shape does not name/, 'a syntax module');
+
+  // The rule reads the copy: with no shape for a kind, every file of that kind fails.
+  const bare = { ...allowlist, configShapes: {} };
+  fails(check(NEXT, await readFile(NEXT, 'utf8'), bare), /no allowlisted shape for a next\.config/, 'no shape, no file');
+  assert.deepEqual(configShapeProblems('next.config', readConfigShape(await readFile(NEXT, 'utf8')), allowlist.configShapes['next.config']), []);
+});
+
+test('A1-257-7: a Babel, extra PostCSS, Vite or vitest workspace configuration anywhere, and a babel or postcss key in any package.json, fail', async () => {
+  const allowlist = await loadAllowlist();
+  const check = (configs) => checkResolutionConfigs(tree(configs), allowlist);
+  const fails = (problems, pattern, why) => assert.ok(problems.some((p) => pattern.test(p)), `${why}: ${problems.join(' | ') || 'no problem reported'}`);
+  // A1-257-7's third route, as A1 built it: Next.js picks up apps/web/.babelrc by itself.
+  fails(check({ 'apps/web/.babelrc': JSON.stringify({ presets: ['next/babel'], plugins: ['./probe-babel.cjs'] }) }), /apps\/web\/\.babelrc is a Babel configuration/, "A1's .babelrc");
+  for (const path of ['.babelrc.json', 'apps/web/.babelrc.js', 'babel.config.js', 'apps/web/babel.config.cjs', 'src/modules/x/babel.config.json']) {
+    fails(check({ [path]: '{}' }), new RegExp(`^${path.replace(/[.]/g, '\\.')} is a Babel configuration`), path);
+  }
+  fails(check({ 'apps/web/.postcssrc.json': '{}' }), /is a PostCSS configuration other than postcss\.config\.\*/, '.postcssrc.json');
+  fails(check({ '.postcssrc': '{}' }), /^\.postcssrc is a PostCSS configuration/, '.postcssrc');
+  fails(check({ 'vite.config.ts': 'export default {};\n' }), /^vite\.config\.ts is a Vite configuration/, 'a vite.config');
+  fails(check({ 'apps/web/vitest.workspace.ts': 'export default [];\n' }), /is a vitest workspace file/, 'a vitest workspace');
+  assert.equal(REFUSED_CONFIG_FILES.length, 5);
+  const json = (value) => JSON.stringify(value);
+  fails(check({ 'apps/web/package.json': json({ name: '@r/web', private: true, babel: { plugins: ['./probe-babel.cjs'] } }) }), /apps\/web\/package\.json declares `babel`, a Babel configuration/, 'a babel key');
+  fails(check({ 'package.json': json({ name: 'r', private: true, postcss: { plugins: { './x.js': {} } } }) }), /^package\.json declares `postcss`, a PostCSS configuration/, 'a postcss key');
+  assert.deepEqual(CONFIG_PACKAGE_FIELDS, ['babel', 'postcss']);
+  const admitted = { ...allowlist, resolutionAliases: { allowed: [{ file: 'apps/web/package.json', option: 'babel' }, { file: 'apps/web/.babelrc', option: 'plugins' }] } };
+  fails(checkResolutionConfigs(tree({ 'apps/web/package.json': json({ name: 'x', babel: {} }), 'apps/web/.babelrc': '{}' }), admitted), /declares `babel`/, 'no allowlist entry admits them');
+  // The walk finds them on disk wherever they stand, outside node_modules.
+  const root = await mkdtemp(join(tmpdir(), 'app-boundaries-'));
+  try {
+    const write = async (path, text) => { await mkdir(join(root, path, '..'), { recursive: true }); await writeFile(join(root, path), text); };
+    for (const path of ['apps/web/.babelrc', 'db/x/babel.config.mjs', 'apps/web/.postcssrc.yml', 'vite.config.mts', 'apps/web/postcss.config.mjs', 'apps/web/node_modules/x/.babelrc']) await write(path, '{}');
+    const configs = await collectResolutionConfigs(root);
+    assert.deepEqual([...configs.keys()].sort(), ['apps/web/.babelrc', 'apps/web/.postcssrc.yml', 'apps/web/postcss.config.mjs', 'db/x/babel.config.mjs', 'vite.config.mts']);
+    assert.equal(checkResolutionConfigs(configs, allowlist).length, 5, 'each fails, the postcss.config.mjs by its shape');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('A1-257-7: a Tailwind @plugin or @config in CSS is read as an import and held to the same rules', async () => {
+  const { found, refusals } = extractSpecifiers("@import 'tailwindcss';\n@plugin '../../../db/probe/plugin.js';\n@config \"./tailwind.config.mjs\";\n/* @plugin 'not-read' */\n", 'apps/web/app/globals.css');
+  assert.deepEqual(found.map((f) => [f.specifier, f.kind]), [['tailwindcss', 'css-import'], ['../../../db/probe/plugin.js', 'css-plugin'], ['./tailwind.config.mjs', 'css-config']]);
+  assert.deepEqual(refusals, []);
+  assert.match(extractSpecifiers('@plugin someName;\n', 'apps/web/app/x.css').refusals.join(), /`@plugin` at offset 0 names no module as one string literal/);
+  await mustFail({ 'apps/web/app/globals.css': "@import 'tailwindcss';\n@plugin '../../../db/probe/plugin.js';\n" }, /apps\/web\/app\/globals\.css imports \.\.\/\.\.\/\.\.\/db\/probe\/plugin\.js, which names no file/, 'a plugin from db/');
+  await mustFail({ 'apps/web/app/globals.css': "@plugin '@tailwindcss/typography';\n" }, /imports @tailwindcss\/typography: @tailwindcss\/typography is not in RFC-2026-029/, 'a plugin package the allowlist does not name');
+  await mustFail({ 'apps/web/app/globals.css': "@plugin './plugin.js';\n", 'apps/web/app/plugin.js': "import pg from 'pg';\nexport default pg;\n" }, /apps\/web\/app\/plugin\.js imports pg/, 'a local plugin is read as application code');
+  const cli = await readFile('scripts/verify-app-boundaries.mjs', 'utf8');
+  assert.ok(cli.includes("'A1-257-7: a Tailwind @plugin loading a module from outside the application'"), 'the CLI holds a control for it');
 });

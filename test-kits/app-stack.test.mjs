@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFile, readdir } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import {
@@ -12,6 +14,17 @@ import {
 } from '../scripts/verify-typecheck-control.mjs';
 import { ageVerdict, changedEntries } from '../scripts/verify-release-age.mjs';
 import { ALLOWED_DEPENDENCIES, CoverageFloorError, assertPackageScripts, extractImports } from '../scripts/verify-test-coverage-floor.mjs';
+import {
+  BUILD_CONTROLS,
+  CLEAN_BUILD,
+  checkBuildGraph,
+  collectBuild,
+  judgeIncluded,
+  reachablePackages,
+  readBuildGraph,
+  runBuildControls,
+} from '../scripts/verify-app-build-graph.mjs';
+import { loadAllowlist } from '../scripts/verify-app-dependencies.mjs';
 
 // The application tier's checks that need the installed toolchain or the network -- `tsc` and its
 // negative control (RFC-2026-029 §8/3), the release age (§4.8, §8/9), the audit (§4.6), the
@@ -221,6 +234,7 @@ test('CI runs the application checks in a job of their own, after every guard of
     ['Type-check negative control', 'node scripts/verify-typecheck-control.mjs'],
     ['Application tests', 'npm run test:app'],
     ['Build the web application', 'npm run build --workspace apps/web'],
+    ['Verify what the build included', 'node scripts/verify-app-build-graph.mjs'],
     ['Vulnerability audit (network)', 'npm audit --omit=dev --audit-level=high'],
     ['Release age of new lockfile entries (network)', 'node scripts/verify-release-age.mjs "$BASE_SHA"'],
   ];
@@ -390,4 +404,56 @@ test('the web skeleton wires Tailwind through PostCSS, keeps telemetry off, need
     assert.doesNotMatch(source, /process\.env|fetch\(|next\/font|'use server'|"use server"/, `${name} reads no environment, fetches nothing and holds no Server Action`);
   }
   assert.match(await readFile('apps/web/.gitignore', 'utf8'), /^next-env\.d\.ts$/m, 'the generated next-env.d.ts is not tracked; apps/web/types/next.d.ts carries its references');
+});
+
+test('A1-257-7: after the build, what it included is held to §6.3, and the check\'s controls hold before it reads the build', async () => {
+  const allowlist = await loadAllowlist();
+  const lock = JSON.parse(await readFile('package-lock.json', 'utf8'));
+  const reachable = reachablePackages(lock, allowlist);
+  for (const name of ['next', 'react', 'react-dom', '@swc/helpers', 'styled-jsx', 'postcss', 'tailwindcss', 'sharp']) assert.ok(reachable.has(name), `${name} is reachable from an allowlisted package`);
+  for (const name of ['pg', 'typescript', 'left-pad']) assert.ok(!reachable.has(name), `${name} is not: pg by §6.3/5, typescript by its cell (the parser only)`);
+  assert.deepEqual(runBuildControls(reachable), [], 'every control is refused, and the clean build passes');
+  const verdict = (overrides) => checkBuildGraph(new Map(Object.entries({ ...CLEAN_BUILD, ...overrides })), { reachable }).problems;
+  assert.deepEqual(verdict({}), []);
+  // A1-257-7's three routes, as their builds on this branch showed them: the page's SSR chunk map names db/probe-a1/target.ts.
+  for (const [name, overrides] of BUILD_CONTROLS.slice(0, 3)) {
+    assert.match(name, /^A1-257-7 route [123] \(built\)/);
+    assert.match(verdict(overrides).join(' | '), /^db\/probe-a1\/target\.ts is a repository file outside apps\/web\/\*\* and src\/modules\/\*\* \(RFC-2026-029 §6\.3\); the build included it \(server\/chunks\/ssr\//, name);
+  }
+  assert.equal(BUILD_CONTROLS.length, 11);
+  // Each form a build writes a module in is read and placed.
+  const { included, unplaced } = readBuildGraph(new Map(Object.entries({
+    'server/app/page.js.nft.json': JSON.stringify({ version: 1, files: ['../../../../../node_modules/next/package.json'] }),
+    'server/chunks/ssr/a.js.map': JSON.stringify({ version: 3, sections: [{ map: { sourceRoot: 'src', sources: ['../../../../../../../apps/web/app/%5Bslug%5D/page.tsx?x=1'] } }] }),
+    'build/chunks/b.js.map': JSON.stringify({ version: 3, sources: ['turbopack:///[project]/apps/web/postcss.config.mjs', 'turbopack:///[turbopack-node]/x.ts', 'turbopack:///[other]/y.ts'] }),
+    'server/app/page_client-reference-manifest.js': '{"[project]/apps/web/components/b.tsx":{}} "[project]/src/modules/k/index.ts [app-ssr] (ecmascript)"',
+  })));
+  assert.deepEqual(included.map((i) => i.path).sort(), ['apps/web/app/[slug]/page.tsx', 'apps/web/components/b.tsx', 'apps/web/postcss.config.mjs', 'node_modules/next/package.json', 'src/modules/k/index.ts']);
+  assert.deepEqual(unplaced, ['build/chunks/b.js.map names turbopack:///[other]/y.ts, a Turbopack source the check cannot place']);
+  assert.equal(judgeIncluded('src/modules/identity-workspace/adapters/store.ts', reachable), null, 'another module\'s adapters, which a composition root may import');
+  assert.match(judgeIncluded('src/modules/platform-kernel/adapters/job-store.ts', reachable), /§6\.3\/5/);
+  assert.match(judgeIncluded('apps/worker/composition/jobs.ts', reachable), /outside apps\/web\/\*\* and src\/modules\/\*\*/);
+  assert.match(judgeIncluded('package.json', reachable), /outside apps\/web/, 'not even the root package.json');
+  assert.match(judgeIncluded('db/node_modules/zod/index.js', reachable), /outside apps\/web/, 'a node_modules directory the install did not make is a repository file');
+  assert.match(judgeIncluded('node_modules/next/node_modules/pg/lib/index.js', reachable), /is pg/, 'a nested copy is judged by its own name');
+  assert.match(checkBuildGraph(new Map(), { reachable }).problems.join(), /a build this check cannot see into is not a pass/, 'an empty build fails');
+  assert.match(checkBuildGraph(new Map(Object.entries({ 'server/app/page.js.nft.json': JSON.stringify({ version: 1, files: [] }), 'server/x.js.map': JSON.stringify({ sources: [] }) })), { reachable }).problems.join(),
+    /0 module\(s\) under apps\/web\/app\//, 'a build that shows no application module fails');
+  // The collector reads the build's text files, and not its cache or generated types.
+  const root = await mkdtemp(join(tmpdir(), 'app-build-graph-'));
+  try {
+    for (const [path, text] of Object.entries({ 'server/app/page.js.nft.json': '{}', 'server/chunks/ssr/a.js.map': '{}', 'static/chunks/c.js': 'x', 'cache/x.json': '{}', 'types/routes.d.ts': 'x', 'server/app/index.html': 'x' })) {
+      await mkdir(join(root, path, '..'), { recursive: true });
+      await writeFile(join(root, path), text);
+    }
+    assert.deepEqual([...(await collectBuild(root)).keys()].sort(), ['server/app/page.js.nft.json', 'server/chunks/ssr/a.js.map', 'static/chunks/c.js']);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+  // The CLI runs the controls, and exits on a failure, before it reads the build.
+  const cli = await readFile('scripts/verify-app-build-graph.mjs', 'utf8');
+  const controlsAt = cli.indexOf('const failures = runBuildControls(reachable);');
+  assert.ok(controlsAt > 0 && controlsAt < cli.indexOf('build = await collectBuild(directory);'), 'the controls run first');
+  assert.match(cli, /if \(failures\.length > 0\) \{\n(?: {4}.*\n){1,3} {4}process\.exit\(1\);\n {2}\}/, 'and a failed control ends the run');
+  assert.doesNotMatch(cli, /^import .* from '(?!node:|\.\/)/m, 'the check imports no package: it runs on what the build wrote, not on what it installed');
 });

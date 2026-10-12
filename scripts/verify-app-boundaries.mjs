@@ -14,6 +14,7 @@ import {
   collectResolutionConfigs,
   collectSources,
   extractSpecifiers,
+  readConfigShape,
 } from './app-boundaries.mjs';
 import { ALLOWLIST_PATH, loadAllowlist } from './verify-app-dependencies.mjs';
 
@@ -81,20 +82,31 @@ export const CONTROLS = [
     /apps\/web\/app\/x\.tsx:1 uses the `@jsxImportSource` pragma/],
   ['A1-257-5: a @jsx and a @jsxFrag pragma in a module', { 'src/modules/identity-workspace/application/x.tsx': '/* @jsx h */\n/* @jsxFrag F */\nexport const e = 1;\n' },
     /x\.tsx:2 uses the `@jsxFrag` pragma/],
+  ['A1-257-7: a Tailwind @plugin loading a module from outside the application', { 'apps/web/app/globals.css': "@import 'tailwindcss';\n@plugin '../../../db/probe/plugin.js';\n" },
+    /apps\/web\/app\/globals\.css imports \.\.\/\.\.\/\.\.\/db\/probe\/plugin\.js/],
 ];
 
-// Alias controls: the resolution configs (tsconfigs, next.config.*, vitest.config.*, package.json) are
-// read from their text, and a next.config's imports through the parsed reader (A1-257-5).
+// Alias controls: the resolution configs (tsconfigs, package.json, and the build configurations, read
+// as allowlisted shapes) through the parsed reader, which must agree with the text reader (A1-257-5,
+// A1-257-7). CLEAN_CONFIGS is the skeleton's own three build configurations, which must pass that way.
+export const CLEAN_CONFIGS = {
+  'apps/web/next.config.ts': "import type { NextConfig } from 'next';\n// telemetry\nprocess.env.NEXT_TELEMETRY_DISABLED ??= '1';\n"
+    + 'const nextConfig: NextConfig = {\n  images: { unoptimized: true },\n  poweredByHeader: false,\n  reactStrictMode: true,\n};\n\nexport default nextConfig;\n',
+  'vitest.config.ts': "import { defineConfig } from 'vitest/config';\nexport default defineConfig({\n  test: {\n    include: ['apps/**/*.test.ts'],\n    exclude: ['**/node_modules/**'],\n    environment: 'node',\n    passWithNoTests: false,\n  },\n});\n",
+  'apps/web/postcss.config.mjs': "const config = {\n  plugins: {\n    '@tailwindcss/postcss': {},\n  },\n};\n\nexport default config;\n",
+};
+const NEXT = 'apps/web/next.config.ts';
+const shapeOf = (kind) => new RegExp(`is not the allowlisted ${kind.replace('.', '\\.')} shape`);
 export const ALIAS_CONTROLS = [
   ['an alias to pg through tsconfig paths', { 'tsconfig.json': JSON.stringify({ compilerOptions: { paths: { zod: ['./node_modules/pg'] } } }) }, /sets compilerOptions\.paths/],
   ['a baseUrl', { 'apps/web/tsconfig.json': JSON.stringify({ compilerOptions: { baseUrl: '.' } }) }, /sets compilerOptions\.baseUrl/],
-  ['a turbopack resolveAlias', { 'apps/web/next.config.ts': "export default { turbopack: { resolveAlias: { zod: 'pg' } } };\n" }, /names `resolveAlias`/],
-  ['a webpack hook', { 'apps/web/next.config.ts': "export default { 'webpack': (c: unknown) => c };\n" }, /names `webpack`/],
-  ['a next.config rewriting an import through modularizeImports', { 'apps/web/next.config.ts': "export default { modularizeImports: { zod: { transform: '../../db/probe/{{member}}' } } };\n" },
-    /next\.config\.ts names `modularizeImports`/],
-  ['a next.config running an SWC plugin', { 'apps/web/next.config.ts': "export default { experimental: { swcPlugins: [['./probe-plugin.wasm', {}]] } };\n" }, /next\.config\.ts names `swcPlugins`/],
+  ['a turbopack resolveAlias', { [NEXT]: "export default { turbopack: { resolveAlias: { zod: 'pg' } } };\n" }, /`turbopack` is a key the allowlisted shape does not name/],
+  ['a webpack hook', { [NEXT]: "export default { 'webpack': (c: unknown) => c };\n" }, shapeOf('next.config')],
+  ['a next.config rewriting an import through modularizeImports', { [NEXT]: "export default { modularizeImports: { zod: { transform: '../../db/probe/{{member}}' } } };\n" },
+    /`modularizeImports` is a key the allowlisted shape does not name/],
+  ['a next.config running an SWC plugin', { [NEXT]: "export default { experimental: { swcPlugins: [['./probe-plugin.wasm', {}]] } };\n" }, /`experimental` is a key the allowlisted shape does not name/],
   ['a vitest.config with resolve.alias', { 'vitest.config.ts': "import { defineConfig } from 'vitest/config';\nexport default defineConfig({ resolve: { alias: { zod: './db/probe/target.ts' } } });\n" },
-    /vitest\.config\.ts names `(?:resolve|alias)`/],
+    /vitest\.config\.ts is not the allowlisted vitest\.config shape: `resolve` is a key/],
   ['a tsconfig extended from a package', { 'tsconfig.json': JSON.stringify({ extends: '@tsconfig/next/tsconfig.json' }) }, /is not a file in this repository/],
   ['A1-257-5: an extends into a JSON not named tsconfig, holding paths', {
     'tsconfig.base.json': '{}',
@@ -103,12 +115,32 @@ export const ALIAS_CONTROLS = [
   }, /apps\/web\/base\.json sets compilerOptions\.paths/],
   ['A1-257-5: jsxImportSource in a tsconfig', { 'apps/web/tsconfig.json': JSON.stringify({ compilerOptions: { jsxImportSource: '../../db/probe/rt' } }) }, /sets compilerOptions\.jsxImportSource/],
   ['A1-257-5: a next.config spreading an object from a sibling module', {
-    'apps/web/next.config.ts': "import type { NextConfig } from 'next';\nimport { extra } from './next-extra';\nconst config: NextConfig = { ...extra };\nexport default config;\n",
-  }, /next\.config\.ts imports \.\/next-extra: a next\.config imports only allowlisted packages/],
+    [NEXT]: "import type { NextConfig } from 'next';\nimport { extra } from './next-extra';\nconst config: NextConfig = { ...extra };\nexport default config;\n",
+  }, shapeOf('next.config')],
   ['Q0-257r2-1: a browser field in a workspace package.json', {
     'package.json': JSON.stringify({ name: 'r', private: true, workspaces: ['apps/web'] }),
     'apps/web/package.json': JSON.stringify({ name: '@r/web', private: true, browser: { './lib/probe.ts': './lib/alt.ts' } }),
   }, /apps\/web\/package\.json declares `browser`/],
+  ['A1-257-7: a next.config reading its keys from a JSON file through node:fs', {
+    [NEXT]: "import type { NextConfig } from 'next';\nimport { readFileSync } from 'node:fs';\n"
+      + "const config: NextConfig = { ...JSON.parse(readFileSync(new URL('./next-extra.json', import.meta.url), 'utf8')) };\nexport default config;\n",
+  }, shapeOf('next.config')],
+  ['A1-257-7, Q0-257r3-1: a turbopack.rules loader in next.config', {
+    [NEXT]: "import type { NextConfig } from 'next';\nconst config: NextConfig = { turbopack: { rules: { '*.tsx': { loaders: ['./probe-loader.cjs'], as: '*.tsx' } } } };\nexport default config;\n",
+  }, /`turbopack` is a key the allowlisted shape does not name/],
+  ['A1-257-7: a Babel configuration file', { 'apps/web/.babelrc': JSON.stringify({ presets: ['next/babel'], plugins: ['./probe-babel.cjs'] }) }, /apps\/web\/\.babelrc is a Babel configuration/],
+  ['A1-257-7: a babel key in a package.json', { 'apps/web/package.json': JSON.stringify({ name: '@r/web', private: true, babel: { plugins: ['./probe-babel.cjs'] } }) },
+    /apps\/web\/package\.json declares `babel`/],
+  ['Q0-257r3-1: a computed key in next.config', { [NEXT]: "export default { ['resolve' + 'Alias']: { zod: 'pg' } };\n" }, shapeOf('next.config')],
+  ['Q0-257r3-1: next.config keys taken from process.env', { [NEXT]: "export default { ...JSON.parse(process.env.NEXT_EXTRA ?? '{}') };\n" }, shapeOf('next.config')],
+  ['R0-257-8: a vitest.config spreading an application module', {
+    'vitest.config.ts': "import { defineConfig } from 'vitest/config';\nimport { extra } from './apps/web/lib/extra';\nexport default defineConfig({ ...extra, test: { environment: 'node' } });\n",
+  }, shapeOf('vitest.config')],
+  ['Q0 N12: a vitest.config with an inline resolveId plugin', {
+    'vitest.config.ts': "import { defineConfig } from 'vitest/config';\nexport default defineConfig({ plugins: [{ name: 'p', enforce: 'pre', resolveId(id: string) { return id; } }], test: {} });\n",
+  }, shapeOf('vitest.config')],
+  ['a postcss.config loading a local plugin', { 'apps/web/postcss.config.mjs': "export default { plugins: { './probe-plugin.js': {} } };\n" },
+    /`plugins\.\.\/probe-plugin\.js` is a key the allowlisted shape does not name/],
 ];
 
 function judge(files, allowlist, extract) {
@@ -127,6 +159,22 @@ function parsedExtract(parser, files) {
   return (raw, path) => (CODE.test(path) ? (parsed.get(path) ?? { found: [], refusals: ['the parsed reader returned nothing for this file'], anys: [] }) : extractSpecifiers(raw, path));
 }
 
+// A build configuration read by both readers over one parse of `files` (A1-257-7): the parsed reading
+// is used only when the text reader's is equal to it, so neither reader alone decides a shape. A
+// refusal by either is a refusal.
+function parsedShape(parser, files) {
+  const parsed = parser.parse(files);
+  return (raw, path) => {
+    const text = readConfigShape(raw);
+    const result = parsed.get(path);
+    if (!result?.shape) return { statements: [], refusals: result?.refusals?.length ? result.refusals : ['the parsed reader returned nothing for this file'] };
+    if (result.shape.refusals.length > 0) return result.shape;
+    if (text.refusals.length > 0) return text;
+    if (JSON.stringify(result.shape) !== JSON.stringify(text)) return { statements: [], refusals: ['the TypeScript parser and the text reader read it differently'] };
+    return result.shape;
+  };
+}
+
 export function runControls(parser, allowlist) {
   const failures = [];
   const clean = tree(CLEAN);
@@ -137,9 +185,12 @@ export function runControls(parser, allowlist) {
     const problems = judge(files, allowlist, parsedExtract(parser, files));
     if (!problems.some((p) => pattern.test(p))) failures.push(`control "${name}" was not refused: ${problems.join(' | ') || 'no problem reported'}`);
   }
+  const cleanConfigs = tree(CLEAN_CONFIGS);
+  const cleanConfigProblems = checkResolutionConfigs(cleanConfigs, allowlist, { readShape: parsedShape(parser, cleanConfigs) });
+  if (cleanConfigProblems.length > 0) failures.push(`the clean build configurations were refused: ${cleanConfigProblems.join(' | ')}`);
   for (const [name, overrides, pattern] of ALIAS_CONTROLS) {
     const configs = tree(overrides);
-    const problems = checkResolutionConfigs(configs, allowlist, { extract: parsedExtract(parser, configs) });
+    const problems = checkResolutionConfigs(configs, allowlist, { readShape: parsedShape(parser, configs) });
     if (!problems.some((p) => pattern.test(p))) failures.push(`control "${name}" was not refused: ${problems.join(' | ') || 'no problem reported'}`);
   }
   return failures;
@@ -180,17 +231,17 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   // reader too when it is loaded, so a `typescript` import the text reader would misread is still seen.
   const repository = await collectRepositoryCode('.');
   const repositoryExtract = parser ? parsedExtract(parser, repository) : extractSpecifiers;
-  // Every resolution config, the files their `extends` chains reach included; a next.config's imports
-  // are read by the parsed reader too when it is loaded (A1-257-5).
+  // Every resolution config, the files their `extends` chains reach included; a build configuration is
+  // read by the parsed reader too when it is loaded, and the two readings must agree (A1-257-7).
   const configs = await collectResolutionConfigs('.');
-  const configExtract = parser ? parsedExtract(parser, configs) : extractSpecifiers;
+  const configShape = parser ? parsedShape(parser, configs) : readConfigShape;
   const problems = [
     ...checkBoundaries(files, allowlist, { extract }),
     ...checkRepositoryImports(repository, allowlist, { extract: repositoryExtract }),
     ...checkTypeDirectives(files),
     ...checkJsxPragmas(files),
     ...checkSecretsAndMigrations(files, await collectDirectories('.'), allowlist),
-    ...checkResolutionConfigs(configs, allowlist, { extract: configExtract }),
+    ...checkResolutionConfigs(configs, allowlist, { readShape: configShape }),
   ];
   parser?.close();
   if (problems.length > 0) {
@@ -202,7 +253,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   const others = `; ${repository.size} other code file(s) import no package outside their §3 cell (typescript: the parser only, Amendment 2026-10-12)`;
   if (parser) {
     console.log(`application boundaries: ${count} source file(s) keep RFC-2026-029 §6.3, §2.1/3 and §8/5, read by the TypeScript parser `
-      + `(${CONTROLS.length + ALIAS_CONTROLS.length + 1} negative and positive controls held first)${others}`);
+      + `(${CONTROLS.length + ALIAS_CONTROLS.length + 2} negative and positive controls held first)${others}`);
   } else {
     console.log(`application boundaries: ${count} source file(s) keep RFC-2026-029 §6.3, the §2.1/3 directives and §8/5, read by the dependency-free text reader${others}. `
       + '`typescript` did not load, so the parsed checks (the full import reading and §2.1/3\'s `any`) were not run here; CI runs them with --require-parser');

@@ -52,18 +52,30 @@ import { stripNonCode } from './verify-test-coverage-floor.mjs';
 // `extends` that leaves the repository, or names a package that is not one of the repository's own
 // workspaces, is refused. In every file of a chain a `paths`, `baseUrl` or `rootDirs` is refused, and so
 // are `jsxImportSource`, `jsxFactory`, `jsxFragmentFactory` and `reactNamespace`, which name the module
-// the compiler imports for every JSX element. In any next.config.* an `alias`, `resolveAlias`, `webpack`,
-// `tsconfigPath`, `modularizeImports` (which rewrites an import's path) or `swcPlugins` (which runs a
-// compiler plugin over every file) is refused, and so is any import of a local file, a URL or a package
-// the allowlist does not name (only `node:` builtins and allowlisted packages), so its configuration
-// cannot come from a sibling module. In any vitest.config.* an `alias` or `resolve` is refused (Vite's
-// `resolve.alias`, and vitest's own `test.alias`, can point a specifier at another module). In any package.json a `browser`, `imports`, `exports`, `alias`, `react-native` or
-// `typesVersions` map is refused. Each is refused unless scripts/app-dependency-allowlist.json's
-// resolutionAliases names that file and option (none does), because each can make the bundler load
-// `pg` under an allowlisted name. A JSX pragma (`@jsxImportSource`, `@jsx`, `@jsxFrag`) in application
-// code is refused by checkJsxPragmas, below, for the same reason. A bare specifier that is not an
-// allowlisted package or a Node builtin is refused too, so `@modules/<key>` fails here until the
-// package that configures it teaches the guard to resolve it.
+// the compiler imports for every JSX element. In any package.json a `browser`, `imports`, `exports`,
+// `alias`, `react-native` or `typesVersions` map is refused. Each is refused unless
+// scripts/app-dependency-allowlist.json's resolutionAliases names that file and option (none does),
+// because each can make the bundler load `pg` under an allowlisted name. A JSX pragma
+// (`@jsxImportSource`, `@jsx`, `@jsxFrag`) in application code is refused by checkJsxPragmas, below,
+// for the same reason. A bare specifier that is not an allowlisted package or a Node builtin is refused
+// too, so `@modules/<key>` fails here until the package that configures it teaches the guard to resolve it.
+//
+// BUILD CONFIGURATION IS AN ALLOWLISTED SHAPE, NOT A LIST OF REFUSED WORDS (A1-257-7, Q0-257r3-1,
+// R0-257-8, Q0 N12). Three review rounds each found another key, or another way to bring a key in, that
+// made the bundler or vitest load a module no statement names. So every next.config.*, vitest.config.*
+// and postcss.config.* is read as a program of a few statement forms (a type-only or allowlisted import,
+// one `const`, one `export default`, and the one `process.env` default the allowlist names) whose
+// exported value is literal data -- objects with written keys, arrays, strings, booleans -- and that
+// value must fit the shape scripts/app-dependency-allowlist.json's configShapes gives for that kind of
+// file, key by key. A spread, a computed key, a function, a call other than the allowlisted wrapper, a
+// value import, a `node:` builtin, a `require` and any key the shape does not name fail. The text reader
+// below fails closed on anything outside that grammar; in CI the TypeScript parser reads the same file
+// into the same form and the two readings must agree (scripts/app-boundaries-parser.mjs, readShape). A
+// Babel configuration (`.babelrc`, `.babelrc.*`, `babel.config.*`, a package.json `babel` key), a PostCSS
+// configuration other than postcss.config.* (`.postcssrc*`, a package.json `postcss` key), a
+// `vite.config.*` and a `vitest.workspace.*` are refused wherever they stand: the tools load them on
+// their own and the guard reads no shape for them. What the shapes miss, the build-graph check
+// (scripts/verify-app-build-graph.mjs) sees in what `next build` actually included.
 
 const SOURCE = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs|css)$/;
 export const CODE = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
@@ -102,6 +114,10 @@ export function extractSpecifiers(raw, path = '') {
   if (path.endsWith('.css')) {
     const code = raw.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
     for (const m of code.matchAll(/@import\s+(?:url\(\s*)?(['"])([^'"\n]+)\1/g)) found.push({ specifier: m[2], kind: 'css-import' });
+    // Tailwind's `@plugin` and `@config` load a JavaScript module into the CSS build: a module like any
+    // other, held to the same rules (A1-257-7's class: build configuration that loads a module).
+    for (const m of code.matchAll(/@(plugin|config)\s+(['"])([^'"\n]+)\2/g)) found.push({ specifier: m[3], kind: `css-${m[1]}` });
+    for (const m of code.matchAll(/@(plugin|config)(?![\w-])(?!\s+(['"])[^'"\n]+\2)/g)) refusals.push(`\`@${m[1]}\` at offset ${m.index} names no module as one string literal`);
     return { found, refusals };
   }
   for (const m of raw.matchAll(/^\/\/\/\s*<reference\s+(types|path)\s*=\s*(['"])([^'"\n]+)\2/gm)) {
@@ -438,10 +454,8 @@ export function checkJsxPragmas(files) {
 
 // --- module resolution aliases (Q-029-1; A1-257-1's alias note; A1-257-5; Q0-257r2-1) -------------
 
-const RESOLUTION_CONFIG = /(^|\/)(?:tsconfig[^/]*\.json|jsconfig[^/]*\.json|next\.config\.[a-z]+|vitest\.config\.[a-z]+|package\.json)$/;
+const RESOLUTION_CONFIG = /(^|\/)(?:tsconfig[^/]*\.json|jsconfig[^/]*\.json|(?:next|vitest|postcss|babel|vite)\.config\.[a-z]+|\.babelrc(?:\.[a-z]+)?|\.postcssrc(?:\.[a-z]+)?|vitest\.workspace\.[a-z]+|package\.json)$/;
 const COMPILER_CONFIG = /(^|\/)[tj]sconfig[^/]*\.json$/;
-const NEXT_CONFIG = /(^|\/)next\.config\.[a-z]+$/;
-const VITEST_CONFIG = /(^|\/)vitest\.config\.[a-z]+$/;
 const PACKAGE_MANIFEST = /(^|\/)package\.json$/;
 // The compiler options that make a specifier load another file (`paths`, `baseUrl`, `rootDirs`), or make
 // every JSX element import a module no statement names (`jsxImportSource`, `jsxFactory`,
@@ -499,7 +513,8 @@ export function extendsCandidates(from, specifier, workspaces) {
 const parseJson = (raw) => { try { return { value: JSON.parse(raw) }; } catch (error) { return { error }; } };
 const extendsOf = (config) => [config?.extends].flat().filter((x) => x !== undefined);
 
-// Every tsconfig*.json, jsconfig*.json, next.config.*, vitest.config.* and package.json in the tree, outside
+// Every tsconfig*.json, jsconfig*.json, build configuration (next, vitest, postcss; and the Babel,
+// PostCSS, Vite and vitest-workspace files refused outright) and package.json in the tree, outside
 // node_modules, .next, .git and .claude (harness worktrees); and every file a compiler config's
 // `extends` chain reaches, whatever its name (A1-257-5: `"extends": "./base.json"`), read from where
 // TypeScript would read it. A chain step the guard cannot place is left out here, and
@@ -539,37 +554,271 @@ export async function collectResolutionConfigs(root = '.') {
   return found;
 }
 
-// Fails closed: a compiler config the guard cannot parse as JSON may hide an alias, so it is refused,
-// and so is an `extends` whose file the guard has not read; in a next.config.* and a vitest.config.* the
-// words are matched in the raw text, comments and strings included (a quoted `'webpack'` key is still a
-// webpack hook), and a next.config's imports are read by `extract` (the text reader by default, the
-// parsed reader in the CLI).
-export function checkResolutionConfigs(configs, allowlist, { extract = extractSpecifiers } = {}) {
-  const problems = [];
-  const allowed = (file, option) => (allowlist.resolutionAliases?.allowed ?? []).some((e) => e.file === file && e.option === option);
-  const packages = new Set([...allowlist.runtime, ...allowlist.development].map((row) => row.name));
-  for (const [path, raw] of configs) {
-    if (raw === null) { problems.push(`${path} is not a regular file; the guard reads no resolution config it cannot place`); continue; }
-    if (NEXT_CONFIG.test(path)) {
-      for (const m of raw.matchAll(/(?<![\w$])(alias|resolveAlias|webpack|tsconfigPath|modularizeImports|swcPlugins)(?![\w$])/g)) {
-        if (!allowed(path, m[1])) problems.push(`${path} names \`${m[1]}\`, which can make the bundler load a module other than the one a specifier names; no alias is admitted until the guard resolves it (RFC-2026-029 Q-029-1)`);
-      }
-      // A1-257-5: an object spread from a sibling module carries whatever keys it holds past the word
-      // scan above, so next.config.* imports nothing but allowlisted packages and `node:` builtins.
-      const { found, refusals } = extract(raw, path);
-      for (const refusal of refusals) problems.push(`${path}: ${refusal}`);
-      for (const { specifier, kind } of found) {
-        const bare = kind !== 'reference-path' && !/^[./]/.test(specifier) && !/^[a-z][a-z0-9+.-]*:/i.test(specifier);
-        if (/^node:[a-z_/]+$/.test(specifier) || (bare && packages.has(packageNameOf(specifier)))) continue;
-        problems.push(`${path} imports ${specifier}: a next.config imports only allowlisted packages and \`node:\` builtins, so no configuration reaches it from another module (A1-257-5)`);
-      }
+// --- build configuration files: allowlisted shapes (A1-257-7, Q0-257r3-1, R0-257-8, Q0 N12) ---------
+
+// The kind of build configuration a path is, by the name the tool looks for; its shape is
+// allowlist.configShapes[kind].
+export const CONFIG_KINDS = { 'next.config': /(^|\/)next\.config\.[a-z]+$/, 'vitest.config': /(^|\/)vitest\.config\.[a-z]+$/, 'postcss.config': /(^|\/)postcss\.config\.[a-z]+$/ };
+export const configKindOf = (path) => Object.keys(CONFIG_KINDS).find((kind) => CONFIG_KINDS[kind].test(path)) ?? null;
+
+// Configuration a build tool loads on its own, for which the guard reads no shape: refused wherever it
+// stands. Next.js picks up a Babel configuration by itself, and a Babel plugin rewrites any import
+// (A1-257-7's third route); PostCSS reads `.postcssrc*` as readily as postcss.config.*; vitest reads a
+// vite.config.* or a workspace file where it finds one.
+export const REFUSED_CONFIG_FILES = [
+  [/(^|\/)\.babelrc(?:\.[a-z]+)?$/, 'a Babel configuration'],
+  [/(^|\/)babel\.config\.[a-z]+$/, 'a Babel configuration'],
+  [/(^|\/)\.postcssrc(?:\.[a-z]+)?$/, 'a PostCSS configuration other than postcss.config.*'],
+  [/(^|\/)vite\.config\.[a-z]+$/, 'a Vite configuration, which vitest reads in place of a vitest.config'],
+  [/(^|\/)vitest\.workspace\.[a-z]+$/, 'a vitest workspace file, which names further configurations'],
+];
+// The package.json keys that are such a configuration: Babel's and PostCSS's. Refused with no
+// allowlist route, like the files above.
+export const CONFIG_PACKAGE_FIELDS = ['babel', 'postcss'];
+
+const CONFIG_PUNCTUATION = ['??=', '{', '}', '(', ')', '[', ']', ',', ';', ':', '.', '='];
+const IDENTIFIER = /[A-Za-z_$][A-Za-z0-9_$]*/y;
+
+// The text reader of a build configuration: dependency-free, and closed. It tokenizes comments, plain
+// string literals (no escape, no template), identifiers and the punctuation above, and refuses any
+// other character; it then reads the statement forms below and refuses any other. A file it refuses
+// is one no allowlisted shape could match, so refusing it costs nothing. It returns the same form as
+// the parsed reader's readShape (scripts/app-boundaries-parser.mjs): { statements, refusals }, each
+// statement one of
+//   { kind: 'import', specifier, typeOnly, defaultName, named: [{ name, alias, typeOnly }] }
+//   { kind: 'env-default', name, value }          process.env.NAME ??= 'value'
+//   { kind: 'const', name, type, value }          const NAME[: Type] = value
+//   { kind: 'export-default', value }             export default value
+// and each value one of { object: [[key, value]] }, { array: [value] }, { string }, { boolean },
+// { ref: name }, { call: name, args: [value] }, { satisfies: Type, value }.
+export function readConfigShape(raw) {
+  const tokens = [];
+  for (let i = 0; i < raw.length;) {
+    const c = raw[i];
+    if (/\s/.test(c)) { i += 1; continue; }
+    if (/^\/\/\/\s*<(?:reference|amd)/.test(raw.slice(i, i + 40))) return { statements: [], refusals: [`a triple-slash directive at offset ${i}`] };
+    if (raw.startsWith('//', i)) { const end = raw.indexOf('\n', i); i = end === -1 ? raw.length : end; continue; }
+    if (raw.startsWith('/*', i)) {
+      const end = raw.indexOf('*/', i + 2);
+      if (end === -1) return { statements: [], refusals: [`an unterminated comment at offset ${i}`] };
+      i = end + 2;
       continue;
     }
-    if (VITEST_CONFIG.test(path)) {
-      // Vite's `resolve.alias` (and vitest's `test.alias`) can point a specifier at another module in
-      // the tests, so a vitest.config names neither word, in its raw text, until the guard resolves it.
-      for (const m of raw.matchAll(/(?<![\w$])(alias|resolve)(?![\w$])/g)) {
-        if (!allowed(path, m[1])) problems.push(`${path} names \`${m[1]}\`, which can make Vite load a module other than the one a specifier names; no alias is admitted until the guard resolves it (RFC-2026-029 Q-029-1)`);
+    if (c === "'" || c === '"') {
+      let j = i + 1;
+      while (j < raw.length && raw[j] !== c && raw[j] !== '\\' && raw[j] !== '\n') j += 1;
+      if (raw[j] !== c) return { statements: [], refusals: [`a string at offset ${i} holds an escape or does not end on its line; an allowlisted shape needs neither`] };
+      tokens.push({ type: 'string', value: raw.slice(i + 1, j), at: i });
+      i = j + 1;
+      continue;
+    }
+    IDENTIFIER.lastIndex = i;
+    const name = IDENTIFIER.exec(raw);
+    if (name) { tokens.push({ type: 'name', value: name[0], at: i }); i += name[0].length; continue; }
+    const punctuation = CONFIG_PUNCTUATION.find((p) => raw.startsWith(p, i));
+    if (punctuation) { tokens.push({ type: 'punct', value: punctuation, at: i }); i += punctuation.length; continue; }
+    return { statements: [], refusals: [`\`${c}\` at offset ${i}, which no allowlisted shape holds (a template, a number, an operator, an escape or a spread)`] };
+  }
+  let k = 0;
+  const at = () => (tokens[k] ? `offset ${tokens[k].at}` : 'the end of the file');
+  const refuse = (what) => { throw Object.assign(new Error(`${what} at ${at()}`), { shape: true }); };
+  const is = (type, value, ahead = 0) => tokens[k + ahead]?.type === type && (value === undefined || tokens[k + ahead].value === value);
+  const take = (type, value, what) => { if (!is(type, value)) refuse(`expected ${what ?? value}`); k += 1; return tokens[k - 1].value; };
+  const value = () => {
+    let node;
+    if (is('punct', '{')) {
+      k += 1;
+      const entries = [];
+      while (!is('punct', '}')) {
+        if (!is('name') && !is('string')) refuse('a key that is not written out (a spread, a computed key or a method)');
+        const key = tokens[k].value;
+        k += 1;
+        take('punct', ':', '`:` after a key (a shorthand, a method or an accessor is no allowlisted shape)');
+        entries.push([key, value()]);
+        if (!is('punct', '}')) take('punct', ',');
+      }
+      k += 1;
+      node = { object: entries };
+    } else if (is('punct', '[')) {
+      k += 1;
+      const items = [];
+      while (!is('punct', ']')) {
+        items.push(value());
+        if (!is('punct', ']')) take('punct', ',');
+      }
+      k += 1;
+      node = { array: items };
+    } else if (is('string')) {
+      node = { string: tokens[k].value };
+      k += 1;
+    } else if (is('name', 'true') || is('name', 'false')) {
+      node = { boolean: tokens[k].value === 'true' };
+      k += 1;
+    } else if (is('name')) {
+      const name = tokens[k].value;
+      k += 1;
+      if (is('punct', '(')) {
+        k += 1;
+        const args = [];
+        while (!is('punct', ')')) {
+          args.push(value());
+          if (!is('punct', ')')) take('punct', ',');
+        }
+        k += 1;
+        node = { call: name, args };
+      } else node = { ref: name };
+    } else refuse('a value that is not literal data');
+    if (is('name', 'satisfies')) { k += 1; node = { satisfies: take('name', undefined, 'a type name'), value: node }; }
+    return node;
+  };
+  const statements = [];
+  const STARTS = new Set(['import', 'export', 'const', 'process']);
+  try {
+    while (k < tokens.length) {
+      if (is('punct', ';')) { k += 1; continue; }
+      if (is('name', 'import')) {
+        k += 1;
+        const typeOnly = is('name', 'type') && !is('name', 'from', 1) ? (k += 1, true) : false;
+        let defaultName = null;
+        const named = [];
+        if (is('punct', '{')) {
+          k += 1;
+          while (!is('punct', '}')) {
+            const specTypeOnly = is('name', 'type') && is('name', undefined, 1) && !is('name', 'as', 1) ? (k += 1, true) : false;
+            const name = take('name', undefined, 'an imported name');
+            const alias = is('name', 'as') ? (k += 1, take('name', undefined, 'a local name')) : null;
+            named.push({ name, alias, typeOnly: specTypeOnly });
+            if (!is('punct', '}')) take('punct', ',');
+          }
+          k += 1;
+        } else defaultName = take('name', undefined, 'an import clause (`{ ... }` or one name)');
+        take('name', 'from');
+        statements.push({ kind: 'import', specifier: take('string', undefined, 'a module specifier'), typeOnly, defaultName, named });
+      } else if (is('name', 'export')) {
+        k += 1;
+        take('name', 'default');
+        statements.push({ kind: 'export-default', value: value() });
+      } else if (is('name', 'const')) {
+        k += 1;
+        const name = take('name', undefined, 'a constant name');
+        const type = is('punct', ':') ? (k += 1, take('name', undefined, 'a type name')) : null;
+        take('punct', '=');
+        statements.push({ kind: 'const', name, type, value: value() });
+      } else if (is('name', 'process') && is('punct', '.', 1) && is('name', 'env', 2) && is('punct', '.', 3) && is('name', undefined, 4) && is('punct', '??=', 5) && is('string', undefined, 6)) {
+        statements.push({ kind: 'env-default', name: tokens[k + 4].value, value: tokens[k + 6].value });
+        k += 7;
+      } else refuse('a statement no allowlisted shape holds');
+      if (k < tokens.length && !is('punct', ';') && !(is('name') && STARTS.has(tokens[k].value))) refuse('more after a statement');
+    }
+  } catch (error) {
+    if (!error.shape) throw error;
+    return { statements: [], refusals: [error.message] };
+  }
+  return { statements, refusals: [] };
+}
+
+// Whether `node` fits `schema`: `true`/`false` that literal, 'boolean' and 'string' any of that type,
+// { $oneOf: [...] } one of those strings, { $arrayOf: s } an array of s, and any other object an object
+// whose every key the schema names (each at most once), with its value fitting that key's schema.
+function fitShape(node, schema, where, problems) {
+  const describe = (n) => Object.keys(n ?? {})[0] ?? 'nothing';
+  const at = `\`${where || 'the default export'}\``;
+  if (schema === true || schema === false) {
+    if (node.boolean !== schema) problems.push(`${at} is ${describe(node) === 'boolean' ? node.boolean : `a ${describe(node)}`}, and the shape admits only ${schema}`);
+  } else if (schema === 'boolean' || schema === 'string') {
+    if (!(schema in node)) problems.push(`${at} is a ${describe(node)}, and the shape admits a ${schema}`);
+  } else if (Array.isArray(schema?.$oneOf)) {
+    if (!schema.$oneOf.includes(node.string)) problems.push(`${at} is ${'string' in node ? JSON.stringify(node.string) : `a ${describe(node)}`}, and the shape admits only ${schema.$oneOf.map((v) => JSON.stringify(v)).join(' or ')}`);
+  } else if (schema && typeof schema === 'object' && '$arrayOf' in schema) {
+    if (!node.array) problems.push(`${at} is a ${describe(node)}, and the shape admits an array`);
+    else node.array.forEach((item, i) => fitShape(item, schema.$arrayOf, `${where}[${i}]`, problems));
+  } else if (schema && typeof schema === 'object') {
+    if (!node.object) { problems.push(`${at} is a ${describe(node)}, and the shape admits an object of written keys`); return; }
+    const seen = new Set();
+    for (const [key, child] of node.object) {
+      const path = where ? `${where}.${key}` : key;
+      if (seen.has(key)) problems.push(`\`${path}\` is written twice`);
+      seen.add(key);
+      if (!Object.hasOwn(schema, key)) problems.push(`\`${path}\` is a key the allowlisted shape does not name`);
+      else fitShape(child, schema[key], path, problems);
+    }
+  } else problems.push(`${at}: the allowlist's shape is not one the guard can read`);
+}
+
+// One build configuration against its allowlisted shape. `reading` is a reader's { statements, refusals }.
+export function configShapeProblems(kind, reading, shape) {
+  if (!shape) return [`no allowlisted shape for a ${kind} (scripts/app-dependency-allowlist.json configShapes)`];
+  if (reading.refusals.length > 0) return [...reading.refusals];
+  const problems = [];
+  const imported = new Map();
+  const consts = new Map();
+  const exports = [];
+  for (const statement of reading.statements) {
+    if (statement.kind === 'import') {
+      const entry = (shape.imports ?? []).find((e) => e.specifier === statement.specifier);
+      const what = `the import of ${JSON.stringify(statement.specifier)}`;
+      if (!entry) { problems.push(`${what} is not one the shape admits (it admits ${(shape.imports ?? []).map((e) => `${e.typeOnly ? 'import type' : 'import'} { ${e.names.join(', ')} } from ${JSON.stringify(e.specifier)}`).join('; ') || 'no import'})`); continue; }
+      const admits = entry.typeOnly ? 'a type-only import (`import type`) only' : 'a value import';
+      const written = statement.typeOnly ? 'type-only' : 'a value import';
+      if (statement.typeOnly !== entry.typeOnly) problems.push(`${what} is ${written}, and the shape admits ${admits}`);
+      if (statement.defaultName !== null) problems.push(`${what} takes a default binding, which the shape does not admit`);
+      for (const spec of statement.named) {
+        if (!entry.names.includes(spec.name) || spec.alias !== null || spec.typeOnly) problems.push(`${what} names \`${spec.name}\`${spec.alias ? ` as \`${spec.alias}\`` : ''}${spec.typeOnly ? ' as a type' : ''}, which the shape does not admit`);
+        else imported.set(spec.name, entry.typeOnly);
+      }
+    } else if (statement.kind === 'env-default') {
+      if (!Object.hasOwn(shape.env ?? {}, statement.name) || shape.env[statement.name] !== statement.value) {
+        problems.push(`\`process.env.${statement.name} ??= ${JSON.stringify(statement.value)}\` is not a default the shape admits`);
+      }
+    } else if (statement.kind === 'const') {
+      if (consts.has(statement.name) || consts.size > 0) problems.push('more than one `const`; the shape holds one exported object');
+      consts.set(statement.name, statement);
+    } else if (statement.kind === 'export-default') exports.push(statement);
+  }
+  if (exports.length !== 1) { problems.push(`${exports.length} default exports; the shape holds exactly one`); return problems; }
+  const types = new Set(shape.types ?? []);
+  const typeName = (name) => { if (!types.has(name) || imported.get(name) !== true) problems.push(`the type \`${name}\` is not one the shape admits, imported type-only`); };
+  let node = exports[0].value;
+  if (node.ref !== undefined) {
+    const declared = consts.get(node.ref);
+    if (!declared) { problems.push(`\`export default ${node.ref}\` names no \`const\` of this file`); return problems; }
+    if (declared.type !== null) typeName(declared.type);
+    node = declared.value;
+  } else if (consts.size > 0) problems.push('a `const` that is not the default export');
+  if (node.satisfies !== undefined) { typeName(node.satisfies); node = node.value; }
+  if (shape.call) {
+    if (node.call !== shape.call || node.args.length !== 1 || imported.get(shape.call) !== false) {
+      problems.push(`the default export is not \`${shape.call}({ ... })\`, with \`${shape.call}\` imported as the shape says`);
+      return problems;
+    }
+    node = node.args[0];
+  }
+  if (node.call !== undefined || node.ref !== undefined || node.satisfies !== undefined) {
+    problems.push(`the default export is ${node.call !== undefined ? `a call of \`${node.call}\`` : 'not an object written in this file'}; the shape holds one object literal`);
+    return problems;
+  }
+  fitShape(node, shape.value, '', problems);
+  return problems;
+}
+
+// Fails closed: a compiler config the guard cannot parse as JSON may hide an alias, so it is refused,
+// and so is an `extends` whose file the guard has not read. A build configuration is read by
+// `readShape` -- readConfigShape, the text reader, by default; in the CLI the parsed reader too, and
+// the two must agree -- and held to its allowlisted shape (A1-257-7, Q0-257r3-1, R0-257-8).
+export function checkResolutionConfigs(configs, allowlist, { readShape = readConfigShape } = {}) {
+  const problems = [];
+  const allowed = (file, option) => (allowlist.resolutionAliases?.allowed ?? []).some((e) => e.file === file && e.option === option);
+  for (const [path, raw] of configs) {
+    const refusedFile = REFUSED_CONFIG_FILES.find(([pattern]) => pattern.test(path));
+    if (refusedFile) {
+      problems.push(`${path} is ${refusedFile[1]}, which a build tool loads on its own and the guard reads no shape for; none is admitted (A1-257-7)`);
+      continue;
+    }
+    if (raw === null) { problems.push(`${path} is not a regular file; the guard reads no resolution config it cannot place`); continue; }
+    const kind = configKindOf(path);
+    if (kind) {
+      for (const problem of configShapeProblems(kind, readShape(raw, path), allowlist.configShapes?.[kind])) {
+        problems.push(`${path} is not the allowlisted ${kind} shape: ${problem} (A1-257-7; scripts/app-dependency-allowlist.json configShapes)`);
       }
       continue;
     }
@@ -580,6 +829,9 @@ export function checkResolutionConfigs(configs, allowlist, { extract = extractSp
         if (manifest?.[field] !== undefined && !allowed(path, field)) {
           problems.push(`${path} declares \`${field}\`, which can make a bundler, Node or TypeScript load a module other than the one a specifier names; none is admitted until the guard resolves it (Q0-257r2-1, RFC-2026-029 Q-029-1)`);
         }
+      }
+      for (const field of CONFIG_PACKAGE_FIELDS) {
+        if (manifest?.[field] !== undefined) problems.push(`${path} declares \`${field}\`, a ${field === 'babel' ? 'Babel' : 'PostCSS'} configuration a build tool loads on its own; none is admitted (A1-257-7)`);
       }
     }
   }

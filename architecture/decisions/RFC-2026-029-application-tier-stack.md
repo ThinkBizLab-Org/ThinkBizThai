@@ -633,6 +633,22 @@ In CI the guard also reads the sources with TypeScript's own parser, through the
 other text without one; that CI step fails if the parser cannot load. That import is not A0's reading of the ESLint
 option: the Owner allowed it, by name and by file, in a second answer on 2026-10-12 (next paragraphs).
 
+**Build configuration, and what the build included (§6.3, §8/4).** A0's account of how the guard holds §6.3 against
+build configuration, not the Owner's words; it adds no rule and no dependency. Three review rounds on the skeleton pull
+request (#257: A1-257-1, A1-257-5, A1-257-7, Q0-257r2-1, Q0-257r3-1, R0-257-8) each found a configuration route that
+made the bundler or vitest load a module no import statement names. So the guard holds build configuration to
+allowlisted shapes, not to a list of refused words: every `next.config.*`, `vitest.config.*` and `postcss.config.*` must
+be, statement by statement and key by key, the shape `scripts/app-dependency-allowlist.json` states for its kind
+(`configShapes`), read by the dependency-free text reader and, in CI, by TypeScript's parser as well, the two readings
+required to agree; a Babel configuration, a PostCSS configuration other than `postcss.config.*`, a `vite.config.*` and a
+vitest workspace file are refused wherever they stand. What is admitted and what is refused is listed once, in that
+file's `configShapes.$comment` (and `resolutionAliases.$comment` for compiler options and package.json maps), and is not
+restated here. After `next build`, CI's `application` job also runs `scripts/verify-app-build-graph.mjs`, which reads
+what the build included (its file traces, its server and build source maps, its module ids) and fails on any
+repository file outside `apps/web/**` and `src/modules/**`, a platform-kernel adapter, `pg`, or a package no allowlisted
+package depends on: a check of what the bundler loaded, whatever route it took. It needs no dependency and runs its
+negative controls first, A1-257-7's three routes among them as their builds showed them.
+
 **`typescript` in the boundary guard's parser (§3.2).** The first review round on the skeleton pull request (#257;
 A1-257-1) showed that the dependency-free text reader can be made to miss an import, and that a guard that is much
 harder to evade needs TypeScript's parser, through the `typescript` package already installed (no package is added). §3.2's cell

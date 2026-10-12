@@ -583,6 +583,8 @@ export const DIGESTED_FLOOR = [
   'scripts/app-boundaries.mjs',
   'scripts/app-boundaries-parser.mjs',
   'scripts/verify-app-boundaries.mjs',
+  // The third review round on PR #257 (2026-10-12, A1-257-7): the check of what `next build` included.
+  'scripts/verify-app-build-graph.mjs',
   'scripts/verify-app-dependencies.mjs',
   'scripts/verify-release-age.mjs',
   'scripts/verify-typecheck-control.mjs',

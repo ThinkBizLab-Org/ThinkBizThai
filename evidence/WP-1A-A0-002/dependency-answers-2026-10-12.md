@@ -127,10 +127,11 @@ The Sentry build plugin's own telemetry (§4.7) does not apply: `@sentry/nextjs`
 - **Q-029-1** (how `apps/web` compiles `src/modules/`; path aliases measured "by `WP-1A-A0-002` on a clean clone"): not
   measured here, because no `src/` exists yet (it is forbidden to this package). It is owed to the first package that
   creates `src/`, which also adds `src/**` to `tsconfig.json`'s `include` (today `apps/**` and `vitest.config.ts` only;
-  Q0 N2, R0-257-5) and teaches the boundary guard to resolve the alias it chooses. Until then the guard refuses any
-  `paths`, `baseUrl` or `rootDirs`, any `extends` from outside the repository, any next.config alias (`alias`,
-  `resolveAlias`, `webpack`, `tsconfigPath`, `modularizeImports`, `swcPlugins`) and any `alias` or `resolve` in a
-  vitest.config.
+  Q0 N2, R0-257-5) and teaches the boundary guard to resolve the alias it chooses. Until then the guard refuses every
+  path alias, and holds every build configuration to an allowlisted shape; what it admits and refuses is listed in
+  the `$comment`s of `scripts/app-dependency-allowlist.json`'s `resolutionAliases` and `configShapes` (C0-257r3-1,
+  R0-257-9), and is not restated here. After `next build`, CI checks what the build included
+  (`scripts/verify-app-build-graph.mjs`, A1-257-7).
 - **Q-029-5** (`next-intl` in the skeleton or the shell): not installed; it is the shell's (`WP-1A-A5-003`), as recommended.
 - **Q-029-7** (packages the skeleton would probably also want): none was needed. With no ESLint there is no
   `typescript-eslint` or `@eslint/eslintrc`; the page test renders with `react-dom/server`, so no `jsdom`, Testing Library

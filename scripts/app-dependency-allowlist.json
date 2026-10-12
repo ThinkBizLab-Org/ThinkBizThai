@@ -70,8 +70,32 @@
   },
   "releaseAgeDays": 7,
   "releaseAgeExceptions": [],
-  "resolutionAliases": {
-    "$comment": "RFC-2026-029 Q-029-1 (A1-257-1, A1-257-5, Q0-257r2-1): a `paths`, `baseUrl`, `rootDirs`, `jsxImportSource`, `jsxFactory`, `jsxFragmentFactory` or `reactNamespace` in any tsconfig or any file its `extends` chain reaches, an `extends` the guard cannot follow to a file in the repository, an alias, `resolveAlias`, `webpack`, `tsconfigPath`, `modularizeImports` or `swcPlugins` in any next.config.*, an `alias` or `resolve` in any vitest.config.*, and a `browser`, `imports`, `exports`, `alias`, `react-native` or `typesVersions` map in any package.json can make the bundler load a module other than the one an import names, so scripts/app-boundaries.mjs refuses each of them unless an entry here names that file and option ({ \"file\": ..., \"option\": ... }). None is admitted today: no src/ exists, so no alias has been measured (Q-029-1 is owed to the first package that creates src/).",
+    "resolutionAliases": {
+    "$comment": "RFC-2026-029 Q-029-1 (A1-257-1, A1-257-5, Q0-257r2-1): a `paths`, `baseUrl`, `rootDirs`, `jsxImportSource`, `jsxFactory`, `jsxFragmentFactory` or `reactNamespace` in any tsconfig or any file its `extends` chain reaches, an `extends` the guard cannot follow to a file in the repository, and a `browser`, `imports`, `exports`, `alias`, `react-native` or `typesVersions` map in any package.json can make the bundler load a module other than the one an import names, so scripts/app-boundaries.mjs refuses each of them unless an entry here names that file and option ({ \"file\": ..., \"option\": ... }). None is admitted today: no src/ exists, so no alias has been measured (Q-029-1 is owed to the first package that creates src/). Build configuration files are not admitted here but by configShapes, below.",
     "allowed": []
+  },
+  "configShapes": {
+    "$comment": "RFC-2026-029 Q-029-1 (A1-257-7, Q0-257r3-1, R0-257-8, Q0 N12): the whole of what a build configuration may say. Every next.config.*, vitest.config.* and postcss.config.* in the tree is read by scripts/app-boundaries.mjs (readConfigShape; in CI also the TypeScript parser, scripts/app-boundaries-parser.mjs readShape, and the two readings must agree) as: the imports below and no other (`typeOnly` true admits `import type` only), the `process.env` defaults in `env` and no other statement, at most one `const` and exactly one `export default`, whose value is literal data written in the file (objects with written keys, arrays, strings, booleans) wrapped only in `call` (the one wrapper named) or `satisfies`/an annotation of a type in `types`. That value must fit `value` key by key: `true`/`false` admits that literal, \"boolean\" and \"string\" any value of that type, { \"$oneOf\": [...] } one of those strings, { \"$arrayOf\": s } an array of s, and any other object only the keys it names (each at most once; none is required). So a spread, a computed key, a function, a call, a value read from a file or from `process.env`, a `require`, a dynamic import, `createRequire`, a `node:` builtin or any key not named below fails: for next.config that includes `turbopack` (its `rules` loaders and `resolveAlias`), `experimental` (`swcPlugins`), `webpack`, `compiler`, `modularizeImports`, `transpilePackages`, `rewrites`, `redirects` and every key not named; for vitest.config `resolve`, `alias`, `plugins`, `setupFiles` and every key not named, and any `environment` but node; for postcss.config any plugin but `@tailwindcss/postcss` with no options. Refused wherever they stand, with no entry that admits them: `.babelrc`, `.babelrc.*`, `babel.config.*` and a `babel` key in any package.json; `.postcssrc*` and a `postcss` key in any package.json; `vite.config.*`; `vitest.workspace.*`. A shape is widened only with the change that needs the key, read by A1. What a shape misses, scripts/verify-app-build-graph.mjs sees in what `next build` included.",
+    "next.config": {
+      "imports": [{ "specifier": "next", "typeOnly": true, "names": ["NextConfig"] }],
+      "env": { "NEXT_TELEMETRY_DISABLED": "1" },
+      "call": null,
+      "types": ["NextConfig"],
+      "value": { "images": { "unoptimized": true }, "poweredByHeader": "boolean", "reactStrictMode": "boolean" }
+    },
+    "vitest.config": {
+      "imports": [{ "specifier": "vitest/config", "typeOnly": false, "names": ["defineConfig"] }],
+      "env": {},
+      "call": "defineConfig",
+      "types": [],
+      "value": { "test": { "include": { "$arrayOf": "string" }, "exclude": { "$arrayOf": "string" }, "environment": { "$oneOf": ["node"] }, "passWithNoTests": "boolean" } }
+    },
+    "postcss.config": {
+      "imports": [],
+      "env": {},
+      "call": null,
+      "types": [],
+      "value": { "plugins": { "@tailwindcss/postcss": {} } }
+    }
   }
 }

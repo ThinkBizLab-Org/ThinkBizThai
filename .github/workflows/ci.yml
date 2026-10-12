@@ -1349,6 +1349,13 @@ jobs:
         run: npm run test:app
       - name: Build the web application
         run: npm run build --workspace apps/web
+      # A1-257-7: what the build actually included -- the file traces, the server and build source maps
+      # and the module ids -- is held to RFC-2026-029 §6.3: nothing outside apps/web/** and
+      # src/modules/**, no platform-kernel adapter, no pg, no package an allowlisted package does not
+      # reach. Dependency-free; its negative controls run first. It closes the class the build
+      # configuration's allowlisted shapes are held against, whatever route a module took.
+      - name: Verify what the build included
+        run: node scripts/verify-app-build-graph.mjs
       - name: Vulnerability audit (network)
         run: npm audit --omit=dev --audit-level=high
       - name: Release age of new lockfile entries (network)
