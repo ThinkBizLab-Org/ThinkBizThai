@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "8c9a32bad4a5a3763caaff20d3a2ba9dded4fe6b",
-  "head_revision_or_patch_checksum": "ee6ce3ca77d7912bf33572d6e2e6055a8023c3ec",
+  "head_revision_or_patch_checksum": "a29f108fdc4137c1ad466459b2fcadfe12ae7981",
   "task_ids": [
     "WP-1A-A0-002",
     "skeleton-2026-10-12"
@@ -24,10 +24,12 @@
     "evidence/WP-1A-A0-002/a1-reread-2026-10-12-pr257.md",
     "evidence/WP-1A-A0-002/a1-reread2-2026-10-12-pr257.md",
     "evidence/WP-1A-A0-002/a1-reread3-2026-10-12-pr257.md",
+    "evidence/WP-1A-A0-002/a1-reread4-2026-10-12-pr257.md",
     "evidence/WP-1A-A0-002/a1-review-2026-10-12-pr257.md",
     "evidence/WP-1A-A0-002/c0-reread-2026-10-12-pr257.md",
     "evidence/WP-1A-A0-002/c0-reread2-2026-10-12-pr257.md",
     "evidence/WP-1A-A0-002/c0-reread3-2026-10-12-pr257.md",
+    "evidence/WP-1A-A0-002/c0-reread4-2026-10-12-pr257.md",
     "evidence/WP-1A-A0-002/c0-review-2026-10-12-pr257.md",
     "evidence/WP-1A-A0-002/dependency-answers-2026-10-12.md",
     "evidence/WP-1A-A0-002/product-owner-disposition-2026-10-12-skeleton-licences.md",
@@ -99,11 +101,11 @@
     },
     {
       "criterion": "§8/4 the §6.3 boundaries, §2.1/3 and §8/5 with negative controls, parsed in CI; typescript imported by scripts/app-boundaries-parser.mjs only",
-      "result": "pass for author self-check (verify-app-boundaries --require-parser exit 0, 49 controls, config shapes; app-boundaries.test.mjs 26/26; verify-app-build-graph exit 0 on the real build); independent reading owed"
+      "result": "pass for author self-check (verify-app-boundaries --require-parser exit 0, 54 controls, config shapes; app-boundaries.test.mjs 28/28; verify-app-build-graph exit 0 on the real build); independent reading owed"
     },
     {
       "criterion": "§8/6 npm run check with no node_modules; §8/8 record; §8/9 and §4.8 release age tied to the RFC; §4.6 audit; RFC-2026-034 §8 item 4 application tests in CI",
-      "result": "pass for author self-check (npm run check 817/817 with and without node_modules); the CI jobs run only once pushed; independent reading owed"
+      "result": "pass for author self-check (npm run check 821/821 with and without node_modules); the CI jobs run only once pushed; independent reading owed"
     }
   ],
   "tests": [
@@ -116,6 +118,11 @@
       "command": "node scripts/verify-app-boundaries.mjs --require-parser",
       "exit_code": 0,
       "result": "22 controls held first; the application tree and 77 other code files read by TypeScript's parser keep §6.3, §2.1/3 and §8/5"
+    },
+    {
+      "command": "node scripts/verify-app-boundaries.mjs --require-parser (again, immediately before the build)",
+      "exit_code": 0,
+      "result": "54 controls held; same result as the first run"
     },
     {
       "command": "npm run typecheck",
@@ -150,14 +157,14 @@
     {
       "command": "node scripts/verify-app-build-graph.mjs (after npm run build --workspace apps/web)",
       "exit_code": 0,
-      "result": "13 controls held; 1251 files and modules, 5 traces, 28 maps, 171 reachable packages; nothing outside apps/web/**"
+      "result": "13 controls held; 1251 files and modules, 5 traces, 28 maps, 171 reachable packages; nothing outside apps/web/** or src/modules/**, or outside a package an allowlisted package reaches"
     }
   ],
   "security_privacy_cost_impact": "The first third-party code in the repository: 178 lockfile packages, installed with --ignore-scripts from the npm registry with sha512 integrity, under licences §3.4/2 accepts or Amendment 2026-10-12 names. No provider SDK, no credential, no customer data, no provider call. Next.js telemetry is off in CI and in the config. One entry (fsevents, macOS-only, optional) carries the registry's hasInstallScript flag and runs nothing; it goes to A1 under §8/8.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes. The tooling tier is unchanged and npm run check stays dependency-free; the application checks run in their own CI job.",
   "known_limitations": [
-    "RFC-2026-029 §8/4 asks for lint errors; with ESLint deferred by the Owner the boundaries and §2.1/3 are held by scripts/verify-app-boundaries.mjs, which in CI (--require-parser) reads every file through TypeScript's parser (the Owner allowed that import, 2026-10-12T07:24:27Z); without node_modules (npm run check) a dependency-free text reader runs, and the `any` rule is held only by the parsed run. Build configuration is admitted only in the shapes scripts/app-dependency-allowlist.json's $comment lists (next.config, vitest.config, postcss.config as literal data with allowlisted keys; Babel and vite configs, every PostCSS search name but postcss.config.*, anything under a .config/ directory and any tracked .env* but .env.example refused; NODE_OPTIONS is empty in the application job). After next build, scripts/verify-app-build-graph.mjs fails on any file the build output names from outside apps/web/** and src/modules/** or any package not reachable from the allowlist; code that runs during the build is held by the shapes and refusals, not by the graph check.",
+    "RFC-2026-029 §8/4 asks for lint errors; with ESLint deferred by the Owner the boundaries and §2.1/3 are held by scripts/verify-app-boundaries.mjs, which in CI (--require-parser) reads every file through TypeScript's parser (the Owner allowed that import, 2026-10-12T07:24:27Z); without node_modules (npm run check) a dependency-free text reader runs, and the `any` rule is held only by the parsed run. Build configuration is admitted only in the shapes scripts/app-dependency-allowlist.json's $comment lists (next.config, vitest.config, postcss.config as literal data with allowlisted keys; Babel and vite configs, every PostCSS search name but postcss.config.*, anything under a .config/ directory and any tracked .env* but .env.example refused, names matched in any letter case; every workspace's scripts pinned to the allowlist (apps/web: build = next build); NODE_OPTIONS is empty in the application job). After next build, scripts/verify-app-build-graph.mjs fails on any file the build output names from outside apps/web/** and src/modules/** or any package not reachable from the allowlist; the shapes, refusals, pinned workspace scripts and empty NODE_OPTIONS hold what configuration can make a build tool load; code the repository itself runs in CI after the guard (a test, a page at prerender, build-time code) could still write files or change the output, and that residual is held by review of every pull request, not by a check (A1-257-10). CI runs the guard again immediately before the build.",
     "The build-graph check reads server traces, source maps and server/build module ids; it does not see code that runs during the build, and client-only code (a browser condition, possibly next/dynamic with ssr: false, not measured) is not traced, and browser source maps are not enabled because they would publish the source. Its reachable-package set includes the dev tooling's dependency tree. It is measured on macOS; CI on Linux is its first run there and fails closed if paths are written differently.",
     "The release-age and audit steps read the registry at CI time; a registry outage fails them.",
     "Locally, npm run check fails after a next build because the secret scanner walks apps/web/.next/; delete it first. CI is not affected (the build runs in the application job). The scanner's owner, WP-0A-A0-003, owes a decision (R0-257-3).",
