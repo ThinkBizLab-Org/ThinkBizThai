@@ -5,13 +5,19 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "40267ae99a0b189871faa2804c8069c1b7722bf6",
-  "head_revision_or_patch_checksum": "40267ae99a0b189871faa2804c8069c1b7722bf6",
+  "head_revision_or_patch_checksum": "b18368201c533daa24c0670c13f4a7b009a48965",
   "task_ids": [
     "WP-1A-A0-002",
     "pr257-records-2026-10-13"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-1A-A0-002/records-transcription-2026-10-13.md"
+  ],
+  "files_modified": [
+    "evidence/WP-1A-A0-002/product-owner-disposition-2026-10-12-skeleton-licences.md",
+    "handoffs/WP-1A-A0-002-author-handoff.json",
+    "work-packages/WP-1A-A0-002.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
@@ -32,9 +38,14 @@
   ],
   "tests": [
     {
-      "command": "npm run validate:protocol",
+      "command": "node scripts/commit-when-clean.mjs (npm run verify, under the suite lock) at b1836820",
       "exit_code": 0,
-      "result": "valid"
+      "result": "tests 821, pass 821, fail 0, skipped 0, todo 0"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-002",
+      "exit_code": 0,
+      "result": "all changed paths declared"
     }
   ],
   "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, customer data or provider call. The branch-protection change it records was made on 2026-10-12 under the Owner's answer of 07:24:27Z; this branch changes no setting.",
