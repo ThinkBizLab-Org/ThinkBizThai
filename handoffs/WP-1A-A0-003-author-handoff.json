@@ -5,13 +5,21 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "40267ae99a0b189871faa2804c8069c1b7722bf6",
-  "head_revision_or_patch_checksum": "40267ae99a0b189871faa2804c8069c1b7722bf6",
+  "head_revision_or_patch_checksum": "c2864cf775f313b098e69f56c65c838bf6592be4",
   "task_ids": [
     "WP-1A-A0-003",
     "prg-tool-config-2026-10-13"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-1A-A0-003/product-owner-disposition-2026-10-13-package-tool-config-press.md",
+    "handoffs/WP-1A-A0-003-author-handoff.json",
+    "work-packages/WP-1A-A0-003.json"
+  ],
+  "files_modified": [
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "tsconfig.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
