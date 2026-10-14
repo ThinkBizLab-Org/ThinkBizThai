@@ -601,3 +601,145 @@ resolves, Q0's R13 to R16 among them (Q0-255R2-1); and the three behaviours Q0 f
 A reviewed revert of the one step, the classifier's lane section and flags, and their twenty-four tests.
 Nothing reads the step, so removing it changes no other step's outcome. No data, provider or
 credential effect.
+
+## Amendment 2026-10-13 — the string rule excuses exact named pairs, so the lanes are reached again
+
+Status of this amendment: a fix the Product Owner directed. Asked at 2026-10-12T20:24:47Z what to do about the lane
+printing governance on every pull request, the Owner answered at 20:28:22Z `เปิด PR แก้ + A0 กดได้เมื่อ 4 role ผ่าน
+(Recommended)`, the option whose description begins `ใส่รายการยกเว้นแบบระบุคู่ (ไฟล์ test → ไฟล์ .ts ที่มันอ่านเป็นข้อความ)
+พร้อม test ยึด` (a fragment; the whole description, verbatim, with A0's reading in
+`evidence/WP-0A-A0-004/product-owner-disposition-2026-10-13-lane-walk-ts.md`). The list below is wider in form than
+"test file → .ts read as text" (namers that are guard scripts, uses as data other than text, pairs ahead of their
+files); that widening is A0's reading of "as text" as "as data, not code that runs", stated in the disposition. A0
+presses this pull request once C0, A1, Q0 and R0 pass on its final head and CI is green on it, under an Owner-directed
+exception to RFC-2026-025 §5 item 6's last bullet for this pull request only, with its third bullet met by the option
+naming the fix before it existed (the disposition's §"RFC-2026-025 §5 item 6"); until it is merged every pull request
+the lane prints as governance takes the four roles. It changes no lane rule of RFC-2026-034 §2.2 and nothing of the Amendments 2026-10-06,
+2026-10-08 and 2026-10-11 but the one problem below.
+
+### A. The defect
+
+The string rule of Amendment 2026-10-11 §B makes a string in a module the walk reads that names code the walk cannot
+read (`.ts`, `.mts`, `.cts`, `.tsx`, `.jsx`, `.node`, `.wasm`) a problem, and a problem makes the pull request governance.
+PR #257 (WP-1A-A0-002, the application skeleton) added guards and guard tests that name the application's TypeScript
+files by strings: they read them as text, list them as paths, use them as keys of synthetic trees, or hand a project to
+`tsc`. On main `40267ae9` a diff adding one Markdown record under `evidence/` printed `tier: records` and
+`lane: governance`, with 26 such reasons: 23 distinct (namer, named file) pairs, three of them reached by two spellings
+(`vitest.config.ts` and the kind name `vitest.config`, which the walk resolves to the same file). So every pull request
+was governance, and the records, fast and risk lanes were not reached.
+
+### B. The exception list
+
+`scripts/db/classify-review-tier.mjs` gains `STRING_NAME_EXCEPTIONS`, an exported, frozen list of exact
+`[namer, named]` pairs, each a JavaScript module the walk reads and a file of code the walk cannot read that a string in
+it names, with a comment saying how each namer uses the names. For a listed pair, and in the string rule only, the
+mention is not a problem. Nothing else moves:
+
+1. The named file still joins the walk's closure as before, so a pull request that creates or edits it is governance
+   (a module a guard names by a string). A pull request that only deletes a listed file is not held by the lane (the
+   walk reads the head, where the file is gone); it is held by the suite, which fails when a listed file leaves the
+   repository (§C, test 2), and `bootstrap` is a required, strict check on `main` (A1-260-N2; see §D).
+2. An import of the named file read from code, or found by the raw keyword scan, stays a problem (the import rule of
+   Amendment 2026-10-11 §B, not the string rule), and so does a module load named by an expression (`import(x)`,
+   `require(x)`, `createRequire`), from an excused namer too.
+3. A pair is per namer and per file: another module naming the same file, or the excused namer naming another file, is a
+   problem as before.
+4. Each entry names two files: no glob, no directory prefix. The list is checked at every classification
+   (`exceptionProblems`), and each of these is a problem, so the pull request is governance: an entry that is not two
+   normalized repository paths, a JavaScript namer and a named file of code the walk cannot read; an entry listed twice;
+   and, when the named file is at the head, an entry whose namer is not, or whose namer is but the walk read no string
+   in it that spells the file (as written, or with an extension the walk's resolution adds).
+5. An entry whose named file is not at the head excuses nothing there and is not checked at run time. So a pair may be
+   listed for a file a guard's fixture names before any pull request creates it (R0-259-1, from R0 while this pull
+   request was being prepared): without that, the pull request that first creates such a file would make every later
+   pull request governance again, as PR #257 did. The list names the three platform-kernel files the guards' fixtures
+   name today, which WP-1A-A0-003 will create (`src/modules/platform-kernel/index.ts`, `adapters/job-store.ts`,
+   `application/run.ts`). Once one exists the run-time check applies to it, and it joins the closure like any named
+   file, so a pull request that creates or edits it is governance. In particular, WP-1A-A0-003's PR-1, which creates
+   `src/modules/platform-kernel/index.ts`, prints governance; what the pairs prevent is every LATER pull request
+   printing governance because that file exists (R0-259-1 stays open for PR-1's readers; R0-260-1). The throwaway repositories that the tests and CI's step build
+   hold the classifier and none of the named files, and some synthetic heads in the tests hold a stub at a namer's path;
+   a run-time check of entries whose file is absent would print each of them governance.
+6. That every entry's namer still spells its file, whether or not the file exists, is pinned by the suite on the
+   repository as it stands (§C, test 2), from the mentions the walk records (`governanceClosure(...).mentioned`). R0
+   proposed checking the namer's mention at run time instead of the file's presence; the suite holds the same property
+   for the repository without making the synthetic heads above governance.
+
+The list holds 48 pairs: the 23 found on `40267ae9`; six for the platform-kernel files not yet in the repository
+(`scripts/verify-app-boundaries.mjs` names two, `test-kits/app-boundaries.test.mjs` three, `test-kits/app-stack.test.mjs`
+one); ten in which the classifier is the namer (the list names each of the ten files); and nine more in which
+`test-kits/db/foundation-contract.test.mjs` is (its pin of the list names each file; it already named
+`apps/web/app/page.tsx` as a changed path of a synthetic diff, one of the 23).
+
+A0's specification for this fix also asked that a pair be excused only when its named file is not itself a governance
+path. The list does not carry that condition. Four of the seven named files are governance paths by their own patterns
+(`apps/web/next.config.ts` and `vitest.config.ts` as tool configuration, the two `test-kits/typecheck-control/` fixtures
+as a `test-kits/` directory other than `db/` and `contracts/`), so a change to any of them is governance whether or not a
+mention of it is excused; and with the condition, 18 of the 26 reasons (15 of the 23 pairs) would stand and every pull
+request would still print governance. What an excusal leaves unseen is the same for a governance file and any other: the
+modules the named file itself imports (§D).
+
+### C. Tests
+
+Six tests in `test-kits/db/foundation-contract.test.mjs`, each shown to fail when the code it pins is broken:
+
+1. The list is frozen, entry by entry, and equal to the 48 pairs written out in the test; its own check is clean.
+2. On the repository as it stands (`git ls-files`, read from the working tree), A0's records probe prints `records`
+   with no other reason; with no exception the same diff is governance, every reason is one string mention, and the
+   pairs those mentions make are exactly the listed pairs whose named file is at the head; the named files not at the
+   head are exactly the three platform-kernel files; and the walk records a mention for every entry. A mention the list
+   does not name, a mention that left, or a listed file that left the repository fails `npm run check` here.
+3. R0-259-1: with the three platform-kernel files created at the head of the repository as it stands, the records probe
+   still prints `records`; without their pairs it is governance by exactly those mentions; and a further file of that
+   module that no walked module names adds nothing.
+4. A mention the list does not name is governance: with no exception; by another namer; by the excused namer naming
+   another file, from the module, from the root, or by a spelling that resolves elsewhere; and, on the repository, a
+   guard test that gains a mention of a page it is not paired with. A change to an excused named file is governance.
+5. An excused namer that imports the file it names is governance: a static import, a re-export, a literal dynamic
+   import and a `require` read from code; an import the code reads and the raw scan does not; one behind A1's scanner
+   misread that only the raw scan finds; and a load named by an expression or through `createRequire`.
+6. A stale entry (the namer gone, the mention gone, a namer the walk does not read) and a malformed one (a glob, a
+   directory, a path not normalized or leaving the repository, a namer that is not JavaScript, a named file that is not
+   code the walk cannot read, not a pair, listed twice, not a list) are each governance; an entry whose file is not at
+   the head is not checked at run time, and the walk records its mention as written or without the extension its
+   resolution adds, and records none once the mention left.
+
+Fourteen mutations of the classifier were each caught by at least one of the six: never excusing; excusing by the named
+file alone; excusing in the import rule, in the raw scan, or for a load named by an expression; dropping the stale
+check, the unused-entry check or the shape check; adding or removing a pair; an unfrozen entry; dropping the named file
+from the closure; recording a mention only when the file resolves; and reading a mention only as written.
+
+### D. What this does NOT do
+
+- It does not change what CI prints on this pull request or on any pull request whose base lacks it: CI runs the base's
+  copy of the classifier (Amendment 2026-10-11 §A item 1), so the fix reaches the lanes from the first pull request
+  opened on a base that carries it.
+- It does not read the named files. The walk does not scan TypeScript, so what an excused file imports is not followed:
+  a module that only such a file imports is not governance through it. That holds for every listed file, whether or not
+  it is a governance path.
+- It does not check how a namer uses a name. The exception rests on the use stated in the list's comment as it stands at
+  this head (data, or a project handed to `tsc`, which compiles and runs nothing). A later edit that makes a namer run an
+  excused file (node runs `.ts` with type stripping; a `spawnSync(process.execPath, [file])`, a `Worker`, `--import`) is
+  not seen by the walk, the residual of Amendment 2026-10-11 §D ("a process a guard spawns"). Every namer is a guard, a
+  guard test, the foundation contract test or a module a guard imports, so that edit is itself a governance edit that
+  all four roles read, and a reader of a governance pull request checks whether a guard's module loading changed.
+- The walk stays a best-effort aid, not a parser, and this amendment adds no claim that it finds every module a guard
+  can load; the list of known forms it misses in Amendment 2026-10-11 §D stands, non-exhaustive, with the item above.
+- An entry whose file is not at the head is not checked at run time: a named file that leaves the repository, or a
+  mention of a file not yet created that leaves its namer, makes no problem in the lane; each fails the suite (§C,
+  test 2), so that pull request is red until the list is edited, which is a classifier edit and governance.
+- It does not list every file a guard's fixture names. On this head, strings in tracked JavaScript files spell about
+  four hundred TypeScript paths that do not exist (most are synthetic fixtures such as `apps/web/app/x.ts`); only the
+  platform-kernel files, which a planned pull request creates, are listed ahead. A pull request that creates another
+  such file prints governance and fails §C test 2 until the list names the pair, which is again a classifier edit.
+- An application pull request that changes a listed file is governance, because a guard names the file by a string and
+  the file is in the closure; that is unchanged by this amendment.
+- It does not make the bootstrap job independent of the list: a pull request that adds a new string mention of a
+  TypeScript file to a namer the walk reads fails §C test 2 until the list names the pair, so that pull request also
+  edits the classifier.
+
+### E. Rollback
+
+A reviewed revert of `STRING_NAME_EXCEPTIONS`, `exceptionProblems`, the `excused` option of `importClosure`,
+`governanceClosure` and `laneOf`, and the six tests. Every pull request then prints governance again, as on `40267ae9`.
+No data, provider or credential effect.

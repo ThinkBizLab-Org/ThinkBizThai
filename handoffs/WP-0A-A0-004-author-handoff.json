@@ -4,42 +4,29 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "9fcc458c5a1314db25fde031b6ec1e0d31d0ab84",
-  "head_revision_or_patch_checksum": "b8bb37f167ff0e667001087aee4d7431a4f6524c",
+  "base_revision": "e69fc87b72549fe930f0209c5d7ce604691c0913",
+  "head_revision_or_patch_checksum": "b86880994675ed716a88e473586bc0dbf3e25bf3",
   "task_ids": [
     "WP-0A-A0-004",
-    "ci-tier-and-lane-2026-10-11"
+    "lane-walk-ts-2026-10-13"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-004/a1-reread-2026-10-11-pr255.md",
-    "evidence/WP-0A-A0-004/a1-reread2-2026-10-11-pr255.md",
-    "evidence/WP-0A-A0-004/a1-reread3-2026-10-11-pr255.md",
-    "evidence/WP-0A-A0-004/a1-reread4-2026-10-12-pr255.md",
-    "evidence/WP-0A-A0-004/a1-review-2026-10-11-pr255.md",
-    "evidence/WP-0A-A0-004/c0-reread-2026-10-11-pr255.md",
-    "evidence/WP-0A-A0-004/c0-reread2-2026-10-11-pr255.md",
-    "evidence/WP-0A-A0-004/c0-reread3-2026-10-11-pr255.md",
-    "evidence/WP-0A-A0-004/c0-reread4-2026-10-12-pr255.md",
-    "evidence/WP-0A-A0-004/c0-review-2026-10-11-pr255.md",
-    "evidence/WP-0A-A0-004/q0-reread-2026-10-11-pr255.md",
-    "evidence/WP-0A-A0-004/q0-reread2-2026-10-11-pr255.md",
-    "evidence/WP-0A-A0-004/q0-reread3-2026-10-11-pr255.md",
-    "evidence/WP-0A-A0-004/q0-reread4-2026-10-12-pr255.md",
-    "evidence/WP-0A-A0-004/q0-review-2026-10-11-pr255.md",
-    "evidence/WP-0A-A0-004/r0-reread-2026-10-11-pr255.md",
-    "evidence/WP-0A-A0-004/r0-reread2-2026-10-11-pr255.md",
-    "evidence/WP-0A-A0-004/r0-reread3-2026-10-11-pr255.md",
-    "evidence/WP-0A-A0-004/r0-reread4-2026-10-12-pr255.md",
-    "evidence/WP-0A-A0-004/r0-review-2026-10-11-pr255.md"
+    "evidence/WP-0A-A0-004/a1-reread-2026-10-14-pr260.md",
+    "evidence/WP-0A-A0-004/a1-review-2026-10-14-pr260.md",
+    "evidence/WP-0A-A0-004/c0-reread-2026-10-14-pr260.md",
+    "evidence/WP-0A-A0-004/c0-review-2026-10-14-pr260.md",
+    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-13-lane-walk-ts.md",
+    "evidence/WP-0A-A0-004/q0-reread-2026-10-14-pr260.md",
+    "evidence/WP-0A-A0-004/q0-review-2026-10-14-pr260.md",
+    "evidence/WP-0A-A0-004/r0-reread-2026-10-14-pr260.md",
+    "evidence/WP-0A-A0-004/r0-review-2026-10-14-pr260.md"
   ],
   "files_modified": [
-    ".github/workflows/ci.yml",
     "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
     "evidence/VERIFICATION.md",
     "handoffs/WP-0A-A0-004-author-handoff.json",
     "scripts/db/classify-review-tier.mjs",
     "scripts/test-suite-contract.mjs",
-    "test-kits/branch-scope.test.mjs",
     "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-A0-004.json"
@@ -54,15 +41,17 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT adds the CI step 'Print the review tier and lane (informational, gates nothing)' (RFC-2026-034 §8 item 2; RFC-2026-030 §9 item 2 and §10 item 2). It runs the base's copy of scripts/db/classify-review-tier.mjs (with classify-records-only.mjs beside it) before npm ci, prints tier and lane between stop-commands markers and in the escaped, capped job summary, writes no step output and exits 0 on every path; anything other than a full classification prints tier H and lane governance, not classified.",
-    "The classifier (WP-0A-DB-00's file, declared amendment) gains laneOf and formatLane: the RFC-2026-034 §2.2 governance path list (each pattern never, guard or additive); a transitive local-import walk read from the head, rooted at every guard, runner, classifier and guard test plus the database runner and harness, with a linear scanner (importSpecs rewritten, which the tier also uses) and fail-closed problems; the fixtures and path literals the harness loads; a test that imports a governance path is governance; audit only with --head-ref on WP-0A-A0-001's branch, equal --repo and --head-repo, and added or modified regular files directly in one evidence/audits/<date>/; records; risk for H and fast for M and L. additive-eligible is printed when only additive-coverable guard paths make the PR governance; it never lowers the lane. Without --lane the output is unchanged on real code.",
-    "On this pull request itself the base's classifier has no --lane, so the new step prints not classified (governance); that is the step failing closed, as designed.",
-    "Governance pull request (RFC-2026-034 §2.2): C0, A1, Q0 and R0 read the final head; A0 presses it under the Owner's answer to Q-034-6 (i) of 2026-10-11 once all four pass and CI is green on the exact head."
+    "THIS INCREMENT (RFC-2026-007 Amendment 2026-10-13) fixes the lane, not the tier: on main 40267ae9 a diff adding one record under evidence/ printed tier records and lane governance, with 26 string-rule reasons (23 distinct namer and named-file pairs), because PR #257's guards and guard tests name the application's .ts and .tsx files by strings.",
+    "scripts/db/classify-review-tier.mjs (WP-0A-DB-00's file, a declared amendment as in PR #255) gains STRING_NAME_EXCEPTIONS, a frozen list of 48 exact [namer, named] pairs: the 23 found; six for three platform-kernel files the guards' fixtures name and WP-1A-A0-003 will create (R0-259-1); ten in which the classifier names each file in the list itself; and nine in which the foundation contract test names each file in its pin of the list. For a listed pair only the string rule's problem is excused; the named file still joins the closure, an import of it read from code or found by the raw scan stays a problem, a load named by an expression stays a problem, and a malformed entry, and, when the named file is at the head, an entry whose namer is not or whose namer no longer spells the file, are each a problem (exceptionProblems). An entry whose file is not at the head is not checked at run time, so a pair may be listed ahead of the file (R0-259-1); the suite pins that every namer still spells its file.",
+    "The specification's condition that a pair be excused only when its named file is not a governance path is not in the list: four of the seven named files are governance paths by their own patterns, so a change to them is governance regardless, and with the condition 18 of the 26 reasons would stand (RFC-2026-007 Amendment 2026-10-13 §B).",
+    "R0-259-1 proposed checking the namer's mention at run time in place of the file's presence. The run-time check stays on present files, because the throwaway repositories and some synthetic heads in the tests hold a classifier or a stub at a namer's path and none of the named files; test-kits/db/foundation-contract.test.mjs pins on the repository as it stands that every entry's namer spells its file, that the entries whose file is present equal the pairs the string rule finds, and that the others are exactly the three platform-kernel files.",
+    "On this pull request CI prints governance by the base's classifier, as it must for a classifier edit; the fix reaches the lanes from the first pull request whose base carries it.",
+    "Governance pull request (RFC-2026-034 §2.2): C0, A1, Q0 and R0 read the final head; A0 presses it under the Product Owner's answer of 2026-10-12T20:28:22Z, an exception to RFC-2026-025 §5 item 6's last bullet for this pull request only, once all four pass and CI is green on the exact head containing current main (evidence/WP-0A-A0-004/product-owner-disposition-2026-10-13-lane-walk-ts.md, its section on §5 item 6). PR #258, named by the same answer, was pressed 2026-10-12T21:06:31Z (5d8f8fd4)."
   ],
   "acceptance_results": [
     {
-      "criterion": "The new step gates nothing, fails closed, runs the base's copy before npm ci, prints inert; laneOf follows RFC-2026-034 §2.2",
-      "result": "pass for author self-check: 9 new tests in test-kits/branch-scope.test.mjs and 15 in test-kits/db/foundation-contract.test.mjs after the third review round (764 in all); independent re-reading owed"
+      "criterion": "A records-only diff on the repository as it stands, and with the platform-kernel files created, prints the records lane; an unexcused mention, an excused namer's import or expression-named load, and a stale or malformed entry each print governance; the list is pinned exactly",
+      "result": "pass for author self-check: six new tests in test-kits/db/foundation-contract.test.mjs; each of fourteen classifier mutations fails at least one; A0's probe (a scratch worktree at this head plus one records transcription) prints lane records; independent re-reading owed"
     }
   ],
   "tests": [
@@ -72,9 +61,14 @@
       "result": "valid"
     },
     {
+      "command": "node --test --test-name-pattern=\"Amendment 2026-10-13\" test-kits/db/foundation-contract.test.mjs",
+      "exit_code": 0,
+      "result": "6 pass, 0 fail; each of the fourteen mutations recorded in RFC-2026-007 Amendment 2026-10-13 §C fails at least one"
+    },
+    {
       "command": "node scripts/commit-when-clean.mjs <message-file> (the increment commit)",
       "exit_code": 0,
-      "result": "clean: exit 0 — the full suite under the suite lock"
+      "result": "clean: exit 0, the full suite under the suite lock"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004",
@@ -87,25 +81,24 @@
       "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Changes CI by one informational step that gates nothing and writes no step output; the classifier gains a print-only lane function. No credential, secret, customer data or provider call; the step runs only the base's copy of the classifier, before any of the pull request's own code.",
+  "security_privacy_cost_impact": "Changes what the informational lane prints and nothing CI gates on. The exception list is exact pairs, no globs; an import, a load named by an expression and a stale or malformed entry still fail closed. No credential, secret, customer data or provider call.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes: CI, a classifier and tests; no contract-catalog file.",
+  "compatibility_impact": "No contract changes: a classifier, its test, the RFC, the registries and records; no contract-catalog file.",
   "known_limitations": [
-    "The lane is information for the readers; nothing gates on it yet. The fast lane also needs a module on M_ELIGIBLE_MODULES (RFC-2026-034 §8 item 5) or an L web path, and none exists today.",
-    "The import walk is a best-effort aid, not a parser, and does not claim to find every module a guard can load. It fails closed on any symbolic link or gitlink at the head; on an import read from code of a URL other than node:, of an absolute path, or resolving to anything but .js, .mjs, .cjs or .json; and on a reached .ts, .mts, .cts, .tsx, .jsx, .node or .wasm module. Every string in a guard's closure naming a code module joins the walk. Known forms it misses (RFC-2026-007 Amendment 2026-10-11 §D): a path computed at run time; a mechanism naming no repository-relative path literally; a process a guard spawns; a CommonJS require of a file whose extension it treats as data; a literal over the scanner's 4096-character cap; a backslash-separated path; a path held in data the guard reads (for example a JSON file); and a path where node and the walk pick different candidates. Each is an accepted residual: planting it in a guard is a governance edit all four roles read.",
-    "Fail closed where the RFC would allow lighter: a module a guard reaches, by import or by a string naming it, is guard kind and not additive-eligible, unless the RFC's additive rule names the path itself (foundation-contract.test.mjs, branch-identity.test.mjs, scripts/test-suite-contract.mjs and scripts/verify-test-coverage-floor.mjs stay additive-eligible). So the database runner's imports lose the mark (the classifier names scripts/db/run.mjs by string), and a file a guard names by string, changed alone, prints governance: scripts/test-suite-contract.mjs names some two dozen test files by literal path (for example catalog-groups.test.mjs and catalog-reference-integrity.test.mjs), and scripts/commit-when-clean.mjs is named too (C0-255r4-1). Test fixture strings make the paths they name governance too (Q0 N-2): none of those paths exists today, but a product file later added at one would print governance. It never lowers a lane; over the last 45 merges no lane changed (R0-255r3-2).",
-    "Locally the timeout 300 wrapper is exercised with stand-ins; the real coreutils timeout runs only on CI."
+    "The walk does not read TypeScript, so what an excused named file itself imports is not followed; that holds for every listed file, governance path or not (RFC-2026-007 Amendment 2026-10-13 §D).",
+    "The exception rests on how each namer uses the name at this head (data, or a project handed to tsc). A later edit that makes a namer run an excused file is the existing residual \"a process a guard spawns\" (Amendment 2026-10-11 §D); every namer is a guard, a guard test, the foundation contract test or a module a guard imports, so that edit is itself governance. The walk remains a best-effort aid with a non-exhaustive list of known misses.",
+    "A pull request that adds a new string mention of a TypeScript file to a module the walk reads fails the foundation contract test until the list names the pair, so it also edits the classifier."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE, tier H, full path: C0, A1, Q0 and R0 on the final head; A0 presses under Q-034-6 (i) once all four pass and CI is green on the exact head containing main. Amendment acknowledgements owed from WP-0A-DB-00, WP-0A-A0-002 and WP-0A-CON-008."
+    "GOVERNANCE, tier H, four roles. Round one at 02977f4e (C0 changes_requested on C0-260-1; A1 security_approved; Q0 test_verified; R0 ready), files carried with -x; main e69fc87b (PR #259) merged mechanically; the fix commit b288f4a2 answers C0-260-1..3 and records A1-260-N2, R0-260-1, Q0-260-1. Round two at 3d588bf6: C0 review_approved, A1 security_approved (no finding open), Q0 test_verified, R0 integration_verified on C1/C2; advisories only (C0-260-4, -5; A1-260r2-N1; Q0-260r2-1; R0-260r2-1), files carried with -x. A0 presses under the Owner's answer of 2026-10-12T20:28:22Z once CI is green on both jobs on the final head."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR removes the WP-0A-A0-004 tier-and-lane CI step and laneOf (ci-tier-and-lane-2026-10-11); nothing gates on either.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR removes STRING_NAME_EXCEPTIONS, exceptionProblems and the excused option from scripts/db/classify-review-tier.mjs with their six tests (lane-walk-ts-2026-10-13); every pull request then prints the governance lane again, as on main 40267ae9.",
   "recommended_next_work_packages": [
     "WP-0A-A0-002: RFC-2026-034 §8 item 4, CI runs application tests (scripts/run-test-suite.mjs)."
   ],
   "reviewer_instructions": [
-    "Read RFC-2026-034 §2.2 and §8, then git diff origin/main -- .github/workflows/ci.yml scripts/db/classify-review-tier.mjs.",
-    "Check the new step against the records-only step it is modelled on, and laneOf against §2.2 pattern by pattern."
+    "Read RFC-2026-007 Amendment 2026-10-13, then git diff origin/main -- scripts/db/classify-review-tier.mjs test-kits/db/foundation-contract.test.mjs.",
+    "Check each of the 48 pairs against how its namer uses the name, and try to make an excused namer load its named file without the walk printing governance."
   ],
   "superseded_by": null
 }

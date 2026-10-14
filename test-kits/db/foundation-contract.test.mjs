@@ -7501,3 +7501,244 @@ test('the lane\'s backstop and string rule drop tabs and line breaks, a wide // 
   const c = importClosure(['scripts/db/run.mjs'], (p) => head[p], new Set(Object.keys(head)), undefined, links);
   assert.ok(c.problems.some((x) => /"scripts\/db\/data\.json" is a symbolic link \(mode 120000\) the walk reaches from scripts\/db\/run\.mjs/.test(x)), JSON.stringify(c.problems));
 });
+
+// RFC-2026-007 Amendment 2026-10-13 (the Product Owner's answer of 2026-10-12T20:28:22Z, evidence/WP-0A-A0-004/
+// product-owner-disposition-2026-10-13-lane-walk-ts.md): PR #257 added guards and guard tests that name the application's
+// TypeScript files by strings, and the string rule made every pull request governance. STRING_NAME_EXCEPTIONS excuses
+// exact [namer, named] pairs in the string rule only. The six tests below pin, in order: the list itself; that a
+// records-only diff on the repository as it stands is records, and that the list is exactly what the string rule finds
+// there; that a pair listed ahead of its file keeps the records lane once the file is created (R0-259-1); that a
+// mention the list does not name is still governance; that an import, a load named by an expression, or
+// an import behind a scanner misread is still governance from an excused namer; and that a stale or malformed entry
+// fails closed. The probes other than the repository's own use paths the repository does not hold.
+import { readFileSync } from 'node:fs';
+import { STRING_NAME_EXCEPTIONS, exceptionProblems } from '../../scripts/db/classify-review-tier.mjs';
+
+const TS_NAMER = 'scripts/verify-ts-probe.mjs';
+const TS_NAMED = 'apps/probe/page.tsx';
+const TS_PAIR = [[TS_NAMER, TS_NAMED]];
+const TS_HEAD = {
+  [TS_NAMER]: "import { readFile } from 'node:fs/promises';\nexport const text = await readFile('apps/probe/page.tsx', 'utf8');\n",
+  [TS_NAMED]: 'export default function Page() { return null; }\n',
+};
+const tsLane = (head, excused = TS_PAIR, paths = ['evidence/WP-X/r.md'], tier = 'records') => laneOf({ paths, tier, recordsOnly: tier === 'records',
+  files: new Set(Object.keys(head)), readHead: (p) => { if (!(p in head)) throw new Error(`no ${p}`); return head[p]; }, excused });
+// The repository as it stands, read from the working tree: what `git ls-files` lists, each read once.
+let repositoryHead = null;
+const repository = async () => {
+  if (repositoryHead === null) {
+    const files = new Set((await run('git', ['ls-files', '-z'], { maxBuffer: 64 * 1024 * 1024 })).stdout.split('\0').filter(Boolean));
+    const texts = new Map();
+    const readHead = (p) => { if (!files.has(p)) throw new Error(`no ${p}`); if (!texts.has(p)) texts.set(p, readFileSync(p, 'utf8')); return texts.get(p); };
+    repositoryHead = { files, readHead };
+  }
+  return repositoryHead;
+};
+const RECORDS_PROBE = 'evidence/WP-1A-A0-002/records-transcription-probe.md';
+const PLATFORM_KERNEL = ['src/modules/platform-kernel/adapters/job-store.ts', 'src/modules/platform-kernel/application/run.ts', 'src/modules/platform-kernel/index.ts'];
+const MENTION = /^governance: ("(?:[^"\\]|\\.)*") names ("(?:[^"\\]|\\.)*"), which resolves to ("(?:[^"\\]|\\.)*"), code node can run and the walk cannot read \(fail closed\)$/;
+
+test('the string-name exceptions are a frozen list of exact [namer, named] pairs, pinned here entry for entry (RFC-2026-007 Amendment 2026-10-13)', () => {
+  assert.ok(Object.isFrozen(STRING_NAME_EXCEPTIONS) && STRING_NAME_EXCEPTIONS.every((e) => Object.isFrozen(e)));
+  assert.throws(() => STRING_NAME_EXCEPTIONS.push(['scripts/verify-x.mjs', 'x.ts']), TypeError);
+  assert.throws(() => { STRING_NAME_EXCEPTIONS[0][1] = 'apps/web/app/other.tsx'; }, TypeError);
+  assert.deepEqual(STRING_NAME_EXCEPTIONS.map((e) => [...e]), [
+    ['scripts/app-boundaries.mjs', 'vitest.config.ts'],
+    ['scripts/db/classify-review-tier.mjs', 'apps/web/app/layout.tsx'],
+    ['scripts/db/classify-review-tier.mjs', 'apps/web/app/page.test.tsx'],
+    ['scripts/db/classify-review-tier.mjs', 'apps/web/app/page.tsx'],
+    ['scripts/db/classify-review-tier.mjs', 'apps/web/next.config.ts'],
+    ['scripts/db/classify-review-tier.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'],
+    ['scripts/db/classify-review-tier.mjs', 'src/modules/platform-kernel/application/run.ts'],
+    ['scripts/db/classify-review-tier.mjs', 'src/modules/platform-kernel/index.ts'],
+    ['scripts/db/classify-review-tier.mjs', 'test-kits/typecheck-control/mistyped.ts'],
+    ['scripts/db/classify-review-tier.mjs', 'test-kits/typecheck-control/shape.ts'],
+    ['scripts/db/classify-review-tier.mjs', 'vitest.config.ts'],
+    ['scripts/verify-app-boundaries.mjs', 'apps/web/app/page.test.tsx'],
+    ['scripts/verify-app-boundaries.mjs', 'apps/web/app/page.tsx'],
+    ['scripts/verify-app-boundaries.mjs', 'apps/web/next.config.ts'],
+    ['scripts/verify-app-boundaries.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'],
+    ['scripts/verify-app-boundaries.mjs', 'src/modules/platform-kernel/index.ts'],
+    ['scripts/verify-app-boundaries.mjs', 'vitest.config.ts'],
+    ['scripts/verify-test-coverage-floor.mjs', 'test-kits/typecheck-control/mistyped.ts'],
+    ['scripts/verify-test-coverage-floor.mjs', 'test-kits/typecheck-control/shape.ts'],
+    ['scripts/verify-typecheck-control.mjs', 'test-kits/typecheck-control/mistyped.ts'],
+    ['test-kits/app-boundaries.test.mjs', 'apps/web/app/layout.tsx'],
+    ['test-kits/app-boundaries.test.mjs', 'apps/web/app/page.test.tsx'],
+    ['test-kits/app-boundaries.test.mjs', 'apps/web/app/page.tsx'],
+    ['test-kits/app-boundaries.test.mjs', 'apps/web/next.config.ts'],
+    ['test-kits/app-boundaries.test.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'],
+    ['test-kits/app-boundaries.test.mjs', 'src/modules/platform-kernel/application/run.ts'],
+    ['test-kits/app-boundaries.test.mjs', 'src/modules/platform-kernel/index.ts'],
+    ['test-kits/app-boundaries.test.mjs', 'vitest.config.ts'],
+    ['test-kits/app-dependencies.test.mjs', 'vitest.config.ts'],
+    ['test-kits/app-stack.test.mjs', 'apps/web/app/layout.tsx'],
+    ['test-kits/app-stack.test.mjs', 'apps/web/app/page.tsx'],
+    ['test-kits/app-stack.test.mjs', 'apps/web/next.config.ts'],
+    ['test-kits/app-stack.test.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'],
+    ['test-kits/app-stack.test.mjs', 'test-kits/typecheck-control/mistyped.ts'],
+    ['test-kits/app-stack.test.mjs', 'vitest.config.ts'],
+    ['test-kits/db/foundation-contract.test.mjs', 'apps/web/app/layout.tsx'],
+    ['test-kits/db/foundation-contract.test.mjs', 'apps/web/app/page.test.tsx'],
+    ['test-kits/db/foundation-contract.test.mjs', 'apps/web/app/page.tsx'],
+    ['test-kits/db/foundation-contract.test.mjs', 'apps/web/next.config.ts'],
+    ['test-kits/db/foundation-contract.test.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'],
+    ['test-kits/db/foundation-contract.test.mjs', 'src/modules/platform-kernel/application/run.ts'],
+    ['test-kits/db/foundation-contract.test.mjs', 'src/modules/platform-kernel/index.ts'],
+    ['test-kits/db/foundation-contract.test.mjs', 'test-kits/typecheck-control/mistyped.ts'],
+    ['test-kits/db/foundation-contract.test.mjs', 'test-kits/typecheck-control/shape.ts'],
+    ['test-kits/db/foundation-contract.test.mjs', 'vitest.config.ts'],
+    ['test-kits/repository-json.test.mjs', 'test-kits/typecheck-control/mistyped.ts'],
+    ['test-kits/repository-json.test.mjs', 'test-kits/typecheck-control/shape.ts'],
+    ['test-kits/repository-json.test.mjs', 'vitest.config.ts'],
+  ]);
+  // Every entry is two exact paths, a JavaScript namer and a TypeScript file, none twice: the list's own check is clean.
+  assert.deepEqual(exceptionProblems(STRING_NAME_EXCEPTIONS), []);
+  assert.ok(STRING_NAME_EXCEPTIONS.every(([namer, named]) => /\.mjs$/.test(namer) && /\.tsx?$/.test(named) && !/[*?[\]{}]/.test(namer + named)));
+});
+
+test('a records-only diff on the repository as it stands prints the records lane, and the string-name exceptions are exactly the pairs the string rule finds there (RFC-2026-007 Amendment 2026-10-13)', async () => {
+  const { files, readHead } = await repository();
+  assert.ok(!files.has(RECORDS_PROBE));
+  const of = (extra = {}) => laneOf({ paths: [RECORDS_PROBE], tier: 'records', recordsOnly: true, files, readHead, ...extra });
+  // A0's probe of 2026-10-13: one transcription added under evidence/. Records, with nothing else to say.
+  assert.deepEqual(of(), { lane: 'records', reasons: ['records: the records-only classifier says records-only (RFC-2026-025 §6.1)'], additiveEligible: false });
+  // The control: with no exception the same diff is governance, as it was on main 40267ae9, and every reason is one
+  // string mention of code the walk cannot read. The pairs those mentions make are the list, entry for entry: a pair the
+  // repository no longer has, or a mention the list does not name, fails here.
+  const none = of({ excused: [] });
+  assert.equal(none.lane, 'governance');
+  const found = new Set();
+  for (const why of none.reasons) {
+    const m = MENTION.exec(why);
+    assert.ok(m, `a reason other than a string mention: ${why}`);
+    found.add(JSON.stringify([JSON.parse(m[1]), JSON.parse(m[3])]));
+  }
+  const atHead = STRING_NAME_EXCEPTIONS.filter(([, named]) => files.has(named));
+  assert.ok(none.reasons.length >= atHead.length, `${none.reasons.length} mentions`);
+  assert.deepEqual([...found].sort(), atHead.map(([namer, named]) => JSON.stringify([namer, named])).sort());
+  // The rest name files no pull request has created yet (R0-259-1): today only the platform-kernel files WP-1A-A0-003
+  // will create. The run-time check does not reach them; here, every entry's namer still spells its file.
+  assert.deepEqual([...new Set(STRING_NAME_EXCEPTIONS.filter(([, named]) => !files.has(named)).map(([, named]) => named))].sort(), PLATFORM_KERNEL);
+  const { mentioned } = governanceClosure({ files, readHead });
+  assert.deepEqual([...mentioned].sort(), STRING_NAME_EXCEPTIONS.map(([namer, named]) => JSON.stringify([namer, named])).sort());
+});
+
+test('a pair listed for a file a guard fixture names before it exists keeps the records lane once a pull request creates the file (RFC-2026-007 Amendment 2026-10-13; R0-259-1)', async () => {
+  const { files, readHead } = await repository();
+  // WP-1A-A0-003's first pull request creates the platform-kernel module; the guards' fixtures already name three of
+  // its files. Here they are created at the head of the repository as it stands, with a records-only diff beside them.
+  const created = new Map(PLATFORM_KERNEL.map((p) => [p, 'export const kernel = 1;\n']));
+  assert.ok(PLATFORM_KERNEL.every((p) => !files.has(p)), 'none exists yet');
+  const head = new Set([...files, ...created.keys()]);
+  const read = (p) => (created.has(p) ? created.get(p) : readHead(p));
+  const of = (extra = {}) => laneOf({ paths: [RECORDS_PROBE], tier: 'records', recordsOnly: true, files: head, readHead: read, ...extra });
+  assert.deepEqual(of(), { lane: 'records', reasons: ['records: the records-only classifier says records-only (RFC-2026-025 §6.1)'], additiveEligible: false });
+  // The control: without the platform-kernel pairs the same head is governance, by exactly those mentions.
+  const without = of({ excused: STRING_NAME_EXCEPTIONS.filter(([, named]) => !created.has(named)) });
+  assert.equal(without.lane, 'governance');
+  const found = new Set(without.reasons.map((why) => { const m = MENTION.exec(why); assert.ok(m, why); return JSON.stringify([JSON.parse(m[1]), JSON.parse(m[3])]); }));
+  assert.deepEqual([...found].sort(), STRING_NAME_EXCEPTIONS.filter(([, named]) => created.has(named)).map((e) => JSON.stringify([...e])).sort());
+  // And a module of the new package that no module the walk reads names stays outside the walk: it adds nothing. (Its
+  // path is built here, not written as a literal, so that this test does not itself name it.)
+  const fresh = `${'src/modules/platform-kernel'}/domain/tenant.ts`;
+  const more = new Set([...head, fresh]);
+  assert.equal(laneOf({ paths: [RECORDS_PROBE], tier: 'records', recordsOnly: true, files: more, readHead: (p) => (p === fresh ? 'x\n' : read(p)) }).lane, 'records');
+});
+
+test('a string mention of TypeScript the string-name exceptions do not name is still governance, and the file an excused mention names stays in the walk (RFC-2026-007 Amendment 2026-10-13)', async () => {
+  // The excused pair: records. Without it: governance, as before.
+  assert.equal(tsLane(TS_HEAD).lane, 'records', JSON.stringify(tsLane(TS_HEAD)));
+  const unexcused = /^governance: "scripts\/verify-ts-probe\.mjs" names "apps\/probe\/page\.tsx", which resolves to "apps\/probe\/page\.tsx", code node can run and the walk cannot read \(fail closed\)$/;
+  r3Gov(tsLane(TS_HEAD, []), unexcused, 'no exception');
+  // A pair is per namer: another guard naming the same file is governance.
+  r3Gov(tsLane({ ...TS_HEAD, 'scripts/verify-other-probe.mjs': "export const p = 'apps/probe/page.tsx';\n" }),
+    /^governance: "scripts\/verify-other-probe\.mjs" names "apps\/probe\/page\.tsx", which resolves to "apps\/probe\/page\.tsx", code node can run/, 'another namer');
+  // A pair is per file: the excused namer naming another TypeScript file, from the module or the root, or by another
+  // spelling that resolves elsewhere, is governance, and only that mention is.
+  for (const [p, line] of [['apps/probe/layout.tsx', "const l = 'apps/probe/layout.tsx';"], ['apps/probe/layout.tsx', "const l = '../apps/probe/layout.tsx';"],
+    ['apps/probe/page.ts', "const l = 'apps/probe/page.ts';"], ['apps/probe/page.mts', "const l = 'apps/probe/page';"]]) {
+    const l = tsLane({ ...TS_HEAD, [p]: 'x\n', [TS_NAMER]: `${TS_HEAD[TS_NAMER]}${line}\n` });
+    r3Gov(l, new RegExp(`^governance: "scripts/verify-ts-probe\\.mjs" names "[^"]+", which resolves to "${r3Escape(p)}", code node can run`), line);
+    assert.ok(!l.reasons.some((x) => /resolves to "apps\/probe\/page\.tsx"/.test(x)), `${line}: ${JSON.stringify(l.reasons)}`);
+  }
+  // The excused file still joins the closure: a change to it is governance, reached from a guard by a string.
+  r3Gov(tsLane(TS_HEAD, TS_PAIR, [TS_NAMED], 'H'),
+    /^governance: "apps\/probe\/page\.tsx" \(a module scripts\/verify-ts-probe\.mjs imports or names by a string, read at the head: reached from a guard/, 'the named file changed');
+  // On the repository as it stands: a guard test that gains a mention of a page it is not paired with is governance, by
+  // that one mention.
+  const { files, readHead } = await repository();
+  const namer = 'test-kits/app-dependencies.test.mjs';
+  const gained = (p) => (p === namer ? `${readHead(p)}\nconst gained = 'apps/web/app/layout.tsx';\n` : readHead(p));
+  const l = laneOf({ paths: [RECORDS_PROBE], tier: 'records', recordsOnly: true, files, readHead: gained });
+  assert.equal(l.lane, 'governance');
+  assert.deepEqual(l.reasons, ['governance: "test-kits/app-dependencies.test.mjs" names "apps/web/app/layout.tsx", which resolves to "apps/web/app/layout.tsx", code node can run and the walk cannot read (fail closed)']);
+});
+
+test('an excused namer that imports the file it names, or loads a module named by an expression, is still governance (RFC-2026-007 Amendment 2026-10-13)', () => {
+  const cannotRead = /^governance: "scripts\/verify-ts-probe\.mjs" imports "\.\.\/apps\/probe\/page\.tsx", which resolves to "apps\/probe\/page\.tsx", a module the walk cannot read \(only \.js, \.mjs, \.cjs and \.json\) \(fail closed\)$/;
+  // Imports read from code: each reaches the import rule, not the string rule, and the exception does not reach it.
+  for (const line of ["import '../apps/probe/page.tsx';", "import Page from '../apps/probe/page.tsx';", "export * from '../apps/probe/page.tsx';",
+    "const Page = await import('../apps/probe/page.tsx');", "const Page = require('../apps/probe/page.tsx');"]) {
+    assert.ok(jsRefs(line).specs.includes('../apps/probe/page.tsx'), line);
+    r3Gov(tsLane({ ...TS_HEAD, [TS_NAMER]: `${TS_HEAD[TS_NAMER]}${line}\n` }), cannotRead, line);
+  }
+  // An import the code reads and the raw scan does not (a quote character inside a double-quoted specifier ends the raw
+  // scan's specifier early): the import rule alone catches it, and the exception does not reach that rule either.
+  const quoted = "apps/probe/pa'ge.tsx";
+  const quotedLine = 'import Page from "../apps/probe/pa\'ge.tsx";';
+  assert.ok(jsRefs(quotedLine).specs.includes(`../${quoted}`) && !backstopSpecs(quotedLine).includes(`../${quoted}`), 'only the code reading sees it');
+  r3Gov(tsLane({ ...TS_HEAD, [quoted]: 'x\n', [TS_NAMER]: `${TS_HEAD[TS_NAMER]}${quotedLine}\n` }, [...TS_PAIR, [TS_NAMER, quoted]]),
+    /^governance: "scripts\/verify-ts-probe\.mjs" imports "\.\.\/apps\/probe\/pa'ge\.tsx", which resolves to "apps\/probe\/pa'ge\.tsx", a module the walk cannot read/, 'read from code only');
+  // Behind A1's scanner misread the import is not read from code; the raw scan finds it, and that is a problem too.
+  const hidden = behind('const Page = await import("../apps/probe/page.tsx");');
+  assert.ok(!jsRefs(hidden).specs.includes('../apps/probe/page.tsx'), 'the misread is real');
+  r3Gov(tsLane({ ...TS_HEAD, [TS_NAMER]: `${TS_HEAD[TS_NAMER]}${hidden}` }), cannotRead, 'behind a misread');
+  // A load named by an expression, a computed dynamic import of the very path the namer names, or createRequire: each
+  // is governance, whatever the namer names by its strings.
+  for (const [line, why] of [["const name = 'apps/probe/page.tsx';\nconst Page = await import(`../${name}`);", /named by an expression \(import\(\.\.\.\)/],
+    ["const name = '../apps/probe/page.tsx';\nconst Page = await import(name);", /named by an expression \(import\(\.\.\.\)/],
+    ["const name = '../apps/probe/page.tsx';\nconst Page = require(name);", /named by an expression \(require\(\.\.\.\)/],
+    ["import { createRequire } from 'node:module';\nconst Page = createRequire(import.meta.url)('../apps/probe/page.tsx');", /named by an expression \(createRequire/]]) {
+    r3Gov(tsLane({ ...TS_HEAD, [TS_NAMER]: `${TS_HEAD[TS_NAMER]}${line}\n` }), why, line);
+  }
+});
+
+test('a stale or malformed string-name exception fails closed (RFC-2026-007 Amendment 2026-10-13)', () => {
+  const stale = (l, why, what) => r3Gov(l, new RegExp(`^governance: the string-name exception \\["scripts/verify-ts-probe\\.mjs","apps/probe/page\\.tsx"\\] is stale: ${why}`), what);
+  // The named file is at the head and the namer is not.
+  stale(tsLane({ [TS_NAMED]: TS_HEAD[TS_NAMED] }), '"apps/probe/page\\.tsx" is at the head and "scripts/verify-ts-probe\\.mjs" is not', 'the namer left');
+  // Both are, and the namer no longer names the file.
+  stale(tsLane({ ...TS_HEAD, [TS_NAMER]: 'export const text = 1;\n' }), 'the walk read no string in "scripts/verify-ts-probe\\.mjs" that names', 'the mention left');
+  // Both are, and the walk does not read the namer: a module no guard reaches is not a namer the walk reads.
+  const unread = [['src/lib/probe.mjs', TS_NAMED]];
+  const l = tsLane({ 'src/lib/probe.mjs': "export const p = 'apps/probe/page.tsx';\n", [TS_NAMED]: 'x\n' }, unread);
+  r3Gov(l, /^governance: the string-name exception \["src\/lib\/probe\.mjs","apps\/probe\/page\.tsx"\] is stale: the walk read no string in "src\/lib\/probe\.mjs"/, 'an unread namer');
+  // With its file not yet at the head an entry excuses nothing and is not checked at run time (R0-259-1), so a pair may
+  // be listed ahead of the file; what the walk records as the namer's mention, as written or without the extension
+  // its resolution adds, is what the suite pins on the repository (`mentioned`).
+  const ahead = (head, excused = TS_PAIR) => governanceClosure({ files: new Set(Object.keys(head)), readHead: (p) => head[p], excused }).mentioned;
+  assert.equal(tsLane({ [TS_NAMER]: TS_HEAD[TS_NAMER] }).lane, 'records');
+  assert.deepEqual([...ahead({ [TS_NAMER]: TS_HEAD[TS_NAMER] })], [JSON.stringify(TS_PAIR[0])]);
+  assert.deepEqual([...ahead({ [TS_NAMER]: "export const p = 'apps/probe/page';\n" }, [[TS_NAMER, 'apps/probe/page.ts']])], [JSON.stringify([TS_NAMER, 'apps/probe/page.ts'])]);
+  assert.equal(tsLane({ [TS_NAMER]: 'export const text = 1;\n' }).lane, 'records');
+  assert.deepEqual([...ahead({ [TS_NAMER]: 'export const text = 1;\n' })], [], 'a mention that left is not recorded');
+  assert.equal(tsLane({}).lane, 'records');
+  // Malformed entries, each a problem wherever the head is: a glob, a directory, a path that is not normalized or leaves
+  // the repository, a namer the walk does not read as JavaScript, a named file the string rule does not hold against it,
+  // an entry that is not a pair, and an entry listed twice.
+  for (const [entry, why] of [[[TS_NAMER, 'apps/probe/*.tsx'], /does not name two files by exact repository paths/],
+    [[TS_NAMER, 'apps/probe/**'], /does not name two files by exact repository paths/], [[TS_NAMER, 'apps/probe/'], /does not name two files by exact repository paths/],
+    [[TS_NAMER, 'apps/probe'], /names a file the string rule does not hold against it/], [[TS_NAMER, 'apps/./probe/page.tsx'], /exact repository paths/],
+    [[TS_NAMER, '../apps/probe/page.tsx'], /exact repository paths/], [[TS_NAMER, '/apps/probe/page.tsx'], /exact repository paths/],
+    [['scripts/*.mjs', TS_NAMED], /exact repository paths/], [['scripts/verify-ts-probe.ts', TS_NAMED], /names a namer the walk does not read as JavaScript/],
+    [[TS_NAMER, 'apps/probe/page.json'], /names a file the string rule does not hold against it/], [[TS_NAMER, TS_NAMED, 'x'], /is not one \[namer, named\] pair/],
+    [TS_NAMER, /is not one \[namer, named\] pair/], [[TS_NAMER, 7], /exact repository paths/]]) {
+    assert.ok(exceptionProblems([entry]).some((x) => why.test(x)), `${JSON.stringify(entry)}: ${JSON.stringify(exceptionProblems([entry]))}`);
+    assert.ok(exceptionProblems([entry], new Set()).some((x) => why.test(x)), JSON.stringify(entry));
+    r3Gov(tsLane(TS_HEAD, [...TS_PAIR, entry]), why, JSON.stringify(entry));
+  }
+  r3Gov(tsLane(TS_HEAD, [...TS_PAIR, [TS_NAMER, TS_NAMED]]), /\["scripts\/verify-ts-probe\.mjs","apps\/probe\/page\.tsx"\] is listed twice/, 'a duplicate');
+  assert.deepEqual(exceptionProblems('not a list'), ['the string-name exceptions are not a list, so none can be checked']);
+  r3Gov(tsLane(TS_HEAD, 'not a list'), /the string-name exceptions are not a list/, 'not a list');
+});
