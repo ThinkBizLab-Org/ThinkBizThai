@@ -4,7 +4,8 @@ import { defineStableError } from './stable-error';
 // inference (manifest open_blockers, Q6): no error-code or message-key taxonomy exists, and until
 // A5's message catalog does, the keys follow ctr-err-001's fixtures (`errors.` prefix).
 
-// No authenticated principal, or one the resolver cannot read.
+// No authenticated principal, or one outside the minted shape (an actor kind outside the enum, an
+// id outside the resolver's id pattern).
 export const TENANT_UNAUTHENTICATED = defineStableError({
   code: 'tenant.unauthenticated',
   messageKey: 'errors.tenant.unauthenticated',
@@ -32,7 +33,8 @@ export const TENANT_SELECTION_INVALID = defineStableError({
   retryable: false,
 });
 
-// A dependency failed (the directory, the principal source). Carries nothing from the failure.
+// A dependency failed (the directory, the principal source, a principal whose read throws).
+// Carries nothing from the failure.
 export const PLATFORM_TEMPORARY = defineStableError({
   code: 'platform.temporary',
   messageKey: 'errors.platform.temporary',

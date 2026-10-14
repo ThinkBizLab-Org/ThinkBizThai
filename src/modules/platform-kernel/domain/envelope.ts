@@ -49,8 +49,12 @@ export interface AcceptedEnvelope extends EnvelopeHeader {
 
 export type Envelope = SuccessEnvelope | ErrorEnvelope | AcceptedEnvelope;
 
-const KEYS = ['api_version', 'kind', 'request_id', 'correlation_id', 'causation_id', 'tenant_context', 'data', 'error', 'accepted'];
-const REQUIRED = ['api_version', 'kind', 'request_id', 'correlation_id', 'tenant_context'];
+// The key lists below are pinned to the schema's properties and required by
+// contract-fixtures.test.ts.
+export const ENVELOPE_KEYS = ['api_version', 'kind', 'request_id', 'correlation_id', 'causation_id', 'tenant_context', 'data', 'error', 'accepted'] as const;
+export const ENVELOPE_REQUIRED = ['api_version', 'kind', 'request_id', 'correlation_id', 'tenant_context'] as const;
+export const ACCEPTED_KEYS = ['job_id', 'status_ref', 'deep_link_ref'] as const;
+export const ACCEPTED_REQUIRED = ['job_id', 'status_ref'] as const;
 const boundedId = (value: unknown): boolean => isStringWithin(value, 1, ENVELOPE_ID_MAX_LENGTH);
 
 export const isEnvelopeKind = (value: unknown): value is EnvelopeKind =>
@@ -58,8 +62,8 @@ export const isEnvelopeKind = (value: unknown): value is EnvelopeKind =>
 
 export const checkAcceptedReceipt = (value: unknown): value is AcceptedReceipt =>
   isObject(value)
-  && hasRequired(value, ['job_id', 'status_ref'])
-  && hasOnlyKeys(value, ['job_id', 'status_ref', 'deep_link_ref'])
+  && hasRequired(value, ACCEPTED_REQUIRED)
+  && hasOnlyKeys(value, ACCEPTED_KEYS)
   && boundedId(value.job_id)
   && isPrivateReference(value.status_ref)
   && optional(value, 'deep_link_ref', isPrivateReference);
@@ -74,8 +78,8 @@ const BRANCH: Readonly<Record<EnvelopeKind, 'data' | 'error' | 'accepted'>> = {
 export function checkEnvelope(value: unknown): value is Envelope {
   if (!isObject(value)) return false;
   const record: JsonObject = value;
-  if (!(hasRequired(record, REQUIRED)
-    && hasOnlyKeys(record, KEYS)
+  if (!(hasRequired(record, ENVELOPE_REQUIRED)
+    && hasOnlyKeys(record, ENVELOPE_KEYS)
     && isInteger(record.api_version) && record.api_version >= 1
     && isEnvelopeKind(record.kind)
     && boundedId(record.request_id)

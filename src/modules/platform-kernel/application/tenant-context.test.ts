@@ -11,7 +11,7 @@ import {
   type DirectoryTable,
 } from './fakes';
 import type { AuthenticatedPrincipalPort, TenantAccessDirectory } from './ports';
-import { isMintedTenantContext, resolveTenantContext } from './tenant-context';
+import { isMintedTenantContext, resolveTenantContext, tenantContextRecordOf } from './tenant-context';
 
 const TABLE: DirectoryTable = {
   workspaces: ['ws_synthetic_0001', 'ws_synthetic_0002'],
@@ -36,6 +36,16 @@ const user = (id: string) => fixedPrincipal({ kind: 'user', id });
 // A fresh id source per call, so two resolutions mint the same ids and can be compared byte for byte.
 const resolve = (selection: unknown, principal: AuthenticatedPrincipalPort = user('usr_synthetic_0001'), directory: TenantAccessDirectory = tableTenantAccessDirectory(TABLE)) =>
   resolveTenantContext({ principal, directory, ids: sequentialRequestIdSource() }, selection);
+
+// A directory that admits every scope and records what it was asked, so a refusal can only come
+// from the resolver's own rules.
+const admitAll = () => {
+  const calls: unknown[] = [];
+  const directory: TenantAccessDirectory = { admits: (_principal, scope) => { calls.push(scope); return Promise.resolve(true); } };
+  return { directory, calls };
+};
+
+const LEAK_MARKER = 'zz-text-from-a-thrown-value';
 
 const errorOf = async (selection: unknown, principal?: AuthenticatedPrincipalPort, directory?: TenantAccessDirectory) => {
   const resolution = await resolve(selection, principal, directory);
@@ -158,5 +168,96 @@ describe('resolveTenantContext', () => {
   it('refuses an id source that mints outside the minted shape', async () => {
     const ids = { mint: () => 'not a minted id' };
     await expect(resolveTenantContext({ principal: user('usr_synthetic_0001'), directory: tableTenantAccessDirectory(TABLE), ids }, { workspace_id: 'ws_synthetic_0001' })).rejects.toThrow(TypeError);
+  });
+  // A1-261-1: only the selection's own keys are read.
+  it('refuses a selection whose ids are only inherited', async () => {
+    const inherited: unknown = Object.create({ workspace_id: 'ws_synthetic_0001' });
+    expect((await errorOf(inherited)).code).toBe('tenant.selection.invalid');
+  });
+
+  it('does not narrow a JSON-parsed selection by a polluted Object.prototype', async () => {
+    const prototype = Object.prototype as Record<string, unknown>;
+    const directory = tableTenantAccessDirectory(TABLE);
+    try {
+      prototype.business_profile_id = 'biz_synthetic_0001';
+      prototype.page_context_profile_id = 'page_synthetic_0001';
+      const resolution = await resolve(JSON.parse('{"workspace_id":"ws_synthetic_0001"}'), undefined, directory);
+      expect(resolution.ok).toBe(true);
+      if (!resolution.ok) return;
+      expect(Object.hasOwn(resolution.context, 'business_profile_id')).toBe(false);
+      expect(Object.hasOwn(resolution.context, 'page_context_profile_id')).toBe(false);
+      const record = tenantContextRecordOf(resolution.context);
+      expect(Object.hasOwn(record, 'business_profile_id')).toBe(false);
+      expect(Object.hasOwn(record, 'page_context_profile_id')).toBe(false);
+      expect(directory.calls).toHaveLength(1);
+      expect(Object.keys(directory.calls[0] ?? {})).toEqual(['workspace_id']);
+    } finally {
+      delete prototype.business_profile_id;
+      delete prototype.page_context_profile_id;
+    }
+    expect(Object.hasOwn(Object.prototype, 'business_profile_id')).toBe(false);
+  });
+
+  it('refuses a selection whose read throws as invalid, copying nothing', async () => {
+    const throwing = { get workspace_id(): string { throw new Error(LEAK_MARKER); } };
+    const error = await errorOf(throwing);
+    expect(error.code).toBe('tenant.selection.invalid');
+    expect(JSON.stringify(error)).not.toContain(LEAK_MARKER);
+  });
+
+  // A1-261-2: a dependency's thrown value does not leave the resolver.
+  it('gives a temporary error for a principal whose getters throw, copying nothing', async () => {
+    for (const property of ['kind', 'id']) {
+      const principal = { kind: 'user', id: 'usr_synthetic_0001' };
+      Object.defineProperty(principal, property, { get: () => { throw new Error(LEAK_MARKER); } });
+      const port: AuthenticatedPrincipalPort = { current: () => Promise.resolve(principal as never) };
+      const error = await errorOf({ workspace_id: 'ws_synthetic_0001' }, port);
+      expect(error.code).toBe('platform.temporary');
+      expect(error.details).toEqual({});
+      expect(JSON.stringify(error)).not.toContain(LEAK_MARKER);
+    }
+  });
+
+  it('drops the thrown value of a failing id source: a constant TypeError, no cause', async () => {
+    for (const failure of [new Error(LEAK_MARKER), LEAK_MARKER, { message: LEAK_MARKER, stack: LEAK_MARKER }]) {
+      const ids = { mint: (): string => { throw failure; } };
+      const rejection: unknown = await resolveTenantContext({ principal: user('usr_synthetic_0001'), directory: tableTenantAccessDirectory(TABLE), ids }, { workspace_id: 'ws_synthetic_0001' })
+        .then(() => undefined, (thrown: unknown) => thrown);
+      expect(rejection).toBeInstanceOf(TypeError);
+      expect(rejection).not.toBe(failure);
+      if (!(rejection instanceof TypeError)) return;
+      expect(rejection.message).toBe('tenant context: the id source failed');
+      expect(Object.hasOwn(rejection, 'cause')).toBe(false);
+      expect(String(rejection.stack)).not.toContain(LEAK_MARKER);
+    }
+  });
+
+  // Q0-261-1 (a): the id pattern (Q2) refuses on its own, whatever the directory would say.
+  it.each([
+    ['a 129-character workspace id', { workspace_id: 'w'.repeat(129) }],
+    ['a workspace id with a space', { workspace_id: 'ws synthetic' }],
+    ['a business id with a newline', { workspace_id: 'ws_synthetic_0001', business_profile_id: 'biz_synthetic_0001\n' }],
+    ['a full-width page id', { workspace_id: 'ws_synthetic_0001', business_profile_id: 'biz_synthetic_0001', page_context_profile_id: 'page_\uff41' }],
+  ])('denies %s before the directory is asked', async (_label, selection) => {
+    const { directory, calls } = admitAll();
+    const error = await errorOf(selection, undefined, directory);
+    expect(error.code).toBe('tenant.scope.denied');
+    expect(calls).toEqual([]);
+    expect((await resolve({ workspace_id: 'w'.repeat(128) }, undefined, admitAll().directory)).ok).toBe(true);
+  });
+
+  // Q0-261-1 (b): a principal outside the minted shape is unauthenticated.
+  it.each([
+    ['an id with a space', { kind: 'user', id: 'usr synthetic' }],
+    ['a 129-character id', { kind: 'user', id: 'u'.repeat(129) }],
+    ['an empty id', { kind: 'user', id: '' }],
+    ['a kind outside the enum', { kind: 'admin', id: 'usr_synthetic_0001' }],
+    ['a non-object', 'usr_synthetic_0001'],
+  ])('refuses a principal with %s as unauthenticated', async (_label, principal) => {
+    const port: AuthenticatedPrincipalPort = { current: () => Promise.resolve(principal as never) };
+    const { directory, calls } = admitAll();
+    const error = await errorOf({ workspace_id: 'ws_synthetic_0001' }, port, directory);
+    expect(error.code).toBe('tenant.unauthenticated');
+    expect(calls).toEqual([]);
   });
 });

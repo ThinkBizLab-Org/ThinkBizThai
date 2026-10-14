@@ -51,6 +51,12 @@ describe('idempotencyOutcome', () => {
     expect(idempotencyOutcome(stored(sha), request({ payload_hash: blake }), 'cor_synthetic_0002').kind).toBe('conflict');
   });
 
+  it('is a conflict for the same hex digits under another algorithm name: the whole string is compared', () => {
+    const hex = 'a'.repeat(64);
+    expect(idempotencyOutcome(stored(`sha256:${hex}`), request({ payload_hash: `blake3:${hex}` }), 'cor_synthetic_0002').kind).toBe('conflict');
+    expect(idempotencyOutcome(stored(`blake3:${hex}`), request({ payload_hash: `sha256:${hex}` }), 'cor_synthetic_0002').kind).toBe('conflict');
+  });
+
   it('is independent with no stored record, another key, another workspace or another operation', () => {
     expect(idempotencyOutcome(undefined, request(), 'cor_synthetic_0002')).toEqual({ kind: 'independent' });
     const record = stored(sha);

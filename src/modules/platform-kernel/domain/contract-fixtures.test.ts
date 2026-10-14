@@ -6,17 +6,20 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-import { API_VERSION, ENVELOPE_ID_MAX_LENGTH, ENVELOPE_KINDS, checkEnvelope } from './envelope';
+import { ACCEPTED_KEYS, ACCEPTED_REQUIRED, API_VERSION, ENVELOPE_ID_MAX_LENGTH, ENVELOPE_KEYS, ENVELOPE_KINDS, ENVELOPE_REQUIRED, checkEnvelope } from './envelope';
 import {
   IDEMPOTENCY_ID_MAX_LENGTH,
+  IDEMPOTENCY_KEYS,
+  IDEMPOTENCY_REQUIRED,
+  IDEMPOTENCY_SCOPE_KEYS,
   IDEMPOTENCY_STATES,
   OPERATION_PATTERN_SOURCE,
   PAYLOAD_HASH_PATTERN_SOURCE,
   checkIdempotencyRecord,
 } from './idempotency';
 import { PRIVATE_REFERENCE_MAX_LENGTH, PRIVATE_REFERENCE_PATTERN_SOURCE } from './private-reference';
-import { ERROR_CATEGORIES, checkStableError } from './stable-error';
-import { ACTOR_KINDS, TENANT_CONTEXT_KEYS, TENANT_LOCALE, TENANT_TIMEZONE, checkTenantContext } from './tenant-context';
+import { ERROR_CATEGORIES, FIELD_ERROR_KEYS, STABLE_ERROR_KEYS, STABLE_ERROR_REQUIRED, checkStableError } from './stable-error';
+import { ACTOR_KEYS, ACTOR_KINDS, TENANT_CONTEXT_KEYS, TENANT_CONTEXT_REQUIRED, TENANT_LOCALE, TENANT_TIMEZONE, checkTenantContext } from './tenant-context';
 
 const catalog = new URL('../../../../contract-catalog/shared-kernel/', import.meta.url);
 const readJson = (relative: string): unknown => {
@@ -114,5 +117,67 @@ describe('checkers count lengths in code points, as the schemas do', () => {
   it('accepts 128 astral characters as an envelope id and refuses 129', () => {
     expect(checkEnvelope(withRequestId('\u{1F600}'.repeat(128)))).toBe(true);
     expect(checkEnvelope(withRequestId('\u{1F600}'.repeat(129)))).toBe(false);
+  });
+});
+
+// Each checker's allowed and required keys, at every object level the schema closes, equal the
+// schema's `properties` and `required` (Q0-261-3, C0-261-3): a key dropped from or added to a list
+// fails here, not only when a fixture happens to carry it.
+describe('checker key lists equal the schemas', () => {
+  const keysAt = (schema: unknown, ...path: string[]): string[] => Object.keys(at(schema, ...path, 'properties') as object).sort();
+  const requiredAt = (schema: unknown, ...path: string[]): string[] => [...(at(schema, ...path, 'required') as string[])].sort();
+  const sorted = (list: readonly string[]): string[] => [...list].sort();
+  const ten = readJson('ctr-ten-001/schema.json');
+  const api = readJson('ctr-api-001/schema.json');
+  const err = readJson('ctr-err-001/schema.json');
+  const idm = readJson('ctr-idm-001/schema.json');
+
+  it.each([
+    ['CTR-TEN-001', ten, [], TENANT_CONTEXT_KEYS, TENANT_CONTEXT_REQUIRED],
+    ['CTR-TEN-001 actor', ten, ['properties', 'actor'], ACTOR_KEYS, ACTOR_KEYS],
+    ['CTR-API-001', api, [], ENVELOPE_KEYS, ENVELOPE_REQUIRED],
+    ['CTR-API-001 accepted', api, ['properties', 'accepted'], ACCEPTED_KEYS, ACCEPTED_REQUIRED],
+    ['CTR-ERR-001', err, [], STABLE_ERROR_KEYS, STABLE_ERROR_REQUIRED],
+    ['CTR-ERR-001 field_errors item', err, ['properties', 'field_errors', 'items'], FIELD_ERROR_KEYS, FIELD_ERROR_KEYS],
+    ['CTR-IDM-001', idm, [], IDEMPOTENCY_KEYS, IDEMPOTENCY_REQUIRED],
+    ['CTR-IDM-001 scope', idm, ['properties', 'scope'], IDEMPOTENCY_SCOPE_KEYS, IDEMPOTENCY_SCOPE_KEYS],
+  ] as const)('%s', (_label, schema, path, keys, required) => {
+    expect(sorted(keys)).toEqual(keysAt(schema, ...path));
+    expect(sorted(required)).toEqual(requiredAt(schema, ...path));
+    expect(at(schema, ...path, 'additionalProperties')).toBe(false);
+  });
+
+  it('CTR-API-001: an envelope carrying causation_id is accepted, and one over the bound refused', () => {
+    const valid = readJson('ctr-api-001/examples/valid-success.json') as object;
+    expect(checkEnvelope({ ...valid, causation_id: 'cau_synthetic_0001' })).toBe(true);
+    expect(checkEnvelope({ ...valid, causation_id: 'c'.repeat(ENVELOPE_ID_MAX_LENGTH + 1) })).toBe(false);
+  });
+});
+
+// Required keys are OWN keys, as the validator reads them (Q0-261-3): a record whose keys are all
+// inherited from a valid fixture is refused by every checker. JSON input cannot carry inherited
+// keys, so neither the fixtures nor a JSON fuzz reach this.
+describe.each(CONTRACTS)('$id refuses a record whose required keys are only inherited', ({ id, check }) => {
+  const listed = at(readJson(`${id}/manifest.json`), 'fixtures');
+  const valid = (Array.isArray(listed) ? listed.map(String) : []).filter((name) => name.startsWith('examples/valid'));
+
+  it.each(valid)('%s as a prototype', (name) => {
+    const fixture = readJson(`${id}/${name}`);
+    expect(check(fixture)).toBe(true);
+    expect(check(Object.create(fixture as object))).toBe(false);
+  });
+});
+
+// The `date-time` format is a real instant, not only the RFC 3339 shape (Q0-261-3, C0-261-3).
+describe('CTR-IDM-001 date-time is a real instant', () => {
+  const valid = readJson('ctr-idm-001/examples/valid-completed-replay.json') as object;
+
+  it.each(['2026-13-45T10:00:00Z', '2026-00-10T10:00:00Z', '2026-08-31T25:00:00Z', '2026-08-31T10:61:00Z'])('refuses created_at %s', (instant) => {
+    expect(checkIdempotencyRecord({ ...valid, created_at: instant })).toBe(false);
+    expect(checkIdempotencyRecord({ ...valid, completed_at: instant })).toBe(false);
+  });
+
+  it('accepts a real instant with an offset and fractional seconds', () => {
+    expect(checkIdempotencyRecord({ ...valid, created_at: '2026-08-31T17:00:00.250+07:00' })).toBe(true);
   });
 });

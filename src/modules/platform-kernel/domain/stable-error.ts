@@ -37,8 +37,12 @@ export interface StableError {
   readonly details: EmptyDetails;
 }
 
-const KEYS = ['code', 'message_key', 'category', 'retryable', 'retry_after_seconds', 'field_errors', 'correlation_id', 'details'];
-const REQUIRED = ['code', 'message_key', 'category', 'retryable', 'correlation_id', 'details'];
+// The key lists below are pinned to the schema's properties and required by
+// contract-fixtures.test.ts.
+export const STABLE_ERROR_KEYS = ['code', 'message_key', 'category', 'retryable', 'retry_after_seconds', 'field_errors', 'correlation_id', 'details'] as const;
+export const STABLE_ERROR_REQUIRED = ['code', 'message_key', 'category', 'retryable', 'correlation_id', 'details'] as const;
+// field_errors items: both keys allowed, both required.
+export const FIELD_ERROR_KEYS = ['field', 'code'] as const;
 const nonEmpty = (value: unknown): boolean => isStringWithin(value, 1);
 
 export const isErrorCategory = (value: unknown): value is ErrorCategory =>
@@ -46,16 +50,16 @@ export const isErrorCategory = (value: unknown): value is ErrorCategory =>
 
 const checkFieldError = (value: unknown): value is FieldError =>
   isObject(value)
-  && hasRequired(value, ['field', 'code'])
-  && hasOnlyKeys(value, ['field', 'code'])
+  && hasRequired(value, FIELD_ERROR_KEYS)
+  && hasOnlyKeys(value, FIELD_ERROR_KEYS)
   && nonEmpty(value.field)
   && nonEmpty(value.code);
 
 export function checkStableError(value: unknown): value is StableError {
   if (!isObject(value)) return false;
   const record: JsonObject = value;
-  return hasRequired(record, REQUIRED)
-    && hasOnlyKeys(record, KEYS)
+  return hasRequired(record, STABLE_ERROR_REQUIRED)
+    && hasOnlyKeys(record, STABLE_ERROR_KEYS)
     && nonEmpty(record.code)
     && nonEmpty(record.message_key)
     && isErrorCategory(record.category)

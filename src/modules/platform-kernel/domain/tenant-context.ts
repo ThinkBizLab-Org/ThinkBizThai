@@ -44,7 +44,9 @@ export const TENANT_CONTEXT_KEYS = [
   'timezone',
 ] as const;
 
-const REQUIRED = ['workspace_id', 'actor', 'request_id', 'correlation_id', 'locale', 'timezone'];
+export const TENANT_CONTEXT_REQUIRED = ['workspace_id', 'actor', 'request_id', 'correlation_id', 'locale', 'timezone'] as const;
+// actor: both keys allowed, both required.
+export const ACTOR_KEYS = ['kind', 'id'] as const;
 const nonEmpty = (value: unknown): boolean => isStringWithin(value, 1);
 
 export const isActorKind = (value: unknown): value is ActorKind =>
@@ -52,15 +54,15 @@ export const isActorKind = (value: unknown): value is ActorKind =>
 
 const checkActor = (value: unknown): value is Actor =>
   isObject(value)
-  && hasRequired(value, ['kind', 'id'])
-  && hasOnlyKeys(value, ['kind', 'id'])
+  && hasRequired(value, ACTOR_KEYS)
+  && hasOnlyKeys(value, ACTOR_KEYS)
   && isActorKind(value.kind)
   && nonEmpty(value.id);
 
 export function checkTenantContext(value: unknown): value is TenantContextRecord {
   if (!isObject(value)) return false;
   const record: JsonObject = value;
-  return hasRequired(record, REQUIRED)
+  return hasRequired(record, TENANT_CONTEXT_REQUIRED)
     && hasOnlyKeys(record, TENANT_CONTEXT_KEYS)
     && nonEmpty(record.workspace_id)
     && optional(record, 'business_profile_id', nonEmpty)
@@ -73,11 +75,12 @@ export function checkTenantContext(value: unknown): value is TenantContextRecord
     && record.timezone === TENANT_TIMEZONE;
 }
 
-// The scope a context names, as a fresh object with only the scope's own keys.
+// The scope a context names, as a fresh object with only the scope's own keys. The optional ids
+// are read only as own properties, so an inherited one (a polluted Object.prototype) adds nothing.
 export function scopeOf(context: TenantScope): TenantScope {
   return {
     workspace_id: context.workspace_id,
-    ...(context.business_profile_id === undefined ? {} : { business_profile_id: context.business_profile_id }),
-    ...(context.page_context_profile_id === undefined ? {} : { page_context_profile_id: context.page_context_profile_id }),
+    ...(Object.hasOwn(context, 'business_profile_id') && context.business_profile_id !== undefined ? { business_profile_id: context.business_profile_id } : {}),
+    ...(Object.hasOwn(context, 'page_context_profile_id') && context.page_context_profile_id !== undefined ? { page_context_profile_id: context.page_context_profile_id } : {}),
   };
 }

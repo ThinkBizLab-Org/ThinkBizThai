@@ -12,10 +12,11 @@ import {
   checkTenantContext,
   isActorKind,
   scopeOf,
+  type Actor,
   type TenantContextRecord,
   type TenantScope,
 } from '../domain/tenant-context';
-import type { AuthenticatedPrincipal, AuthenticatedPrincipalPort, RequestIdSource, TenantAccessDirectory } from './ports';
+import type { AuthenticatedPrincipalPort, RequestIdSource, TenantAccessDirectory } from './ports';
 
 // The tenant-context resolver: derives a trusted CTR-TEN-001 context from the authenticated
 // principal and an UNTRUSTED scope selection from the client, through the directory port.
@@ -28,8 +29,11 @@ import type { AuthenticatedPrincipal, AuthenticatedPrincipalPort, RequestIdSourc
 // - A scope the directory does not admit, for whatever reason, gets TENANT_SCOPE_DENIED: a member
 //   of one workspace naming another and anyone naming a workspace that does not exist receive the
 //   same bytes, given the same minted correlation id.
-// - A failing directory or principal port gives PLATFORM_TEMPORARY; nothing from the failure is
-//   read, let alone copied.
+// - A failing directory or principal port gives PLATFORM_TEMPORARY, and so does a principal that
+//   cannot be read (a getter that throws); nothing from the failure is read, let alone copied. A
+//   selection whose own read throws is TENANT_SELECTION_INVALID. An id source that throws, or mints
+//   an id outside the minted shape, leaves no correlation id to refuse under, so the resolver
+//   throws a TypeError with a constant message and no cause: the thrown value is dropped.
 // - A context it returns is frozen and recorded as minted. The envelope builders refuse any other
 //   object, so an `as` cast or a JSON round trip does not make a context.
 
@@ -65,32 +69,54 @@ type Selection = { readonly ok: true; readonly scope: TenantScope } | { readonly
 // app.member_scope_admits_page; CTR-TEN-001's schema accepts it.
 function readSelection(selection: unknown): Selection {
   const invalid = { ok: false, error: TENANT_SELECTION_INVALID } as const;
-  if (!isObject(selection) || !hasOnlyKeys(selection, SELECTION_KEYS)) return invalid;
-  // Each property is read once, so a getter cannot answer the checks and the copy differently.
-  const { workspace_id: workspace, business_profile_id: business, page_context_profile_id: page } = selection;
-  const hasBusiness = hasOwn(selection, 'business_profile_id');
-  const hasPage = hasOwn(selection, 'page_context_profile_id');
-  if (typeof workspace !== 'string') return invalid;
-  if (hasBusiness && typeof business !== 'string') return invalid;
-  if (hasPage && typeof page !== 'string') return invalid;
-  if (hasPage && !hasBusiness) return invalid;
-  const scope: TenantScope = {
-    workspace_id: workspace,
-    ...(typeof business === 'string' ? { business_profile_id: business } : {}),
-    ...(typeof page === 'string' ? { page_context_profile_id: page } : {}),
-  };
-  // An id outside the minted shape names nothing that can exist: the same answer as any other
-  // scope that is not admitted.
-  const ids = [scope.workspace_id, scope.business_profile_id, scope.page_context_profile_id];
-  if (!ids.every((id) => id === undefined || TENANT_ID_PATTERN.test(id))) return { ok: false, error: TENANT_SCOPE_DENIED };
-  return { ok: true, scope };
+  try {
+    if (!isObject(selection) || !hasOnlyKeys(selection, SELECTION_KEYS)) return invalid;
+    // Only the selection's OWN keys are read: an inherited property, a polluted Object.prototype
+    // among them, names nothing the client sent. Each property is read once, so a getter cannot
+    // answer the checks and the copy differently.
+    const hasBusiness = hasOwn(selection, 'business_profile_id');
+    const hasPage = hasOwn(selection, 'page_context_profile_id');
+    const workspace = hasOwn(selection, 'workspace_id') ? selection.workspace_id : undefined;
+    const business = hasBusiness ? selection.business_profile_id : undefined;
+    const page = hasPage ? selection.page_context_profile_id : undefined;
+    if (typeof workspace !== 'string') return invalid;
+    if (hasBusiness && typeof business !== 'string') return invalid;
+    if (hasPage && typeof page !== 'string') return invalid;
+    if (hasPage && !hasBusiness) return invalid;
+    const scope: TenantScope = {
+      workspace_id: workspace,
+      ...(typeof business === 'string' ? { business_profile_id: business } : {}),
+      ...(typeof page === 'string' ? { page_context_profile_id: page } : {}),
+    };
+    // An id outside the minted shape names nothing that can exist: the same answer as any other
+    // scope that is not admitted.
+    const ids = [scope.workspace_id, scope.business_profile_id, scope.page_context_profile_id];
+    if (!ids.every((id) => id === undefined || TENANT_ID_PATTERN.test(id))) return { ok: false, error: TENANT_SCOPE_DENIED };
+    return { ok: true, scope };
+  } catch {
+    // A selection whose read throws (a getter, a revoked proxy) is not a scope selection; nothing
+    // from the thrown value is kept.
+    return invalid;
+  }
 }
 
-const isPrincipal = (value: unknown): value is AuthenticatedPrincipal =>
-  isObject(value) && isActorKind(value.kind) && typeof value.id === 'string' && TENANT_ID_PATTERN.test(value.id);
+// The principal's actor, read once, or null when it is not a principal in the minted shape. A
+// getter that throws propagates to the caller, which maps it to PLATFORM_TEMPORARY.
+function actorOf(value: unknown): Actor | null {
+  if (!isObject(value)) return null;
+  const { kind, id } = value;
+  if (!isActorKind(kind) || typeof id !== 'string' || !TENANT_ID_PATTERN.test(id)) return null;
+  return Object.freeze({ kind, id });
+}
 
-function mintId(ids: RequestIdSource): string {
-  const id = ids.mint();
+function mintId(dependencies: TenantContextDependencies): string {
+  let id: unknown;
+  try {
+    id = dependencies.ids.mint();
+  } catch {
+    // The thrown value is dropped: no message, name, stack or cause of it is kept.
+    throw new TypeError('tenant context: the id source failed');
+  }
   if (typeof id !== 'string' || !TENANT_ID_PATTERN.test(id)) throw new TypeError('tenant context: the id source minted an id outside the minted shape');
   return id;
 }
@@ -99,23 +125,22 @@ export async function resolveTenantContext(
   dependencies: TenantContextDependencies,
   selection: unknown,
 ): Promise<TenantContextResolution> {
-  const requestId = mintId(dependencies.ids);
-  const correlationId = mintId(dependencies.ids);
+  const requestId = mintId(dependencies);
+  const correlationId = mintId(dependencies);
   const refuse = (definition: StableErrorDefinition): TenantContextResolution =>
     ({ ok: false, error: stableError(definition, correlationId) });
 
-  let principal: AuthenticatedPrincipal | null;
+  let actor: Actor | null;
   try {
-    principal = await dependencies.principal.current();
+    actor = actorOf(await dependencies.principal.current());
   } catch {
     return refuse(PLATFORM_TEMPORARY);
   }
-  if (principal === null || !isPrincipal(principal)) return refuse(TENANT_UNAUTHENTICATED);
+  if (actor === null) return refuse(TENANT_UNAUTHENTICATED);
 
   const read = readSelection(selection);
   if (!read.ok) return refuse(read.error);
 
-  const actor = Object.freeze({ kind: principal.kind, id: principal.id });
   let admitted: boolean;
   try {
     admitted = (await dependencies.directory.admits(actor, read.scope)) === true;

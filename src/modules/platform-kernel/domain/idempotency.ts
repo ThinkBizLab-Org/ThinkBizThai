@@ -37,8 +37,12 @@ export interface IdempotencyRecord {
   readonly correlation_id?: string;
 }
 
-const KEYS = ['idempotency_key', 'scope', 'payload_hash', 'state', 'created_at', 'completed_at', 'result_ref', 'error', 'correlation_id'];
-const REQUIRED = ['idempotency_key', 'scope', 'payload_hash', 'state', 'created_at'];
+// The key lists below are pinned to the schema's properties and required by
+// contract-fixtures.test.ts.
+export const IDEMPOTENCY_KEYS = ['idempotency_key', 'scope', 'payload_hash', 'state', 'created_at', 'completed_at', 'result_ref', 'error', 'correlation_id'] as const;
+export const IDEMPOTENCY_REQUIRED = ['idempotency_key', 'scope', 'payload_hash', 'state', 'created_at'] as const;
+// scope: both keys allowed, both required.
+export const IDEMPOTENCY_SCOPE_KEYS = ['workspace_id', 'operation'] as const;
 const boundedId = (value: unknown): boolean => isStringWithin(value, 1, IDEMPOTENCY_ID_MAX_LENGTH);
 const isPayloadHash = (value: unknown): boolean => matches(value, PAYLOAD_HASH);
 
@@ -47,8 +51,8 @@ export const isIdempotencyState = (value: unknown): value is IdempotencyState =>
 
 const checkScope = (value: unknown): value is IdempotencyScope =>
   isObject(value)
-  && hasRequired(value, ['workspace_id', 'operation'])
-  && hasOnlyKeys(value, ['workspace_id', 'operation'])
+  && hasRequired(value, IDEMPOTENCY_SCOPE_KEYS)
+  && hasOnlyKeys(value, IDEMPOTENCY_SCOPE_KEYS)
   && boundedId(value.workspace_id)
   && matches(value.operation, OPERATION);
 
@@ -63,8 +67,8 @@ const PRESENCE: Readonly<Record<IdempotencyState, Readonly<Record<'completed_at'
 export function checkIdempotencyRecord(value: unknown): value is IdempotencyRecord {
   if (!isObject(value)) return false;
   const record: JsonObject = value;
-  if (!(hasRequired(record, REQUIRED)
-    && hasOnlyKeys(record, KEYS)
+  if (!(hasRequired(record, IDEMPOTENCY_REQUIRED)
+    && hasOnlyKeys(record, IDEMPOTENCY_KEYS)
     && boundedId(record.idempotency_key)
     && checkScope(record.scope)
     && isPayloadHash(record.payload_hash)
