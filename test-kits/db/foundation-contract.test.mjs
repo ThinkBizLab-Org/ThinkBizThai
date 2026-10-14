@@ -7505,9 +7505,10 @@ test('the lane\'s backstop and string rule drop tabs and line breaks, a wide // 
 // RFC-2026-007 Amendment 2026-10-13 (the Product Owner's answer of 2026-10-12T20:28:22Z, evidence/WP-0A-A0-004/
 // product-owner-disposition-2026-10-13-lane-walk-ts.md): PR #257 added guards and guard tests that name the application's
 // TypeScript files by strings, and the string rule made every pull request governance. STRING_NAME_EXCEPTIONS excuses
-// exact [namer, named] pairs in the string rule only. The five tests below pin, in order: the list itself; that a
+// exact [namer, named] pairs in the string rule only. The six tests below pin, in order: the list itself; that a
 // records-only diff on the repository as it stands is records, and that the list is exactly what the string rule finds
-// there; that a mention the list does not name is still governance; that an import, a load named by an expression, or
+// there; that a pair listed ahead of its file keeps the records lane once the file is created (R0-259-1); that a
+// mention the list does not name is still governance; that an import, a load named by an expression, or
 // an import behind a scanner misread is still governance from an excused namer; and that a stale or malformed entry
 // fails closed. The probes other than the repository's own use paths the repository does not hold.
 import { readFileSync } from 'node:fs';

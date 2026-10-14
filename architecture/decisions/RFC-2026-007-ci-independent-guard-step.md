@@ -606,11 +606,15 @@ credential effect.
 
 Status of this amendment: a fix the Product Owner directed. Asked at 2026-10-12T20:24:47Z what to do about the lane
 printing governance on every pull request, the Owner answered at 20:28:22Z `เปิด PR แก้ + A0 กดได้เมื่อ 4 role ผ่าน
-(Recommended)`, the option whose description reads `ใส่รายการยกเว้นแบบระบุคู่ (ไฟล์ test → ไฟล์ .ts ที่มันอ่านเป็นข้อความ)
-พร้อม test ยึด` (verbatim with A0's reading in
-`evidence/WP-0A-A0-004/product-owner-disposition-2026-10-13-lane-walk-ts.md`). A0 presses this pull request once C0,
-A1, Q0 and R0 pass on its final head and CI is green on it; until it is merged every pull request the lane prints as
-governance takes the four roles. It changes no lane rule of RFC-2026-034 §2.2 and nothing of the Amendments 2026-10-06,
+(Recommended)`, the option whose description begins `ใส่รายการยกเว้นแบบระบุคู่ (ไฟล์ test → ไฟล์ .ts ที่มันอ่านเป็นข้อความ)
+พร้อม test ยึด` (a fragment; the whole description, verbatim, with A0's reading in
+`evidence/WP-0A-A0-004/product-owner-disposition-2026-10-13-lane-walk-ts.md`). The list below is wider in form than
+"test file → .ts read as text" (namers that are guard scripts, uses as data other than text, pairs ahead of their
+files); that widening is A0's reading of "as text" as "as data, not code that runs", stated in the disposition. A0
+presses this pull request once C0, A1, Q0 and R0 pass on its final head and CI is green on it, under an Owner-directed
+exception to RFC-2026-025 §5 item 6's last bullet for this pull request only, with its third bullet met by the option
+naming the fix before it existed (the disposition's §"RFC-2026-025 §5 item 6"); until it is merged every pull request
+the lane prints as governance takes the four roles. It changes no lane rule of RFC-2026-034 §2.2 and nothing of the Amendments 2026-10-06,
 2026-10-08 and 2026-10-11 but the one problem below.
 
 ### A. The defect
@@ -631,8 +635,10 @@ was governance, and the records, fast and risk lanes were not reached.
 it names, with a comment saying how each namer uses the names. For a listed pair, and in the string rule only, the
 mention is not a problem. Nothing else moves:
 
-1. The named file still joins the walk's closure as before, so a pull request that changes it is governance (a module a
-   guard names by a string).
+1. The named file still joins the walk's closure as before, so a pull request that creates or edits it is governance
+   (a module a guard names by a string). A pull request that only deletes a listed file is not held by the lane (the
+   walk reads the head, where the file is gone); it is held by the suite, which fails when a listed file leaves the
+   repository (§C, test 2), and `bootstrap` is a required, strict check on `main` (A1-260-N2; see §D).
 2. An import of the named file read from code, or found by the raw keyword scan, stays a problem (the import rule of
    Amendment 2026-10-11 §B, not the string rule), and so does a module load named by an expression (`import(x)`,
    `require(x)`, `createRequire`), from an excused namer too.
@@ -649,7 +655,9 @@ mention is not a problem. Nothing else moves:
    pull request governance again, as PR #257 did. The list names the three platform-kernel files the guards' fixtures
    name today, which WP-1A-A0-003 will create (`src/modules/platform-kernel/index.ts`, `adapters/job-store.ts`,
    `application/run.ts`). Once one exists the run-time check applies to it, and it joins the closure like any named
-   file, so a pull request that changes it is governance. The throwaway repositories that the tests and CI's step build
+   file, so a pull request that creates or edits it is governance. In particular, WP-1A-A0-003's PR-1, which creates
+   `src/modules/platform-kernel/index.ts`, prints governance; what the pairs prevent is every LATER pull request
+   printing governance because that file exists (R0-259-1 stays open for PR-1's readers; R0-260-1). The throwaway repositories that the tests and CI's step build
    hold the classifier and none of the named files, and some synthetic heads in the tests hold a stub at a namer's path;
    a run-time check of entries whose file is absent would print each of them governance.
 6. That every entry's namer still spells its file, whether or not the file exists, is pinned by the suite on the
