@@ -5,16 +5,20 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "6af75480556935d70d7eb0594b17ae42849efc74",
-  "head_revision_or_patch_checksum": "3baa9ca74fd00364c0edd53bb8e0cf750d867a2c",
+  "head_revision_or_patch_checksum": "dae1df49c552f4ac542491d7101527473f4c5410",
   "task_ids": [
     "WP-1A-A0-003",
     "pr1-platform-kernel-code-2026-10-14",
     "pr1-round-one-fix-2026-10-14"
   ],
   "files_added": [
+    "evidence/WP-1A-A0-003/a1-reread-2026-10-14-pr261.md",
     "evidence/WP-1A-A0-003/a1-review-2026-10-14-pr261.md",
+    "evidence/WP-1A-A0-003/c0-reread-2026-10-14-pr261.md",
     "evidence/WP-1A-A0-003/c0-review-2026-10-14-pr261.md",
+    "evidence/WP-1A-A0-003/q0-reread-2026-10-14-pr261.md",
     "evidence/WP-1A-A0-003/q0-review-2026-10-14-pr261.md",
+    "evidence/WP-1A-A0-003/r0-reread-2026-10-14-pr261.md",
     "evidence/WP-1A-A0-003/r0-review-2026-10-14-pr261.md",
     "src/modules/platform-kernel/application/envelope.test.ts",
     "src/modules/platform-kernel/application/envelope.ts",
@@ -144,7 +148,7 @@
     "The vitest tests are not under the integrity manifest or the test-suite floor (manifest open_blockers, R7)."
   ],
   "open_risks_or_blockers": [
-    "RISK LANE (module code, RFC-2026-034 §2.2), measured lane: risk on 3baa9ca7. Round one at 8b4e5267: C0 review_approved, A1 changes_requested (A1-261-1, A1-261-2, both Low), Q0 test_verified, R0 ready; their four files are carried onto this branch with cherry-pick -x. The fix commit 3baa9ca7 answers A1-261-1 and A1-261-2, adds the tests Q0-261-1..3 and C0-261-3 ask for, and records C0-261-1/2/4, Q0-261-4 and R0-261-1..4 in the manifest. Because it changes non-test code under src/, all four roles re-read the new head; A0 presses only once A1 and Q0 pass on the final head and CI is green on both jobs."
+    "RISK LANE (module code, RFC-2026-034 §2.2; main's classifier prints risk). Round one at 8b4e5267: C0 review_approved, A1 changes_requested (A1-261-1, -2, Low), Q0 test_verified, R0 ready; files carried with -x; fix commit 3baa9ca7. Round two at 90eb8a77: C0 review_approved, A1 security_approved (no finding open), Q0 test_verified, R0 ready (not integration_verified before the provider-bound increment); files carried with -x. Advisories open, none blocking: C0-261-5 (PR body counts; open_blockers[0] wording), A1-261-N4 (actorOf hasOwn), A1-261-N5 (log swallowed port failures in the runner), Q0-261-5 (Low: one test owed pinning the principal read once), Q0-261-6, Q0-261-7 (contracts' owner), R0-261-5 (open_blockers[0] wording). A0 presses under required_human_authorities[1] once CI is green on both jobs on the final head."
   ],
   "rollback_or_forward_fix": "Before merge: close the pull request. After merge: a reviewed revert pull request removes src/modules/platform-kernel/domain/** and application/** and restores the manifest's amendment rationale; nothing imports the module.",
   "recommended_next_work_packages": [
