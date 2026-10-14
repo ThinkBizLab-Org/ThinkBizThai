@@ -4,14 +4,34 @@
   "work_package_id": "WP-1A-A0-003",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "5d8f8fd4889e5d8f4a4fb051e908f71407d43c1d",
-  "head_revision_or_patch_checksum": "5d8f8fd4889e5d8f4a4fb051e908f71407d43c1d",
+  "base_revision": "6af75480556935d70d7eb0594b17ae42849efc74",
+  "head_revision_or_patch_checksum": "909165c3fb4bae61c3b37e6e3b502a48c992ee1b",
   "task_ids": [
     "WP-1A-A0-003",
     "pr1-platform-kernel-code-2026-10-14"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "src/modules/platform-kernel/application/envelope.test.ts",
+    "src/modules/platform-kernel/application/envelope.ts",
+    "src/modules/platform-kernel/application/fakes.ts",
+    "src/modules/platform-kernel/application/ports.ts",
+    "src/modules/platform-kernel/application/tenant-context.test.ts",
+    "src/modules/platform-kernel/application/tenant-context.ts",
+    "src/modules/platform-kernel/domain/contract-fixtures.test.ts",
+    "src/modules/platform-kernel/domain/envelope.ts",
+    "src/modules/platform-kernel/domain/idempotency.test.ts",
+    "src/modules/platform-kernel/domain/idempotency.ts",
+    "src/modules/platform-kernel/domain/json-shape.ts",
+    "src/modules/platform-kernel/domain/platform-errors.ts",
+    "src/modules/platform-kernel/domain/private-reference.ts",
+    "src/modules/platform-kernel/domain/stable-error.test.ts",
+    "src/modules/platform-kernel/domain/stable-error.ts",
+    "src/modules/platform-kernel/domain/tenant-context.ts"
+  ],
+  "files_modified": [
+    "handoffs/WP-1A-A0-003-author-handoff.json",
+    "work-packages/WP-1A-A0-003.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -55,7 +75,7 @@
     },
     {
       "criterion": "7: verify-app-boundaries --require-parser over src/; npm run test:app runs the new tests; nothing under domain/ imports node:, a provider SDK, Next.js or React",
-      "result": "pass for author self-check (boundary guard exit 0; vitest 6 files, 185 tests; the only node: import under domain/ or application/ is node:fs in two-way fixture reading inside domain/contract-fixtures.test.ts); independent reading owed"
+      "result": "pass for author self-check (boundary guard exit 0; vitest 6 files, 185 tests; the only node: import under domain/ or application/ is node:fs, used only to read the catalog fixtures, inside domain/contract-fixtures.test.ts); independent reading owed"
     },
     {
       "criterion": "1 (PR-G) and 8 (the plan row end to end)",
@@ -96,7 +116,7 @@
     {
       "command": "npm run check (through scripts/commit-when-clean.mjs)",
       "exit_code": 0,
-      "result": "clean on the code commit"
+      "result": "clean on the code commit f03553ea: 821 tests, 821 pass"
     },
     {
       "command": "author negative controls (local mutations, reverted)",
@@ -106,7 +126,7 @@
     {
       "command": "lane: node scripts/db/classify-review-tier.mjs origin/main HEAD --lane, with main's and with PR #260's classifier",
       "exit_code": 0,
-      "result": "lane probes pending"
+      "result": "main's classifier (origin/main..f03553ea): tier H, lane governance; its 27 governance reasons are the base walk's fail-closed refusals of strings naming apps/web, vitest.config.ts and test-kits/typecheck-control files (none names a path under src/), which PR #260's lane-walk fix addresses. PR #260's classifier, run in a throwaway detached worktree at PR #260's head 3d588bf6 with f03553ea cherry-picked (base 3d588bf6): tier H, lane risk, no governance reason. Run against this tree directly, #260's classifier also prints governance, only for 13 string-name exceptions it finds stale in main's copies of the classifier and foundation-contract.test.mjs (both files #260 changes)."
     }
   ],
   "security_privacy_cost_impact": "Tenant isolation logic (no I/O yet): the resolver treats the client's scope selection as untrusted, refuses client-supplied actor, locale, timezone and ids, answers every unadmitted scope with one error so existence is not revealed, and copies nothing from a failing dependency; the envelope builders accept only resolver-minted contexts. Synthetic ids only; no provider, credential, network, clock or randomness; no cost.",
