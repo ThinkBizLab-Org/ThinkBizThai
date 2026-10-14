@@ -5,16 +5,20 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "5d8f8fd4889e5d8f4a4fb051e908f71407d43c1d",
-  "head_revision_or_patch_checksum": "06055e5ca603dff2dd44ac64c7051dbee99bea19",
+  "head_revision_or_patch_checksum": "f5eebd158ba5071c03d5a47c7fa28a90629920c6",
   "task_ids": [
     "WP-1A-A0-003",
     "prg-tool-config-2026-10-13"
   ],
   "files_added": [
+    "evidence/WP-1A-A0-003/a1-reread-2026-10-13-pr259.md",
     "evidence/WP-1A-A0-003/a1-review-2026-10-13-pr259.md",
+    "evidence/WP-1A-A0-003/c0-reread-2026-10-13-pr259.md",
     "evidence/WP-1A-A0-003/c0-review-2026-10-13-pr259.md",
     "evidence/WP-1A-A0-003/product-owner-disposition-2026-10-13-package-tool-config-press.md",
+    "evidence/WP-1A-A0-003/q0-reread-2026-10-13-pr259.md",
     "evidence/WP-1A-A0-003/q0-review-2026-10-13-pr259.md",
+    "evidence/WP-1A-A0-003/r0-reread-2026-10-13-pr259.md",
     "evidence/WP-1A-A0-003/r0-review-2026-10-13-pr259.md",
     "handoffs/WP-1A-A0-003-author-handoff.json",
     "work-packages/WP-1A-A0-003.json"
