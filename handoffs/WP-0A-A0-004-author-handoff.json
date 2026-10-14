@@ -4,14 +4,18 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "5d8f8fd4889e5d8f4a4fb051e908f71407d43c1d",
-  "head_revision_or_patch_checksum": "4f9c68503fa036831acf354b8afbf19227c67148",
+  "base_revision": "e69fc87b72549fe930f0209c5d7ce604691c0913",
+  "head_revision_or_patch_checksum": "b288f4a24d905279bd0e31ccaddcb0cb52b57b17",
   "task_ids": [
     "WP-0A-A0-004",
     "lane-walk-ts-2026-10-13"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-13-lane-walk-ts.md"
+    "evidence/WP-0A-A0-004/a1-review-2026-10-14-pr260.md",
+    "evidence/WP-0A-A0-004/c0-review-2026-10-14-pr260.md",
+    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-13-lane-walk-ts.md",
+    "evidence/WP-0A-A0-004/q0-review-2026-10-14-pr260.md",
+    "evidence/WP-0A-A0-004/r0-review-2026-10-14-pr260.md"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
@@ -38,7 +42,7 @@
     "The specification's condition that a pair be excused only when its named file is not a governance path is not in the list: four of the seven named files are governance paths by their own patterns, so a change to them is governance regardless, and with the condition 18 of the 26 reasons would stand (RFC-2026-007 Amendment 2026-10-13 §B).",
     "R0-259-1 proposed checking the namer's mention at run time in place of the file's presence. The run-time check stays on present files, because the throwaway repositories and some synthetic heads in the tests hold a classifier or a stub at a namer's path and none of the named files; test-kits/db/foundation-contract.test.mjs pins on the repository as it stands that every entry's namer spells its file, that the entries whose file is present equal the pairs the string rule finds, and that the others are exactly the three platform-kernel files.",
     "On this pull request CI prints governance by the base's classifier, as it must for a classifier edit; the fix reaches the lanes from the first pull request whose base carries it.",
-    "Governance pull request (RFC-2026-034 §2.2): C0, A1, Q0 and R0 read the final head; A0 presses it, and PR #258, under the Product Owner's answer of 2026-10-12T20:28:22Z once all four pass and CI is green on the exact head (evidence/WP-0A-A0-004/product-owner-disposition-2026-10-13-lane-walk-ts.md)."
+    "Governance pull request (RFC-2026-034 §2.2): C0, A1, Q0 and R0 read the final head; A0 presses it under the Product Owner's answer of 2026-10-12T20:28:22Z, an exception to RFC-2026-025 §5 item 6's last bullet for this pull request only, once all four pass and CI is green on the exact head containing current main (evidence/WP-0A-A0-004/product-owner-disposition-2026-10-13-lane-walk-ts.md, its section on §5 item 6). PR #258, named by the same answer, was pressed 2026-10-12T21:06:31Z (5d8f8fd4)."
   ],
   "acceptance_results": [
     {
@@ -82,7 +86,7 @@
     "A pull request that adds a new string mention of a TypeScript file to a module the walk reads fails the foundation contract test until the list names the pair, so it also edits the classifier."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE, tier H, four roles: C0, A1, Q0 and R0 on the final head; A0 presses under the Product Owner's answer of 2026-10-12T20:28:22Z (`เปิด PR แก้ + A0 กดได้เมื่อ 4 role ผ่าน (Recommended)`) once all four pass and CI is green on the exact head. Amendment acknowledgements owed from WP-0A-DB-00, WP-0A-A0-002 and WP-0A-CON-008."
+    "GOVERNANCE, tier H, four roles. Round one at 02977f4e (C0 changes_requested on C0-260-1; A1 security_approved, no finding; Q0 test_verified; R0 ready), files carried with -x; main e69fc87b (PR #259) merged mechanically; the fix commit answers C0-260-1..3 and records A1-260-N2, R0-260-1, Q0-260-1. All four re-read the final head; A0 presses under the Owner's answer of 2026-10-12T20:28:22Z once all pass and CI is green on both jobs. Amendment acknowledgements from WP-0A-DB-00, WP-0A-A0-002 and WP-0A-CON-008 given by R0 at 02977f4e."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR removes STRING_NAME_EXCEPTIONS, exceptionProblems and the excused option from scripts/db/classify-review-tier.mjs with their six tests (lane-walk-ts-2026-10-13); every pull request then prints the governance lane again, as on main 40267ae9.",
   "recommended_next_work_packages": [
