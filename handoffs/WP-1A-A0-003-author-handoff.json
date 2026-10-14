@@ -1,0 +1,108 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-1A-A0-003",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "author_complete",
+  "base_revision": "5d8f8fd4889e5d8f4a4fb051e908f71407d43c1d",
+  "head_revision_or_patch_checksum": "f5eebd158ba5071c03d5a47c7fa28a90629920c6",
+  "task_ids": [
+    "WP-1A-A0-003",
+    "prg-tool-config-2026-10-13"
+  ],
+  "files_added": [
+    "evidence/WP-1A-A0-003/a1-reread-2026-10-13-pr259.md",
+    "evidence/WP-1A-A0-003/a1-review-2026-10-13-pr259.md",
+    "evidence/WP-1A-A0-003/c0-reread-2026-10-13-pr259.md",
+    "evidence/WP-1A-A0-003/c0-review-2026-10-13-pr259.md",
+    "evidence/WP-1A-A0-003/product-owner-disposition-2026-10-13-package-tool-config-press.md",
+    "evidence/WP-1A-A0-003/q0-reread-2026-10-13-pr259.md",
+    "evidence/WP-1A-A0-003/q0-review-2026-10-13-pr259.md",
+    "evidence/WP-1A-A0-003/r0-reread-2026-10-13-pr259.md",
+    "evidence/WP-1A-A0-003/r0-review-2026-10-13-pr259.md",
+    "handoffs/WP-1A-A0-003-author-handoff.json",
+    "work-packages/WP-1A-A0-003.json"
+  ],
+  "files_modified": [
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "tsconfig.json"
+  ],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "RFC-2026-025",
+    "RFC-2026-029",
+    "RFC-2026-034"
+  ],
+  "contracts_consumed": [
+    "CTR-TEN-001",
+    "CTR-API-001",
+    "CTR-ERR-001",
+    "CTR-IDM-001"
+  ],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "THIS PACKAGE'S FIRST PULL REQUEST (PR-G): it opens WP-1A-A0-003 and writes no code. It creates work-packages/WP-1A-A0-003.json, adds `\"src/**/*.ts\", \"src/**/*.tsx\"` to tsconfig.json's include and nothing else, adds the package's branch row to test-kits/branch-identity.test.mjs (BRANCH_OWNERSHIP only, as WP-1A-A0-002 did) with test-kits/integrity-manifest.json regenerated, and records the Owner's direction. The cited range is this branch's own commits on main 40267ae9.",
+    "The Product Owner's direction of 2026-10-12 (asked 19:36:39Z, answered 19:38:08Z UTC; evidence/WP-1A-A0-003/product-owner-disposition-2026-10-13-package-tool-config-press.md): `A0 กดได้เมื่อ 4 role ผ่าน + ครอบคลุมกรณีแบบเดียวกัน (Recommended)`. A0's reading of \"กรณีแบบเดียวกัน\" is marked as A0's in that record (§4).",
+    "The package's code (src/modules/platform-kernel/**) follows in a later pull request on the same branch name, re-created from main after this one merges, in the risk lane (RFC-2026-034 §2.2, \"Module code\").",
+    "WP-1A-A1-001 and WP-0A-CON-008, dependencies in the 2026-10-08 plan, are read as gating only the provider-bound increment (manifest open_blockers, Q8); required_work_packages names WP-1A-A0-002 only."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "PR-G: tsconfig.json includes src/** and nothing else changes in it; test-kits/app-stack.test.mjs's pins hold",
+      "result": "pass for author self-check (node --test test-kits/app-stack.test.mjs exit 0); npm run typecheck not run locally (no node_modules; disk), it runs in CI's application job; independent reading owed"
+    },
+    {
+      "criterion": "PR-G: the branch resolves to WP-1A-A0-003 alone; the manifest validates",
+      "result": "pass for author self-check (branch-identity.test.mjs, validate-work-packages, validate-work-package-ownership, validate-work-package-role-separation, validate-capability-profiles exit 0); independent reading owed"
+    }
+  ],
+  "tests": [
+    {
+      "command": "node scripts/validate-work-packages.mjs",
+      "exit_code": 0,
+      "result": "manifests valid"
+    },
+    {
+      "command": "node scripts/validate-work-package-ownership.mjs",
+      "exit_code": 0,
+      "result": "three amended paths named, rationale present, no overlap"
+    },
+    {
+      "command": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-1A-A0-003.json",
+      "exit_code": 0,
+      "result": "four distinct role runs"
+    },
+    {
+      "command": "node --test test-kits/app-stack.test.mjs test-kits/branch-identity.test.mjs",
+      "exit_code": 0,
+      "result": "23/23"
+    },
+    {
+      "command": "npm run regenerate:manifest",
+      "exit_code": 0,
+      "result": "rebuilt 128 digests; only test-kits/branch-identity.test.mjs's changed"
+    }
+  ],
+  "security_privacy_cost_impact": "None in this pull request: no code, no dependency, no provider, no credential, no data. It widens what `npm run typecheck` reads to src/**, which today is empty.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "No contract changes. `npm run typecheck` now also reads src/**/*.ts and src/**/*.tsx; with no src/ directory it reads what it read before.",
+  "known_limitations": [
+    "npm run typecheck was not run locally for this head (no node_modules installed; the disk was nearly full). CI's application job runs it on every head.",
+    "The vitest tests the code increment adds are not under the integrity manifest or the test-suite floor (manifest open_blockers, R7)."
+  ],
+  "open_risks_or_blockers": [
+    "GOVERNANCE (tsconfig.json is tool configuration, RFC-2026-034 §2.2): C0, A1, Q0 and R0 read the final head. A0 presses under the Owner's direction of 2026-10-12T19:38:08Z once all four roles have passed and CI is green on both jobs (bootstrap and application) on the exact head that contains current main."
+  ],
+  "rollback_or_forward_fix": "Before merge: close the pull request and delete the branch. After merge: a reviewed revert pull request takes the two src/** patterns out of tsconfig.json's include, the agent/claude/WP-1A-A0-003-tenant-envelope row out of BRANCH_OWNERSHIP with its integrity digest restored, and removes work-packages/WP-1A-A0-003.json and evidence/WP-1A-A0-003/; nothing yet depends on any of them.",
+  "recommended_next_work_packages": [
+    "WP-1A-A0-003's code increment (PR-1): src/modules/platform-kernel/** domain, application, fakes and vitest consumer tests, risk lane, once this pull request merges."
+  ],
+  "reviewer_instructions": [
+    "Read evidence/WP-1A-A0-003/product-owner-disposition-2026-10-13-package-tool-config-press.md against the session transcript (question at 2026-10-12T19:36:39Z, answer at 19:38:08Z), and its §4 readings as A0's.",
+    "Check the diff outside evidence/ and handoffs/ is exactly: one new manifest, two include patterns in tsconfig.json, one BRANCH_OWNERSHIP row, and one changed digest in test-kits/integrity-manifest.json.",
+    "Run npm run check, node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-003 and npm run check:handoff on the branch name; with node_modules (npm ci --ignore-scripts), npm run typecheck."
+  ],
+  "superseded_by": null,
+  "outputs": null
+}
