@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import test from 'node:test';
 
 import {
@@ -24,7 +25,8 @@ import {
   readBuildGraph,
   runBuildControls,
 } from '../scripts/verify-app-build-graph.mjs';
-import { loadAllowlist } from '../scripts/verify-app-dependencies.mjs';
+import { ALLOWLIST_PATH, loadAllowlist } from '../scripts/verify-app-dependencies.mjs';
+import { checkResolutionConfigs, readConfigShape } from '../scripts/app-boundaries.mjs';
 
 // The application tier's checks that need the installed toolchain or the network -- `tsc` and its
 // negative control (RFC-2026-029 §8/3), the release age (§4.8, §8/9), the audit (§4.6), the
@@ -614,4 +616,169 @@ test('A1-257-10: the records say that code the repository runs in CI after the g
     'so it is held here, by the shapes, the refused files and those two rules, and not by the graph check.',
     'That is held before the build, by the configuration shapes and refused files of scripts/app-boundaries.mjs',
   ]) assert.match(old, COMPLETE, `the reading refuses round four's sentence: ${old.slice(0, 60)}`);
+});
+
+// Q0-259-1, Q0-AUD1015-5: `npm run typecheck` reads the application's modules under src/. A glob is read as
+// TypeScript reads `include` and `exclude`: `**/` is any run of directories, `*` any name part, and an
+// exclude pattern also takes everything under a directory it names. Each problem names what is gone.
+const globToRegExp = (glob) => new RegExp(`^${glob.split(/(\*\*\/|\*\*|\*|\?)/).map((part) => (
+  part === '**/' ? '(?:[^/]+/)*' : part === '**' ? '.*' : part === '*' ? '[^/]*' : part === '?' ? '[^/]' : part.replace(/[.+^${}()|[\]\\]/g, '\\$&'))).join('')}$`);
+function sourceTreeProblems(project, sources) {
+  const problems = [];
+  const include = Array.isArray(project.include) ? project.include : [];
+  const exclude = Array.isArray(project.exclude) ? project.exclude : [];
+  for (const pattern of ['src/**/*.ts', 'src/**/*.tsx']) {
+    if (!include.includes(pattern)) problems.push(`tsconfig.json's include does not hold "${pattern}"`);
+  }
+  const excluded = (path) => exclude.some((pattern) => {
+    const glob = globToRegExp(pattern.replace(/^\.\//, '').replace(/\/$/, ''));
+    const parts = path.split('/');
+    return parts.some((_, i) => glob.test(parts.slice(0, i + 1).join('/')));
+  });
+  for (const path of sources) {
+    if (excluded(path)) problems.push(`tsconfig.json's exclude takes ${path} out of the type check`);
+    else if (!include.some((pattern) => globToRegExp(pattern).test(path))) problems.push(`tsconfig.json's include does not reach ${path}`);
+  }
+  return problems;
+}
+
+test('Q0-259-1: the type check reads every TypeScript file under src/: include holds src/**/*.ts and src/**/*.tsx, and nothing excludes src/**', async () => {
+  const project = JSON.parse(await readFile('tsconfig.json', 'utf8'));
+  const walk = async (directory) => {
+    const out = [];
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const path = `${directory}/${entry.name}`;
+      if (entry.isDirectory()) out.push(...await walk(path));
+      else if (entry.isFile() && /\.tsx?$/.test(entry.name)) out.push(path);
+    }
+    return out;
+  };
+  const real = await walk('src');
+  assert.ok(real.length > 0, 'src/ holds TypeScript today (src/modules/platform-kernel, WP-1A-A0-003)');
+  // Synthetic paths beside the real ones, so a pattern that spares today's files but not a .tsx or a new module is seen.
+  const sources = [...real, 'src/modules/x/index.ts', 'src/modules/x/application/view.tsx', 'src/modules/x/domain/a/b/c.ts'];
+  assert.deepEqual(sourceTreeProblems(project, sources), []);
+  // The negative controls: Q0's M1, M2 and M3 (q0-review-2026-10-13-pr259.md §6), and the other ways to drop src/.
+  const mutate = (change) => { const copy = structuredClone(project); change(copy); return sourceTreeProblems(copy, sources).join(' | '); };
+  const without = (...patterns) => (copy) => { copy.include = copy.include.filter((p) => !patterns.includes(p)); };
+  assert.match(mutate(without('src/**/*.ts', 'src/**/*.tsx')), /does not hold "src\/\*\*\/\*\.ts"[\s\S]*does not reach src\/modules\/platform-kernel\//, "Q0's M1: both src/** patterns removed");
+  assert.match(mutate((copy) => { copy.exclude.push('src/**'); }), /exclude takes src\/modules\/platform-kernel\/[^ ]+ out of the type check/, "Q0's M2: src/** excluded");
+  assert.match(mutate(without('src/**/*.tsx')), /does not hold "src\/\*\*\/\*\.tsx"[\s\S]*does not reach src\/modules\/x\/application\/view\.tsx/, "Q0's M3: src/**/*.tsx alone removed");
+  assert.match(mutate(without('src/**/*.ts')), /does not hold "src\/\*\*\/\*\.ts"/, 'src/**/*.ts alone removed');
+  for (const pattern of ['src', './src/', 'src/modules', '**/modules/**', 'src/**/*.ts', '**/*.tsx', 'src/modules/platform-kernel']) {
+    assert.match(mutate((copy) => { copy.exclude.push(pattern); }), /out of the type check/, `"${pattern}" in exclude`);
+  }
+  assert.match(mutate((copy) => { delete copy.include; }), /does not hold "src\/\*\*\/\*\.ts"/, 'include removed');
+  assert.match(mutate((copy) => { copy.include = copy.include.map((p) => p.replace(/^src\//, 'src/modules/platform-kernel/')); }), /does not hold/, 'include narrowed to one module');
+  // Positive controls: the exclusions tsconfig.json holds today, and their like, spare src/.
+  assert.deepEqual(project.exclude, ['node_modules', '**/node_modules', 'apps/**/.next', 'test-kits/**']);
+  assert.deepEqual(sourceTreeProblems({ ...project, exclude: [...project.exclude, 'apps/web/**', '**/*.d.ts.map'] }, sources), []);
+});
+
+test('Q0-257r6-1 (a): the graph check\'s controls runner reports a control that is not refused, and the CLI exits 1 on it before it reads the build', async () => {
+  const allowlist = await loadAllowlist();
+  const lock = JSON.parse(await readFile('package-lock.json', 'utf8'));
+  const reachable = reachablePackages(lock, allowlist);
+  assert.deepEqual(runBuildControls(reachable), []);
+  // A reachable set that admits left-pad: the one control that rests on it is no longer refused, and the runner says so
+  // (Q0's M200 hollowed the runner to return [] and every suite still passed).
+  assert.deepEqual(runBuildControls(new Set([...reachable, 'left-pad'])),
+    [`control "a package no allowlisted package depends on" was not refused: ${'no problem reported'}`]);
+  // A reachable set without next: the clean control build is refused, and the runner says so.
+  const withoutNext = new Set([...reachable].filter((name) => name !== 'next'));
+  assert.match(runBuildControls(withoutNext).join(' | '), /^the clean control build was refused: node_modules\/next\/[^ ]+ is in the package next/);
+  // The CLI, run where package-lock.json makes left-pad reachable (next depends on it): exit 1 on the failed
+  // control, before it reads the build directory, which does not exist. With the real lockfile the same run
+  // passes the controls and stops at the build directory, so the first refusal is the controls'.
+  const root = await mkdtemp(join(tmpdir(), 'app-build-controls-'));
+  try {
+    await mkdir(join(root, 'scripts'), { recursive: true });
+    await writeFile(join(root, ALLOWLIST_PATH), await readFile(ALLOWLIST_PATH, 'utf8'));
+    const run = async (lockfile) => {
+      await writeFile(join(root, 'package-lock.json'), JSON.stringify(lockfile));
+      return spawnSync(process.execPath, [resolve('scripts/verify-app-build-graph.mjs'), 'no-build-here'], { cwd: root, encoding: 'utf8' });
+    };
+    const poisoned = structuredClone(lock);
+    poisoned.packages['node_modules/next'].dependencies = { ...poisoned.packages['node_modules/next'].dependencies, 'left-pad': '1.3.0' };
+    poisoned.packages['node_modules/left-pad'] = { version: '1.3.0', license: 'WTFPL' };
+    const refused = await run(poisoned);
+    assert.equal(refused.status, 1, refused.stderr);
+    assert.match(refused.stderr, /^application build graph: 1 negative control\(s\) failed; the check cannot be trusted on the build\n {2}control "a package no allowlisted package depends on" was not refused/);
+    assert.doesNotMatch(refused.stderr, /cannot be read/, 'the build is not read once a control has failed');
+    const clean = await run(lock);
+    assert.equal(clean.status, 1, clean.stderr);
+    assert.match(clean.stderr, /^application build graph: no-build-here cannot be read/, 'with every control refused, the CLI goes on to the build');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+// Q0-257r6-1 (b): the boundary CLI reads each build configuration with both readers and uses a reading only when
+// they agree (A1-257-7). No test may import the CLI (above: it loads the parsed reader, which imports
+// `typescript`), so its `parsedShape` is taken from the file's text and run with a stand-in parser, as the text
+// reader is run in npm run check. Each problem names a part of the rule that is gone.
+function agreementProblems(cli) {
+  const problems = [];
+  const source = cli.match(/^function parsedShape\(parser, files\) \{\n[\s\S]*?\n\}\n/m)?.[0];
+  if (!source) return ['the CLI holds no function parsedShape(parser, files)'];
+  // The CLI reads its controls' configurations and the repository's through parsedShape, and never one reader alone.
+  if (!cli.includes('checkResolutionConfigs(cleanConfigs, allowlist, { readShape: parsedShape(parser, cleanConfigs) })')) problems.push('the clean configurations are not read through parsedShape');
+  if (!cli.includes('checkResolutionConfigs(configs, allowlist, { readShape: parsedShape(parser, configs) })')) problems.push('the alias controls are not read through parsedShape');
+  if (!cli.includes('const configShape = parser ? parsedShape(parser, configs) : readConfigShape;') || !cli.includes('...checkResolutionConfigs(configs, allowlist, { readShape: configShape }),')) {
+    problems.push('the repository\'s configurations are not read through parsedShape when the parser loads');
+  }
+  const parsedShape = new Function('readConfigShape', `${source}\nreturn parsedShape;`)(readConfigShape);
+  const shapes = { 'next.config': { imports: [{ specifier: 'next', typeOnly: true, names: ['NextConfig'] }], types: ['NextConfig'], value: { poweredByHeader: 'boolean' } } };
+  // A stand-in for the parsed reader, returning for the one file what scripts/app-boundaries-parser.mjs returns:
+  // { found, refusals, anys, shape } for a file it parses, and { found: [], refusals: [...] } with no shape for one it
+  // cannot (measured with typescript 7.0.2: an `import type` in a .mjs file "does not parse"; a hashbang reads).
+  const verdict = (path, raw, reading) => checkResolutionConfigs(new Map([[path, raw]]), { configShapes: shapes },
+    { readShape: parsedShape({ parse: () => new Map(reading === undefined ? [] : [[path, reading]]) }, new Map([[path, raw]])) }).join(' | ');
+  const parsedAs = (shape) => ({ found: [], refusals: [], anys: [], shape });
+  const NEXT = 'apps/web/next.config.ts';
+  const config = (value) => `import type { NextConfig } from 'next';\nconst config: NextConfig = { poweredByHeader: ${value} };\nexport default config;\n`;
+  const agreed = config('false');
+  const expect = (what, got, reason) => {
+    if (got === '') problems.push(`${what} is not refused`);
+    else if (!reason.test(got)) problems.push(`${what} is refused for another reason: ${got}`);
+  };
+  if (verdict(NEXT, agreed, parsedAs(readConfigShape(agreed))) !== '') problems.push('two equal readings of an allowlisted configuration are refused');
+  // The readers disagree, each reading an allowlisted shape on its own: only the agreement rule refuses it.
+  expect('two readings that differ', verdict(NEXT, agreed, parsedAs(readConfigShape(config('true')))), /the TypeScript parser and the text reader read it differently/);
+  // Q0's second direction: the parser reads past a hashbang, the text reader refuses it.
+  expect('a file the text reader refuses and the parser reads', verdict(NEXT, `#!/usr/bin/env node\n${agreed}`, parsedAs(readConfigShape(agreed))), /`#` at offset 0/);
+  // Q0's first direction: the text reader reads an `import type` in a .mjs file, the parser cannot parse it.
+  const MJS = 'apps/web/next.config.mjs';
+  expect('a file the parser cannot parse and the text reader reads', verdict(MJS, agreed, { found: [], refusals: [`does not parse ('import type' declarations can only be used in TypeScript files.)`] }), /does not parse/);
+  expect('a file whose shape the parser refuses and the text reader reads', verdict(NEXT, agreed, parsedAs({ statements: [], refusals: ['a spread the parser reads'] })), /a spread the parser reads/);
+  expect('a file the parser returned nothing for', verdict(NEXT, agreed, undefined), /the parsed reader returned nothing for this file/);
+  return problems;
+}
+
+test('Q0-257r6-1 (b): the boundary CLI uses a build configuration\'s reading only when its two readers agree, and either reader\'s refusal is a refusal', async () => {
+  const cli = await readFile('scripts/verify-app-boundaries.mjs', 'utf8');
+  assert.deepEqual(agreementProblems(cli), []);
+  // The negative controls: Q0's M176 and M177 (q0-reread5-2026-10-12-pr257.md §5), and the rule's other parts.
+  const swap = (from, to) => { assert.ok(cli.includes(from), from); return cli.replace(from, to); };
+  const RETURN = "    if (!result?.shape) return { statements: [], refusals: result?.refusals?.length ? result.refusals : ['the parsed reader returned nothing for this file'] };\n";
+  const m176 = swap(RETURN, '    return text;\n');
+  assert.deepEqual(agreementProblems(m176).filter((p) => / is not refused$/.test(p)).length, 4, "Q0's M176: the text reading alone decides");
+  assert.match(agreementProblems(m176).join(' | '), /two readings that differ is not refused[\s\S]*a file the parser cannot parse and the text reader reads is not refused/);
+  const TEXT_CHECKS = "    if (text.refusals.length > 0) return text;\n    if (JSON.stringify(result.shape) !== JSON.stringify(text)) return { statements: [], refusals: ['the TypeScript parser and the text reader read it differently'] };\n";
+  const m177 = swap(TEXT_CHECKS, '');
+  assert.deepEqual(agreementProblems(m177), ['two readings that differ is not refused', 'a file the text reader refuses and the parser reads is not refused'], "Q0's M177: the parsed reading alone decides");
+  const unequal = swap("    if (JSON.stringify(result.shape) !== JSON.stringify(text)) return { statements: [], refusals: ['the TypeScript parser and the text reader read it differently'] };\n", '');
+  assert.deepEqual(agreementProblems(unequal), ['two readings that differ is not refused'], 'the comparison removed');
+  const nothing = swap(RETURN, '    if (!result?.shape) return text;\n');
+  assert.deepEqual(agreementProblems(nothing), ['a file the parser cannot parse and the text reader reads is not refused', 'a file the parser returned nothing for is not refused'], 'a missing parsed reading read as the text reading');
+  // Dropping either reader's own refusal leaves the file refused through the comparison; the reason reported is lost.
+  const textIgnored = swap('    if (text.refusals.length > 0) return text;\n', '');
+  assert.match(agreementProblems(textIgnored).join(' | '), /^a file the text reader refuses and the parser reads is refused for another reason: .*read it differently \(A1-257-7; [^|]*$/, 'the text reader\'s refusal dropped');
+  const parserIgnored = swap('    if (result.shape.refusals.length > 0) return result.shape;\n', '');
+  assert.match(agreementProblems(parserIgnored).join(' | '), /^a file whose shape the parser refuses and the text reader reads is refused for another reason: .*read it differently \(A1-257-7; [^|]*$/, 'the parser\'s refusal dropped');
+  const textAlone = swap('  const configShape = parser ? parsedShape(parser, configs) : readConfigShape;', '  const configShape = readConfigShape;');
+  assert.match(agreementProblems(textAlone).join(' | '), /the repository's configurations are not read through parsedShape/, 'the repository\'s configurations read by the text reader alone');
+  const controlsAlone = swap('checkResolutionConfigs(configs, allowlist, { readShape: parsedShape(parser, configs) })', 'checkResolutionConfigs(configs, allowlist, { readShape: readConfigShape })');
+  assert.match(agreementProblems(controlsAlone).join(' | '), /the alias controls are not read through parsedShape/, 'the alias controls read by the text reader alone');
+  assert.deepEqual(agreementProblems(cli.replace('function parsedShape(parser, files) {', 'function shapeOfBoth(parser, files) {')), ['the CLI holds no function parsedShape(parser, files)']);
 });

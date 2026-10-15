@@ -133,7 +133,8 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/contracts/shared-kernel-contract-catalog.test.mjs': 6,
   'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': 15,
   'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': 6,
-  'test-kits/handoff-conformance.test.mjs': 19,
+  // WP-0A-CON-008 (2026-10-15, C0-262-2, A1-262-2, Q0-262-1, R0-262-2): the audit lane's four handoff-drift cases, 19 to 23.
+  'test-kits/handoff-conformance.test.mjs': 23,
   'test-kits/integrity-manifest-rebuild.test.mjs': 3,
   'test-kits/protocol-schema-conformance.test.mjs': 4,
   // RFC-2026-031 §7.1: the declared-gap rules reversed in their source, 19 to 20.
@@ -176,11 +177,16 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   // workspace scripts pinned to the allowlist; configuration and .env names in any letter case),
   // app-stack 13 to 15 (the guard's second run before the build; the records' account of the residual
   // held by review). No test removed or renamed.
+  // The governance-bundle follow-up (2026-10-15; Q0-259-1, Q0-257r6-1 (a)-(c), pressed under the Owner's answer
+  // of 2026-10-15T02:13:35Z): app-boundaries 28 to 29 (a next.config or postcss.config whose default export is
+  // a call), app-stack 15 to 18 (src/** in the type check; the graph check's controls runner; the boundary
+  // CLI's agreement rule). No test removed or renamed.
   // A1-AUD1015-1 (2026-10-15, WP-0A-A0-004): app-stack 15 to 16 (npm audit and the release age before
-  // any step that executes package code). No test removed or renamed.
+  // any step that executes package code); merged with the follow-up above, app-stack 18 to 19. No test
+  // removed or renamed.
   'test-kits/app-dependencies.test.mjs': 14,
-  'test-kits/app-boundaries.test.mjs': 28,
-  'test-kits/app-stack.test.mjs': 16,
+  'test-kits/app-boundaries.test.mjs': 29,
+  'test-kits/app-stack.test.mjs': 19,
 };
 
 // Independent review eighteen answered the question the per-file floor was written to close, and
@@ -357,7 +363,8 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/contracts/shared-kernel-contract-catalog.test.mjs': 25,
   'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': 50,
   'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': 11,
-  'test-kits/handoff-conformance.test.mjs': 63,
+  // WP-0A-CON-008 (2026-10-15, C0-262-2, A1-262-2, Q0-262-1, R0-262-2): the audit lane's four handoff-drift cases, 63 to 74 assertions.
+  'test-kits/handoff-conformance.test.mjs': 74,
   'test-kits/integrity-manifest-rebuild.test.mjs': 10,
   'test-kits/protocol-schema-conformance.test.mjs': 6,
   'test-kits/ratchets-bite.test.mjs': 36,
@@ -381,11 +388,13 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   // 75 (modularizeImports, swcPlugins and the vitest.config alias rule). The third review round on PR
   // #257 (2026-10-12, A1-257-7): app-boundaries 75 to 96, app-stack 85 to 106. The fourth round
   // (2026-10-12; A1-257-8, A1-257-9): app-boundaries 96 to 124, app-stack 106 to 120. The fifth round
-  // (2026-10-12; A1-257-10): app-boundaries 124 to 144, app-stack 120 to 137. A1-AUD1015-1 (2026-10-15,
-  // WP-0A-A0-004): app-stack 137 to 144.
+  // (2026-10-12; A1-257-10): app-boundaries 124 to 144, app-stack 120 to 137. The governance-bundle
+  // follow-up (2026-10-15; Q0-259-1, Q0-257r6-1): app-boundaries 144 to 155, app-stack 137 to 168.
+  // A1-AUD1015-1 (2026-10-15, WP-0A-A0-004): app-stack 137 to 144 on its own; merged with the follow-up,
+  // app-stack 168 to 175.
   'test-kits/app-dependencies.test.mjs': 65,
-  'test-kits/app-boundaries.test.mjs': 144,
-  'test-kits/app-stack.test.mjs': 144,
+  'test-kits/app-boundaries.test.mjs': 155,
+  'test-kits/app-stack.test.mjs': 175,
 };
 
 // Independent review eighteen defeated the test-count floor by hollowing a suite while preserving
@@ -424,7 +433,8 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/contracts/shared-kernel-contract-catalog.test.mjs': 'bd0c948ddd7fa982',
   'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': 'b56843602dd83c11',
   'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': '99724af4706e30ad',
-  'test-kits/handoff-conformance.test.mjs': 'aae5740519f84c40',
+  // WP-0A-CON-008 (2026-10-15): four names added, none removed or renamed.
+  'test-kits/handoff-conformance.test.mjs': '26c4caea710dd1c9',
   'test-kits/integrity-manifest-rebuild.test.mjs': '91b24d70c4ac8fcb',
   'test-kits/protocol-schema-conformance.test.mjs': 'dc9a77399529cead',
   'test-kits/ratchets-bite.test.mjs': '319ac851dad85691',
@@ -459,11 +469,13 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   // The fourth round on PR #257 (2026-10-12; A1-257-8, A1-257-9, C0-257r4-1, -2) adds three tests to
   // app-boundaries and one to app-stack; none is renamed, and both name digests move. The fifth round
   // (2026-10-12; A1-257-10, A1's letter-case advisory) adds two tests to each; none is renamed, and both
-  // name digests move. A1-AUD1015-1 (2026-10-15, WP-0A-A0-004) adds one test to app-stack; none is
-  // renamed, and its name digest moves.
+  // name digests move. The governance-bundle follow-up (2026-10-15; Q0-259-1, Q0-257r6-1) adds one test to
+  // app-boundaries and three to app-stack; none is renamed, and both name digests move.
+  // A1-AUD1015-1 (2026-10-15, WP-0A-A0-004) adds one test to app-stack; none is renamed, and its name
+  // digest moves (measured on the merge with the follow-up).
   'test-kits/app-dependencies.test.mjs': '491abfa45804df35',
-  'test-kits/app-boundaries.test.mjs': '3cf662a2b479fe79',
-  'test-kits/app-stack.test.mjs': '4ca99316d7f9d05b',
+  'test-kits/app-boundaries.test.mjs': '1d26d994f5722840',
+  'test-kits/app-stack.test.mjs': 'f66a1687560ef35f',
 };
 
 // How many reversals `ratchets-bite.test.mjs` puts through a suite. Independent review twenty

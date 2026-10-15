@@ -4,46 +4,51 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "2aef81825e198f298039ef3d8fa32200034d54f4",
-  "head_revision_or_patch_checksum": "c4ad9ff0f0d544d87f52bc8faa81e55b25e84190",
+  "base_revision": "0c35c265c79e8659b989b3e4c3812fe3e366b0ec",
+  "head_revision_or_patch_checksum": "94ca9650bccdc69b4d7438e1acb49ab36295f1b3",
   "task_ids": [
     "WP-0A-A0-001",
-    "round-audit-2026-10-15"
+    "rfc-034-s8-item3-g0-024-note-2026-10-15"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-001/a1-reread-2026-10-15-pr262.md",
-    "evidence/WP-0A-A0-001/a1-review-2026-10-15-pr262.md",
-    "evidence/WP-0A-A0-001/c0-reread-2026-10-15-pr262.md",
-    "evidence/WP-0A-A0-001/c0-review-2026-10-15-pr262.md",
-    "evidence/WP-0A-A0-001/q0-review-2026-10-15-pr262.md",
-    "evidence/WP-0A-A0-001/r0-review-2026-10-15-pr262.md",
-    "evidence/audits/2026-10-15/a1-audit.md",
-    "evidence/audits/2026-10-15/c0-audit.md",
-    "evidence/audits/2026-10-15/q0-audit.md",
-    "evidence/audits/2026-10-15/r0-audit.md"
+    "evidence/WP-0A-A0-001/a1-review-2026-10-15-pr273.md",
+    "evidence/WP-0A-A0-001/c0-review-2026-10-15-pr273.md",
+    "evidence/WP-0A-A0-001/q0-review-2026-10-15-pr273.md",
+    "evidence/WP-0A-A0-001/r0-review-2026-10-15-pr273.md"
   ],
   "files_modified": [
-    "handoffs/WP-0A-A0-001-author-handoff.json"
+    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-15-governance-bundle-press.md",
+    "evidence/g0-tracker-th.md",
+    "handoffs/WP-0A-A0-001-author-handoff.json",
+    "work-packages/WP-0A-A0-001.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
+    "RFC-2026-031",
     "RFC-2026-034"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT carries the first round audit under RFC-2026-034 §2.3 (§8 item 1): the four auditors' files evidence/audits/2026-10-15/{c0,a1,q0,r0}-audit.md, each cherry-picked with -x from its auditor's own commit (C0 1053e39f, A1 350e0b04, Q0 754a3bbc, R0 04a3f545, each cut from main 2aef8182), blob-equal; range main 8086281b (exclusive) to 2aef8182 (merges #252-#261). Their files are role verdicts, not records (RFC-2026-034 §2.3), written by the auditors; A0 wrote none of them and claims none of their verdicts.",
-    "The role readings of this pull request are carried with -x: round one at c579681d (evidence/WP-0A-A0-001/{c0,a1,q0,r0}-review-2026-10-15-pr262.md: C0 changes_requested and A1 changes_requested on the stale handoff fields, Q0 test_verified, R0 ready), and C0's and A1's re-reads at bcb24b79 (c0-reread / a1-reread-2026-10-15-pr262.md: review_approved, security_approved, no finding open) after the handoff was rewritten; this handoff is refreshed last and alone.",
-    "Not records-only: classify-records-only exits 1 on this range (audit files and role files are verdicts). The base's classifier prints lane: risk (see open_risks_or_blockers)."
+    "THIS INCREMENT is RFC-2026-034 §8 item 3, the G0 tracker's G0-024 part only: the G0-024 row of evidence/g0-tracker-th.md (a path of this package) gains one dated note, in Thai as the tracker is, appended to its \"ที่ขาด\" cell, that RFC-2026-034 (merged by the Owner in PR #251 as 8086281b, 2026-10-11) amends what the row describes, quoting RFC-2026-034 §3's row for \"RFC-2026-031 §6 item 2\" verbatim cell by cell (a | inside a table cell would break the row; both cells taken by script from the RFC's line). The row's existing text, its status, the counts and every other row are unchanged (checked by script: the old row is a prefix and suffix of the new, six | in both).",
+    "Which §3 row is relevant is A0's reading, marked in the disposition §6 (b): G0-024 records the conditional exit, whose closing conditions are RFC-2026-031 §6, and §3 amends that section in one row; the §3 row on RFC-2026-031 §3.3 / Decision Register line 373 / 2026-10-08 disposition §10.3 concerns writing application code, not the exit.",
+    "The Owner's authority for who presses it is question 2 (header \"ชุด governance\"), item (5), answered 2026-10-15T02:13:35.293Z `A0 กดเมื่อ 4 role ผ่าน ทีละ PR (Recommended)`, already transcribed in evidence/WP-0A-A0-001/product-owner-disposition-2026-10-15-governance-bundle-press.md §2 (PR #269) and compared again byte for byte by script with transcript lines 1631/1632 on this branch; §6 is added for this pull request, §1 to §5 kept whole. Question 1 concerns PR #265.",
+    "The Decision Register part of §8 item 3 (\"a note on Decision Register line 373 and §5.1 by the register's owner\") is recorded as owed in WP-0A-A0-001.json open_blockers: docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md is in no package's writable_paths or outputs.files on main c9554ef9 (read by script), so it waits for an owner. The manifest also gains a required_human_authorities entry mirroring the disposition, and amends_without_owning.paths is emptied (PR #269 merged; npm run regenerate:manifest rebuilds test-kits/integrity-manifest.json unchanged; the tracker is not digested).",
+    "The change commit 3d23bbb3 was made with git commit, not commit-when-clean, and the full verifier was run on the committed tree under the suite lock instead: on this branch name at main, before any change, the suite's 'the handoff for this branch describes this branch' (and its copy in ratchets-bite) fails because this handoff still cited PR #269's 9f1c71e8, so commit-when-clean refuses every first commit. The committed tree's npm run verify reported 829/831 with exactly those two failing (the stale handoff, after #272 moved WP-0A-A0-010.json); this commit, last and alone, re-cites the handoff to c9554ef9..3d23bbb3. The branch was rebased once onto origin/main c9554ef9 (PR #272 merged meanwhile, no shared path) before push; nothing was pushed."
   ],
   "acceptance_results": [
     {
-      "criterion": "Each audit file and role file on the head is blob-equal to its author's commit and carried with -x; this handoff touches only itself and claims no verdict",
-      "result": "pass for author self-check: blobs compared by git rev-parse <commit>:<path> against the head"
+      "criterion": "The G0-024 note quotes RFC-2026-034 §3's relevant row verbatim, keeps the row's existing text whole, and changes nothing else in the tracker; the disposition's verbatim parts match the transcript byte for byte",
+      "result": "pass for author self-check: cells taken by script from RFC-2026-034's line; prefix/suffix and pipe-count check of the row; git diff shows one line of the tracker changed; transcript comparison script exit 0"
     }
   ],
   "tests": [
+    {
+      "command": "npm run verify (suite on 3d23bbb3's tree, under the suite lock)",
+      "exit_code": 1,
+      "result": "tests 831, pass 829, fail 2: 'the handoff for this branch describes this branch' and its ratchet copy, both the stale handoff this commit refreshes; the handoff commit's run is recorded in the PR body"
+    },
     {
       "command": "npm run validate:protocol",
       "exit_code": 0,
@@ -52,7 +57,17 @@
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-001",
       "exit_code": 0,
-      "result": "every changed path declared, every amendment explains one"
+      "result": "all 3 changed paths declared, every amendment explains one"
+    },
+    {
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
+      "exit_code": 0,
+      "result": "tier H; lane risk: evidence/g0-tracker-th.md is not an L or M path; tier H outside governance, records and audit; base's classifier. A0 treats the PR as governance (a gate record, as #214), the stricter reading; the Owner's answer requires all four roles either way"
+    },
+    {
+      "command": "npm run regenerate:manifest",
+      "exit_code": 0,
+      "result": "rebuilt 128 digests; test-kits/integrity-manifest.json unchanged"
     },
     {
       "command": "npm run check:handoff",
@@ -60,24 +75,26 @@
       "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Evidence only (audit verdicts and role readings). No code, CI, guard, contract or authority change; no credential, customer data or provider call.",
+  "security_privacy_cost_impact": "Records only: one dated note in the G0 tracker's G0-024 row, a section added to a Product Owner disposition, and manifest records. No code, CI, guard, rule text, contract or authority change; no credential, customer data or provider call.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes.",
   "known_limitations": [
-    "The audit lane of RFC-2026-034 §2.2 cannot pass CI as written while the handoff guard runs on WP-0A-A0-001's branch (C0-262-2, A1-262-2, Q0-262-1, R0-262-2 each name a governance fix; they differ on where: refresh-author-handoff drift base, a guard exemption for audit-only branches, or the audit row admitting a handoff-only tip commit). That is a later governance PR the Owner presses.",
-    "The audit's findings (evidence/audits/2026-10-15/*) become fix PRs, each on its own lane; none is fixed here."
+    "Only the G0-024 part of RFC-2026-034 §8 item 3. The Decision Register note waits for an owner (no package owns the register); the notes on RFC-2026-025, -030, -031 and WP-0A-A0-010 open_blockers[1] are not here.",
+    "Which §3 row is 'relevant' to G0-024 is A0's reading; a role may hold that the §10.3 / application-code row should be quoted as well.",
+    "The classifier places this PR in the risk lane; A0's treatment of it as governance is a stricter reading, not the classifier's output."
   ],
   "open_risks_or_blockers": [
-    "RISK LANE, not audit: this pull request carries the four round-audit files of 2026-10-15 (evidence/audits/2026-10-15/, RFC-2026-034 §2.3, §8 item 1), each cherry-picked with -x from its auditor's commit, blob-equal. With only those files it printed `lane: audit`, but CI's handoff guard (test-kits/handoff-conformance.test.mjs, 'the handoff for this branch describes this branch') failed on run 38661391448 because WP-0A-A0-001's handoff cited 376ff83; refreshing this handoff is the only other path, and with it the base's classifier prints `lane: risk`. A0's reading: RFC-2026-034 §2.2's audit lane cannot pass CI as written while the handoff guard runs on the audit branch; that is a defect for a governance pull request (the guard or the lane), not for this one. A1 and Q0 read the final head (A0 also asks C0 and R0); A0 presses once they pass and CI is green on both jobs (RFC-2026-034 §2.2, Q-034-1)."
+    "GOVERNANCE (governance bundle). PR #273: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes evidence/audits/2026-10-15/ and evidence/WP-0A-A0-001/*-2026-10-15-pr262.md and restores this handoff. The audit's verdicts (review_approved, test_verified, integration_verified for #253, #254, #261) are what later records and package status moves cite, so a revert withdraws them too.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the G0-024 note, the disposition §6 and the manifest lines. No rule changed, so no behaviour depends on it.",
   "recommended_next_work_packages": [
-    "Records increments that transcribe the audit verdicts into the packages they cover (WP-0A-CON-001, WP-0A-A0-002, WP-1A-A0-003) and the owed merge records (R0-AUD1015-2..6).",
-    "A governance PR fixing the audit lane against the handoff guard (C0-262-2 / A1-262-2 / R0-262-2), and A1-AUD1015-1 (CI audit/release-age step order); both pressed by the Owner."
+    "Name an owner for docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md so the Decision Register note of RFC-2026-034 §8 item 3 can be written.",
+    "Any remaining RFC-2026-034 §8 item 3 notes, each by its owner."
   ],
   "reviewer_instructions": [
-    "git diff origin/main --stat: only evidence/audits/2026-10-15/*, evidence/WP-0A-A0-001/*-pr262.md and this handoff.",
-    "For each carried file compare its blob with the author's commit (auditor branches */audit-2026-10-15, role branches */WP-0A-A0-001-pr262-2026-10-15).",
-    "Run the base's classifier with --head-ref/--repo/--head-repo and confirm the lane printed."
+    "git diff origin/main --stat: evidence/g0-tracker-th.md (one line), the disposition (§6 added, §1 to §5 unchanged), WP-0A-A0-001.json, this handoff.",
+    "Compare the two backticked quotes in the G0-024 note with RFC-2026-034 §3's 'RFC-2026-031 §6 item 2' row; confirm the row's old text is kept whole.",
+    "Compare the disposition §2.1 with transcript 325454ab lines 1631/1632 (question 2).",
+    "Run the base's classifier with --lane (it prints risk) and judge A0's governance treatment."
   ]
 }
