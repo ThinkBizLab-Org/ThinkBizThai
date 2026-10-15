@@ -4,14 +4,18 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "f64c537b746ad04b035340fd60ef80dc86225103",
-  "head_revision_or_patch_checksum": "a1204dbadca316535db46a986f6d5e89a180dd39",
+  "base_revision": "b61b3db25be98f34f85b6ca7a76b32d3ff555a98",
+  "head_revision_or_patch_checksum": "7f1c93e4c177228389c349da1f97385c78b8902a",
   "task_ids": [
     "WP-0A-A0-004",
     "gov-a004-aud1015-1-2026-10-15"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-15-governance-bundle-press.md"
+    "evidence/WP-0A-A0-004/a1-review-2026-10-15-pr270.md",
+    "evidence/WP-0A-A0-004/c0-review-2026-10-15-pr270.md",
+    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-15-governance-bundle-press.md",
+    "evidence/WP-0A-A0-004/q0-review-2026-10-15-pr270.md",
+    "evidence/WP-0A-A0-004/r0-review-2026-10-15-pr270.md"
   ],
   "files_modified": [
     ".github/workflows/ci.yml",
@@ -109,7 +113,7 @@
     "Acknowledgements from the Integration Owner of WP-1A-A0-002, WP-0A-A0-002 and WP-0A-CON-008 (/claude/r0_steward) are owed for the declared amendments."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE lane: C0, A1, Q0 and R0 read the final head; A0 presses only after all four pass, CI is green on bootstrap and application, no security finding of any grade is open and the head contains current main (RFC-2026-025 §5 item 6, under the Owner's answer of 2026-10-15T02:13:35Z)."
+    "GOVERNANCE (governance bundle). PR #270: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores the two steps to the job's end, the app-stack expected list, floors and digest, and removes the disposition and the manifest's INCREMENT 2026-10-15 entries; nothing else depends on them.",
   "recommended_next_work_packages": [
