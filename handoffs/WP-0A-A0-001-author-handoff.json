@@ -4,17 +4,22 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "6fb5ab13e78117f4b4b9c86864bbaa4e2e575d8e",
-  "head_revision_or_patch_checksum": "25efafd9fcaa1502ee11643e9a4906912567e339",
+  "base_revision": "f64c537b746ad04b035340fd60ef80dc86225103",
+  "head_revision_or_patch_checksum": "789f7e2af3902d5fccdb4f5b3387a9b1bfbe6ce3",
   "task_ids": [
     "WP-0A-A0-001",
     "rfc-034-s8-item3-decision-register-notes-2026-10-15"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-15-register-ownership.md"
+    "evidence/WP-0A-A0-001/a1-review-2026-10-15-pr274.md",
+    "evidence/WP-0A-A0-001/c0-review-2026-10-15-pr274.md",
+    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-15-register-ownership.md",
+    "evidence/WP-0A-A0-001/q0-review-2026-10-15-pr274.md",
+    "evidence/WP-0A-A0-001/r0-review-2026-10-15-pr274.md"
   ],
   "files_modified": [
     "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
+    "handoffs/WP-0A-A0-001-author-handoff.json",
     "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-A0-001.json"
   ],
@@ -82,7 +87,7 @@
     "The branch is behind origin/main (f64c537b, PR #267); a mechanical sync is owed before the press."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (docs/**). A0 presses under the Owner's answer of 2026-10-15T15:51:38.460Z only after C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs and no security finding is open; the head must contain current main."
+    "GOVERNANCE (governance bundle). PR #274: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the two register notes, the disposition, the writable_paths entry and the manifest lines, and regenerates the integrity manifest. No rule changed, so no behaviour depends on it.",
   "recommended_next_work_packages": [
