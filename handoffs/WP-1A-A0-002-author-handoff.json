@@ -4,47 +4,45 @@
   "work_package_id": "WP-1A-A0-002",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "40267ae99a0b189871faa2804c8069c1b7722bf6",
-  "head_revision_or_patch_checksum": "1aad57a4665b0fac2e6aa2b7903fea374b2b379b",
+  "base_revision": "5e0eef4749f569a94ce95208d8dca431a546550b",
+  "head_revision_or_patch_checksum": "9ed86da1d2e2f45eeac67ede8b2896601e9d3c06",
   "task_ids": [
     "WP-1A-A0-002",
-    "pr257-records-2026-10-13"
+    "pr258-records-2026-10-15"
   ],
   "files_added": [
-    "evidence/WP-1A-A0-002/a1-review-2026-10-13-pr258.md",
-    "evidence/WP-1A-A0-002/c0-review-2026-10-13-pr258.md",
-    "evidence/WP-1A-A0-002/q0-review-2026-10-13-pr258.md",
-    "evidence/WP-1A-A0-002/r0-review-2026-10-13-pr258.md",
-    "evidence/WP-1A-A0-002/records-transcription-2026-10-13.md"
+    "evidence/WP-1A-A0-002/a1-review-2026-10-15-pr264.md",
+    "evidence/WP-1A-A0-002/c0-review-2026-10-15-pr264.md",
+    "evidence/WP-1A-A0-002/q0-review-2026-10-15-pr264.md",
+    "evidence/WP-1A-A0-002/r0-review-2026-10-15-pr264.md",
+    "evidence/WP-1A-A0-002/records-transcription-2026-10-15.md"
   ],
   "files_modified": [
-    "evidence/WP-1A-A0-002/product-owner-disposition-2026-10-12-skeleton-licences.md",
     "handoffs/WP-1A-A0-002-author-handoff.json",
     "work-packages/WP-1A-A0-002.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
-    "RFC-2026-029",
     "RFC-2026-034"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT records, after PR #257 merged (2026-10-12T15:55:17Z, 40267ae9): the Product Owner's press answer of 2026-10-12T15:19:55Z (asked 15:18:30Z, session c2816eec) verbatim as §7 of evidence/WP-1A-A0-002/product-owner-disposition-2026-10-12-skeleton-licences.md, what it directs and §6 (b)'s record of the gh api call that added `application` to main's required status checks (command, before and after) as §8; the merge record and R0's post-merge words as open_blockers[5]; the owed follow-ups (Q0-257r6-1's tests, A1 N1 and N2, ESLint) as open_blockers[6]. ownership.amends_without_owning.paths is emptied: its eleven paths reached main with #257 and this branch amends none (the rationale keeps #257's text after a dated prefix).",
-    "Records only in substance: every recorded word is the Owner's or a role's own, copied from the transcript or from the role file on main; facts from gh and git. Sources: evidence/WP-1A-A0-002/records-transcription-2026-10-13.md. A0's readings in §8 are marked as A0's. status stays in_review: R0's final file (r0-reread5-2026-10-12-pr257.md) authorises no move."
+    "THIS INCREMENT records, after PR #258 merged (2026-10-12T21:06:31Z, 5d8f8fd4): its merge record (final head f0bcb870, CI run 38307173517 green on both jobs), the four role verdict lines (evidence/WP-1A-A0-002/{c0,a1,q0,r0}-review-2026-10-13-pr258.md), the press direction as transcribed on main in evidence/WP-0A-A0-004/product-owner-disposition-2026-10-13-lane-walk-ts.md (PR #260), and R0's post-merge words (R0-258-1, §0) verbatim with the pointer R0-258-1 asks for, as open_blockers[7]; R0's closing words on R0-257-7 appended to open_blockers[5].",
+    "Records only: every quoted word is a role's own, in its file on main, or the Owner's, in a disposition on main; facts from gh and git; nothing quoted from a chat or a local file. Sources: evidence/WP-1A-A0-002/records-transcription-2026-10-15.md. status stays in_review: R0's file authorises no move."
   ],
   "acceptance_results": [
     {
-      "criterion": "Recorded words match their sources; old open_blockers and disposition §1–§6 unchanged; no status, test, guard, CI, RFC or contract change",
-      "result": "pass for author self-check: quotes compared by script with the transcript and the role files; independent reading owed"
+      "criterion": "Recorded words match their sources on main; open_blockers[0]-[4] and [6] byte-equal, [5] kept whole as the prefix; no status, test, guard, CI, RFC or contract change; classify-records-only exits 0",
+      "result": "pass for author self-check: quotes extracted by script from the files on main; independent reading owed (RFC-2026-025 §6.2)"
     }
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs (npm run verify, under the suite lock) at b1836820",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (the records commit 210e933c)",
       "exit_code": 0,
-      "result": "tests 821, pass 821, fail 0, skipped 0, todo 0"
+      "result": "clean: exit 0 — tests 827, pass 827, fail 0 (C0-264-1, Q0-264-1)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-002",
@@ -52,24 +50,25 @@
       "result": "all changed paths declared"
     }
   ],
-  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, customer data or provider call. The branch-protection change it records was made on 2026-10-12 under the Owner's answer of 07:24:27Z; this branch changes no setting.",
+  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, customer data or provider call. The one account name recorded (workstationgroup, mergedBy) is already on main in the WP-0A-A0-004 disposition.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
   "known_limitations": [
-    "The required-check record covers the required_status_checks resource only; the rest of main's protection was not read before or after the call (disposition §8 (d)).",
-    "rsc-before.json, rsc-after.json and the connector log are A0's local files under .claude/ntf-session/, not on main; the disposition quotes both JSON objects in full.",
-    "open_blockers[0] (\"AUTHOR COMPLETE ONLY ...\") is stale since the roles' readings and is left byte-equal, as records increments keep old entries."
+    "R0-258-1 asked this package's next records increment to transcribe the Owner's answer of 20:28:22Z; it reached main through PR #260 in WP-0A-A0-004's evidence, so this increment records a pointer rather than a second transcription. Whether that meets R0-258-1 is R0's to write.",
+    "C0-258-1 (advisory, the skeleton-licences disposition §8 (a) wording) is not acted on: editing a disposition leaves the records path.",
+    "open_blockers[0] (\"AUTHOR COMPLETE ONLY ...\") is stale and left byte-equal (Q0 N2 on PR #258).",
+    "Whether the press of #258 was pinned with --match-head-commit is not recorded: neither gh nor main records it; the merge's second parent equals the final head."
   ],
   "open_risks_or_blockers": [
-    "Owed after the merge: Q0-257r6-1's tests (a follow-up pull request, by the Owner's answer of 15:19:55Z; it needs Q0 again); A1 N1 and N2 (WP-1A-A6-001, WP-1A-A0-004 / Q-028-3's answerer); ESLint deferred. The lane of this pull request is what the base's classifiers print: the disposition append is outside RFC-2026-025 §6's record-file names, so it does not take the records-only path. Whether R0-257-7 is closed is R0's to write."
+    "RISK LANE at the final head, not records: the records commit alone is records-only (lane records), but the four role readings of this pull request (evidence/WP-1A-A0-002/{c0,a1,q0,r0}-review-2026-10-15-pr264.md), carried with -x, are role files RFC-2026-025 §6.1 item 2 does not admit, so the base's classifier prints lane risk. Readers: C0 review_approved, A1 security_approved (no finding), Q0 test_verified, R0 records right and complete (R0-258-1 closed), all at 86f3d767. A0 presses under RFC-2026-034 §2.2's risk lane (Q-034-1) once CI is green on both jobs, with --match-head-commit. Not recorded anywhere on main: whether #258's press used --match-head-commit (C0-264-2, R0-264-3); its merge's second parent equals the head the roles read."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes WP-1A-A0-002 open_blockers[5] and [6] (pr257-records-2026-10-13), §7 and §8 of the skeleton-licences disposition and records-transcription-2026-10-13.md; nothing depends on them, and the required-check setting they record is not changed by a revert.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[7], the clause appended to open_blockers[5] and records-transcription-2026-10-15.md; nothing depends on them.",
   "recommended_next_work_packages": [
-    "WP-1A-A0-002: the Q0-257r6-1 tests (a small follow-up pull request); then WP-1A-A5-002 and WP-1A-A0-003 on the skeleton."
+    "WP-1A-A0-002: the Q0-257r6-1 tests (a small follow-up pull request)."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-1A-A0-002/records-transcription-2026-10-13.md, then git diff origin/main.",
-    "Disposition §7 against the session transcript (c2816eec, 15:18:30Z and 15:19:55Z); §8 (d) against gh api repos/ThinkBizLab-Org/ThinkBizThai/branches/main/protection/required_status_checks; open_blockers[5] against gh pr view 257, gh run view 38269234433 and r0-reread5-2026-10-12-pr257.md §0, §3, §6."
+    "Read evidence/WP-1A-A0-002/records-transcription-2026-10-15.md, then git diff origin/main.",
+    "open_blockers[7] against gh pr view 258, gh run view 38307173517, the four *-review-2026-10-13-pr258.md files and evidence/WP-0A-A0-004/product-owner-disposition-2026-10-13-lane-walk-ts.md; the [5] clause against r0-review-2026-10-13-pr258.md §4."
   ],
   "superseded_by": null,
   "outputs": null
