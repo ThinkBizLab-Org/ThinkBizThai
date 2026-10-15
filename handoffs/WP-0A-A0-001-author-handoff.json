@@ -4,27 +4,14 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "2aef81825e198f298039ef3d8fa32200034d54f4",
-  "head_revision_or_patch_checksum": "c4ad9ff0f0d544d87f52bc8faa81e55b25e84190",
+  "base_revision": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
+  "head_revision_or_patch_checksum": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
   "task_ids": [
     "WP-0A-A0-001",
     "round-audit-2026-10-15"
   ],
-  "files_added": [
-    "evidence/WP-0A-A0-001/a1-reread-2026-10-15-pr262.md",
-    "evidence/WP-0A-A0-001/a1-review-2026-10-15-pr262.md",
-    "evidence/WP-0A-A0-001/c0-reread-2026-10-15-pr262.md",
-    "evidence/WP-0A-A0-001/c0-review-2026-10-15-pr262.md",
-    "evidence/WP-0A-A0-001/q0-review-2026-10-15-pr262.md",
-    "evidence/WP-0A-A0-001/r0-review-2026-10-15-pr262.md",
-    "evidence/audits/2026-10-15/a1-audit.md",
-    "evidence/audits/2026-10-15/c0-audit.md",
-    "evidence/audits/2026-10-15/q0-audit.md",
-    "evidence/audits/2026-10-15/r0-audit.md"
-  ],
-  "files_modified": [
-    "handoffs/WP-0A-A0-001-author-handoff.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
