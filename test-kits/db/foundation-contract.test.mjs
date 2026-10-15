@@ -7617,19 +7617,26 @@ test('a records-only diff on the repository as it stands prints the records lane
   const atHead = STRING_NAME_EXCEPTIONS.filter(([, named]) => files.has(named));
   assert.ok(none.reasons.length >= atHead.length, `${none.reasons.length} mentions`);
   assert.deepEqual([...found].sort(), atHead.map(([namer, named]) => JSON.stringify([namer, named])).sort());
-  // The rest name files no pull request has created yet (R0-259-1): today only the platform-kernel files WP-1A-A0-003
-  // will create. The run-time check does not reach them; here, every entry's namer still spells its file.
-  assert.deepEqual([...new Set(STRING_NAME_EXCEPTIONS.filter(([, named]) => !files.has(named)).map(([, named]) => named))].sort(), PLATFORM_KERNEL);
+  // The rest name files no pull request has created yet (R0-259-1): only platform-kernel files WP-1A-A0-003 creates
+  // (index.ts and application/run.ts by its PR-2; adapters/job-store.ts later). Read from the repository, so it holds
+  // before and after a file is created: every absent named file is one of them, and each of them is either at the
+  // head, where its pairs are among those found above, or absent and listed here. The run-time check does not reach
+  // the absent ones; here, every entry's namer still spells its file.
+  const absent = [...new Set(STRING_NAME_EXCEPTIONS.filter(([, named]) => !files.has(named)).map(([, named]) => named))].sort();
+  assert.ok(absent.every((named) => PLATFORM_KERNEL.includes(named)), `absent named files outside the platform-kernel three: ${JSON.stringify(absent)}`);
+  assert.deepEqual([...absent, ...PLATFORM_KERNEL.filter((p) => files.has(p))].sort(), PLATFORM_KERNEL);
   const { mentioned } = governanceClosure({ files, readHead });
   assert.deepEqual([...mentioned].sort(), STRING_NAME_EXCEPTIONS.map(([namer, named]) => JSON.stringify([namer, named])).sort());
 });
 
 test('a pair listed for a file a guard fixture names before it exists keeps the records lane once a pull request creates the file (RFC-2026-007 Amendment 2026-10-13; R0-259-1)', async () => {
   const { files, readHead } = await repository();
-  // WP-1A-A0-003's first pull request creates the platform-kernel module; the guards' fixtures already name three of
-  // its files. Here they are created at the head of the repository as it stands, with a records-only diff beside them.
+  // WP-1A-A0-003 creates the platform-kernel module; the guards' fixtures name three of its files. Here all three are
+  // put at the head of the repository as it stands (a stub stands in for any that already exists, so the test holds
+  // before and after a pull request creates one), with a records-only diff beside them. Each of the three is listed
+  // ahead in the exceptions, so creating it never makes later pull requests governance.
   const created = new Map(PLATFORM_KERNEL.map((p) => [p, 'export const kernel = 1;\n']));
-  assert.ok(PLATFORM_KERNEL.every((p) => !files.has(p)), 'none exists yet');
+  assert.ok(PLATFORM_KERNEL.every((p) => STRING_NAME_EXCEPTIONS.some(([, named]) => named === p)), 'each platform-kernel file is listed ahead');
   const head = new Set([...files, ...created.keys()]);
   const read = (p) => (created.has(p) ? created.get(p) : readHead(p));
   const of = (extra = {}) => laneOf({ paths: [RECORDS_PROBE], tier: 'records', recordsOnly: true, files: head, readHead: read, ...extra });

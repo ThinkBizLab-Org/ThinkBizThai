@@ -83,11 +83,13 @@ function readSelection(selection: unknown): Selection {
     if (hasBusiness && typeof business !== 'string') return invalid;
     if (hasPage && typeof page !== 'string') return invalid;
     if (hasPage && !hasBusiness) return invalid;
-    const scope: TenantScope = {
+    // Frozen before the directory sees it (A1-AUD1015-3): the scope the directory admits is the
+    // scope the context carries, whatever an adapter does with the object across the await.
+    const scope: TenantScope = Object.freeze({
       workspace_id: workspace,
       ...(typeof business === 'string' ? { business_profile_id: business } : {}),
       ...(typeof page === 'string' ? { page_context_profile_id: page } : {}),
-    };
+    });
     // An id outside the minted shape names nothing that can exist: the same answer as any other
     // scope that is not admitted.
     const ids = [scope.workspace_id, scope.business_profile_id, scope.page_context_profile_id];
@@ -100,11 +102,15 @@ function readSelection(selection: unknown): Selection {
   }
 }
 
-// The principal's actor, read once, or null when it is not a principal in the minted shape. A
+// The principal's actor, or null when it is not a principal in the minted shape. Only the
+// principal's OWN `kind` and `id` are read (A1-261-N4): an inherited one, a polluted
+// Object.prototype among them, names no actor, so a port that returns `{}` is unauthenticated.
+// Each is read once (Q0-261-5), so a getter cannot answer the check and the copy differently. A
 // getter that throws propagates to the caller, which maps it to PLATFORM_TEMPORARY.
 function actorOf(value: unknown): Actor | null {
   if (!isObject(value)) return null;
-  const { kind, id } = value;
+  const kind = hasOwn(value, 'kind') ? value.kind : undefined;
+  const id = hasOwn(value, 'id') ? value.id : undefined;
   if (!isActorKind(kind) || typeof id !== 'string' || !TENANT_ID_PATTERN.test(id)) return null;
   return Object.freeze({ kind, id });
 }

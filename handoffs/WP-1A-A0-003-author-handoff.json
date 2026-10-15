@@ -4,41 +4,39 @@
   "work_package_id": "WP-1A-A0-003",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "6af75480556935d70d7eb0594b17ae42849efc74",
-  "head_revision_or_patch_checksum": "dae1df49c552f4ac542491d7101527473f4c5410",
+  "base_revision": "20f92350a18de9905d745128b91dc2857c0b3b75",
+  "head_revision_or_patch_checksum": "cd8fcaa50d8f92e4289bc399eb5c5b3312319ec3",
   "task_ids": [
     "WP-1A-A0-003",
-    "pr1-platform-kernel-code-2026-10-14",
-    "pr1-round-one-fix-2026-10-14"
+    "pr2-kernel-surface-and-runner-2026-10-15",
+    "pr2-round-audit-2026-10-15-items",
+    "pr2-guard-tests-2026-10-15"
   ],
   "files_added": [
-    "evidence/WP-1A-A0-003/a1-reread-2026-10-14-pr261.md",
-    "evidence/WP-1A-A0-003/a1-review-2026-10-14-pr261.md",
-    "evidence/WP-1A-A0-003/c0-reread-2026-10-14-pr261.md",
-    "evidence/WP-1A-A0-003/c0-review-2026-10-14-pr261.md",
-    "evidence/WP-1A-A0-003/q0-reread-2026-10-14-pr261.md",
-    "evidence/WP-1A-A0-003/q0-review-2026-10-14-pr261.md",
-    "evidence/WP-1A-A0-003/r0-reread-2026-10-14-pr261.md",
-    "evidence/WP-1A-A0-003/r0-review-2026-10-14-pr261.md",
+    "evidence/WP-1A-A0-003/a1-review-2026-10-15-pr265.md",
+    "evidence/WP-1A-A0-003/c0-review-2026-10-15-pr265.md",
+    "evidence/WP-1A-A0-003/product-owner-disposition-2026-10-15-kernel-surface-press.md",
+    "evidence/WP-1A-A0-003/q0-review-2026-10-15-pr265.md",
+    "evidence/WP-1A-A0-003/r0-review-2026-10-15-pr265.md",
+    "src/modules/platform-kernel/application/run.test.ts",
+    "src/modules/platform-kernel/application/run.ts",
+    "src/modules/platform-kernel/index.test.ts",
+    "src/modules/platform-kernel/index.ts"
+  ],
+  "files_modified": [
+    "handoffs/WP-1A-A0-003-author-handoff.json",
     "src/modules/platform-kernel/application/envelope.test.ts",
     "src/modules/platform-kernel/application/envelope.ts",
     "src/modules/platform-kernel/application/fakes.ts",
     "src/modules/platform-kernel/application/ports.ts",
     "src/modules/platform-kernel/application/tenant-context.test.ts",
     "src/modules/platform-kernel/application/tenant-context.ts",
-    "src/modules/platform-kernel/domain/contract-fixtures.test.ts",
-    "src/modules/platform-kernel/domain/envelope.ts",
     "src/modules/platform-kernel/domain/idempotency.test.ts",
     "src/modules/platform-kernel/domain/idempotency.ts",
-    "src/modules/platform-kernel/domain/json-shape.ts",
-    "src/modules/platform-kernel/domain/platform-errors.ts",
-    "src/modules/platform-kernel/domain/private-reference.ts",
     "src/modules/platform-kernel/domain/stable-error.test.ts",
     "src/modules/platform-kernel/domain/stable-error.ts",
-    "src/modules/platform-kernel/domain/tenant-context.ts"
-  ],
-  "files_modified": [
-    "handoffs/WP-1A-A0-003-author-handoff.json",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
     "work-packages/WP-1A-A0-003.json"
   ],
   "files_deleted": [],
@@ -46,7 +44,9 @@
     "DEC-021",
     "DEC-022",
     "RFC-2026-029",
-    "RFC-2026-034"
+    "RFC-2026-034",
+    "RFC-2026-025",
+    "RFC-2026-007"
   ],
   "contracts_consumed": [
     "CTR-TEN-001",
@@ -56,35 +56,33 @@
   ],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS PACKAGE'S SECOND PULL REQUEST (PR-1, PR #261), the first code increment, risk lane (RFC-2026-034 §2.2, module code): pure TypeScript under src/modules/platform-kernel/domain/** and application/** with fakes and vitest consumer tests, the manifest's PR-G amendments emptied and its open_blockers updated, and the four round-one role files carried with cherry-pick -x. The cited range is this branch's own commits on main 6af75480 (PR #260 merged).",
-    "Deferred to a later pull request of this package, which is governance permanently, whatever is on main: creating or editing src/modules/platform-kernel/index.ts, application/run.ts or adapters/job-store.ts is governance under RFC-2026-007 Amendment 2026-10-13 §B items 1 and 5 (a file a guard's fixture names by a string joins the lane walk's closure; the STRING_NAME_EXCEPTIONS pairs only keep LATER pull requests out of governance), as Q0 and R0 measured on 8b4e5267. Deferred there: index.ts, the runner that turns any thrown value into an internal-error envelope (scope.include item 3), and anything under adapters/** (manifest open_blockers, PR-1 DEFERRALS). Its press is covered by neither required_human_authorities entry and needs the Owner's direction (R0-261-2, A0's reading).",
-    "A0's inferences, each marked in a code comment: the platform-kernel error codes and message keys (Q6; `errors.` prefix after ctr-err-001's fixtures, and two codes beyond Q6's four: tenant.selection.invalid and idempotency.conflict); ids held to ^[A-Za-z0-9._:-]{1,128}$ by the resolver (Q2); a page without a business refused (Q3); an inbound correlation id refused and always minted (Q5); an idempotency key presented with another algorithm's hash, even with the same hex digits, is a conflict, not a replay.",
-    "The checkers mirror test-kits/contracts/json-schema-subset.mjs's reading of each schema: own keys, code-point lengths, `u`-flag patterns, and date-time as its RFC 3339 regex plus Date.parse (a pure parse; no clock is read). Their allowed and required key lists are exported and pinned to the schemas by test."
+    "THIS PACKAGE'S THIRD PULL REQUEST (PR-2), GOVERNANCE whatever is on main (RFC-2026-007 Amendment 2026-10-13 §B item 1: it creates src/modules/platform-kernel/index.ts and application/run.ts, both named by a guard's fixture). The cited range is this branch's own commits on main 2aef8182 (PR #261 merged). A0 presses it only under required_human_authorities[2], the Owner's direction of 2026-10-14T13:01:02Z (evidence/WP-1A-A0-003/product-owner-disposition-2026-10-15-kernel-surface-press.md), once C0, A1, Q0 and R0 pass on its final head, CI is green on both jobs, no security finding is open and the head contains current main.",
+    "A1-261-N1 decided as A0's inference beyond CTR-ERR-001: errorEnvelope and the runner accept only an error stableError made from a definition defineStableError returned; this narrows PR-1's errorEnvelope, which accepted any CTR-ERR-001-valid error.",
+    "The runner's three answers (envelope, error, uncorrelated) are A0's shape for this increment; `error` and `uncorrelated` have no CTR-API-001 wire form until Q1 is answered, and the composition increment maps them.",
+    "The failure report record (stage, code answered, server-minted ids, typeof of a caught value) is A0's reading of 'redacted' in A1-261-N5 until CTR-OBS-001's rules are written into an adapter (WP-1A-A6-002).",
+    "Round-audit items of 2026-10-15 taken into this pull request at the coordinator's request: Q0-AUD1015-1, -2, -3 (tests only), A1-AUD1015-2 (port comment; the fake directory matches kind and id), A1-AUD1015-3 (the scope is frozen before the directory sees it), A1-AUD1015-4 (decided and recorded as Q9: replay is not matched on the actor because CTR-IDM-001's closed record names none; the caller binds the actor into payload_hash), R0-AUD1015-5 (open_blockers[0] brought up to date) and R0-AUD1015-10 (a test-only node:fs exception recorded). R0-AUD1015-3 and -4 name other packages' manifests and are not this package's to edit; RFC-2026-007 is not edited (R0-AUD1015-9).",
+    "Second code commit ca8fde5f, under required_human_authorities[3] (the Owner's answer of 2026-10-15T02:13:35Z, disposition §6): only RFC-2026-007 Amendment 2026-10-13 §C tests 2 and 3 in test-kits/db/foundation-contract.test.mjs (WP-0A-DB-00's) change, names kept, so that they hold whether or not the platform-kernel files exist, every exception pair still checked; test-kits/integrity-manifest.json regenerated for that digest; both declared in ownership.amends_without_owning. Question 2 of the same call concerns other governance pull requests and is not read here."
   ],
   "acceptance_results": [
     {
-      "criterion": "2: each checker accepts every valid and rejects every invalid listed fixture; listed fixtures equal examples/; pinned constants equal the schemas",
-      "result": "pass for author self-check (domain/contract-fixtures.test.ts: 4 contracts, 128 fixtures, listing, constant pins, and since 3baa9ca7 each checker's key and required lists at every closed level pinned to the schema, causation_id accepted, inherited required keys refused, impossible instants refused); round one: C0 review_approved, Q0 test_verified at 8b4e5267; re-read owed on the new head"
+      "criterion": "5: no stable error or envelope carries a thrown value's message, name or stack; details always empty",
+      "result": "pass for author self-check: application/run.test.ts answers every thrown value (Error, cause, string, undefined, null, number, bigint, boolean, symbol, function, throwing getters, revoked proxy; thrown and rejected) and each constant-message throw PR-1 DEFERRALS names as platform.internal with none of its text, and reports carry only typeof; independent reading owed"
     },
     {
-      "criterion": "3: the resolver refuses a missing principal, client-supplied actor/locale/timezone/ids, a page without a business, an unadmitted scope; cross-tenant byte-identical to nonexistent; failing directory gives temporary with nothing copied",
-      "result": "pass for author self-check (application/tenant-context.test.ts; since 3baa9ca7 also: own keys only, a polluted Object.prototype does not narrow, the id pattern and the principal shape refuse with a directory that admits everything); re-read owed on the new head"
+      "criterion": "4: a context not minted by the resolver is refused by the builders; envelope ids equal the context's; an error's correlation id equals the envelope's",
+      "result": "pass for author self-check (application/envelope.test.ts, application/run.test.ts; plus: an error not minted from a defineStableError definition is refused, A1-261-N1); independent reading owed"
     },
     {
-      "criterion": "4: a context not minted by the resolver (as cast, JSON round trip, spread, hand-written) is refused by the envelope builders; envelope ids equal the context's; an error's correlation id equals the envelope's",
-      "result": "pass for author self-check (application/envelope.test.ts); re-read owed on the new head"
-    },
-    {
-      "criterion": "5: no stable error or envelope carries a thrown value's text; details always empty",
-      "result": "pass for author self-check (domain/stable-error.test.ts, application/envelope.test.ts, application/tenant-context.test.ts; since 3baa9ca7 the resolver also drops the thrown value of its id source (constant TypeError, no cause), of a principal whose getters throw (platform.temporary) and of a selection whose read throws (tenant.selection.invalid), A1-261-2); re-read owed on the new head"
-    },
-    {
-      "criterion": "6: idempotency outcome replay / conflict (ERR conflict) / independent; blake3 accepted, no algorithm pinned",
-      "result": "pass for author self-check (domain/idempotency.test.ts; the same hex under two algorithm names is a conflict, Q0-261-2); re-read owed on the new head"
+      "criterion": "3: the resolver's refusals",
+      "result": "unchanged from PR-1 except actorOf reads own kind and id only (A1-261-N4) and once each (Q0-261-5), each pinned by a test; independent reading owed"
     },
     {
       "criterion": "7: verify-app-boundaries --require-parser over src/; npm run test:app runs the new tests; nothing under domain/ imports node:, a provider SDK, Next.js or React",
-      "result": "pass for author self-check (boundary guard exit 0; vitest 6 files, 224 tests on 3baa9ca7; the only node: import under domain/ or application/ is node:fs, used only to read the catalog fixtures, inside domain/contract-fixtures.test.ts); re-read owed on the new head"
+      "result": "pass for author self-check (boundary guard exit 0, 28 source files; vitest 8 files, 291 tests); independent reading owed"
+    },
+    {
+      "criterion": "2 and 6",
+      "result": "unchanged by PR-2"
     },
     {
       "criterion": "1 (PR-G) and 8 (the plan row end to end)",
@@ -95,27 +93,32 @@
     {
       "command": "npm run typecheck",
       "exit_code": 0,
-      "result": "tsc --noEmit clean over apps/** and src/** on 3baa9ca7"
+      "result": "tsc --noEmit clean over apps/** and src/** on 099a7ddf (ca8fde5f changes no TypeScript)"
     },
     {
       "command": "npm run test:app",
       "exit_code": 0,
-      "result": "6 test files, 224 tests passed on 3baa9ca7 (5 under src/modules/platform-kernel, 1 existing in apps/web; 185 at 8b4e5267)"
+      "result": "8 test files, 291 tests passed on 099a7ddf (224 at 2aef8182)"
     },
     {
       "command": "node scripts/verify-app-boundaries.mjs --require-parser",
       "exit_code": 0,
-      "result": "24 source files keep RFC-2026-029 §6.3, §2.1/3 and §8/5, read by the TypeScript parser (54 controls held first)"
+      "result": "28 source files keep RFC-2026-029 §6.3, §2.1/3 and §8/5, read by the TypeScript parser (54 controls held first)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-003",
       "exit_code": 0,
-      "result": "all 22 changed paths declared, every amendment explains one"
+      "result": "all 19 changed paths declared on ca8fde5f against origin/main 2aef8182, every amendment explains one"
     },
     {
       "command": "npm run validate:protocol",
       "exit_code": 0,
       "result": "manifests, capability profiles and ownership valid"
+    },
+    {
+      "command": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-1A-A0-003.json",
+      "exit_code": 0,
+      "result": "four distinct role ids"
     },
     {
       "command": "node scripts/scan-repository-secrets.mjs",
@@ -125,39 +128,51 @@
     {
       "command": "npm run check (through scripts/commit-when-clean.mjs, under the suite lock)",
       "exit_code": 0,
-      "result": "clean on the fix commit 3baa9ca7: 827 tests, 827 pass"
+      "result": "099a7ddf passed 827/827 only because commit-when-clean ran the suite before `git add`, with index.ts and run.ts untracked; tracked, test:bootstrap failed two tests of test-kits/db/foundation-contract.test.mjs (§C tests 2 and 3). ca8fde5f: staged with git add -A before the run, then commit-when-clean under the suite lock: clean, 827 tests, 827 pass, with every file tracked"
     },
     {
       "command": "author negative controls (local mutations, reverted)",
       "exit_code": 0,
-      "result": "at 909165c3: locale const dropped: 1 test fails; envelope allOf dropped: 9; mint check dropped in the builders: 4; page-without-business rule dropped: 1; IDM created_at format dropped: 2. On 3baa9ca7, each of the round-one survivors now fails the suite: id pattern off (Q0 M6): 4; principal shape off (M7): 4; date-time without Date.parse (M26): 4; required keys by `in` (M27): 4; hashes compared by hex only (M30): 1; causation_id dropped from the envelope keys: 2; and A1's two: selection ids read through the prototype: fails for workspace (1), business and page each; scopeOf through the prototype: 1; id-source error rethrown: 1; selection read error rethrown: 1"
+      "result": "actorOf back to destructuring (N4): 1 test fails; actor copied by a second read (Q0-261-5): 1; errorEnvelope's minted check dropped (N1): 4; runner's report of resolver platform.temporary dropped (N5): 2; report's catch removed: 2; rejection handler on the report's return dropped: tests pass but vitest reports 3 unhandled errors and npm run test:app exits 1; reply read through the prototype: 1; typeof replaced by a constant: 7. Round-audit pins, each failing under its mutation: business-id string check dropped: 2 tests fail; page-id string check dropped: 2; scopeOf dropping the page id: 1; dropping the business id: 1; scope not frozen: 1; fake directory ignoring kind: 1; retry_after_seconds dropped by stableError: 2; deep_link_ref dropped from the receipt: 1"
     },
     {
       "command": "lane: node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "on 3baa9ca7 with main 6af75480 (PR #260 merged) and the base's classifier: tier H (22 paths), lane risk, no governance reason; the manifest's three reworded open_blockers entries are listed as tier-H reasons only"
+      "result": "on ca8fde5f with main 2aef8182 and the base's classifier: tier H (19 paths), lane governance; the governance reasons are exactly \"src/modules/platform-kernel/application/run.ts\", \"src/modules/platform-kernel/index.ts\" (named by a string by a module the classifier reads), \"test-kits/db/foundation-contract.test.mjs\" (the foundation contract test, which pins the classifier) and \"test-kits/integrity-manifest.json\"; the tier-H reasons are the platform-kernel paths, the integrity manifest, and the manifest's amends_without_owning (widened by the two paths), outputs and open_blockers[0], [10]-[16] (shifted by the Q9 insertion)"
+    },
+    {
+      "command": "verbatim check of the disposition (script)",
+      "exit_code": 0,
+      "result": "header, question, three option labels and descriptions, answer and both timestamps found byte for byte against transcript records 964 and 965"
+    },
+    {
+      "command": "guard-test controls (local, reverted)",
+      "exit_code": 0,
+      "result": "the two changed tests pass with index.ts and run.ts tracked, and with both removed from the index (git rm --cached, restored); with apps/web/next.config.ts removed from the index the first fails with \"absent named files outside the platform-kernel three\"; disposition §6 verified byte for byte against transcript records 1631 and 1632"
     }
   ],
-  "security_privacy_cost_impact": "Tenant isolation logic (no I/O yet): the resolver treats the client's scope selection as untrusted and reads only its own keys, refuses client-supplied actor, locale, timezone and ids, answers every unadmitted scope with one error so existence is not revealed, and keeps nothing from a failing or throwing dependency; the envelope builders accept only resolver-minted contexts. Synthetic ids only; no provider, credential, network, clock or randomness; no cost.",
+  "security_privacy_cost_impact": "The runner is the catch for every thrown value on a command path: none of a thrown value's text, name, stack or cause reaches an answer or a failure report (typeof only). Errors on the wire are now limited to ones minted from a defineStableError definition (A1-261-N1). A polluted Object.prototype no longer supplies a principal (A1-261-N4). Synthetic ids only; no I/O, provider, credential, clock or randomness; no cost.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes. Nothing imports src/modules/platform-kernel yet: its index.ts is deferred, so the module has no public surface in this pull request.",
+  "compatibility_impact": "index.ts is platform-kernel's first public surface; nothing imports it yet. errorEnvelope now refuses an error not minted from a defineStableError definition (UntrustedStableErrorError); no caller outside the module exists. No contract changes.",
   "known_limitations": [
-    "No runner yet turns a thrown value into an internal-error envelope. The resolver maps its ports' failures itself and keeps none of their thrown values; platform-kernel's own throws are constant-message errors (UntrustedTenantContextError, InvalidEnvelopeError, TypeError) on a programming fault; an in-process argument whose getter throws propagates that throw from the checkers, the builders and idempotencyOutcome unchanged (R0-261-3). Nothing catches these until the deferred runner lands.",
-    "Q1: CTR-API-001 requires tenant_context on an error envelope, so the resolver's refusals (before a tenant is known) are bare stable errors; their wire form waits for a Candidate change by the contract owner.",
-    "Two-resolution byte identity holds for the same minted correlation id; across real requests the correlation ids differ by design.",
+    "Q1: a refusal before a context exists (`error`) and a failure before any correlation id (`uncorrelated`) have no CTR-API-001 wire form yet.",
+    "The runner reads no clock, so a handler that never settles is not timed out; a deadline belongs to the composition increment.",
+    "field_errors' field and code strings remain the caller's (held by review); a CTR-IDM-001 error read back from a store is not minted and must be re-minted by its owning module before replay.",
+    "The failure report port has no real adapter until CTR-OBS-001's logger (WP-1A-A6-002); adapters/** stays deferred to the provider-bound increment.",
     "The vitest tests are not under the integrity manifest or the test-suite floor (manifest open_blockers, R7)."
   ],
   "open_risks_or_blockers": [
-    "RISK LANE (module code, RFC-2026-034 §2.2; main's classifier prints risk). Round one at 8b4e5267: C0 review_approved, A1 changes_requested (A1-261-1, -2, Low), Q0 test_verified, R0 ready; files carried with -x; fix commit 3baa9ca7. Round two at 90eb8a77: C0 review_approved, A1 security_approved (no finding open), Q0 test_verified, R0 ready (not integration_verified before the provider-bound increment); files carried with -x. Advisories open, none blocking: C0-261-5 (PR body counts; open_blockers[0] wording), A1-261-N4 (actorOf hasOwn), A1-261-N5 (log swallowed port failures in the runner), Q0-261-5 (Low: one test owed pinning the principal read once), Q0-261-6, Q0-261-7 (contracts' owner), R0-261-5 (open_blockers[0] wording). A0 presses under required_human_authorities[1] once CI is green on both jobs on the final head."
+    "GOVERNANCE (platform-kernel index.ts and run.ts; two guard tests the Owner named; the integrity-manifest digest). Round one at 535e6b58: C0 review_approved, A1 security_approved (no finding open), Q0 test_verified, R0 ready (not integration_verified before the provider-bound increment); files carried with -x; main 94c858f0 (PR #264) and 20f92350 (PR #263) merged mechanically. A0 presses under the Owner's answers of 2026-10-14T13:01:02Z and 2026-10-15T02:13:35Z (required_human_authorities[2], [3]) once CI is green on both jobs on the final head, with --match-head-commit. Advisories open, none blocking: C0-265-1..3, A1-265-N1..N5, Q0-265-1 (Low test gap: own kind with inherited id), Q0-265-2..4, R0-265-1 (RFC-2026-007 §B/§C wording drift, a later governance PR), R0-265-2..4 (amended_by entries owed on WP-0A-DB-00 and WP-0A-A0-002; commit-when-clean gap to WP-0A-CON-008)."
   ],
-  "rollback_or_forward_fix": "Before merge: close the pull request. After merge: a reviewed revert pull request removes src/modules/platform-kernel/domain/** and application/** and restores the manifest's amendment rationale; nothing imports the module.",
+  "rollback_or_forward_fix": "Before merge: close the pull request. After merge: a reviewed revert pull request removes index.ts, application/run.ts, their tests and the failure-report port, restores actorOf's and errorEnvelope's PR-1 behaviour, and drops required_human_authorities[2]; nothing imports the module. Reverting ca8fde5f alone with index.ts and run.ts still present makes the suite red again; revert both commits together.",
   "recommended_next_work_packages": [
-    "WP-1A-A0-003's next increment, a governance pull request whatever is on main (RFC-2026-007 Amendment 2026-10-13 §B items 1 and 5): src/modules/platform-kernel/index.ts and the runner, read against PR-1 DEFERRALS, pressed only on the Owner's direction (R0-261-2); then the provider-bound increment by manifest amendment (C0-259-3)."
+    "Records of PR-2 after its merge; then the provider-bound increment of WP-1A-A0-003 by manifest amendment (C0-259-3), which needs its own Owner direction for anything under adapters/**."
   ],
   "reviewer_instructions": [
-    "Re-read against your round-one file: the fix commit 3baa9ca7 changes application/tenant-context.ts (readSelection, actorOf, mintId), domain/tenant-context.ts (scopeOf), the exported key lists in the four domain checkers, two comments in domain/platform-errors.ts, three test files and four manifest open_blockers entries.",
+    "Read against the manifest's PR-1 DEFERRALS and PR-2 entries and required_human_authorities[2]; check the disposition's verbatim block against session 325454ab's transcript records 964 and 965.",
+    "Non-test code changed: application/run.ts and index.ts (new), application/ports.ts (FailureReportPort), application/fakes.ts (recordingFailureReport), application/envelope.ts (UntrustedStableErrorError), application/tenant-context.ts (actorOf), domain/stable-error.ts (DEFINED, MINTED_FROM, mintedDefinitionOf). Round-audit changes: application/tenant-context.ts (scope frozen), application/fakes.ts (actor_kind), application/ports.ts (comment), domain/idempotency.ts (comment, Q9).",
     "Run npm ci --ignore-scripts, then npm run typecheck, npm run test:app, node scripts/verify-app-boundaries.mjs --require-parser, node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-003 and npm run check on the branch name; remove node_modules after.",
-    "Q0: the typecheck negative control owed by Q0-259-1 was executed in round one (q0-review-2026-10-14-pr261.md §5, P1)."
+    "Guard test (ca8fde5f): read the diff of test-kits/db/foundation-contract.test.mjs against the Owner's bound in disposition §6.3: only the two tests, names kept, every pair still checked; and the regenerated digest in test-kits/integrity-manifest.json."
   ],
   "superseded_by": null,
   "outputs": null

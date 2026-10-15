@@ -9,7 +9,7 @@ import {
   type SuccessEnvelope,
 } from '../domain/envelope';
 import { isObject, type JsonObject } from '../domain/json-shape';
-import { checkStableError, definitionOf, stableError, type StableError } from '../domain/stable-error';
+import { checkStableError, mintedDefinitionOf, stableError, type StableError } from '../domain/stable-error';
 import { isMintedTenantContext, tenantContextRecordOf, type TenantContext } from './tenant-context';
 
 // The CTR-API-001 envelope builders. Each takes a context the resolver minted and nothing else in
@@ -19,11 +19,24 @@ import { isMintedTenantContext, tenantContextRecordOf, type TenantContext } from
 // under the context's correlation id from its definition alone, so the two ids cannot differ and
 // nothing outside the definition is carried. Every envelope is checked against CTR-API-001 before
 // it is returned.
+//
+// An error envelope takes only an error this module minted (`stableError` from a definition that
+// `defineStableError` returned), and any other CTR-ERR-001-valid error is refused with
+// UntrustedStableErrorError: A0's inference beyond the contract (A1-261-N1; domain/stable-error.ts).
+// What stays the caller's is `field_errors`: its `field` and `code` strings must name the command's
+// own fields and checks, which only review holds.
 
 export class UntrustedTenantContextError extends Error {
   constructor() {
     super('envelope: the tenant context was not minted by the tenant-context resolver');
     this.name = 'UntrustedTenantContextError';
+  }
+}
+
+export class UntrustedStableErrorError extends Error {
+  constructor() {
+    super('envelope: the stable error was not minted from a defineStableError definition');
+    this.name = 'UntrustedStableErrorError';
   }
 }
 
@@ -60,7 +73,9 @@ export function successEnvelope(context: TenantContext, data: JsonObject): Succe
 export function errorEnvelope(context: TenantContext, error: StableError): ErrorEnvelope {
   const head = header(context);
   if (!checkStableError(error)) throw new InvalidEnvelopeError();
-  const reissued = stableError(definitionOf(error), head.correlation_id, error.field_errors);
+  const definition = mintedDefinitionOf(error);
+  if (definition === undefined) throw new UntrustedStableErrorError();
+  const reissued = stableError(definition, head.correlation_id, error.field_errors);
   return checked({ ...head, kind: 'error', error: reissued });
 }
 

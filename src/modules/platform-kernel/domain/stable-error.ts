@@ -81,10 +81,28 @@ export interface StableErrorDefinition {
   readonly retryAfterSeconds?: number;
 }
 
+// A0's inference beyond CTR-ERR-001 (A1-261-N1, decided with the runner): the envelope builder and
+// the runner accept only an error this module minted, that is one `stableError` made from a
+// definition `defineStableError` returned. CTR-ERR-001 leaves `code` and `message_key` free, so a
+// structurally valid error built elsewhere could carry a caught message in them; a definition is a
+// deliberate act in code, not a value passed along from a catch. The two sets below hold that, as
+// the resolver's WeakSet holds minted contexts: neither JSON nor a spread copy is in them.
+const DEFINED = new WeakSet<object>();
+const MINTED_FROM = new WeakMap<object, StableErrorDefinition>();
+
 export function defineStableError(definition: StableErrorDefinition): StableErrorDefinition {
   // Probe the definition with a placeholder id; a definition the schema would refuse fails here,
   // where it is written, not on the request that first uses it.
-  return Object.freeze(definitionOf(stableError(definition, 'definition-check')));
+  const defined = Object.freeze(definitionOf(stableError(definition, 'definition-check')));
+  DEFINED.add(defined);
+  return defined;
+}
+
+// The definition a minted error was made from, or undefined for anything else: an error built from
+// a definition `defineStableError` did not return, a copy of a minted error, or any other value.
+// Not a shape check.
+export function mintedDefinitionOf(value: unknown): StableErrorDefinition | undefined {
+  return typeof value === 'object' && value !== null ? MINTED_FROM.get(value) : undefined;
 }
 
 // Builds a new error from the definition's named fields only. Field errors are copied field by
@@ -107,7 +125,9 @@ export function stableError(
     details: Object.freeze({}),
   };
   if (!checkStableError(error)) throw new TypeError('stable error: the definition or correlation id does not satisfy CTR-ERR-001');
-  return Object.freeze(error);
+  const frozen = Object.freeze(error);
+  if (DEFINED.has(definition)) MINTED_FROM.set(frozen, definition);
+  return frozen;
 }
 
 // The definition an existing error was built from, so an error can be re-issued under another

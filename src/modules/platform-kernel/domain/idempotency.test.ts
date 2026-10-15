@@ -72,4 +72,22 @@ describe('idempotencyOutcome', () => {
     const broken = { ...stored(sha), state: 'in_progress' } as const;
     expect(() => idempotencyOutcome(broken, request(), 'c')).toThrow(TypeError);
   });
+
+  // Q0-AUD1015-3: a non-object is answered false, not thrown on.
+  it('answers false for a record that is not an object', () => {
+    for (const value of [null, undefined, 'idem_synthetic_0001', 42, [], [stored(sha)]]) {
+      expect(checkIdempotencyRecord(value)).toBe(false);
+    }
+  });
+
+  // A1-AUD1015-4 (A0's inference against CTR-IDM-001): the record names no actor, so replay cannot
+  // match on one; with the actor bound into the payload hash by the caller, another member of the
+  // workspace presenting the same key and payload gets a conflict, not the first member's result_ref.
+  it('gives another member a conflict, not a replay, when the actor is bound into the hash', () => {
+    const firstMember = `sha256:${'1'.repeat(64)}`;
+    const secondMember = `sha256:${'2'.repeat(64)}`;
+    const outcome = idempotencyOutcome(stored(firstMember), request({ payload_hash: secondMember }), 'cor_synthetic_0002');
+    expect(outcome.kind).toBe('conflict');
+    expect(JSON.stringify(outcome)).not.toContain('result:content_synthetic_0001');
+  });
 });
