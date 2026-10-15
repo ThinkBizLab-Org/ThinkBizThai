@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
-  "head_revision_or_patch_checksum": "79d7418ebc5ba1c8c0cf3125bfd332fb0f737b52",
+  "base_revision": "f64c537b746ad04b035340fd60ef80dc86225103",
+  "head_revision_or_patch_checksum": "a1204dbadca316535db46a986f6d5e89a180dd39",
   "task_ids": [
     "WP-0A-A0-004",
     "gov-a004-aud1015-1-2026-10-15"
@@ -16,6 +16,7 @@
   "files_modified": [
     ".github/workflows/ci.yml",
     "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-A0-004-author-handoff.json",
     "scripts/test-suite-contract.mjs",
     "test-kits/app-stack.test.mjs",
     "test-kits/integrity-manifest.json",
@@ -33,9 +34,10 @@
   "assumptions": [
     "THIS INCREMENT (gov-a004, item (1) of the governance bundle): A1-AUD1015-1 (Low) of evidence/audits/2026-10-15/a1-audit.md. In .github/workflows/ci.yml's application job, 'Vulnerability audit (network)' and 'Release age of new lockfile entries (network)' move from the job's end to straight after 'Clean install for the application' (npm ci --ignore-scripts), before the parsed boundary guard (loads typescript), tsc, the type-check control, vitest and next build. Commands, step names, the release age's if: and env, action pins and permissions are unchanged; a four-line comment cites the finding.",
     "The Owner's direction: question 2 (header 'ชุด governance') of the AskUserQuestion call at transcript line 1631 (2026-10-15T02:09:48.811Z), answered at line 1632 (2026-10-15T02:13:35.293Z) with 'A0 กดเมื่อ 4 role ผ่าน ทีละ PR (Recommended)', bounded to the five listed items; this PR carries item (1) only. Transcribed by script and checked byte for byte in evidence/WP-0A-A0-004/product-owner-disposition-2026-10-15-governance-bundle-press.md; mirrored in required_human_authorities. Question 1 concerns PR #265.",
-    "Paths outside writable_paths, declared under ownership.amends_without_owning with reasons: test-kits/app-stack.test.mjs (WP-1A-A0-002's; the test that already pins the application job's order and installs, as the audit names), scripts/test-suite-contract.mjs (WP-0A-A0-002's; app-stack floors 15->16 tests, 137->144 assertions, name digest 515929ee67465865->4ca99316d7f9d05b), evidence/VERIFICATION.md (WP-0A-CON-008's; npm run record:verification). test-kits/integrity-manifest.json under authorized_cross_package_amendments[1].",
+    "Paths outside writable_paths, declared under ownership.amends_without_owning with reasons: test-kits/app-stack.test.mjs (WP-1A-A0-002's; the test that already pins the application job's order and installs, as the audit names), scripts/test-suite-contract.mjs (WP-0A-A0-002's; app-stack floors, re-measured on the merge with PR #267: 18->19 tests, 168->175 assertions, name digest 6a2621b1b423d452->f66a1687560ef35f (on its own the change was 15->16, 137->144); app-boundaries stays at #267's 29 / 155), evidence/VERIFICATION.md (WP-0A-CON-008's; npm run record:verification). test-kits/integrity-manifest.json under authorized_cross_package_amendments[1].",
     "The new test treats as package code: tsc, vitest, next (word), npm run typecheck/test:app/build, verify-typecheck-control and --require-parser. The last two are wider than the task's list; they follow the audit's reading that the type-check control runs tsc and the parsed guard loads typescript.",
-    "Rebased (unpushed work, before the first commit) from 20f92350 onto origin/main 14716adf (PR #265) as the coordinator directed; no conflict, #265 touched none of this increment's files except the integrity manifest, which was regenerated."
+    "Rebased (unpushed work, before the first commit) from 20f92350 onto origin/main 14716adf (PR #265) as the coordinator directed; no conflict, #265 touched none of this increment's files except the integrity manifest, which was regenerated.",
+    "MERGE a1204dba: origin/main f64c537b (PR #267, governance items (3)/(4), which also edited test-kits/app-stack.test.mjs and the app-stack/app-boundaries floors) merged into this branch. app-stack.test.mjs auto-merged with both PRs' tests (19 = #267's 18 + this one). Conflicts in scripts/test-suite-contract.mjs (resolved keeping both comment lines, floors measured by verify-test-coverage-floor and node --test), test-kits/integrity-manifest.json (regenerated) and evidence/VERIFICATION.md (re-recorded, 836 passing). Not mechanical."
   ],
   "acceptance_results": [
     {
@@ -55,7 +57,7 @@
     {
       "command": "node --test test-kits/app-stack.test.mjs",
       "exit_code": 0,
-      "result": "16 tests, 16 pass"
+      "result": "19 tests, 19 pass (after the merge with PR #267)"
     },
     {
       "command": "node --test --test-name-pattern='AUD1015-1|A1-257-4' test-kits/app-stack.test.mjs (ci.yml of origin/main 20f92350 swapped in, restored after)",
@@ -63,14 +65,14 @@
       "result": "both selected tests fail on the old order, as intended"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs (npm run verify, change commit 79d7418e)",
+      "command": "node scripts/commit-when-clean.mjs (npm run verify; change commit 79d7418e, then merge commit a1204dba)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 828, pass 828, fail 0, skipped 0, todo 0"
+      "result": "79d7418e: clean, 828/828; a1204dba: clean: exit 0 — tests 836, pass 836, fail 0, skipped 0, todo 0"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004",
       "exit_code": 0,
-      "result": "all 7 changed path(s) are declared, and every amendment explains one"
+      "result": "all changed path(s) are declared, and every amendment explains one"
     },
     {
       "command": "npm run validate:protocol",
@@ -86,6 +88,16 @@
       "command": "python3 verify-disp.py (transcript lines 1631/1632 against the disposition)",
       "exit_code": 0,
       "result": "16 verbatim checks passed (questions, headers, every option and description, answers, timestamps, the two RFC-2026-025 §5 item 6 bullets)"
+    },
+    {
+      "command": "npm run check (merge tree, before commit a1204dba)",
+      "exit_code": 0,
+      "result": "pass"
+    },
+    {
+      "command": "node scripts/verify-test-coverage-floor.mjs (merge tree)",
+      "exit_code": 0,
+      "result": "floors met with app-stack 19 / 175 / f66a1687560ef35f and app-boundaries 29 / 155"
     }
   ],
   "security_privacy_cost_impact": "Security-positive, CI order only: the two checks that would report a compromised or freshly published package now run before any installed package code can prepend a shim to $GITHUB_PATH or edit the checkout. No credential, permission, network target or dependency change; no personal or customer data.",
@@ -94,7 +106,6 @@
   "known_limitations": [
     "npm ci itself is not covered: it runs with --ignore-scripts, so no package code runs during install, and the residual A1-257-10 records (code the repository itself runs after the guard) is unchanged.",
     "The package-code pattern is a text match on run lines (\\bnext\\b, \\btsc\\b, ...); a step that ran package code under another name (e.g. a node script importing a package) would not be recognised. The exact step list in the A1-257-4 test still pins every step.",
-    "Governance item (3) (Q0-259-1, pin src/** in app-stack.test) will edit the same test file in its own PR; whichever merges second rebases.",
     "Acknowledgements from the Integration Owner of WP-1A-A0-002, WP-0A-A0-002 and WP-0A-CON-008 (/claude/r0_steward) are owed for the declared amendments."
   ],
   "open_risks_or_blockers": [
