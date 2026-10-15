@@ -4,14 +4,18 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
-  "head_revision_or_patch_checksum": "c9aa579184648cd0eb82a633202151646d8841fe",
+  "base_revision": "0d566c1f2747ef70b1d4ff2abf22359d386a8be8",
+  "head_revision_or_patch_checksum": "9f1c71e8f9f14e4e38e5a4bcfcfc658216a0bf50",
   "task_ids": [
     "WP-0A-A0-001",
     "rfc-034-s8-item3-rfc-002-note-2026-10-15"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-15-governance-bundle-press.md"
+    "evidence/WP-0A-A0-001/a1-review-2026-10-15-pr269.md",
+    "evidence/WP-0A-A0-001/c0-review-2026-10-15-pr269.md",
+    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-15-governance-bundle-press.md",
+    "evidence/WP-0A-A0-001/q0-review-2026-10-15-pr269.md",
+    "evidence/WP-0A-A0-001/r0-review-2026-10-15-pr269.md"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-002-manual-merge-control.md",
@@ -75,7 +79,7 @@
     "WP-0A-A0-002's acknowledgement of the integrity-manifest line is owed on the merged head."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE LANE (base's classifier). A0 presses only after C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs (bootstrap, application) and no security finding is open, under the Owner's answer of 2026-10-15T02:13:35.293Z (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-15-governance-bundle-press.md), an Owner-directed exception to RFC-2026-025 §5 item 6's last bullet for this PR only."
+    "GOVERNANCE (governance bundle). PR #269: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores RFC-2026-002's status line, removes the disposition and the manifest lines, and regenerates the integrity manifest. No rule changed, so no behaviour depends on it.",
   "recommended_next_work_packages": [
