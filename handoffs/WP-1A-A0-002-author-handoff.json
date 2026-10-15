@@ -4,17 +4,21 @@
   "work_package_id": "WP-1A-A0-002",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "0c35c265c79e8659b989b3e4c3812fe3e366b0ec",
-  "head_revision_or_patch_checksum": "78cfefe674f5a721fd232a620dde71496ef86d60",
+  "base_revision": "6fb5ab13e78117f4b4b9c86864bbaa4e2e575d8e",
+  "head_revision_or_patch_checksum": "fdd6b58366a49be5deb55e8ca1c0d9429f0ffac3",
   "task_ids": [
     "WP-1A-A0-002",
     "gov-a002-2026-10-15"
   ],
   "files_added": [
+    "evidence/WP-1A-A0-002/a1-reread-2026-10-15-pr267.md",
     "evidence/WP-1A-A0-002/a1-review-2026-10-15-pr267.md",
+    "evidence/WP-1A-A0-002/c0-reread-2026-10-15-pr267.md",
     "evidence/WP-1A-A0-002/c0-review-2026-10-15-pr267.md",
     "evidence/WP-1A-A0-002/product-owner-disposition-2026-10-15-governance-bundle-press.md",
+    "evidence/WP-1A-A0-002/q0-reread-2026-10-15-pr267.md",
     "evidence/WP-1A-A0-002/q0-review-2026-10-15-pr267.md",
+    "evidence/WP-1A-A0-002/r0-reread-2026-10-15-pr267.md",
     "evidence/WP-1A-A0-002/r0-review-2026-10-15-pr267.md"
   ],
   "files_modified": [
@@ -78,7 +82,7 @@
     {
       "command": "node <scratchpad>/mutate.mjs (mutation harness, sha256 f830c464…cabe; output 2ac3f420…87ac2)",
       "exit_code": 0,
-      "result": "M200, M176, M177, the comparison removed, M142, Q0's M1-M3: each fails its new test, and the origin/main suite passes it; the CLI going on after a failed control was already caught on origin/main; re-run on 14716adf with the same results"
+      "result": "M200, M176, M177, the comparison removed, M142, Q0's M1-M3: each fails its new test. On origin/main, M177 and the comparison-line removal in their line-deleting forms are also caught by main's app-boundaries test (A1-257-5/A1-257-7); their line-keeping forms, and the other mutations, pass origin/main's suites and fail only the new tests (Q0-267-1, corrected)."
     },
     {
       "command": "npm ci --ignore-scripts, then node scripts/verify-app-boundaries.mjs --require-parser; npm run typecheck; node scripts/verify-typecheck-control.mjs; npm run test:app",
@@ -99,6 +103,11 @@
       "command": "npm run validate:protocol",
       "exit_code": 0,
       "result": "pass"
+    },
+    {
+      "command": "npm run check on the merge 19e410cf (main 0c35c265 + this PR), under the suite lock",
+      "exit_code": 0,
+      "result": "835/835 (831 on main plus this PR's 4 tests); regenerate:manifest and record:verification leave no diff"
     }
   ],
   "security_privacy_cost_impact": "Tests and records only. No guard, CI, credential, provider call or data path changes; the new tests write only to an OS temporary directory they remove, and spawn node on scripts/verify-app-build-graph.mjs, which imports no package.",
@@ -110,7 +119,7 @@
     "Q0's other survivors of q0-reread5 §5 (M184, M185, M146, M179, M210) are outside Q0-257r6-1 and not addressed."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (bundle items (3), (4)). Round one at ab8908bc: C0 review_approved, A1 security_approved (no finding), Q0 test_verified (Q0-259-1 and Q0-257r6-1 closed), R0 ready. Then main merged at 19e410cf (#266, #268, #269, #271, #272): NOT purely mechanical — integrity manifest conflict resolved by regeneration, and evidence/VERIFICATION.md re-recorded at 835 (#266's 4 tests + this PR's 4); scripts/test-suite-contract.mjs auto-merged (#266's and this PR's floors on different suites). Full suite 835/835 on the merge. Per R0-267-3 the four roles re-read that merge before A0 presses under the Owner's answer of 2026-10-15T02:13:35Z, with CI green on both jobs. Q0-267-1 (Low): tests[2]'s mutation claim to be corrected in the next handoff refresh."
+    "GOVERNANCE (bundle items (3), (4)). Round one at ab8908bc (C0 review_approved, A1 security_approved, Q0 test_verified, R0 ready); main merged at 19e410cf, not purely mechanical (integrity manifest regenerated, VERIFICATION re-recorded 835); round two at e7c48160 re-read the merge (C0 review_approved, A1 security_approved, Q0 test_verified 835/835, R0 ready); all files carried with -x; main merged again mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z once CI is green on both jobs on the final head. Q0-267-1 corrected in tests[2]. Advisories: C0-267-1, -2, A1-267-1, R0-267-2."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the four tests, the disposition and the required_human_authorities entry, and restores the registry counts, digests, integrity manifest and VERIFICATION.md; no guard depends on them.",
   "recommended_next_work_packages": [
