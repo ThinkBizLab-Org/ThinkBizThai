@@ -4,27 +4,14 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "db267dc77eb085063c302becda79333ae6e3b6a8",
-  "head_revision_or_patch_checksum": "c846a087ec76c2cbf9e38c99e528ddcf12833428",
+  "base_revision": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
+  "head_revision_or_patch_checksum": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
   "task_ids": [
     "WP-0A-DB-00",
     "F1-record-2026-10-11"
   ],
-  "files_added": [
-    "evidence/WP-0A-DB-00/a1-reread-2026-10-11-pr247.md",
-    "evidence/WP-0A-DB-00/a1-review-2026-10-11-pr247.md",
-    "evidence/WP-0A-DB-00/c0-reread-2026-10-11-pr247.md",
-    "evidence/WP-0A-DB-00/c0-review-2026-10-11-pr247.md",
-    "evidence/WP-0A-DB-00/q0-reread-2026-10-11-pr247.md",
-    "evidence/WP-0A-DB-00/q0-review-2026-10-11-pr247.md",
-    "evidence/WP-0A-DB-00/r0-reread-2026-10-11-pr247.md",
-    "evidence/WP-0A-DB-00/r0-review-2026-10-11-pr247.md",
-    "evidence/WP-0A-DB-00/records-transcription-2026-10-11.md"
-  ],
-  "files_modified": [
-    "handoffs/WP-0A-DB-00-author-handoff.json",
-    "work-packages/WP-0A-DB-00.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025"
