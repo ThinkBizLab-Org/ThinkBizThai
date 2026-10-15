@@ -4,14 +4,18 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
-  "head_revision_or_patch_checksum": "899278ccc24317bcc4ba1676b8c6fd0e53dbd6c7",
+  "base_revision": "9b3ffbd56bd9c314e20c6e1634d5fe286cadbc92",
+  "head_revision_or_patch_checksum": "649ef1911642d3ab7665a4a200dd94c4fe90eea5",
   "task_ids": [
     "WP-0A-DB-00",
     "gov-db00-2026-10-15"
   ],
   "files_added": [
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-15-governance-bundle-press.md"
+    "evidence/WP-0A-DB-00/a1-review-2026-10-15-pr268.md",
+    "evidence/WP-0A-DB-00/c0-review-2026-10-15-pr268.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-15-governance-bundle-press.md",
+    "evidence/WP-0A-DB-00/q0-review-2026-10-15-pr268.md",
+    "evidence/WP-0A-DB-00/r0-review-2026-10-15-pr268.md"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-025-owner-delegated-merge.md",
@@ -80,7 +84,7 @@
     "R0-251-43 (2) (an item 2, 4 or 5 PR that edits an RFC, guide or gate beyond its own item returns to the Owner) is R0's reading to apply on those PRs and is not written into either RFC."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE lane: C0, A1, Q0 and R0 each read the final head; A0 presses only on the Owner's 2026-10-15 conditions (four roles, CI green on both jobs, no open security finding of any grade, no new dependency, head contains current main). No role has run."
+    "GOVERNANCE (governance bundle). PR #268: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the two status notes, the disposition, the required_human_authorities entry and the pin shift; nothing depends on them.",
   "recommended_next_work_packages": [
