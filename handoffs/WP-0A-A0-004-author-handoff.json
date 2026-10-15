@@ -5,12 +5,16 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "2aef81825e198f298039ef3d8fa32200034d54f4",
-  "head_revision_or_patch_checksum": "635bf3b693cff74d24fe0e25930ec464ada633b0",
+  "head_revision_or_patch_checksum": "f1c60db218c9d1f747c501035381755e768cf42d",
   "task_ids": [
     "WP-0A-A0-004",
     "pr260-pr255-records-2026-10-15"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-004/a1-review-2026-10-15-pr263.md",
+    "evidence/WP-0A-A0-004/c0-review-2026-10-15-pr263.md",
+    "evidence/WP-0A-A0-004/q0-review-2026-10-15-pr263.md",
+    "evidence/WP-0A-A0-004/r0-review-2026-10-15-pr263.md",
     "evidence/WP-0A-A0-004/records-transcription-2026-10-15.md"
   ],
   "files_modified": [
@@ -61,7 +65,7 @@
     "R0's #255 template says 'merged … with --match-head-commit'; main records only that the merge's second parent is the final head. R0's C5 was not re-measured at 5a17e0a4 (R0 measured it at b3e430e0; the commits after it are the carried role files and the handoff)."
   ],
   "open_risks_or_blockers": [
-    "RECORDS-ONLY under RFC-2026-025 §6.1: one independent light-path reading by R0 (§6.2) before a delegated press. Still owed for this package: PR #189's and PR #212's records (open_blockers[14], [15]); the owners' acknowledgement records of #255's and #260's amended paths; the advisories of both PRs as their files state them."
+    "RISK LANE at the final head, not records: the records commit alone is records-only (classify-records-only exits 0, lane records), but the four role readings of this pull request (evidence/WP-0A-A0-004/{c0,a1,q0,r0}-review-2026-10-15-pr263.md), carried with -x, are role files RFC-2026-025 §6.1 item 2 does not admit, so the base's classifier prints tier H, lane risk (C0-263-1, R0-263-1). Readers used: C0 review_approved, A1 security_approved (no finding), Q0 test_verified, R0 ready, all at fb551363. A0 presses under RFC-2026-034 §2.2's risk lane (A1 and Q0 pass; Q-034-1) once CI is green on both jobs on the final head, with --match-head-commit. Advisories open, none blocking: C0-263-2..6, A1-263-1, Q0-263-1, R0-263-2, -3."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[18] and [19], restores the five ownership.amends_without_owning.paths with the earlier rationale, and removes records-transcription-2026-10-15.md (pr260-pr255-records-2026-10-15); nothing depends on them.",
   "recommended_next_work_packages": [
