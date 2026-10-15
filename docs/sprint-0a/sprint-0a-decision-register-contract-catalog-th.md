@@ -191,6 +191,8 @@ Agent ใช้ `Safe default` ได้เฉพาะ Spike/Fixture ถ้า 
 | Integrated v1 | artifact อยู่ใน repository/catalog และ CI validate | merge consumer ได้ |
 | Deprecated | มี replacement และ sunset date | ใช้ต่อได้เฉพาะ compatibility window |
 
+**หมายเหตุ 2026-10-15 (RFC-2026-034 §8 ข้อ 3):** [`RFC-2026-034`](../../architecture/decisions/RFC-2026-034-fast-lane.md) (fast lane) ซึ่ง Product Owner merge เองใน PR #251 (`8086281b`, 2026-10-11) แก้ §5.1 นี้ คือแถว `Frozen v1` และ `Integrated v1` ของตารางด้านบน (บรรทัด 190–191 ตามที่ RFC-2026-034 อ้าง) เฉพาะเรื่องการเขียนและ merge application code. แถวที่เกี่ยวข้องใน RFC-2026-034 §3 คำต่อคำ: Rule `RFC-2026-031 §3.3 "Consumers" and §9 ("binds unchanged until §6 holds"); Decision Register line 373 and §5.1 lines 190–191; 2026-10-08 disposition §10.3` · Amended how `as to writing and merging application code only, §2.1`. หมายเหตุนี้บันทึกการแก้ที่มีผลอยู่แล้ว ไม่เปลี่ยนข้อความ ระดับ หรือแถวใดของตารางด้านบน
+
 ### 5.2 Shared Kernel Contracts
 
 | Contract ID | Version | Contract | Producer/Owner | Consumers | W0 status | Artifact ขั้นต่ำก่อน Freeze |
@@ -371,6 +373,8 @@ flowchart TB
 8. Product Owner และ A0 ลงสถานะ `Approved`; Security/QA ไม่มี stop-the-line issue ค้าง
 
 ถ้าไม่ผ่าน G0 อนุญาตเฉพาะ Spike, Prototype, Fixture, Fake Adapter, Contract Test และ reversible foundation ที่ไม่ผูก schema เท่านั้น
+
+**หมายเหตุ 2026-10-15 (RFC-2026-034 §8 ข้อ 3):** [`RFC-2026-034`](../../architecture/decisions/RFC-2026-034-fast-lane.md) (fast lane) ซึ่ง Product Owner merge เองใน PR #251 (`8086281b`, 2026-10-11) แก้กติกาในย่อหน้าด้านบน ("ถ้าไม่ผ่าน G0 อนุญาตเฉพาะ ..." คือ line 373 ที่ RFC-2026-034 อ้าง ก่อนเพิ่มหมายเหตุนี้และหมายเหตุใต้ §5.1) เฉพาะเรื่องการเขียนและ merge application code. แถวที่เกี่ยวข้องใน RFC-2026-034 §3 คำต่อคำ: Rule `RFC-2026-031 §3.3 "Consumers" and §9 ("binds unchanged until §6 holds"); Decision Register line 373 and §5.1 lines 190–191; 2026-10-08 disposition §10.3` · Amended how `as to writing and merging application code only, §2.1`. หมายเหตุนี้บันทึกการแก้ที่มีผลอยู่แล้ว ไม่เปลี่ยนข้อความของกติกาด้านบน
 
 ---
 
