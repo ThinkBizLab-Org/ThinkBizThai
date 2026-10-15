@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import * as platformErrors from './platform-errors';
-import { checkStableError, defineStableError, definitionOf, stableError, type StableErrorDefinition } from './stable-error';
+import { checkStableError, defineStableError, definitionOf, mintedDefinitionOf, stableError, type StableErrorDefinition } from './stable-error';
 
 const LEAK_MARKER = 'zz-text-from-a-thrown-value';
 
@@ -57,5 +57,28 @@ describe('stableError', () => {
     for (const definition of Object.values(platformErrors)) {
       expect(checkStableError(stableError(definition, 'cor_synthetic_0001'))).toBe(true);
     }
+  });
+
+  // A1-261-N1: which errors count as minted (A0's inference beyond CTR-ERR-001).
+  it('knows the definition of an error minted from a defineStableError definition, and of nothing else', () => {
+    const minted = stableError(platformErrors.PLATFORM_TEMPORARY, 'cor_synthetic_0001');
+    expect(mintedDefinitionOf(minted)).toBe(platformErrors.PLATFORM_TEMPORARY);
+    const undefinedDefinition = { code: 'x.y', messageKey: 'errors.x.y', category: 'internal', retryable: false } as const;
+    for (const value of [
+      stableError(undefinedDefinition, 'cor_synthetic_0001'),
+      stableError(definitionOf(minted), 'cor_synthetic_0001'),
+      stableError({ ...platformErrors.PLATFORM_TEMPORARY }, 'cor_synthetic_0001'),
+      { ...minted },
+      JSON.parse(JSON.stringify(minted)) as unknown,
+      platformErrors.PLATFORM_TEMPORARY,
+      null,
+      undefined,
+      'platform.temporary',
+    ]) {
+      expect(mintedDefinitionOf(value)).toBeUndefined();
+    }
+    const defined = defineStableError(undefinedDefinition);
+    expect(defined).not.toBe(undefinedDefinition);
+    expect(mintedDefinitionOf(stableError(defined, 'cor_synthetic_0001'))).toBe(defined);
   });
 });

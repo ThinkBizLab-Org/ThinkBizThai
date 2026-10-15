@@ -1,17 +1,19 @@
-import type { TenantScope } from '../domain/tenant-context';
-import type { AuthenticatedPrincipal, AuthenticatedPrincipalPort, RequestIdSource, TenantAccessDirectory } from './ports';
+import type { ActorKind, TenantScope } from '../domain/tenant-context';
+import type { AuthenticatedPrincipal, AuthenticatedPrincipalPort, FailureReport, FailureReportPort, RequestIdSource, TenantAccessDirectory } from './ports';
 
-// Fakes of the three ports, for consumer tests. Synthetic ids only; no provider, no I/O, no clock,
+// Fakes of the four ports, for consumer tests. Synthetic ids only; no provider, no I/O, no clock,
 // no randomness.
 
 // A table-driven directory. A principal is admitted to a scope when:
-// - the workspace exists and the principal is a member of it;
+// - the workspace exists and the principal, by kind AND id, is a member of it (a row with no
+//   `actor_kind` is a `user`);
 // - a named business exists, belongs to that workspace and is within the member's businesses
 //   (a member with no `businesses` list reaches every business of the workspace);
 // - a named page exists and belongs to that business.
 export interface DirectoryTable {
   readonly workspaces: readonly string[];
   readonly members: readonly {
+    readonly actor_kind?: ActorKind;
     readonly actor_id: string;
     readonly workspace_id: string;
     readonly businesses?: readonly string[];
@@ -28,7 +30,7 @@ export function tableTenantAccessDirectory(table: DirectoryTable): RecordingDire
   const calls: TenantScope[] = [];
   const admitsNow = (principal: AuthenticatedPrincipal, scope: TenantScope): boolean => {
     if (!table.workspaces.includes(scope.workspace_id)) return false;
-    const member = table.members.find((row) => row.actor_id === principal.id && row.workspace_id === scope.workspace_id);
+    const member = table.members.find((row) => (row.actor_kind ?? 'user') === principal.kind && row.actor_id === principal.id && row.workspace_id === scope.workspace_id);
     if (member === undefined) return false;
     if (scope.business_profile_id === undefined) return scope.page_context_profile_id === undefined;
     const business = table.businesses.find((row) => row.business_profile_id === scope.business_profile_id);
@@ -67,6 +69,21 @@ export function sequentialRequestIdSource(prefix = 'id_synthetic'): RequestIdSou
     mint() {
       next += 1;
       return `${prefix}_${String(next).padStart(6, '0')}`;
+    },
+  };
+}
+
+// A failure report that keeps what it is given, for tests to read.
+export interface RecordingFailureReport extends FailureReportPort {
+  readonly reports: readonly FailureReport[];
+}
+
+export function recordingFailureReport(): RecordingFailureReport {
+  const reports: FailureReport[] = [];
+  return {
+    reports,
+    report(failure) {
+      reports.push(failure);
     },
   };
 }

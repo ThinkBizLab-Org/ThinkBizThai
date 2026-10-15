@@ -260,4 +260,76 @@ describe('resolveTenantContext', () => {
     expect(error.code).toBe('tenant.unauthenticated');
     expect(calls).toEqual([]);
   });
+
+  // A1-261-N4: the principal's kind and id are read as own properties only.
+  it('refuses a principal whose kind and id are only inherited, a polluted Object.prototype among them', async () => {
+    const inherited = Object.create({ kind: 'user', id: 'usr_synthetic_0001' }) as object;
+    const port: AuthenticatedPrincipalPort = { current: () => Promise.resolve(inherited as never) };
+    expect((await errorOf({ workspace_id: 'ws_synthetic_0001' }, port, admitAll().directory)).code).toBe('tenant.unauthenticated');
+
+    const prototype = Object.prototype as Record<string, unknown>;
+    prototype.kind = 'user';
+    prototype.id = 'usr_synthetic_0001';
+    try {
+      const { directory, calls } = admitAll();
+      const empty: AuthenticatedPrincipalPort = { current: () => Promise.resolve({} as never) };
+      const error = await errorOf({ workspace_id: 'ws_synthetic_0001' }, empty, directory);
+      expect(error.code).toBe('tenant.unauthenticated');
+      expect(calls).toEqual([]);
+    } finally {
+      delete prototype.kind;
+      delete prototype.id;
+    }
+  });
+
+  // Q0-261-5: the principal is read once, so the id that met the pattern is the id the context carries.
+  it('reads the principal\'s kind and id once each', async () => {
+    const reads = { kind: 0, id: 0 };
+    const principal = {
+      get kind(): string { reads.kind += 1; return 'user'; },
+      get id(): string { reads.id += 1; return reads.id === 1 ? 'usr_synthetic_0001' : 'usr synthetic, not in the minted shape'; },
+    };
+    const port: AuthenticatedPrincipalPort = { current: () => Promise.resolve(principal as never) };
+    const resolution = await resolve({ workspace_id: 'ws_synthetic_0001' }, port, admitAll().directory);
+    expect(resolution.ok).toBe(true);
+    if (!resolution.ok) return;
+    expect(resolution.context.actor).toEqual({ kind: 'user', id: 'usr_synthetic_0001' });
+    expect(reads).toEqual({ kind: 1, id: 1 });
+  });
+
+  // Q0-AUD1015-1: a present but non-string business or page id is refused, never dropped to a wider scope.
+  it.each([
+    ['a numeric business id', { workspace_id: 'ws_synthetic_0001', business_profile_id: 1 }],
+    ['a null business id', { workspace_id: 'ws_synthetic_0001', business_profile_id: null }],
+    ['a numeric page id', { workspace_id: 'ws_synthetic_0001', business_profile_id: 'biz_synthetic_0001', page_context_profile_id: 1 }],
+    ['an undefined page id', { workspace_id: 'ws_synthetic_0001', business_profile_id: 'biz_synthetic_0001', page_context_profile_id: undefined }],
+  ])('refuses %s as an invalid selection, before the directory is asked', async (_label, selection) => {
+    const { directory, calls } = admitAll();
+    expect((await errorOf(selection, undefined, directory)).code).toBe('tenant.selection.invalid');
+    expect(calls).toEqual([]);
+  });
+
+  // A1-AUD1015-2: membership is keyed on the principal's kind and id.
+  it('does not admit a system_actor that shares a member user\'s id', async () => {
+    const error = await errorOf({ workspace_id: 'ws_synthetic_0001' }, fixedPrincipal({ kind: 'system_actor', id: 'usr_synthetic_0001' }));
+    expect(error.code).toBe('tenant.scope.denied');
+    const system: DirectoryTable = { ...TABLE, members: [{ actor_kind: 'system_actor', actor_id: 'sys_synthetic_0001', workspace_id: 'ws_synthetic_0001' }] };
+    expect((await resolve({ workspace_id: 'ws_synthetic_0001' }, fixedPrincipal({ kind: 'system_actor', id: 'sys_synthetic_0001' }), tableTenantAccessDirectory(system))).ok).toBe(true);
+    expect((await errorOf({ workspace_id: 'ws_synthetic_0001' }, user('sys_synthetic_0001'), tableTenantAccessDirectory(system))).code).toBe('tenant.scope.denied');
+  });
+
+  // A1-AUD1015-3: the scope handed to the directory is frozen, so the admitted scope is the context's.
+  it('hands the directory a frozen scope, so an adapter cannot change what the context carries', async () => {
+    let frozen = false;
+    const directory: TenantAccessDirectory = {
+      admits: (_principal, scope) => {
+        frozen = Object.isFrozen(scope);
+        Reflect.set(scope, 'workspace_id', 'ws_synthetic_0002');
+        return Promise.resolve(true);
+      },
+    };
+    const resolution = await resolve({ workspace_id: 'ws_synthetic_0001' }, undefined, directory);
+    expect(frozen).toBe(true);
+    expect(resolution.ok && resolution.context.workspace_id).toBe('ws_synthetic_0001');
+  });
 });

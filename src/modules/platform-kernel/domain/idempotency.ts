@@ -104,6 +104,13 @@ const sameScope = (a: IdempotencyScope, b: IdempotencyScope): boolean =>
 // - Same key and scope, different payload hash: conflict, an ERR `conflict`.
 // A0's inference: hashes are compared as whole strings, so the same key presented with another
 // algorithm's hash is a conflict, not a replay; equality across algorithms cannot be shown.
+// A0's inference against CTR-IDM-001 (A1-AUD1015-4): replay is matched on the key, the workspace and
+// the operation, not the actor, because the contract's record is closed and names no actor, so
+// neither this outcome nor a store holding conformant records can match on one; adding it is a
+// Candidate change for the contract's owner (manifest open_blockers, Q9). Until then the caller that
+// computes `payload_hash` binds the actor (kind and id) into the hashed input, so another member of
+// the workspace presenting the same key and payload gets a conflict, not the first member's
+// result_ref.
 export function idempotencyOutcome(
   stored: IdempotencyRecord | undefined,
   request: IdempotencyRequest,
