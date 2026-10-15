@@ -5,13 +5,23 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
-  "head_revision_or_patch_checksum": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
+  "head_revision_or_patch_checksum": "f1a4f14d2c061025ac4d3943bdf74b4df2578877",
   "task_ids": [
     "WP-0A-CON-008",
     "governance-bundle-item-2-audit-lane-2026-10-15"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-15-governance-bundle-press.md"
+  ],
+  "files_modified": [
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-CON-008-author-handoff.json",
+    "scripts/refresh-author-handoff.mjs",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/handoff-conformance.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-CON-008.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-034",
@@ -41,9 +51,19 @@
   ],
   "tests": [
     {
-      "command": "node --test test-kits/handoff-conformance.test.mjs (before the handoff commit)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit f1a4f14d, on origin/main 14716adf)",
+      "exit_code": 0,
+      "result": "clean: exit 0 — tests 831, pass 831, fail 0, skipped 0, todo 0"
+    },
+    {
+      "command": "node --test test-kits/handoff-conformance.test.mjs (the four audit cases against origin/main's scripts/refresh-author-handoff.mjs, negative control)",
       "exit_code": 1,
-      "result": "22/23; the one failure is 'the handoff for this branch describes this branch' on the stale citation this commit then repairs"
+      "result": "'an audit-only branch on a moved main is not drift' fails without the fix; the three 'drift as before' cases pass either way"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008",
+      "exit_code": 0,
+      "result": "all 8 changed path(s) are declared, and every amendment explains one"
     },
     {
       "command": "npm run validate:protocol",
@@ -51,9 +71,14 @@
       "result": "valid"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008",
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "see the final head"
+      "result": "tier H; lane: governance (refresh-author-handoff.mjs, test-suite-contract.mjs, handoff-conformance.test.mjs, integrity-manifest.json)"
+    },
+    {
+      "command": "npm run check:handoff",
+      "exit_code": 0,
+      "result": "see the handoff commit"
     }
   ],
   "security_privacy_cost_impact": "A guard is narrowed for exactly one shape: an audit-lane branch by the base classifier's predicate. No credential, customer data, provider call or dependency. A1 reads it as a governance change.",
