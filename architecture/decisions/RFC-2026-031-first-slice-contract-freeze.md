@@ -1,6 +1,7 @@
 # RFC-2026-031: the First-Slice contract freeze rule
 
 Status: **Approved 2026-10-09 by the Product Owner.** To Q-031-1 he chose `อนุมัติ รวม USG (Recommended)`, and he answered Q-031-2 to Q-031-5 as A0 recommended (transcribed verbatim in `evidence/WP-0A-CON-008/product-owner-disposition-2026-10-09-first-slice-freeze-and-records.md` §8). The approved text is this file as committed at `d0c92447`; since then only this status line and §10's appended answers have changed. Earlier status: Proposed.
+Status note 2026-10-15 (RFC-2026-034 §8 item 3): **RFC-2026-034 (merged #251, 2026-10-11) amends this RFC.** Its §3 names, verbatim: "RFC-2026-031 §3.3 "Consumers" and §9 ("binds unchanged until §6 holds"); Decision Register line 373 and §5.1 lines 190–191; 2026-10-08 disposition §10.3", amended "as to writing and merging application code only, §2.1"; and "RFC-2026-031 §6 item 2", "narrowed: this PR does not count as the PR that amends the gate text; a later PR that says the exit has closed does". It lists as not amended "RFC-2026-031 §2, §4, §5, §6 item 1, §7". No rule text of this RFC changes.
 Date: 2026-10-09
 Author: `/claude/a0_atlas` (A0 Architecture/Integration), as an increment of `WP-0A-CON-008`
 Owner: A0, on the Product Owner's disposition
