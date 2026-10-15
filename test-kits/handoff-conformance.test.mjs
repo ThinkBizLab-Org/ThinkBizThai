@@ -10,7 +10,7 @@ import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
 import { validate } from './contracts/json-schema-subset.mjs';
-import { branchTipBefore, changedIn, classify, driftBetween } from '../scripts/refresh-author-handoff.mjs';
+import { branchTipBefore, changedIn, classify, driftBetween, handoffDrift } from '../scripts/refresh-author-handoff.mjs';
 import { claimantsOf, reportFor } from '../scripts/verify-branch-identity.mjs';
 
 const run = promisify(execFile);
@@ -244,7 +244,9 @@ test('the handoff for this branch describes this branch', async () => {
   // and the second of the merge commit CI checks out on a pull request.
   const tipBefore = branchTipBefore();
   assert.ok(tipBefore.ok, `${tipBefore.message ?? ''}`);
-  const drift = driftBetween(handoff.head_revision_or_patch_checksum, tipBefore.tip);
+  // `handoffDrift` is `driftBetween` except on an audit-lane branch (RFC-2026-034 §2.2), which is
+  // measured from its merge-base; the cases below 'an audit-only branch ...' pin both sides of that.
+  const drift = handoffDrift(handoff.head_revision_or_patch_checksum, tipBefore.tip, branch);
   assert.notEqual(drift.state, 'unrelated',
     `${resolved.message}'s handoff cites a revision on no path to this branch`);
   const substantive = drift.paths;
@@ -984,5 +986,108 @@ test('a merge with more than one candidate for the branch is refused rather than
     assert.equal(await readFile(join(root, HANDOFF), 'utf8'), before);
   } finally {
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+// THE AUDIT LANE HAD NO GREEN HEAD (C0-262-2, A1-262-2, Q0-262-1, R0-262-2 on PR #262).
+//
+// RFC-2026-034 §2.2's Audit row: a pull request on WP-0A-A0-001's branch holding only the round
+// audit's files under `evidence/audits/<date>/`. A round audit follows substantive merges, so that
+// package's handoff always cites a head `main` has since moved past, and the drift check counted
+// `main`'s paths as the branch's. Refreshing the handoff takes the pull request out of the lane.
+// `handoffDrift` measures an audit-lane branch -- by the classifier's own predicate, imported --
+// from its merge-base. These four cases pin that it does so for that branch and for nothing else.
+const AUDIT_BRANCH = 'agent/test/round-audit';
+const AUDIT_HANDOFF = 'handoffs/WP-0A-A0-001-author-handoff.json';
+const AUDIT_FILE = 'evidence/audits/2026-10-15/c0-audit.md';
+
+// main: WP-0A-A0-001 owns AUDIT_BRANCH and its handoff cites the first commit; then another
+// package's substantive work lands on main. Returns the repository on main.
+async function movedMainWithAuditPackage(otherBranch = null) {
+  const scenario = await scenarioRepository();
+  const { root, git } = scenario;
+  const first = git('rev-parse', 'HEAD');
+  await writeFile(join(root, 'work-packages/WP-0A-A0-001.json'),
+    `${JSON.stringify({ work_package_id: 'WP-0A-A0-001', ownership: { branch: AUDIT_BRANCH } }, null, 2)}\n`);
+  await writeFile(join(root, AUDIT_HANDOFF), `${JSON.stringify({
+    work_package_id: 'WP-0A-A0-001', base_revision: first, head_revision_or_patch_checksum: first,
+    files_added: [], files_modified: [], files_deleted: [],
+  }, null, 2)}\n`);
+  if (otherBranch !== null) {
+    await declareBranch(root, otherBranch);
+    await writeHandoff(root, first, first);
+  }
+  git('add', '-A');
+  git('commit', '-qm', 'the packages and their handoffs');
+  await mkdir(join(root, 'scripts'), { recursive: true });
+  await writeFile(join(root, 'scripts/landed-on-main.mjs'), 'export const x = 1;\n');
+  await writeFile(join(root, 'shared.txt'), 'changed by another package\n');
+  git('add', '-A');
+  git('commit', '-qm', 'another package lands substantive work on main');
+  return scenario;
+}
+
+async function commitOnBranch({ root, git }, branch, files) {
+  git('checkout', '-qb', branch);
+  for (const [path, text] of Object.entries(files)) {
+    await mkdir(join(root, path, '..'), { recursive: true });
+    await writeFile(join(root, path), text);
+  }
+  git('add', '-A');
+  git('commit', '-qm', 'the branch\'s work');
+}
+
+test('an audit-only branch on a moved main is not drift', async () => {
+  const scenario = await movedMainWithAuditPackage();
+  try {
+    await commitOnBranch(scenario, AUDIT_BRANCH, { [AUDIT_FILE]: '# C0 round audit\n' });
+    const checked = refresh(scenario.root, ['--check']);
+    assert.equal(checked.status, 0,
+      `an audit-lane branch is measured from its merge-base, so main's moves are not its drift:\n${checked.stdout}${checked.stderr}`);
+    assert.match(checked.stdout, /audit-lane/);
+    assert.match(checked.stdout, /audit: every changed path is under evidence\/audits\/2026-10-15\//,
+      'and the reason is the classifier\'s own audit predicate, not a copy of it');
+  } finally {
+    await rm(scenario.root, { recursive: true, force: true });
+  }
+});
+
+test('the same audit branch with one substantive path is drift as before', async () => {
+  const scenario = await movedMainWithAuditPackage();
+  try {
+    await commitOnBranch(scenario, AUDIT_BRANCH, { [AUDIT_FILE]: '# C0 round audit\n', 'notes.txt': 'not an audit file\n' });
+    const checked = refresh(scenario.root, ['--check']);
+    assert.equal(checked.status, 91, `${checked.stdout}${checked.stderr}`);
+    assert.match(checked.stderr, /scripts\/landed-on-main\.mjs/,
+      'measured from the cited head exactly as before: main\'s substantive paths are reported');
+  } finally {
+    await rm(scenario.root, { recursive: true, force: true });
+  }
+});
+
+test('an audit-only branch under another package\'s branch name is drift as before', async () => {
+  const scenario = await movedMainWithAuditPackage('agent/test/other-package');
+  try {
+    await commitOnBranch(scenario, 'agent/test/other-package', { [AUDIT_FILE]: '# C0 round audit\n' });
+    const checked = refresh(scenario.root, ['--check']);
+    assert.equal(checked.status, 91, `${checked.stdout}${checked.stderr}`);
+    assert.match(checked.stderr, /WP-TEST-001-author-handoff\.json cites a head/);
+    assert.match(checked.stderr, /scripts\/landed-on-main\.mjs/);
+  } finally {
+    await rm(scenario.root, { recursive: true, force: true });
+  }
+});
+
+test('a branch adding src/** on the audit package\'s branch is drift as before', async () => {
+  const scenario = await movedMainWithAuditPackage();
+  try {
+    await commitOnBranch(scenario, AUDIT_BRANCH, { 'src/modules/example/index.ts': 'export const y = 2;\n' });
+    const checked = refresh(scenario.root, ['--check']);
+    assert.equal(checked.status, 91, `${checked.stdout}${checked.stderr}`);
+    assert.match(checked.stderr, /scripts\/landed-on-main\.mjs/,
+      'a path outside evidence/audits/ means the branch is not audit-lane, so main\'s paths count as before');
+    assert.doesNotMatch(checked.stdout, /audit-lane/);
+  } finally {
+    await rm(scenario.root, { recursive: true, force: true });
   }
 });
