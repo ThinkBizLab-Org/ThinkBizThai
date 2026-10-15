@@ -4,26 +4,17 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "b61b3db25be98f34f85b6ca7a76b32d3ff555a98",
-  "head_revision_or_patch_checksum": "047385f8855d01b09ea46b2e5c40bfedb9cd5042",
+  "base_revision": "047385f8855d01b09ea46b2e5c40bfedb9cd5042",
+  "head_revision_or_patch_checksum": "2b2fc695113ba50f9d71ed8df60e3349b23d5f7d",
   "task_ids": [
     "WP-0A-A0-004",
     "pr270-pr263-records-2026-10-16"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-004/a1-review-2026-10-15-pr270.md",
-    "evidence/WP-0A-A0-004/c0-review-2026-10-15-pr270.md",
-    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-15-governance-bundle-press.md",
-    "evidence/WP-0A-A0-004/q0-review-2026-10-15-pr270.md",
-    "evidence/WP-0A-A0-004/r0-review-2026-10-15-pr270.md"
+    "evidence/WP-0A-A0-004/records-transcription-2026-10-16.md"
   ],
   "files_modified": [
-    ".github/workflows/ci.yml",
-    "evidence/VERIFICATION.md",
     "handoffs/WP-0A-A0-004-author-handoff.json",
-    "scripts/test-suite-contract.mjs",
-    "test-kits/app-stack.test.mjs",
-    "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-A0-004.json"
   ],
   "files_deleted": [],
@@ -54,7 +45,7 @@
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane (records commit)",
       "exit_code": 0,
-      "result": "tier: H (required_tests: changed); lane: risk (tier H outside governance, records and audit, RFC-2026-034 \u00a72.2); classifier copy: the base's"
+      "result": "tier: H (required_tests: changed); lane: risk (tier H outside governance, records and audit, RFC-2026-034 §2.2); classifier copy: the base's"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004",
@@ -76,13 +67,13 @@
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
   "known_limitations": [
-    "The required_tests correction (C0-270-1 (iv), R0-270-1, Q0-270-1) is outside RFC-2026-025 \u00a76.1 item 4's record fields, so the classifier prints NOT records-only and lane risk; every other change is records-shaped.",
+    "The required_tests correction (C0-270-1 (iv), R0-270-1, Q0-270-1) is outside RFC-2026-025 §6.1 item 4's record fields, so the classifier prints NOT records-only and lane risk; every other change is records-shaped.",
     "The owners' acknowledgement records R0 assigns for #270 (R0-270-2: WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008) and for #255/#260 are not made here: those manifests are outside this package's writable_paths.",
     "Whether #263 and #270 were pressed with --match-head-commit is not recorded on main; each merge's second parent is the final head. The PR body of #270 keeps \"VERIFICATION (828)\".",
-    "The carry clauses of Q0 and A1 on #270, as worded, do not except a main merge touching the integrity manifest, which 7f1c93e4 did; the transcription \u00a73 sets this out and makes no reading of it."
+    "The carry clauses of Q0 and A1 on #270, as worded, do not except a main merge touching the integrity manifest, which 7f1c93e4 did; the transcription §3 sets this out and makes no reading of it."
   ],
   "open_risks_or_blockers": [
-    "RISK LANE (required_tests changed): RFC-2026-034 \u00a72.2 asks A1 and Q0 to pass on the final head before A0 presses (Q-034-1); a records-only light-path reading alone does not suffice. Status stays in_review; open_blockers[14], [15] unchanged."
+    "RISK LANE (required_tests changed): RFC-2026-034 §2.2 asks A1 and Q0 to pass on the final head before A0 presses (Q-034-1); a records-only light-path reading alone does not suffice. Status stays in_review; open_blockers[14], [15] unchanged."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[20] and [21], restores the three ownership.amends_without_owning.paths, the earlier rationale and required_tests line, and removes records-transcription-2026-10-16.md (pr270-pr263-records-2026-10-16); nothing depends on them.",
   "recommended_next_work_packages": [
