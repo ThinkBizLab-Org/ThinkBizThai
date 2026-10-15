@@ -8,7 +8,7 @@
   "head_revision_or_patch_checksum": "789f7e2af3902d5fccdb4f5b3387a9b1bfbe6ce3",
   "task_ids": [
     "WP-0A-A0-001",
-    "rfc-034-s8-item3-decision-register-notes-2026-10-15"
+    "pr262-pr269-pr273-pr274-records-2026-10-16"
   ],
   "files_added": [
     "evidence/WP-0A-A0-001/a1-review-2026-10-15-pr274.md",
@@ -26,77 +26,69 @@
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
-    "RFC-2026-031",
     "RFC-2026-034"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT is RFC-2026-034 §8 item 3, its Decision Register part (\"a note on Decision Register line 373 and §5.1 by the register's owner\"). Its authority is a NEW answer of the Product Owner: asked 2026-10-15T15:46:16.478Z (header \"Register\"), answered 15:51:38.460Z `ให้ A0-001 เป็นเจ้าของ + A0 กดเมื่อ 4 role ผ่าน (Recommended)`, transcribed by script from transcript 325454ab lines 3462/3463 and compared byte for byte in evidence/WP-0A-A0-001/product-owner-disposition-2026-10-15-register-ownership.md (question, header, all three options with descriptions, answer). It is not the 02:13:35Z governance-bundle answer.",
-    "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md joins WP-0A-A0-001 ownership.writable_paths as that exact path (no glob). It is not added to outputs.files: read_only_paths keeps docs/**, and the ownership validator rejects an output matching a read-only path (exit 69); the Owner's words name writable_paths only. No other package declares the path in writable_paths or outputs.files (read by script on 6fb5ab13); npm run validate:protocol exits 0.",
-    "The register gains two dated notes in Thai, each on new lines with a blank line before it, every existing line kept byte for byte: one under §5.1's table (Contract Freeze Levels; its Frozen v1 and Integrated v1 rows are the \"§5.1 lines 190–191\" RFC-2026-034 names, unmoved), one under the rule \"ถ้าไม่ผ่าน G0 อนุญาตเฉพาะ ...\" (line 373 when RFC-2026-034 cited it; it is line 375 now because the §5.1 note sits above it, which the note says). Each quotes RFC-2026-034 §3's row that names the register verbatim, cell by cell (both cells checked by script against the RFC's line). Which row is relevant is A0's reading: it is the only §3 row that names the register. No rule text changes.",
-    "The open_blockers entry PR #273 added (the register note OWED AND WAITING FOR AN OWNER) gets a closing clause, its old text kept as prefix; required_human_authorities gains an entry mirroring the disposition; amends_without_owning.paths re-declares test-kits/integrity-manifest.json (WP-0A-A0-002's), whose digest of the register npm run regenerate:manifest rebuilt (one line), with a dated rationale note.",
-    "The change commit 25efafd9 was made with git commit, not commit-when-clean, as on PR #273: commit-when-clean ran the verifier on the identical staged tree under the suite lock and refused at 829/831, the two failures being 'the handoff for this branch describes this branch' and its ratchets-bite copy, both because this handoff still cited PR #273's 94ca9650. This commit, last and alone, re-cites it.",
-    "origin/main moved to f64c537b (PR #267) while this branch was drafted from 6fb5ab13; the branch is not synced and nothing was pushed. Scope and lane are therefore measured from the branch point 6fb5ab13 (against origin/main the two-dot diff shows PR #267's files as stray). A mechanical sync merge under RFC-2026-025 §6.3 (regenerate the integrity manifest if #267 moved it) is owed before the press."
+    "THIS INCREMENT records, after their merges, PR #262 (2026-10-15T02:40:13Z, 5e0eef47; final head 10dd575c; CI run 38670962315), PR #269 (13:56:37Z, dab0ed55; final head c9671c4c; run 38743854390), PR #273 (15:33:35Z, 6fb5ab13; final head d8d576c4; run 38759359687) and PR #274 (17:35:51Z, b61b3db2; final head 7d07ebdb; run 38775514862), each run green on bootstrap and application before its merge: merge facts from gh and git, the role verdicts from their files on main, who pressed under which Owner answer as the dispositions on main record it, and R0's post-merge words verbatim. They are open_blockers[11] to [14], appended; [9] and [10] gain a dated closing clause after their unchanged text; [0] to [8] are byte-equal. evidence/WP-0A-A0-001/records-transcription-2026-10-16.md.",
+    "open_blockers[15] records what the round audit (evidence/audits/2026-10-15/r0-audit.md) asks of this package: R0-AUD1015-2 (OPEN-018 in the G0 tracker and the Decision Register, owed, not records), R0-AUD1015-6 (an amended_by entry for PR #257's amendment of test-kits/repository-json.test.mjs, owed, not records; RFC-2026-034 §8 item 2 met, in R0's #255 words).",
+    "ownership.amends_without_owning.paths is emptied, as R0-269-3 and r0-review-2026-10-15-pr274.md §8 ask: this branch does not touch test-kits/integrity-manifest.json. The rationale keeps its old text whole after a dated prefix.",
+    "Status stays integration_verified. R0's integration_verified on the merged heads of #269, #273 and #274 is not on main and is not presumed; it is owed by /claude/r0_steward."
   ],
   "acceptance_results": [
     {
-      "criterion": "Both register notes quote RFC-2026-034 §3's relevant row verbatim, keep every existing line whole and change no rule text; the register path is in WP-0A-A0-001 writable_paths with no other claimant; the disposition's verbatim parts match the transcript byte for byte; PR #273's open_blockers entry is closed with its text as prefix",
-      "result": "pass for author self-check: cells counted by script in the register (2 each); git diff shows 4 added lines and none removed in the register; validate:protocol exit 0; transcript comparison script exit 0"
+      "criterion": "Recorded words match their sources on main; merge facts match gh and git; old open_blockers kept whole; no status, test, guard, CI, RFC, disposition, register, tracker or contract change; the diff is records-only",
+      "result": "pass for author self-check: quotes checked against the role files, the dispositions and the audit; classify-records-only exit 0 and lane records on the records commit; independent light-path reading owed (RFC-2026-025 §6.2)"
     }
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs (verifier on the staged change tree, under the suite lock)",
-      "exit_code": 1,
-      "result": "tests 831, pass 829, fail 2: 'the handoff for this branch describes this branch' and its ratchets-bite copy, both the stale handoff this commit refreshes; the change commit was then made with git commit"
+      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD (records commit)",
+      "exit_code": 0,
+      "result": "records-only: all 3 changed path(s) are records; no status move printed"
     },
     {
-      "command": "npm run validate:protocol",
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane (records commit)",
       "exit_code": 0,
-      "result": "valid"
+      "result": "tier: records; lane: records (the records-only classifier says records-only); classifier copy: the base's"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs 6fb5ab13 WP-0A-A0-001",
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-001",
       "exit_code": 0,
-      "result": "all 4 changed paths declared, every amendment explains one (against origin/main f64c537b: exit 73, PR #267's files, the branch not yet synced)"
-    },
-    {
-      "command": "node scripts/db/classify-review-tier.mjs 6fb5ab13 HEAD --lane",
-      "exit_code": 0,
-      "result": "tier H; lane governance: the register (docs/**) and test-kits/integrity-manifest.json (the integrity manifest); base's classifier"
+      "result": "all 3 changed path(s) are declared, and every amendment explains one"
     },
     {
       "command": "npm run regenerate:manifest",
       "exit_code": 0,
-      "result": "rebuilt 128 digests; the register's digest changed, nothing else"
+      "result": "tree unchanged: no digested file is touched"
     },
     {
-      "command": "npm run check:handoff",
+      "command": "node scripts/db/classify-records-only.mjs --sync <tip> <merge> origin/main, and npm run regenerate:manifest at the merge, for 9f1c71e8 (#269), 94ca9650 (#273), 789f7e2a (#274)",
       "exit_code": 0,
-      "result": "the handoff cites this branch"
+      "result": "each: mechanical sync, no conflict inside the PR's own paths; regenerate:manifest leaves the tree clean (record:verification not run)"
     }
   ],
-  "security_privacy_cost_impact": "Records only: two dated notes in the Decision Register, a Product Owner disposition, manifest records and one integrity-manifest digest. One ownership change: the register path joins WP-0A-A0-001 writable_paths, as the Owner directed. No code, CI, guard, rule text, contract or authority change; no credential, customer data or provider call.",
+  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, personal data, customer data or provider call.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes.",
+  "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
   "known_limitations": [
-    "Only the Decision Register part of RFC-2026-034 §8 item 3; the notes on RFC-2026-025, -030, -031 and WP-0A-A0-010 open_blockers[1] are not here.",
-    "The rule RFC-2026-034 cites as register line 373 is now line 375; RFC-2026-034's own text is not edited. The note under it says so.",
-    "The register path is in writable_paths only, not outputs.files (docs/** stays read-only for outputs).",
-    "The branch is behind origin/main (f64c537b, PR #267); a mechanical sync is owed before the press."
+    "R0's integration_verified for #269, #273 and #274 on the merged heads is not on main; R0 gives it, not this record.",
+    "No role file on main reads a head after the reading heads of #269 (d5a4c652), #273 (1abe629b) or #274 (67a60c33); the merges of main 9f1c71e8, 94ca9650 and 789f7e2a are recorded as measured facts, and whether each role's carry clause held is the roles' to say. Q0-274-1 asked for a Q0 re-measure on the branch name before the press; no Q0 file on main records it.",
+    "Whether --match-head-commit was passed is not recorded on main; each merge's second parent is the final head. gh mergedBy (workstationgroup) does not itself show who acted.",
+    "Owed by this package outside the records path: OPEN-018 in the G0 tracker and the Decision Register (R0-AUD1015-2); the amended_by entry for PR #257's amendment of test-kits/repository-json.test.mjs (R0-AUD1015-6). Owed by WP-0A-A0-002: its acknowledgements of the integrity-manifest digests of #269 and #274."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (governance bundle). PR #274: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
+    "RECORDS-ONLY under RFC-2026-025 §6.1: one independent light-path reading (§6.2) before a delegated press; these records transcribe R0's own words, so §6.2 item 1 says who reads. Still owed: R0's integration_verified for #269, #273, #274 on the merged heads; WP-0A-A0-002's two acknowledgements; the OPEN-018 edits and the #257 amended_by entry (non-records increments)."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the two register notes, the disposition, the writable_paths entry and the manifest lines, and regenerates the integrity manifest. No rule changed, so no behaviour depends on it.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[11] to [15] and the closing clauses on [9] and [10], restores amends_without_owning.paths [\"test-kits/integrity-manifest.json\"] with the earlier rationale, and removes evidence/WP-0A-A0-001/records-transcription-2026-10-16.md (pr262-pr269-pr273-pr274-records-2026-10-16); nothing depends on them.",
   "recommended_next_work_packages": [
-    "Any remaining RFC-2026-034 §8 item 3 notes, each by its owner (RFC-2026-025, -030, -031; WP-0A-A0-010 open_blockers[1])."
+    "WP-0A-A0-001: a non-records increment for OPEN-018 in the G0 tracker and the Decision Register, and the amended_by entry for PR #257 (R0-AUD1015-2, -6).",
+    "WP-0A-A0-002: acknowledgements of the integrity-manifest digests of #269 and #274."
   ],
   "reviewer_instructions": [
-    "git diff 6fb5ab13 --stat: the register (4 added lines), the new disposition, WP-0A-A0-001.json, test-kits/integrity-manifest.json (one digest), this handoff.",
-    "Compare the two backticked quotes in each register note with RFC-2026-034 §3's row naming \"Decision Register line 373 and §5.1 lines 190–191\"; confirm no existing register line changed.",
-    "Compare the disposition §2 with transcript 325454ab lines 3462/3463.",
-    "Run validate:protocol and the base's classifier with --lane (governance)."
+    "Read evidence/WP-0A-A0-001/records-transcription-2026-10-16.md, then git diff origin/main.",
+    "open_blockers[11]-[14] against gh pr view 262/269/273/274, the CI runs named, the *-2026-10-15-pr262/269/273/274.md role files and the two 2026-10-15 dispositions; [15] against evidence/audits/2026-10-15/r0-audit.md §6 and the R0 files it cites.",
+    "Run node scripts/db/classify-records-only.mjs origin/main <head> and record its exit code and any status move it prints (none expected)."
   ]
 }
