@@ -4,13 +4,18 @@
   "work_package_id": "WP-1A-A0-003",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "b61b3db25be98f34f85b6ca7a76b32d3ff555a98",
-  "head_revision_or_patch_checksum": "d37dafc5aebaac31cff2d17390e25ad8b1986e12",
+  "base_revision": "047385f8855d01b09ea46b2e5c40bfedb9cd5042",
+  "head_revision_or_patch_checksum": "7f34adb5fd652fed34e6bfdb34370550daf9af31",
   "task_ids": [
     "WP-1A-A0-003",
     "pr3-kernel-test-gaps-2026-10-16"
   ],
-  "files_added": [],
+  "files_added": [
+    "evidence/WP-1A-A0-003/a1-review-2026-10-16-pr275.md",
+    "evidence/WP-1A-A0-003/c0-review-2026-10-16-pr275.md",
+    "evidence/WP-1A-A0-003/q0-review-2026-10-16-pr275.md",
+    "evidence/WP-1A-A0-003/r0-review-2026-10-15-pr275.md"
+  ],
   "files_modified": [
     "handoffs/WP-1A-A0-003-author-handoff.json",
     "src/modules/platform-kernel/application/tenant-context.test.ts",
@@ -105,7 +110,7 @@
     "The vitest tests are not under the integrity manifest or the test-suite floor (manifest open_blockers, R7)."
   ],
   "open_risks_or_blockers": [
-    "RISK LANE (tests only). A1 and Q0 read the final head; A0 presses under required_human_authorities[1] with CI green on both jobs. C0 and R0 read it in the round audit. Not pushed by the drafting subagent."
+    "RISK LANE (module tests). C0 review_approved, A1 security_approved (no finding), Q0 test_verified (835/835; mutations killed), R0 ready, all at a8656d04; files carried with -x; main 047385f8 (#270) merged mechanically. A0 presses under required_human_authorities[1], applying the stricter condition of all four roles (C0-275-2, R0-275-3) once CI is green on both jobs on the final head. Still owed in the next records pass (C0-275-1, R0-275-2): R0-265-1..4 and the other #265 advisories."
   ],
   "rollback_or_forward_fix": "Before merge: close the pull request. After merge: revert the one test commit; nothing depends on it.",
   "recommended_next_work_packages": [
