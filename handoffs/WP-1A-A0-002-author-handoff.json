@@ -4,14 +4,18 @@
   "work_package_id": "WP-1A-A0-002",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
-  "head_revision_or_patch_checksum": "b92def7db88cd4de7e865b8b0d291907cb3ab2b4",
+  "base_revision": "0c35c265c79e8659b989b3e4c3812fe3e366b0ec",
+  "head_revision_or_patch_checksum": "78cfefe674f5a721fd232a620dde71496ef86d60",
   "task_ids": [
     "WP-1A-A0-002",
     "gov-a002-2026-10-15"
   ],
   "files_added": [
-    "evidence/WP-1A-A0-002/product-owner-disposition-2026-10-15-governance-bundle-press.md"
+    "evidence/WP-1A-A0-002/a1-review-2026-10-15-pr267.md",
+    "evidence/WP-1A-A0-002/c0-review-2026-10-15-pr267.md",
+    "evidence/WP-1A-A0-002/product-owner-disposition-2026-10-15-governance-bundle-press.md",
+    "evidence/WP-1A-A0-002/q0-review-2026-10-15-pr267.md",
+    "evidence/WP-1A-A0-002/r0-review-2026-10-15-pr267.md"
   ],
   "files_modified": [
     "evidence/VERIFICATION.md",
@@ -106,7 +110,7 @@
     "Q0's other survivors of q0-reread5 §5 (M184, M185, M146, M179, M210) are outside Q0-257r6-1 and not addressed."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE LANE: C0, A1, Q0 and R0 read the final head; A0 presses only under the Owner's answer of 2026-10-15T02:13:35Z, with CI green on both jobs and no security finding of any grade open. Whether the tests close Q0-259-1, Q0-AUD1015-5, Q0-257r6-1 and Q0-AUD1015-4 is Q0's to write. Status stays in_review."
+    "GOVERNANCE (bundle items (3), (4)). Round one at ab8908bc: C0 review_approved, A1 security_approved (no finding), Q0 test_verified (Q0-259-1 and Q0-257r6-1 closed), R0 ready. Then main merged at 19e410cf (#266, #268, #269, #271, #272): NOT purely mechanical — integrity manifest conflict resolved by regeneration, and evidence/VERIFICATION.md re-recorded at 835 (#266's 4 tests + this PR's 4); scripts/test-suite-contract.mjs auto-merged (#266's and this PR's floors on different suites). Full suite 835/835 on the merge. Per R0-267-3 the four roles re-read that merge before A0 presses under the Owner's answer of 2026-10-15T02:13:35Z, with CI green on both jobs. Q0-267-1 (Low): tests[2]'s mutation claim to be corrected in the next handoff refresh."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the four tests, the disposition and the required_human_authorities entry, and restores the registry counts, digests, integrity manifest and VERIFICATION.md; no guard depends on them.",
   "recommended_next_work_packages": [
