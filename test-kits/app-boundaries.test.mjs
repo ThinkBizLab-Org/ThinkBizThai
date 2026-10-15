@@ -812,3 +812,27 @@ test("A1's advisory (round five): a configuration or environment file is refused
   assert.ok(cli.includes('"A1 advisory (round five): a .Config/ directory in another letter case"'), 'the CLI holds a control for it');
   assert.ok(cli.includes("'A1 advisory (round five): a tracked apps/web/.ENV in another letter case'"), 'and one for a tracked .ENV');
 });
+
+test('Q0-257r6-1 (c): a next.config or postcss.config whose default export is a call fails, whatever the call wraps; vitest.config\'s one call is its allowlisted wrapper', async () => {
+  const allowlist = await loadAllowlist();
+  const check = (path, source) => checkResolutionConfigs(tree({ [path]: source }), allowlist).join(' | ');
+  const NEXT = 'apps/web/next.config.ts';
+  const POSTCSS = 'apps/web/postcss.config.mjs';
+  const CALL = /is not the allowlisted (?:next|postcss)\.config shape: the default export is a call of `f`; the shape holds one object literal/;
+  // The object each call wraps is of its allowlisted shape on its own, so the call is what fails (Q0's M142 admitted
+  // a call when the shape names no wrapper, reading its first argument as the object).
+  assert.equal(check(NEXT, 'export default { poweredByHeader: false };\n'), '');
+  assert.equal(check(POSTCSS, "export default { plugins: { '@tailwindcss/postcss': {} } };\n"), '');
+  assert.match(check(NEXT, 'export default f({ poweredByHeader: false });\n'), CALL, "Q0's alias control: export default f({ poweredByHeader: false })");
+  assert.match(check(NEXT, "import type { NextConfig } from 'next';\nconst config: NextConfig = f({ poweredByHeader: false });\nexport default config;\n"), CALL, 'the call in the exported const');
+  assert.match(check(NEXT, "import type { NextConfig } from 'next';\nexport default f({ poweredByHeader: false }) satisfies NextConfig;\n"), CALL, 'the call under satisfies');
+  assert.match(check(POSTCSS, "export default f({ plugins: { '@tailwindcss/postcss': {} } });\n"), CALL, 'the same call in postcss.config');
+  assert.match(check(POSTCSS, "const config = f({ plugins: { '@tailwindcss/postcss': {} } });\nexport default config;\n"), CALL, 'and in its const');
+  // vitest.config: defineConfig, imported as the shape says, wraps one object; any other call, or a second wrapping, fails.
+  const VITEST = 'vitest.config.ts';
+  const head = "import { defineConfig } from 'vitest/config';\n";
+  assert.equal(check(VITEST, `${head}export default defineConfig({ test: { environment: 'node' } });\n`), '');
+  assert.match(check(VITEST, `${head}export default f({ test: { environment: 'node' } });\n`), /the default export is not `defineConfig\(\{ \.\.\. \}\)`/, 'another call in vitest.config');
+  assert.match(check(VITEST, `${head}export default defineConfig(defineConfig({ test: {} }));\n`), /the default export is a call of `defineConfig`; the shape holds one object literal/, 'the wrapper wrapping a call');
+  assert.match(check(VITEST, "export default defineConfig({ test: {} });\n"), /the default export is not `defineConfig\(\{ \.\.\. \}\)`, with `defineConfig` imported as the shape says/, 'the wrapper not imported');
+});

@@ -177,9 +177,13 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   // workspace scripts pinned to the allowlist; configuration and .env names in any letter case),
   // app-stack 13 to 15 (the guard's second run before the build; the records' account of the residual
   // held by review). No test removed or renamed.
+  // The governance-bundle follow-up (2026-10-15; Q0-259-1, Q0-257r6-1 (a)-(c), pressed under the Owner's answer
+  // of 2026-10-15T02:13:35Z): app-boundaries 28 to 29 (a next.config or postcss.config whose default export is
+  // a call), app-stack 15 to 18 (src/** in the type check; the graph check's controls runner; the boundary
+  // CLI's agreement rule). No test removed or renamed.
   'test-kits/app-dependencies.test.mjs': 14,
-  'test-kits/app-boundaries.test.mjs': 28,
-  'test-kits/app-stack.test.mjs': 15,
+  'test-kits/app-boundaries.test.mjs': 29,
+  'test-kits/app-stack.test.mjs': 18,
 };
 
 // Independent review eighteen answered the question the per-file floor was written to close, and
@@ -381,10 +385,11 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   // 75 (modularizeImports, swcPlugins and the vitest.config alias rule). The third review round on PR
   // #257 (2026-10-12, A1-257-7): app-boundaries 75 to 96, app-stack 85 to 106. The fourth round
   // (2026-10-12; A1-257-8, A1-257-9): app-boundaries 96 to 124, app-stack 106 to 120. The fifth round
-  // (2026-10-12; A1-257-10): app-boundaries 124 to 144, app-stack 120 to 137.
+  // (2026-10-12; A1-257-10): app-boundaries 124 to 144, app-stack 120 to 137. The governance-bundle
+  // follow-up (2026-10-15; Q0-259-1, Q0-257r6-1): app-boundaries 144 to 155, app-stack 137 to 168.
   'test-kits/app-dependencies.test.mjs': 65,
-  'test-kits/app-boundaries.test.mjs': 144,
-  'test-kits/app-stack.test.mjs': 137,
+  'test-kits/app-boundaries.test.mjs': 155,
+  'test-kits/app-stack.test.mjs': 168,
 };
 
 // Independent review eighteen defeated the test-count floor by hollowing a suite while preserving
@@ -459,10 +464,11 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   // The fourth round on PR #257 (2026-10-12; A1-257-8, A1-257-9, C0-257r4-1, -2) adds three tests to
   // app-boundaries and one to app-stack; none is renamed, and both name digests move. The fifth round
   // (2026-10-12; A1-257-10, A1's letter-case advisory) adds two tests to each; none is renamed, and both
-  // name digests move.
+  // name digests move. The governance-bundle follow-up (2026-10-15; Q0-259-1, Q0-257r6-1) adds one test to
+  // app-boundaries and three to app-stack; none is renamed, and both name digests move.
   'test-kits/app-dependencies.test.mjs': '491abfa45804df35',
-  'test-kits/app-boundaries.test.mjs': '3cf662a2b479fe79',
-  'test-kits/app-stack.test.mjs': '515929ee67465865',
+  'test-kits/app-boundaries.test.mjs': '1d26d994f5722840',
+  'test-kits/app-stack.test.mjs': '6a2621b1b423d452',
 };
 
 // How many reversals `ratchets-bite.test.mjs` puts through a suite. Independent review twenty
