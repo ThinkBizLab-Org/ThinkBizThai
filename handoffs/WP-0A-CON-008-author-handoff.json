@@ -4,14 +4,18 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "9b3ffbd56bd9c314e20c6e1634d5fe286cadbc92",
-  "head_revision_or_patch_checksum": "c7af2b0e888c761cee71fd09155eb41ae6e5977a",
+  "base_revision": "c9554ef99bb69f8894935b0c29f0b02f2e25247c",
+  "head_revision_or_patch_checksum": "81b300a1761696ee1021667525ffa8340066f680",
   "task_ids": [
     "WP-0A-CON-008",
     "governance-bundle-item-5-rfc-031-status-note-2026-10-15"
   ],
   "files_added": [
-    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-15-governance-bundle-press-item-5.md"
+    "evidence/WP-0A-CON-008/a1-review-2026-10-15-pr271.md",
+    "evidence/WP-0A-CON-008/c0-review-2026-10-15-pr271.md",
+    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-15-governance-bundle-press-item-5.md",
+    "evidence/WP-0A-CON-008/q0-review-2026-10-15-pr271.md",
+    "evidence/WP-0A-CON-008/r0-review-2026-10-15-pr271.md"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md",
@@ -83,8 +87,7 @@
     "The note quotes RFC-2026-034 §3 only, as §8 item 3 asks; RFC-2026-034 §5 ('Effect on RFC-2026-031') is not quoted."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (governance bundle item (5), RFC-2026-031 part). No role has run. A0 may press under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs, no security finding of any grade is open, and no dependency is added; the head must contain current main.",
-    "Item (5)'s other notes (RFC-2026-002, RFC-2026-025, RFC-2026-030, the Decision Register, WP-0A-A0-010 open_blockers[1], G0-024) are their owners' and are not on this branch."
+    "GOVERNANCE (governance bundle). PR #271: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the status-note line, the disposition and the manifest entry, and regenerates the integrity manifest.",
   "recommended_next_work_packages": [
