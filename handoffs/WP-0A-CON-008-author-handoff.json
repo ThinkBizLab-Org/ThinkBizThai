@@ -5,13 +5,17 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
-  "head_revision_or_patch_checksum": "f1a4f14d2c061025ac4d3943bdf74b4df2578877",
+  "head_revision_or_patch_checksum": "11fa3163435f2f16292f6c6cbdeb568e521712ac",
   "task_ids": [
     "WP-0A-CON-008",
     "governance-bundle-item-2-audit-lane-2026-10-15"
   ],
   "files_added": [
-    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-15-governance-bundle-press.md"
+    "evidence/WP-0A-CON-008/a1-review-2026-10-15-pr266.md",
+    "evidence/WP-0A-CON-008/c0-review-2026-10-15-pr266.md",
+    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-15-governance-bundle-press.md",
+    "evidence/WP-0A-CON-008/q0-review-2026-10-15-pr266.md",
+    "evidence/WP-0A-CON-008/r0-review-2026-10-15-pr266.md"
   ],
   "files_modified": [
     "evidence/VERIFICATION.md",
@@ -90,7 +94,7 @@
     "auditLaneOf runs the classifier (about 10 s on this repository) only when every changed path is under evidence/audits/; other branches pay one git diff."
   ],
   "open_risks_or_blockers": [
-    "Governance lane: C0, A1, Q0 and R0 on the final head; CI green on bootstrap and application; then A0 presses under the Owner's 2026-10-15 direction (question 2, item (2)), or the Owner presses."
+    "GOVERNANCE (governance bundle item (2)). Round one at f3ee0c1d: C0 review_approved, A1 security_approved (no finding open), Q0 test_verified (831/831; CI run 38723764656 green both jobs), R0 ready (R0-262-2 discharged on merge); files carried with -x. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories open, none blocking: C0-266-1..4, A1-266-1, -2, Q0-266-1 (Low: one test owed for the unrelated-citation and empty-branch cases), Q0-266-2..4, R0-266-2 (main was measured at 14716adf, not 94c858f0), R0-266-3."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores refresh-author-handoff.mjs, the four test cases, the three registry lines and the manifest; audit pull requests then take the risk lane again, as PR #262 did.",
   "recommended_next_work_packages": [
