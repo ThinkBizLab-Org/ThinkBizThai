@@ -176,9 +176,11 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   // workspace scripts pinned to the allowlist; configuration and .env names in any letter case),
   // app-stack 13 to 15 (the guard's second run before the build; the records' account of the residual
   // held by review). No test removed or renamed.
+  // A1-AUD1015-1 (2026-10-15, WP-0A-A0-004): app-stack 15 to 16 (npm audit and the release age before
+  // any step that executes package code). No test removed or renamed.
   'test-kits/app-dependencies.test.mjs': 14,
   'test-kits/app-boundaries.test.mjs': 28,
-  'test-kits/app-stack.test.mjs': 15,
+  'test-kits/app-stack.test.mjs': 16,
 };
 
 // Independent review eighteen answered the question the per-file floor was written to close, and
@@ -379,10 +381,11 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   // 75 (modularizeImports, swcPlugins and the vitest.config alias rule). The third review round on PR
   // #257 (2026-10-12, A1-257-7): app-boundaries 75 to 96, app-stack 85 to 106. The fourth round
   // (2026-10-12; A1-257-8, A1-257-9): app-boundaries 96 to 124, app-stack 106 to 120. The fifth round
-  // (2026-10-12; A1-257-10): app-boundaries 124 to 144, app-stack 120 to 137.
+  // (2026-10-12; A1-257-10): app-boundaries 124 to 144, app-stack 120 to 137. A1-AUD1015-1 (2026-10-15,
+  // WP-0A-A0-004): app-stack 137 to 144.
   'test-kits/app-dependencies.test.mjs': 65,
   'test-kits/app-boundaries.test.mjs': 144,
-  'test-kits/app-stack.test.mjs': 137,
+  'test-kits/app-stack.test.mjs': 144,
 };
 
 // Independent review eighteen defeated the test-count floor by hollowing a suite while preserving
@@ -456,10 +459,11 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   // The fourth round on PR #257 (2026-10-12; A1-257-8, A1-257-9, C0-257r4-1, -2) adds three tests to
   // app-boundaries and one to app-stack; none is renamed, and both name digests move. The fifth round
   // (2026-10-12; A1-257-10, A1's letter-case advisory) adds two tests to each; none is renamed, and both
-  // name digests move.
+  // name digests move. A1-AUD1015-1 (2026-10-15, WP-0A-A0-004) adds one test to app-stack; none is
+  // renamed, and its name digest moves.
   'test-kits/app-dependencies.test.mjs': '491abfa45804df35',
   'test-kits/app-boundaries.test.mjs': '3cf662a2b479fe79',
-  'test-kits/app-stack.test.mjs': '515929ee67465865',
+  'test-kits/app-stack.test.mjs': '4ca99316d7f9d05b',
 };
 
 // How many reversals `ratchets-bite.test.mjs` puts through a suite. Independent review twenty

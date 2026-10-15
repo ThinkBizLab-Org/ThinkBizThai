@@ -172,6 +172,28 @@ function workflowJobs(ci) {
   return jobs;
 }
 
+// A1-AUD1015-1. The vulnerability audit and the release age are the checks that would report a
+// compromised or freshly published package, so they must run after the job's install and before any
+// step that executes installed package code: such code could prepend a shim to $GITHUB_PATH or edit the
+// checkout first. A step executes package code when it runs tsc, vitest or next, `npm run typecheck`,
+// `npm run test:app` or `npm run build`, the type-check control (which runs tsc) or the parsed boundary
+// guard (which loads typescript). Returns the problems, so the same reading is run on a mutation.
+const PACKAGE_CODE = /\b(?:tsc|vitest|next)\b|\bnpm run (?:typecheck|test:app|build)\b|verify-typecheck-control|--require-parser/;
+function dependencyChecksBeforePackageCode(steps) {
+  const at = (matches) => steps.findIndex((s) => matches(s.run ?? ''));
+  const install = at((run) => /^npm ci --ignore-scripts\b/m.test(run));
+  const firstCode = at((run) => PACKAGE_CODE.test(run));
+  const problems = [];
+  for (const [label, pattern] of [['npm audit', /\bnpm audit\b/], ['verify-release-age', /verify-release-age\.mjs/]]) {
+    const index = at((run) => pattern.test(run));
+    if (index === -1) problems.push(`no step runs ${label}`);
+    else if (install === -1 || index < install) problems.push(`${label} runs before the install`);
+    else if (firstCode !== -1 && index > firstCode) problems.push(`${label} runs after step "${steps[firstCode].name}", which executes installed package code`);
+  }
+  if (firstCode === -1) problems.push('no step executes installed package code: the reading found nothing to order against');
+  return problems;
+}
+
 // R0-257-1. Before any step that runs `npm run check` -- the pull request's own `scripts.check` -- the
 // workflow must have invoked the test-integrity guard itself, which refuses a neutered check string
 // (RFC-2026-007). Returns the problems, so the same reading is run on the workflow and on a mutation.
@@ -228,6 +250,8 @@ test('CI runs the application checks in a job of their own, after every guard of
     [null, /^actions\/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020$/],
     ['Verify pinned toolchain for the application', null],
     ['Clean install for the application', 'npm ci --ignore-scripts'],
+    ['Vulnerability audit (network)', 'npm audit --omit=dev --audit-level=high'],
+    ['Release age of new lockfile entries (network)', 'node scripts/verify-release-age.mjs "$BASE_SHA"'],
     ['Verify the application dependencies', 'node scripts/verify-app-dependencies.mjs'],
     ['Verify the application boundaries (parsed)', 'node scripts/verify-app-boundaries.mjs --require-parser'],
     ['Type-check the application', 'npm run typecheck'],
@@ -236,8 +260,6 @@ test('CI runs the application checks in a job of their own, after every guard of
     ['Verify the application boundaries again, before the build (parsed)', 'node scripts/verify-app-boundaries.mjs --require-parser'],
     ['Build the web application', 'npm run build --workspace apps/web'],
     ['Verify what the build included', 'node scripts/verify-app-build-graph.mjs'],
-    ['Vulnerability audit (network)', 'npm audit --omit=dev --audit-level=high'],
-    ['Release age of new lockfile entries (network)', 'node scripts/verify-release-age.mjs "$BASE_SHA"'],
   ];
   assert.equal(app.steps.length, expected.length, `the application job has exactly its ${expected.length} steps (found ${app.steps.map((s) => s.name ?? s.uses).join(' | ')})`);
   expected.forEach(([name, run], i) => {
@@ -251,7 +273,7 @@ test('CI runs the application checks in a job of their own, after every guard of
   assert.match(app.steps[0].raw, /ref: \$\{\{ github\.head_ref \}\}[\s\S]*persist-credentials: false[\s\S]*fetch-depth: 0/, 'the same checkout as the bootstrap job, with the base in the clone');
   assert.match(app.steps[1].run, /EXPECTED_SHA|cannot report on a commit it did not test/);
   assert.match(app.steps[1].raw, /EXPECTED_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
-  assert.match(app.steps.at(-1).raw, /if: github\.event_name == 'pull_request'[\s\S]*BASE_SHA: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/, 'the release age is measured against the pull request\'s base');
+  assert.match(app.steps.find((s) => s.name === 'Release age of new lockfile entries (network)').raw, /if: github\.event_name == 'pull_request'[\s\S]*BASE_SHA: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/, 'the release age is measured against the pull request\'s base');
 
   // Nothing that runs an installed package is left in the bootstrap job, where the RLS guards run.
   const bootstrap = jobs.get('bootstrap').steps.map((s) => s.run ?? '').join('\n');
@@ -284,6 +306,34 @@ test('CI installs only with npm ci --ignore-scripts, once per job, and no step m
     "      - name: Release age of new lockfile entries (network)\n        if: github.event_name == 'pull_request'\n        continue-on-error: true\n");
   assert.notEqual(soft, ci);
   assert.match(soft.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n'), /continue-on-error/, 'a continue-on-error is seen');
+});
+
+test('CI runs npm audit and the release age straight after the install, before any step that executes package code (A1-AUD1015-1)', async () => {
+  const ci = await readFile('.github/workflows/ci.yml', 'utf8');
+  assert.deepEqual(dependencyChecksBeforePackageCode(workflowJobs(ci).get('application').steps), [], 'the application job checks its dependencies before it runs them');
+  // The negative controls. The order as it stood at 2aef8182 (both checks last, after tsc, vitest and
+  // next build) is refused for both checks; each check moved alone behind `npm run typecheck` is refused.
+  const AUDIT = '      - name: Vulnerability audit (network)\n        run: npm audit --omit=dev --audit-level=high\n';
+  const AGE = "      - name: Release age of new lockfile entries (network)\n        if: github.event_name == 'pull_request'\n        env:\n          BASE_SHA: ${{ github.event.pull_request.base.sha }}\n        run: node scripts/verify-release-age.mjs \"$BASE_SHA\"\n";
+  assert.ok(ci.includes(AUDIT) && ci.includes(AGE), 'the two steps read as written');
+  const last = `${ci.replace(AUDIT, '').replace(AGE, '').trimEnd()}\n${AUDIT}${AGE}`;
+  assert.deepEqual(dependencyChecksBeforePackageCode(workflowJobs(last).get('application').steps), [
+    'npm audit runs after step "Verify the application boundaries (parsed)", which executes installed package code',
+    'verify-release-age runs after step "Verify the application boundaries (parsed)", which executes installed package code',
+  ], 'the order before A1-AUD1015-1 is refused');
+  const TYPECHECK = '      - name: Type-check the application\n        run: npm run typecheck\n';
+  for (const [label, step] of [['npm audit', AUDIT], ['verify-release-age', AGE]]) {
+    const moved = ci.replace(step, '').replace(TYPECHECK, TYPECHECK + step);
+    assert.notEqual(moved, ci);
+    assert.match(dependencyChecksBeforePackageCode(workflowJobs(moved).get('application').steps).join('\n'), new RegExp(`^${label} runs after step`), `${label} behind npm run typecheck is refused`);
+  }
+  // Each kind of package-code step is recognised, so the rule cannot be met by renaming the first one.
+  for (const run of ['npm run typecheck', 'npm run test:app', 'npm run build --workspace apps/web', 'npx tsc -p .', 'vitest run', 'next build', 'node scripts/verify-typecheck-control.mjs', 'node scripts/verify-app-boundaries.mjs --require-parser']) {
+    assert.ok(PACKAGE_CODE.test(run), `\`${run}\` executes package code`);
+  }
+  for (const run of ['npm ci --ignore-scripts', 'node scripts/verify-app-dependencies.mjs', 'npm audit --omit=dev --audit-level=high', 'node scripts/verify-release-age.mjs "$BASE_SHA"', 'node scripts/verify-app-build-graph.mjs']) {
+    assert.ok(!PACKAGE_CODE.test(run), `\`${run}\` does not`);
+  }
 });
 
 test('vitest runs the application tests and fails when there are none (Q0 N1)', async () => {
