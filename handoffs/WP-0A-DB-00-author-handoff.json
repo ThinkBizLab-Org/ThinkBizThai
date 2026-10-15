@@ -5,28 +5,44 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
-  "head_revision_or_patch_checksum": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
+  "head_revision_or_patch_checksum": "899278ccc24317bcc4ba1676b8c6fd0e53dbd6c7",
   "task_ids": [
     "WP-0A-DB-00",
-    "F1-record-2026-10-11"
+    "gov-db00-2026-10-15"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-15-governance-bundle-press.md"
+  ],
+  "files_modified": [
+    "architecture/decisions/RFC-2026-025-owner-delegated-merge.md",
+    "architecture/decisions/RFC-2026-030-risk-tiered-review.md",
+    "db/foundation/lint/audit-coverage-map.json",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
-    "RFC-2026-025"
+    "RFC-2026-025",
+    "RFC-2026-030",
+    "RFC-2026-034"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT appends open_blockers[206]: A5's F-1 (notification_id in CTR-NTF-001 against batch 051's per-recipient uuid key) and R0-243-4, verbatim, as R0 asked that the record reach this package. FIX after the role round (C0-247-1, A1-REC-247-1, R0-247-1): A0's two closing sentences in [206] are marked \"A0'S WORDS, NOT R0'S\".",
-    "Records only: every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-DB-00/records-transcription-2026-10-11.md.",
-    "Path: the full path (C0, A1, Q0, R0 on the final head, CI green), as the Owner directed for this session."
+    "THIS INCREMENT is the governance bundle's item (5), RFC-2026-034 §8 item 3, as far as this package owns it: one dated status-line note each in RFC-2026-025 and RFC-2026-030 that RFC-2026-034 (merged #251, 2026-10-11) amends it, quoting what RFC-2026-034 §3 names for each, and recording, as A1-251f-2 and R0-251-43 (1) asked, the Owner's answer to Q-034-6 (2026-10-11, `ยืนยันทั้ง 6 ข้อ (Recommended)`, 02:59:23Z) as his named exception to RFC-2026-025 §5 item 6's last bullet, quoting RFC-2026-034 §2.2, with that item's other conditions binding. No rule text changes.",
+    "Every quotation in the two notes was checked by script against RFC-2026-034 and RFC-2026-030 as on main (whitespace-normalised for line wraps).",
+    "Authority to press: the Owner's answer of 2026-10-15 to question 2 (header \"ชุด governance\"), `A0 กดเมื่อ 4 role ผ่าน ทีละ PR (Recommended)`, transcribed byte for byte by script in evidence/WP-0A-DB-00/product-owner-disposition-2026-10-15-governance-bundle-press.md and mirrored in required_human_authorities. Question 1 of the same call concerns PR #265. That this PR carries only the two notes this package owns, and that the other §8 item 3 notes travel by their owners under the same item (5), is A0's reading (the disposition §3 (b)).",
+    "db/foundation/lint/audit-coverage-map.json's 34 line pins into this manifest move by three (one required_human_authorities line and two amends_without_owning lines above open_blockers); each pin's quote was re-checked on its new line."
   ],
   "acceptance_results": [
     {
-      "criterion": "Recorded words match their sources; old entries byte-equal; no status, contract, test or script change beyond what is stated",
-      "result": "pass for author self-check: extracted by script from the cited role files"
+      "criterion": "Each note quotes RFC-2026-034 §3 (and §2.2 for Q-034-6) exactly, changes no rule text, and touches nothing else in the two RFCs",
+      "result": "pass for author self-check: quotes verified by script; git diff shows one added line per RFC"
+    },
+    {
+      "criterion": "The Owner's words transcribed byte for byte",
+      "result": "pass for author self-check: header, question, all three options with descriptions and the answer asserted present by script against transcript lines 1631-1632"
     }
   ],
   "tests": [
@@ -36,37 +52,43 @@
       "result": "valid"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commit ae7b2a2e and the fix commit)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 899278cc, under the suite lock)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 740, pass 740, fail 0"
+      "result": "clean: exit 0 — tests 827, pass 827, fail 0"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
       "exit_code": 0,
-      "result": "every changed path declared, every amendment explains one"
+      "result": "all 7 changed path(s) are declared, and every amendment explains one"
     },
     {
-      "command": "npm run check:handoff",
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "the handoff cites this branch"
+      "result": "tier H; lane governance: the two RFCs (architecture/decisions/**), db/foundation/lint/audit-coverage-map.json (data the database guards read), test-kits/integrity-manifest.json"
+    },
+    {
+      "command": "npm run regenerate:manifest",
+      "exit_code": 0,
+      "result": "rebuilt 128 digest(s)"
     }
   ],
-  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, customer data or provider call.",
-  "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
+  "security_privacy_cost_impact": "None: two dated notes recording an amendment and an Owner answer already on main; no authority beyond the Owner's own words is granted or widened; no credential, customer data or provider call.",
+  "migration_and_data_impact": "None. audit-coverage-map.json changes only line numbers of its pins into this manifest.",
+  "compatibility_impact": "No contract changes; no contract-catalog file.",
   "known_limitations": [
-    "Nothing decides the reconciliation; it is owed before CTR-NTF-001 is Frozen, by A5 and this package together."
+    "The other notes RFC-2026-034 §8 item 3 owes (RFC-2026-002, RFC-2026-031, the Decision Register line 373 and §5.1, WP-0A-A0-010 open_blockers[1], G0-024) belong to other owners and are not in this PR.",
+    "R0-251-43 (2) (an item 2, 4 or 5 PR that edits an RFC, guide or gate beyond its own item returns to the Owner) is R0's reading to apply on those PRs and is not written into either RFC."
   ],
   "open_risks_or_blockers": [
-    "Full path, as the Owner directed for this session. Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-DB-00/: round one at ad094652 (c0-review-2026-10-11-pr247.md changes_requested on C0-247-1; a1-review security_approved; q0-review test_verified; r0-review integration_verified) and re-reads of the marker fix at cd0797ee (c0-reread review_approved, C0-247-1 closed; a1-reread security_approved; q0-reread test_verified 740/740 on the branch name; r0-reread integration_verified). Presser: A0 (/claude/a0_atlas) under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6); not a governance PR. Pressed once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
+    "GOVERNANCE lane: C0, A1, Q0 and R0 each read the final head; A0 presses only on the Owner's 2026-10-15 conditions (four roles, CI green on both jobs, no open security finding of any grade, no new dependency, head contains current main). No role has run."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes WP-0A-DB-00 open_blockers[206] (A5's F-1 record, F1-record-2026-10-11); nothing depends on it.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the two status notes, the disposition, the required_human_authorities entry and the pin shift; nothing depends on them.",
   "recommended_next_work_packages": [
-    "WP-0A-DB-00 with A5: reconcile notification_id (contract, 051 forward fix, or both)."
+    "WP-0A-A0-001 and the other owners: the remaining RFC-2026-034 §8 item 3 notes (RFC-2026-002, RFC-2026-031, the Decision Register, WP-0A-A0-010, G0-024)."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-DB-00/records-transcription-2026-10-11.md, then git diff origin/main.",
-    "open_blockers[206] against a5-ntf-assessment-2026-10-10.md §6 F-1 and r0-review-2026-10-10-ntf2b.md R0-243-4."
+    "Read evidence/WP-0A-DB-00/product-owner-disposition-2026-10-15-governance-bundle-press.md, then git diff origin/main: one added line in each RFC header.",
+    "Check each note's quotations against RFC-2026-034 §3 and §2.2 and the A1-251f-2 / R0-251-43 texts in evidence/WP-0A-A0-001/."
   ],
   "superseded_by": null
 }
