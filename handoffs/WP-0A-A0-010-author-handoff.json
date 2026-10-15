@@ -5,13 +5,18 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "9b3ffbd56bd9c314e20c6e1634d5fe286cadbc92",
-  "head_revision_or_patch_checksum": "9b3ffbd56bd9c314e20c6e1634d5fe286cadbc92",
+  "head_revision_or_patch_checksum": "56325dc35c5e5d2edd261bb539fe48cc0d3ecc03",
   "task_ids": [
     "WP-0A-A0-010",
     "RFC-2026-034-§8-item-3"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-A0-010/product-owner-disposition-2026-10-15-governance-bundle-press.md",
+    "handoffs/WP-0A-A0-010-author-handoff.json"
+  ],
+  "files_modified": [
+    "work-packages/WP-0A-A0-010.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-034",
@@ -38,7 +43,48 @@
       "evidence": "evidence/WP-0A-A0-010/product-owner-disposition-2026-10-15-governance-bundle-press.md §2.1, compared by script against transcript lines 1631-1632 of session 325454ab"
     }
   ],
-  "tests": [],
+  "tests": [
+    {
+      "command": "node scripts/commit-when-clean.mjs <message-file> (change commit 56325dc3)",
+      "exit_code": 0,
+      "result": "clean: tests 831, pass 831, fail 0"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-010",
+      "exit_code": 0,
+      "result": "all 3 changed paths declared, and every amendment explains one"
+    },
+    {
+      "command": "npm run validate:protocol",
+      "exit_code": 0,
+      "result": "work packages, capability profiles and ownership validate"
+    },
+    {
+      "command": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A0-010.json",
+      "exit_code": 0,
+      "result": "four distinct core role ids"
+    },
+    {
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
+      "exit_code": 0,
+      "result": "tier H (work-packages/WP-0A-A0-010.json: ownership.amends_without_owning: not an object on both sides); lane: risk (tier H outside governance, records and audit). Not governance by path; A0 presses on the stricter conditions of the Owner's answer (four roles, CI green on both jobs)."
+    },
+    {
+      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD",
+      "exit_code": 1,
+      "result": "NOT records-only: the Owner disposition and the ownership.amends_without_owning change take the full path"
+    },
+    {
+      "command": "npm run regenerate:manifest",
+      "exit_code": 0,
+      "result": "rebuilt 128 digests; no file changed"
+    },
+    {
+      "command": "npm run check:handoff",
+      "exit_code": 0,
+      "result": "run after this handoff commit"
+    }
+  ],
   "security_privacy_cost_impact": "None. No code, schema, grant, policy, role, contract, RFC, CI or credential is touched. The added text is a record of an amendment already in effect and of the Owner's words; it holds commit SHAs, PR numbers and repository paths, and no secret or personal data.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "None.",
@@ -47,7 +93,7 @@
     "Whether open_blockers[1] is closed is A0's reading only; the roles decide."
   ],
   "open_risks_or_blockers": [
-    "Governance by the Owner's framing of item (5): A0 presses only after C0, A1, Q0 and R0 pass on the final head and CI is green on both jobs (required_human_authorities[1])."
+    "Lane is risk by the base's classifier (not governance): A1 and Q0 would suffice under RFC-2026-034 §2.2, but A0 presses only after C0, A1, Q0 and R0 pass on the final head and CI is green on both jobs, as the Owner's answer bounds it (required_human_authorities[1])."
   ],
   "rollback_or_forward_fix": "A reviewed revert PR of this increment's merge commit: open_blockers[1] returns to its pre-note text, required_human_authorities[1] and ownership.amends_without_owning are removed, and the disposition and this handoff are deleted. No status, rule or code depends on them.",
   "recommended_next_work_packages": [
