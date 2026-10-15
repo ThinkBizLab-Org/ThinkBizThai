@@ -4,16 +4,22 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "c9554ef99bb69f8894935b0c29f0b02f2e25247c",
-  "head_revision_or_patch_checksum": "3d23bbb36e894b97b8d673a88ab9a57d7cd6bfdf",
+  "base_revision": "0c35c265c79e8659b989b3e4c3812fe3e366b0ec",
+  "head_revision_or_patch_checksum": "94ca9650bccdc69b4d7438e1acb49ab36295f1b3",
   "task_ids": [
     "WP-0A-A0-001",
     "rfc-034-s8-item3-g0-024-note-2026-10-15"
   ],
-  "files_added": [],
+  "files_added": [
+    "evidence/WP-0A-A0-001/a1-review-2026-10-15-pr273.md",
+    "evidence/WP-0A-A0-001/c0-review-2026-10-15-pr273.md",
+    "evidence/WP-0A-A0-001/q0-review-2026-10-15-pr273.md",
+    "evidence/WP-0A-A0-001/r0-review-2026-10-15-pr273.md"
+  ],
   "files_modified": [
     "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-15-governance-bundle-press.md",
     "evidence/g0-tracker-th.md",
+    "handoffs/WP-0A-A0-001-author-handoff.json",
     "work-packages/WP-0A-A0-001.json"
   ],
   "files_deleted": [],
@@ -78,7 +84,7 @@
     "The classifier places this PR in the risk lane; A0's treatment of it as governance is a stricter reading, not the classifier's output."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE BUNDLE item (5), G0-024 part. Owed on the final head: C0, A1, Q0 and R0. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) only once all four have passed, CI is green on both jobs and no security finding is open, with --match-head-commit."
+    "GOVERNANCE (governance bundle). PR #273: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the G0-024 note, the disposition §6 and the manifest lines. No rule changed, so no behaviour depends on it.",
   "recommended_next_work_packages": [
