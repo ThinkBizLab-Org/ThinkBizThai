@@ -5,13 +5,15 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "2aef81825e198f298039ef3d8fa32200034d54f4",
-  "head_revision_or_patch_checksum": "206980055c1ae918923e04c6d0e96e03d3c1dae8",
+  "head_revision_or_patch_checksum": "c4ad9ff0f0d544d87f52bc8faa81e55b25e84190",
   "task_ids": [
     "WP-0A-A0-001",
     "round-audit-2026-10-15"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-001/a1-reread-2026-10-15-pr262.md",
     "evidence/WP-0A-A0-001/a1-review-2026-10-15-pr262.md",
+    "evidence/WP-0A-A0-001/c0-reread-2026-10-15-pr262.md",
     "evidence/WP-0A-A0-001/c0-review-2026-10-15-pr262.md",
     "evidence/WP-0A-A0-001/q0-review-2026-10-15-pr262.md",
     "evidence/WP-0A-A0-001/r0-review-2026-10-15-pr262.md",
@@ -32,7 +34,7 @@
   "contracts_produced_or_changed": [],
   "assumptions": [
     "THIS INCREMENT carries the first round audit under RFC-2026-034 §2.3 (§8 item 1): the four auditors' files evidence/audits/2026-10-15/{c0,a1,q0,r0}-audit.md, each cherry-picked with -x from its auditor's own commit (C0 1053e39f, A1 350e0b04, Q0 754a3bbc, R0 04a3f545, each cut from main 2aef8182), blob-equal; range main 8086281b (exclusive) to 2aef8182 (merges #252-#261). Their files are role verdicts, not records (RFC-2026-034 §2.3), written by the auditors; A0 wrote none of them and claims none of their verdicts.",
-    "The four role readings of this pull request (evidence/WP-0A-A0-001/{c0,a1,q0,r0}-review-2026-10-15-pr262.md) are carried with -x as well; this handoff is refreshed last and alone.",
+    "The role readings of this pull request are carried with -x: round one at c579681d (evidence/WP-0A-A0-001/{c0,a1,q0,r0}-review-2026-10-15-pr262.md: C0 changes_requested and A1 changes_requested on the stale handoff fields, Q0 test_verified, R0 ready), and C0's and A1's re-reads at bcb24b79 (c0-reread / a1-reread-2026-10-15-pr262.md: review_approved, security_approved, no finding open) after the handoff was rewritten; this handoff is refreshed last and alone.",
     "Not records-only: classify-records-only exits 1 on this range (audit files and role files are verdicts). The base's classifier prints lane: risk (see open_risks_or_blockers)."
   ],
   "acceptance_results": [
@@ -62,7 +64,7 @@
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes.",
   "known_limitations": [
-    "The audit lane of RFC-2026-034 §2.2 cannot pass CI as written while the handoff guard runs on WP-0A-A0-001's branch (C0-262-2, A1-262-2, R0-262-2 each name a governance fix; they differ on where: refresh-author-handoff drift base, a guard exemption for audit-only branches, or the audit row admitting a handoff-only tip commit). That is a later governance PR the Owner presses.",
+    "The audit lane of RFC-2026-034 §2.2 cannot pass CI as written while the handoff guard runs on WP-0A-A0-001's branch (C0-262-2, A1-262-2, Q0-262-1, R0-262-2 each name a governance fix; they differ on where: refresh-author-handoff drift base, a guard exemption for audit-only branches, or the audit row admitting a handoff-only tip commit). That is a later governance PR the Owner presses.",
     "The audit's findings (evidence/audits/2026-10-15/*) become fix PRs, each on its own lane; none is fixed here."
   ],
   "open_risks_or_blockers": [
