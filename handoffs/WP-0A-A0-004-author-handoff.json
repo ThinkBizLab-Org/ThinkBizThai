@@ -4,13 +4,17 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "047385f8855d01b09ea46b2e5c40bfedb9cd5042",
-  "head_revision_or_patch_checksum": "2b2fc695113ba50f9d71ed8df60e3349b23d5f7d",
+  "base_revision": "e78404680c43cb2cc6cbeb0386f7b7caabe53c4e",
+  "head_revision_or_patch_checksum": "9d21bf6ab3ebd96c4bf8bddb7f14b617b156bb73",
   "task_ids": [
     "WP-0A-A0-004",
     "pr270-pr263-records-2026-10-16"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-004/a1-review-2026-10-16-pr276.md",
+    "evidence/WP-0A-A0-004/c0-review-2026-10-16-pr276.md",
+    "evidence/WP-0A-A0-004/q0-review-2026-10-16-pr276.md",
+    "evidence/WP-0A-A0-004/r0-review-2026-10-16-pr276.md",
     "evidence/WP-0A-A0-004/records-transcription-2026-10-16.md"
   ],
   "files_modified": [
@@ -73,7 +77,7 @@
     "The carry clauses of Q0 and A1 on #270, as worded, do not except a main merge touching the integrity manifest, which 7f1c93e4 did; the transcription §3 sets this out and makes no reading of it."
   ],
   "open_risks_or_blockers": [
-    "RISK LANE (required_tests changed): RFC-2026-034 §2.2 asks A1 and Q0 to pass on the final head before A0 presses (Q-034-1); a records-only light-path reading alone does not suffice. Status stays in_review; open_blockers[14], [15] unchanged."
+    "GOVERNANCE (governance bundle). PR #276: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[20] and [21], restores the three ownership.amends_without_owning.paths, the earlier rationale and required_tests line, and removes records-transcription-2026-10-16.md (pr270-pr263-records-2026-10-16); nothing depends on them.",
   "recommended_next_work_packages": [
