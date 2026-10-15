@@ -1,6 +1,6 @@
 # RFC-2026-002 — Temporary manual merge control
 
-Status: Approved — provisional manual control; native protection/G0 not satisfied
+Status: Approved — provisional manual control; native protection/G0 not satisfied. NOTE 2026-10-15: AMENDED 2026-10-11 by [`RFC-2026-034`](RFC-2026-034-fast-lane.md) (fast lane), approved by the Product Owner and in effect from his merge of PR #251 (`8086281b`, 2026-10-11). RFC-2026-034 §3 names the rules of this RFC it amends, verbatim: `RFC-2026-002 Decision item 1 ("merge an undrafted/unreviewed change"), item 2 (the handoff links the independent Reviewer, Tester, conditional reviewers and Integration Owner verdict) and item 3 ("the Author cannot … integrate, or authorize their own work"; "the Product Owner may perform the final manual merge"), and its "Evidence and review" list`; and how, verbatim: `for the risk and fast lanes: "reviewed" means the lane's readers of §2.2; the handoff links those readers and, later, the audit verdict; pressing is not integrating (§2.2); A0 may press (Q-034-1); for an audit pull request, item 1's "reviewed" is met as Q-034-5 answers (R0-251-30). Items 4 and 5 unchanged (Q0-251-11)`. This note changes no rule text below; it records the amendment RFC-2026-034 §8 item 3 asks this RFC's owner to note.
 Decision needed by: G0 protected-CI evidence
 Owner: A0 Architecture/Integration + Product Owner
 Decision evidence: Product Owner directed that repository control be written as a manual rule instead of paying for a GitHub plan; repository remains private.
