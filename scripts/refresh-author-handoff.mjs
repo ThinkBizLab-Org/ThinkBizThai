@@ -23,6 +23,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 
+import { classifyTierRange, laneOfRange } from './db/classify-review-tier.mjs';
 import { claimantsOf, reportFor } from './verify-branch-identity.mjs';
 
 export const DRIFTED = 91;
@@ -64,6 +65,63 @@ export function driftBetween(cited, target) {
   }
   const since = changedIn(cited, target);
   return { state: 'drifted', paths: classify([...since.added, ...since.modified]).substantive };
+}
+
+// THE AUDIT LANE HAD NO GREEN HEAD (C0-262-2, A1-262-2, Q0-262-1, R0-262-2 on PR #262).
+//
+// RFC-2026-034 §2.2's Audit row is a pull request on WP-0A-A0-001's branch holding only the round
+// audit's files under `evidence/audits/<date>/`. A round audit follows substantive merges by
+// definition, so WP-0A-A0-001's handoff always cites a head that `main` has since moved past, and
+// the drift check above counted `main`'s substantive paths as the branch's. Refreshing the handoff
+// changes `handoffs/**`, which takes the pull request out of the audit lane (§2.3). So no audit
+// pull request could be both audit-lane and green.
+//
+// The exemption is keyed to the classifier's own audit predicate, by import, so the two cannot
+// disagree: the branch's diff since its merge-base with the integration branch is put to
+// `laneOfRange`, and only `lane: audit` qualifies. That predicate checks every path is an added or
+// modified regular file directly in ONE calendar-dated `evidence/audits/<date>/`, and that the
+// branch is WP-0A-A0-001's `ownership.branch` as the merge-base holds it. Then, and only then, the
+// drift is measured from that merge-base instead of from the cited head: what the branch itself
+// changed, which is audit files, which are written afterwards. Anything else -- one more path, a
+// second audit directory, another package's branch name -- is measured exactly as before.
+//
+// The classifier's fork check (head repository = base repository) is about where a pull request
+// comes from, which a checkout cannot see. Both are given as this one repository: the handoff guard
+// measures one clone's history. CI's lane step still runs that check with the real repositories,
+// and a pull request it does not place on the audit lane is read by that lane's readers.
+//
+// A path outside `evidence/audits/` is seen here before the classifier runs, so an ordinary branch
+// pays one `git diff --name-only` for this and never the classifier's walk. That narrows only: a
+// branch it lets through still has to be `audit` to the classifier.
+const THIS_REPOSITORY = '(this checkout)';
+
+export function auditLaneOf(branch, head = 'HEAD', refs = INTEGRATION_REFS) {
+  const point = branchPointOf(head, refs);
+  if (!point.ok) return { audit: false, reasons: [point.message.trim()] };
+  const { added, modified, deleted } = changedIn(point.base, head);
+  const paths = [...added, ...modified, ...deleted];
+  if (paths.length === 0) return { audit: false, base: point.base, reasons: ['the branch changes nothing since its merge-base'] };
+  const outside = paths.filter((path) => !path.startsWith('evidence/audits/'));
+  if (outside.length > 0) {
+    return { audit: false, base: point.base, reasons: [`not audit: ${outside.length} path(s) outside evidence/audits/, e.g. ${outside[0]}`] };
+  }
+  const lane = laneOfRange(point.base, classifyTierRange(point.base, head),
+    { headRef: branch, repo: THIS_REPOSITORY, headRepo: THIS_REPOSITORY });
+  return { audit: lane.lane === 'audit', base: point.base, reasons: lane.reasons };
+}
+
+// The drift check both callers use: `--check` below and the conformance test "the handoff for this
+// branch describes this branch". It is `driftBetween` unchanged unless that reports substantive
+// drift AND the branch is audit-lane by `auditLaneOf`; then the paths are the branch's own since
+// its merge-base, and the state says which measure was used. A citation on no path to the branch is
+// not drift and is not excused here either.
+export function handoffDrift(cited, target, branch, head = 'HEAD') {
+  const drift = driftBetween(cited, target);
+  if (drift.state !== 'drifted' || drift.paths.length === 0) return drift;
+  const audit = auditLaneOf(branch, head);
+  if (!audit.audit) return drift;
+  const since = changedIn(audit.base, head);
+  return { state: 'audit-lane', paths: classify([...since.added, ...since.modified]).substantive, base: audit.base, reasons: audit.reasons };
 }
 
 // WHICH PARENT OF A MERGE IS "the branch as it stood before this commit".
@@ -322,11 +380,19 @@ async function main(argv) {
   }
   const { base, recomputed } = baseFor(stored, branchPoint.base, head);
 
-  const drift = driftBetween(handoff.head_revision_or_patch_checksum, comparedAgainst);
+  const drift = handoffDrift(handoff.head_revision_or_patch_checksum, comparedAgainst, branch, head);
   if (drift.state === 'unrelated') {
     process.stderr.write(`${path} cites ${handoff.head_revision_or_patch_checksum.slice(0, 7)}, `
       + 'which is on no path to this branch.\n');
     return DRIFTED;
+  }
+  // An audit-lane branch (see auditLaneOf) leaves its handoff as `main` has it: its stored base is
+  // behind the branch point for the same reason its cited head is, `main` moved. Refreshing is still
+  // what the default mode does; doing it takes the pull request out of the audit lane.
+  if (checkOnly && drift.state === 'audit-lane' && drift.paths.length === 0) {
+    process.stdout.write(`${path} is not drift: this branch is audit-lane (RFC-2026-034 §2.2), so it is measured from its `
+      + `merge-base ${drift.base.slice(0, 7)}, and it changes nothing substantive since\n  ${drift.reasons.join('\n  ')}\n`);
+    return 0;
   }
   const trailing = { substantive: drift.paths };
   if (checkOnly && trailing.substantive.length === 0 && !recomputed) {
