@@ -4,50 +4,44 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "0d566c1f2747ef70b1d4ff2abf22359d386a8be8",
-  "head_revision_or_patch_checksum": "9f1c71e8f9f14e4e38e5a4bcfcfc658216a0bf50",
+  "base_revision": "c9554ef99bb69f8894935b0c29f0b02f2e25247c",
+  "head_revision_or_patch_checksum": "3d23bbb36e894b97b8d673a88ab9a57d7cd6bfdf",
   "task_ids": [
     "WP-0A-A0-001",
-    "rfc-034-s8-item3-rfc-002-note-2026-10-15"
+    "rfc-034-s8-item3-g0-024-note-2026-10-15"
   ],
-  "files_added": [
-    "evidence/WP-0A-A0-001/a1-review-2026-10-15-pr269.md",
-    "evidence/WP-0A-A0-001/c0-review-2026-10-15-pr269.md",
-    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-15-governance-bundle-press.md",
-    "evidence/WP-0A-A0-001/q0-review-2026-10-15-pr269.md",
-    "evidence/WP-0A-A0-001/r0-review-2026-10-15-pr269.md"
-  ],
+  "files_added": [],
   "files_modified": [
-    "architecture/decisions/RFC-2026-002-manual-merge-control.md",
-    "handoffs/WP-0A-A0-001-author-handoff.json",
-    "test-kits/integrity-manifest.json",
+    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-15-governance-bundle-press.md",
+    "evidence/g0-tracker-th.md",
     "work-packages/WP-0A-A0-001.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "RFC-2026-002",
     "RFC-2026-025",
+    "RFC-2026-031",
     "RFC-2026-034"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT is RFC-2026-034 §8 item 3, the RFC-2026-002 part only: RFC-2026-002's status line gains a dated note that RFC-2026-034 (merged #251 as 8086281b, 2026-10-11) amends it, quoting RFC-2026-034 §3's row for RFC-2026-002 verbatim (both cells, checked by script as substrings of RFC-2026-034). No rule text of RFC-2026-002 changes.",
-    "The Owner's authority for who presses it is question 2 (header \"ชุด governance\"), item (5), answered 2026-10-15T02:13:35.293Z `A0 กดเมื่อ 4 role ผ่าน ทีละ PR (Recommended)`, transcribed by script and compared byte for byte in evidence/WP-0A-A0-001/product-owner-disposition-2026-10-15-governance-bundle-press.md; question 1 concerns PR #265. A0's reading that this PR is item (5)'s RFC-2026-002 part only is marked as A0's there.",
-    "WP-0A-A0-001.json gains, as facts: an open_blockers line recording §8 item 1 (the first round audit, merged #262 as 5e0eef47) and this increment's §8 item 3 part (done only when this PR merges; the other item-3 notes stay owed by their owners, the G0 tracker's G0-024 among them, which is this package's path); a required_human_authorities entry mirroring the disposition; and amends_without_owning.paths = test-kits/integrity-manifest.json (WP-0A-A0-002's), the RFC-2026-002 digest only, rebuilt by npm run regenerate:manifest.",
-    "The change commit c9aa5791 also refreshed this handoff to cite 14716adf..14716adf: it still cited the PR #262 head, and the suite's 'the handoff for this branch describes this branch' failed on this branch name before any change, so commit-when-clean refused. This commit re-cites it to c9aa5791, last and alone."
+    "THIS INCREMENT is RFC-2026-034 §8 item 3, the G0 tracker's G0-024 part only: the G0-024 row of evidence/g0-tracker-th.md (a path of this package) gains one dated note, in Thai as the tracker is, appended to its \"ที่ขาด\" cell, that RFC-2026-034 (merged by the Owner in PR #251 as 8086281b, 2026-10-11) amends what the row describes, quoting RFC-2026-034 §3's row for \"RFC-2026-031 §6 item 2\" verbatim cell by cell (a | inside a table cell would break the row; both cells taken by script from the RFC's line). The row's existing text, its status, the counts and every other row are unchanged (checked by script: the old row is a prefix and suffix of the new, six | in both).",
+    "Which §3 row is relevant is A0's reading, marked in the disposition §6 (b): G0-024 records the conditional exit, whose closing conditions are RFC-2026-031 §6, and §3 amends that section in one row; the §3 row on RFC-2026-031 §3.3 / Decision Register line 373 / 2026-10-08 disposition §10.3 concerns writing application code, not the exit.",
+    "The Owner's authority for who presses it is question 2 (header \"ชุด governance\"), item (5), answered 2026-10-15T02:13:35.293Z `A0 กดเมื่อ 4 role ผ่าน ทีละ PR (Recommended)`, already transcribed in evidence/WP-0A-A0-001/product-owner-disposition-2026-10-15-governance-bundle-press.md §2 (PR #269) and compared again byte for byte by script with transcript lines 1631/1632 on this branch; §6 is added for this pull request, §1 to §5 kept whole. Question 1 concerns PR #265.",
+    "The Decision Register part of §8 item 3 (\"a note on Decision Register line 373 and §5.1 by the register's owner\") is recorded as owed in WP-0A-A0-001.json open_blockers: docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md is in no package's writable_paths or outputs.files on main c9554ef9 (read by script), so it waits for an owner. The manifest also gains a required_human_authorities entry mirroring the disposition, and amends_without_owning.paths is emptied (PR #269 merged; npm run regenerate:manifest rebuilds test-kits/integrity-manifest.json unchanged; the tracker is not digested).",
+    "The change commit 3d23bbb3 was made with git commit, not commit-when-clean, and the full verifier was run on the committed tree under the suite lock instead: on this branch name at main, before any change, the suite's 'the handoff for this branch describes this branch' (and its copy in ratchets-bite) fails because this handoff still cited PR #269's 9f1c71e8, so commit-when-clean refuses every first commit. The committed tree's npm run verify reported 829/831 with exactly those two failing (the stale handoff, after #272 moved WP-0A-A0-010.json); this commit, last and alone, re-cites the handoff to c9554ef9..3d23bbb3. The branch was rebased once onto origin/main c9554ef9 (PR #272 merged meanwhile, no shared path) before push; nothing was pushed."
   ],
   "acceptance_results": [
     {
-      "criterion": "The note quotes RFC-2026-034 §3's RFC-2026-002 row verbatim, names the rules and how they are amended, and changes no rule text; the disposition's verbatim parts match the transcript byte for byte",
-      "result": "pass for author self-check: substring checks by script against RFC-2026-034 and against transcript lines 1631/1632; git diff shows only line 3 of RFC-2026-002 changed"
+      "criterion": "The G0-024 note quotes RFC-2026-034 §3's relevant row verbatim, keeps the row's existing text whole, and changes nothing else in the tracker; the disposition's verbatim parts match the transcript byte for byte",
+      "result": "pass for author self-check: cells taken by script from RFC-2026-034's line; prefix/suffix and pipe-count check of the row; git diff shows one line of the tracker changed; transcript comparison script exit 0"
     }
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs (suite on c9aa5791's tree)",
-      "exit_code": 0,
-      "result": "clean: tests 827, pass 827, fail 0"
+      "command": "npm run verify (suite on 3d23bbb3's tree, under the suite lock)",
+      "exit_code": 1,
+      "result": "tests 831, pass 829, fail 2: 'the handoff for this branch describes this branch' and its ratchet copy, both the stale handoff this commit refreshes; the handoff commit's run is recorded in the PR body"
     },
     {
       "command": "npm run validate:protocol",
@@ -57,12 +51,17 @@
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-001",
       "exit_code": 0,
-      "result": "all 5 changed paths declared, every amendment explains one"
+      "result": "all 3 changed paths declared, every amendment explains one"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "tier H; lane governance (RFC-2026-002 is architecture/decisions/**; test-kits/integrity-manifest.json is the integrity manifest); base's classifier"
+      "result": "tier H; lane risk: evidence/g0-tracker-th.md is not an L or M path; tier H outside governance, records and audit; base's classifier. A0 treats the PR as governance (a gate record, as #214), the stricter reading; the Owner's answer requires all four roles either way"
+    },
+    {
+      "command": "npm run regenerate:manifest",
+      "exit_code": 0,
+      "result": "rebuilt 128 digests; test-kits/integrity-manifest.json unchanged"
     },
     {
       "command": "npm run check:handoff",
@@ -70,26 +69,26 @@
       "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Governance text and records only: one status-line note on RFC-2026-002, a Product Owner disposition, manifest records and one integrity digest. No code, CI, guard behaviour, contract or authority change; no credential, customer data or provider call.",
+  "security_privacy_cost_impact": "Records only: one dated note in the G0 tracker's G0-024 row, a section added to a Product Owner disposition, and manifest records. No code, CI, guard, rule text, contract or authority change; no credential, customer data or provider call.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes.",
   "known_limitations": [
-    "Only the RFC-2026-002 part of RFC-2026-034 §8 item 3. The notes on RFC-2026-025, RFC-2026-030, RFC-2026-031, the Decision Register line 373 and §5.1, WP-0A-A0-010 open_blockers[1] and the G0 tracker's G0-024 are not here.",
-    "RFC-2026-002 still does not note RFC-2026-025's earlier amendment of its 'the Product Owner may perform the final manual merge' clause, nor that native branch protection now exists (open_blockers[1]); neither is this task's.",
-    "WP-0A-A0-002's acknowledgement of the integrity-manifest line is owed on the merged head."
+    "Only the G0-024 part of RFC-2026-034 §8 item 3. The Decision Register note waits for an owner (no package owns the register); the notes on RFC-2026-025, -030, -031 and WP-0A-A0-010 open_blockers[1] are not here.",
+    "Which §3 row is 'relevant' to G0-024 is A0's reading; a role may hold that the §10.3 / application-code row should be quoted as well.",
+    "The classifier places this PR in the risk lane; A0's treatment of it as governance is a stricter reading, not the classifier's output."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (governance bundle). PR #269: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
+    "GOVERNANCE BUNDLE item (5), G0-024 part. Owed on the final head: C0, A1, Q0 and R0. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) only once all four have passed, CI is green on both jobs and no security finding is open, with --match-head-commit."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores RFC-2026-002's status line, removes the disposition and the manifest lines, and regenerates the integrity manifest. No rule changed, so no behaviour depends on it.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the G0-024 note, the disposition §6 and the manifest lines. No rule changed, so no behaviour depends on it.",
   "recommended_next_work_packages": [
-    "The other RFC-2026-034 §8 item 3 notes, each by its owner (RFC-2026-025, -030, -031; Decision Register; WP-0A-A0-010 open_blockers[1]; G0 tracker G0-024, this package's).",
-    "WP-0A-A0-002's acknowledgement of the integrity-manifest digest line."
+    "Name an owner for docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md so the Decision Register note of RFC-2026-034 §8 item 3 can be written.",
+    "Any remaining RFC-2026-034 §8 item 3 notes, each by its owner."
   ],
   "reviewer_instructions": [
-    "git diff origin/main --stat: RFC-2026-002 (line 3 only), the disposition, WP-0A-A0-001.json, test-kits/integrity-manifest.json (one digest), this handoff.",
-    "Compare the two backticked quotes in RFC-2026-002's status line with RFC-2026-034 §3's RFC-2026-002 row.",
+    "git diff origin/main --stat: evidence/g0-tracker-th.md (one line), the disposition (§6 added, §1 to §5 unchanged), WP-0A-A0-001.json, this handoff.",
+    "Compare the two backticked quotes in the G0-024 note with RFC-2026-034 §3's 'RFC-2026-031 §6 item 2' row; confirm the row's old text is kept whole.",
     "Compare the disposition §2.1 with transcript 325454ab lines 1631/1632 (question 2).",
-    "Run the base's classifier with --lane and confirm governance."
+    "Run the base's classifier with --lane (it prints risk) and judge A0's governance treatment."
   ]
 }
