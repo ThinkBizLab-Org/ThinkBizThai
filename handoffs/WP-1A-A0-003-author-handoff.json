@@ -4,8 +4,8 @@
   "work_package_id": "WP-1A-A0-003",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "2aef81825e198f298039ef3d8fa32200034d54f4",
-  "head_revision_or_patch_checksum": "ca8fde5fff544bb63ff7efd5c3bde099caf5d83c",
+  "base_revision": "5e0eef4749f569a94ce95208d8dca431a546550b",
+  "head_revision_or_patch_checksum": "897be837487606777d79c60a4b4ea9cef496ba8c",
   "task_ids": [
     "WP-1A-A0-003",
     "pr2-kernel-surface-and-runner-2026-10-15",
