@@ -115,3 +115,75 @@ a gate) is merged by the Owner personally**, never by delegation". A0's reading 
   third entry.
 - It amends no RFC and not `CONTRIBUTING_AGENTS.md`; like the precedents in §4, it quotes a direction under RFC-2026-025
   §5 item 6 and changes no rule.
+
+## 6. Addendum 2026-10-15: the two guard tests PR-2 must change (Owner's answer of 2026-10-15T02:13:35Z)
+
+Recorded by A0 (`/claude/a0_atlas`), drafted by a subagent of that run. Copied by script, byte for byte, from records
+1631 and 1632 of the same transcript (tool use `toolu_01NAEu1mQvAiKQ36d3yJDP5k`), and checked by script after writing; the times are the
+transcript's stamps (UTC). Everything marked "A0's reading" is A0's.
+
+### 6.1 Why it was asked
+
+Once PR-2's code commit (`099a7ddf`) tracked `index.ts` and `application/run.ts`, `npm run test:bootstrap` failed two
+tests of `test-kits/db/foundation-contract.test.mjs` that PR #260 wrote (RFC-2026-007 Amendment 2026-10-13 §C tests 2
+and 3): one pinned the named files not at the head as exactly the three platform-kernel files, the other asserted that
+none of them existed yet. Neither expected a pull request to create them. Changing them edits a guard test, which §3 (c)
+above places outside the direction of 2026-10-14T13:01:02Z, so A0 asked.
+
+### 6.2 Questions, options shown and answers (verbatim)
+
+Asked 2026-10-15T02:09:48Z (`2026-10-15T02:09:48.811Z`), answered 2026-10-15T02:13:35Z (`2026-10-15T02:13:35.293Z`),
+through the session's question tool, as one call of two questions, each single choice. Question 2 concerns other
+governance pull requests, not PR-2; it is transcribed here because it was asked in the same call, and this record
+reads nothing from it for PR-2.
+
+### Question 1 — header "guard test"
+
+**Q:** "PR-2 (index.ts + runner) ต้องแก้ guard test 2 ตัวใน test-kits/db/foundation-contract.test.mjs ที่ #260 เขียนไว้ว่า 'ไฟล์ platform-kernel 3 ไฟล์ยังไม่มี' (ไม่ได้คาดว่าจะมีการสร้าง) — ถ้าไม่แก้ CI ตก · การแก้แตะ guard ซึ่งคำสั่งเดิม (13:01:02Z) ไม่รวม จะให้ทำอย่างไร?"
+
+- **Options shown:**
+  - "รวมใน PR-2 + A0 กดเมื่อ 4 role ผ่าน (Recommended)" — "แก้เฉพาะ 2 test นั้นให้ยอมรับไฟล์ที่ถูกสร้าง (ยังตรวจคู่ยกเว้นครบ) ใน PR-2 เดียว · ไม่แตะ guard อื่น, CI, RFC · 4 role อ่าน + CI เขียว"
+  - "แยก PR governance แก้ test ก่อน, A0 กด" — "PR เล็กแก้ 2 test ก่อน (4 role) แล้ว PR-2 ค่อยตาม · ช้ากว่า 1 รอบ"
+  - "ผมกดเอง" — "A0 เตรียม PR + 4 role แล้วส่งคำสั่ง merge ให้คุณ"
+- **A:** "รวมใน PR-2 + A0 กดเมื่อ 4 role ผ่าน (Recommended)"
+
+### Question 2 — header "ชุด governance"
+
+**Q:** "งาน governance ที่คำสั่งเดิมไม่ครอบคลุม (ชุดข้อ 4): (1) A1-AUD1015-1 ย้าย npm audit/verify-release-age ใน CI ไปก่อนรันโค้ด package (2) แก้ audit lane ให้ผ่าน guard handoff ได้ (3) Q0-259-1 pin src/** ใน app-stack.test (4) Q0-257r6-1 test 3 จุด (5) status-line RFC-034 §8 item 3 — ใครกด?"
+
+- **Options shown:**
+  - "A0 กดเมื่อ 4 role ผ่าน ทีละ PR (Recommended)" — "เฉพาะ 5 เรื่องนี้ · แต่ละ PR 4 role + CI เขียว 2 job + ไม่มี security finding ค้าง · ไม่รวม dependency ใหม่"
+  - "A0 เตรียม, ผมกดเอง" — "A0 เปิด PR + 4 role แล้วส่งคำสั่ง merge ให้คุณทีละ PR"
+  - "ยังไม่ทำตอนนี้" — "บันทึกไว้เป็นงานค้าง ทำหลัง PR-2"
+- **A:** "A0 กดเมื่อ 4 role ผ่าน ทีละ PR (Recommended)"
+
+A0's translation of question 1 (A0's reading, not the Owner's words): "PR-2 (index.ts + runner) must change two guard
+tests in test-kits/db/foundation-contract.test.mjs that #260 wrote as 'the 3 platform-kernel files do not exist yet'
+(not expecting them to be created); without the change CI fails; the change touches a guard, which the earlier
+direction (13:01:02Z) excludes. What should be done?" The chosen option: "Include it in PR-2 + A0 presses once the 4
+roles pass" — "change only those 2 tests so they accept the created files (still checking the exception pairs in full)
+in the one PR-2 · touch no other guard, CI, RFC · 4 roles read + CI green".
+
+### 6.3 What it directs (A0's reading)
+
+- PR-2 may change exactly the two tests named, in `test-kits/db/foundation-contract.test.mjs` (the one at "a
+  records-only diff on the repository as it stands prints the records lane, …" and the one at "a pair listed for a file
+  a guard fixture names before it exists keeps the records lane once a pull request creates the file …"), so that they
+  hold whether or not the platform-kernel files exist, with every exception pair still checked in full; plus what the
+  integrity rules require for that edit (the regenerated digest of the file in `test-kits/integrity-manifest.json`). No
+  test is renamed or removed, so no name digest or floor moves.
+- Nothing else of a guard, CI, an RFC, either classifier (its `STRING_NAME_EXCEPTIONS` included) or
+  `CONTRIBUTING_AGENTS.md` is reached; §3 (b) and (c) above otherwise stand.
+- A0 presses PR-2 with this edit once C0, A1, Q0 and R0 pass on its final head, CI is green on both jobs, no security
+  finding of any grade is open against it and its head contains current `main`.
+
+### 6.4 RFC-2026-025 §5 item 6
+
+As §4 above: an Owner-directed exception to the last bullet, for PR-2 with these two tests only; the third bullet met
+because the question named the change and the pull request (PR-2, not yet open) before it existed; the other
+conditions kept.
+
+### 6.5 What it does not decide
+
+Whether the edited tests are right (the four roles' reading); anything in question 2, whose pull requests carry their
+own records; and any later change to these tests or to the exception list.

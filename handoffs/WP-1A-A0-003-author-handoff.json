@@ -5,14 +5,33 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "2aef81825e198f298039ef3d8fa32200034d54f4",
-  "head_revision_or_patch_checksum": "2aef81825e198f298039ef3d8fa32200034d54f4",
+  "head_revision_or_patch_checksum": "099a7ddf262fae99f578dc2d97a1d49556720d9d",
   "task_ids": [
     "WP-1A-A0-003",
     "pr2-kernel-surface-and-runner-2026-10-15",
     "pr2-round-audit-2026-10-15-items"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-1A-A0-003/product-owner-disposition-2026-10-15-kernel-surface-press.md",
+    "src/modules/platform-kernel/application/run.test.ts",
+    "src/modules/platform-kernel/application/run.ts",
+    "src/modules/platform-kernel/index.test.ts",
+    "src/modules/platform-kernel/index.ts"
+  ],
+  "files_modified": [
+    "handoffs/WP-1A-A0-003-author-handoff.json",
+    "src/modules/platform-kernel/application/envelope.test.ts",
+    "src/modules/platform-kernel/application/envelope.ts",
+    "src/modules/platform-kernel/application/fakes.ts",
+    "src/modules/platform-kernel/application/ports.ts",
+    "src/modules/platform-kernel/application/tenant-context.test.ts",
+    "src/modules/platform-kernel/application/tenant-context.ts",
+    "src/modules/platform-kernel/domain/idempotency.test.ts",
+    "src/modules/platform-kernel/domain/idempotency.ts",
+    "src/modules/platform-kernel/domain/stable-error.test.ts",
+    "src/modules/platform-kernel/domain/stable-error.ts",
+    "work-packages/WP-1A-A0-003.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -66,12 +85,12 @@
     {
       "command": "npm run typecheck",
       "exit_code": 0,
-      "result": "tsc --noEmit clean over apps/** and src/** on 2aef8182"
+      "result": "tsc --noEmit clean over apps/** and src/** on 099a7ddf"
     },
     {
       "command": "npm run test:app",
       "exit_code": 0,
-      "result": "8 test files, 291 tests passed on 2aef8182 (224 at 2aef8182)"
+      "result": "8 test files, 291 tests passed on 099a7ddf (224 at 2aef8182)"
     },
     {
       "command": "node scripts/verify-app-boundaries.mjs --require-parser",
@@ -81,7 +100,7 @@
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-003",
       "exit_code": 0,
-      "result": "pending (measured after the code commit)"
+      "result": "all 17 changed paths declared on 099a7ddf against origin/main 2aef8182, every amendment explains one"
     },
     {
       "command": "npm run validate:protocol",
@@ -101,7 +120,7 @@
     {
       "command": "npm run check (through scripts/commit-when-clean.mjs, under the suite lock)",
       "exit_code": 0,
-      "result": "clean before the code commit: npm run check through scripts/commit-when-clean.mjs under the suite lock (count recorded in the handoff commit)"
+      "result": "clean on the code commit 099a7ddf: 827 tests, 827 pass (two earlier attempts refused by the guard: the handoff still cited a range PR #261 left, fixed in the same commit)"
     },
     {
       "command": "author negative controls (local mutations, reverted)",
@@ -111,7 +130,7 @@
     {
       "command": "lane: node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "pending (measured after the code commit)"
+      "result": "on 099a7ddf with main 2aef8182 and the base's classifier: tier H (17 paths), lane governance; the only governance reasons are \"src/modules/platform-kernel/application/run.ts\" and \"src/modules/platform-kernel/index.ts\" (named by a string by a module the classifier reads); the tier-H reasons are the platform-kernel paths (module not on the allowlist; \"tenant\" in the path) and the manifest's outputs and open_blockers[0], [10]-[16] (reworded: the Q9 insertion shifted the later entries)"
     },
     {
       "command": "verbatim check of the disposition (script)",
