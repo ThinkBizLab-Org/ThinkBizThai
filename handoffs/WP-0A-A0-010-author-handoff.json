@@ -4,14 +4,18 @@
   "work_package_id": "WP-0A-A0-010",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "9b3ffbd56bd9c314e20c6e1634d5fe286cadbc92",
-  "head_revision_or_patch_checksum": "56325dc35c5e5d2edd261bb539fe48cc0d3ecc03",
+  "base_revision": "dab0ed55437daeb998164f284acc410800fdb4eb",
+  "head_revision_or_patch_checksum": "bd015a2d887f48a87ecb34fb44444e705c35ac51",
   "task_ids": [
     "WP-0A-A0-010",
     "RFC-2026-034-§8-item-3"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-010/a1-review-2026-10-15-pr272.md",
+    "evidence/WP-0A-A0-010/c0-review-2026-10-15-pr272.md",
     "evidence/WP-0A-A0-010/product-owner-disposition-2026-10-15-governance-bundle-press.md",
+    "evidence/WP-0A-A0-010/q0-review-2026-10-15-pr272.md",
+    "evidence/WP-0A-A0-010/r0-review-2026-10-15-pr272.md",
     "handoffs/WP-0A-A0-010-author-handoff.json"
   ],
   "files_modified": [
@@ -93,7 +97,7 @@
     "Whether open_blockers[1] is closed is A0's reading only; the roles decide."
   ],
   "open_risks_or_blockers": [
-    "Lane is risk by the base's classifier (not governance): A1 and Q0 would suffice under RFC-2026-034 §2.2, but A0 presses only after C0, A1, Q0 and R0 pass on the final head and CI is green on both jobs, as the Owner's answer bounds it (required_human_authorities[1])."
+    "GOVERNANCE (governance bundle). PR #272: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
   ],
   "rollback_or_forward_fix": "A reviewed revert PR of this increment's merge commit: open_blockers[1] returns to its pre-note text, required_human_authorities[1] and ownership.amends_without_owning are removed, and the disposition and this handoff are deleted. No status, rule or code depends on them.",
   "recommended_next_work_packages": [
