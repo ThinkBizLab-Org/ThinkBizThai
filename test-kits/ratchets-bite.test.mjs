@@ -619,6 +619,28 @@ test('the verifier cannot report clean over a failing check, and the gate refuse
     'and the shape needs saying in words, because the numbers look clean');
 });
 
+// A copy's own git directory. In a linked worktree `.git` is a FILE naming the worktree's gitdir, so
+// a copy made by `repositoryCopy` shares the real worktree's index: the commit gate stages before it
+// verifies (Q0-265-4), and `git add -A` in the copy would stage the copy's tree into the checkout the
+// suite was run from. The commit gate's cases get a repository of their own instead: the copy's tree
+// as one commit, nothing else. Its configuration is local, so the gate's own `git commit` has an
+// identity, and git starts nothing in the background that could still be writing when the copy is
+// removed (measured: `rm` failed with ENOTEMPTY on `.git/objects` until auto-maintenance was off).
+async function isolateGit(root) {
+  await rm(join(root, '.git'), { recursive: true, force: true });
+  const git = (...args) => {
+    const result = spawnSync('git', args, { cwd: root, encoding: 'utf8', env: CHILD_ENV });
+    assert.equal(result.status, 0, `git ${args.join(' ')} in the copy: ${result.stderr}`);
+    return result.stdout.trim();
+  };
+  git('-c', 'init.defaultBranch=main', 'init', '-q');
+  for (const [key, value] of [['user.name', 'ratchet'], ['user.email', 'ratchet@invalid'], ['commit.gpgsign', 'false'],
+    ['gc.auto', '0'], ['maintenance.auto', 'false'], ['core.fsmonitor', 'false']]) git('config', key, value);
+  git('add', '-A');
+  git('commit', '-qm', 'the copy');
+  return git;
+}
+
 test('the commit gate refuses a red tree, and is executed rather than digested', async () => {
   // `commit-when-clean.mjs` appeared in the repository only as two digest entries -- no test of
   // any kind executed it, and a digest pins bytes while only running the thing pins behaviour. Two
@@ -629,6 +651,7 @@ test('the commit gate refuses a red tree, and is executed rather than digested',
   // the suite running, and nothing any guard pins is touched.
   const root = await repositoryCopy();
   try {
+    await isolateGit(root);
     const planted = ['AKIA', 'Q'.repeat(16)].join('');
     await writeFile(join(root, 'docs/planted-for-a-ratchet.md'), `key = ${planted}\n`);
     const message = join(root, 'commit-message.txt');
@@ -637,6 +660,69 @@ test('the commit gate refuses a red tree, and is executed rather than digested',
     const gate = spawnSync('node', ['scripts/commit-when-clean.mjs', message], { cwd: root, encoding: 'utf8', env: CHILD_ENV });
     assertFailed(gate, 'the commit gate must refuse a tree the verifier reports NOT clean');
     assert.doesNotMatch(`${gate.stdout}${gate.stderr}`, /^\[.* [0-9a-f]{7}\]/m, 'and it must not have produced a commit');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+// THE GATE VERIFIED A TREE IT DID NOT COMMIT (Q0-265-4, R0-265-4). `commit-when-clean.mjs` ran the
+// verifier and only then `git add -A`, so a file the commit ADDS was untracked while the suite ran,
+// and a guard that reads the index (`git ls-files`) passed over a tree without it. Here the guard is
+// a real one: A1-257-9's case in test-kits/app-boundaries.test.mjs, which refuses any tracked file
+// under a `.config/` directory, read from `git ls-files`. A new `.config/` file must make the gate
+// refuse, and leave it untracked; under the old order the guard never saw it and the gate committed
+// it at exit 0.
+//
+// The verifier is narrowed to that one guard for the reason the case above gives about the WHOLE
+// check: this suite is in it, so running it here re-enters itself. It prints the clean line the
+// gate reads only when that guard's run exits 0 having passed a test, as `verify-clean-run.mjs`
+// does; it cannot import that script's `decide`, because importing it runs the coverage-floor
+// guard, which refuses this copy's edited package.json. What is under test is the gate's order,
+// not the verifier. A harmless new file is the control: the same gate and verifier commit it.
+test('the commit gate verifies the tree it commits: a new file a guard refuses is refused before it is tracked', async () => {
+  const root = await repositoryCopy();
+  try {
+    const packagePath = join(root, 'package.json');
+    const manifest = JSON.parse(await readFile(packagePath, 'utf8'));
+    manifest.scripts.verify = 'node gate-verifier.mjs';
+    await writeFile(packagePath, `${JSON.stringify(manifest, null, 2)}\n`);
+    await writeFile(join(root, 'gate-verifier.mjs'), [
+      "import { spawnSync } from 'node:child_process';",
+      'const env = { ...process.env };',
+      'delete env.NODE_TEST_CONTEXT;',
+      'delete env.NODE_OPTIONS;',
+      "const run = spawnSync(process.execPath, ['--test', '--test-name-pattern=^A1-257-9: a tracked', 'test-kits/app-boundaries.test.mjs'], { encoding: 'utf8', env });",
+      "const output = `${run.stdout ?? ''}${run.stderr ?? ''}`;",
+      "const count = (key) => Number(output.match(new RegExp(`^ℹ ${key} (\\\\d+)$`, 'm'))?.[1] ?? 0);",
+      'if (run.status === 0 && count(\'pass\') > 0) {',
+      "  process.stdout.write(`clean: exit 0 — tests ${count('tests')}, pass ${count('pass')}, fail ${count('fail')}\\n`);",
+      '  process.exit(0);',
+      '}',
+      "process.stderr.write(`NOT clean: exit ${run.status}\\n${output}`);",
+      'process.exit(run.status || 1);',
+      '',
+    ].join('\n'));
+    const git = await isolateGit(root);
+    const message = join(root, '.git', 'probe-message.txt');
+    const gate = () => spawnSync('node', ['scripts/commit-when-clean.mjs', message], { cwd: root, encoding: 'utf8', env: CHILD_ENV });
+
+    // The control: a new file no guard refuses is committed.
+    await writeFile(message, 'probe: a harmless new file\n');
+    await writeFile(join(root, 'docs/harmless-for-a-ratchet.md'), 'nothing a guard refuses\n');
+    const control = gate();
+    assert.equal(control.status, 0, `the gate must commit a clean tree through the narrowed verifier:\n${control.stdout}${control.stderr}`);
+    assert.ok(git('ls-files').split('\n').includes('docs/harmless-for-a-ratchet.md'), 'and the control file is committed');
+    const head = git('rev-parse', 'HEAD');
+
+    // The case: a new, untracked file the guard refuses once it is tracked.
+    await writeFile(message, 'probe: this commit must be refused\n');
+    await mkdir(join(root, '.config'), { recursive: true });
+    await writeFile(join(root, '.config/planted-for-a-ratchet.txt'), 'a file under a .config/ directory\n');
+    const refused = gate();
+    assertFailed(refused, 'the gate must refuse a new file the guard refuses once it is tracked: the verifier must read the tree the commit takes');
+    assert.equal(git('rev-parse', 'HEAD'), head, 'and it must not have produced a commit');
+    assert.ok(!git('ls-files').split('\n').includes('.config/planted-for-a-ratchet.txt'),
+      'and the refusal leaves the index as it found it: the planted file is not left staged');
   } finally {
     await rm(root, { recursive: true, force: true });
   }
