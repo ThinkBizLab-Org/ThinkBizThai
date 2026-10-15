@@ -181,9 +181,12 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   // of 2026-10-15T02:13:35Z): app-boundaries 28 to 29 (a next.config or postcss.config whose default export is
   // a call), app-stack 15 to 18 (src/** in the type check; the graph check's controls runner; the boundary
   // CLI's agreement rule). No test removed or renamed.
+  // A1-AUD1015-1 (2026-10-15, WP-0A-A0-004): app-stack 15 to 16 (npm audit and the release age before
+  // any step that executes package code); merged with the follow-up above, app-stack 18 to 19. No test
+  // removed or renamed.
   'test-kits/app-dependencies.test.mjs': 14,
   'test-kits/app-boundaries.test.mjs': 29,
-  'test-kits/app-stack.test.mjs': 18,
+  'test-kits/app-stack.test.mjs': 19,
 };
 
 // Independent review eighteen answered the question the per-file floor was written to close, and
@@ -387,9 +390,11 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   // (2026-10-12; A1-257-8, A1-257-9): app-boundaries 96 to 124, app-stack 106 to 120. The fifth round
   // (2026-10-12; A1-257-10): app-boundaries 124 to 144, app-stack 120 to 137. The governance-bundle
   // follow-up (2026-10-15; Q0-259-1, Q0-257r6-1): app-boundaries 144 to 155, app-stack 137 to 168.
+  // A1-AUD1015-1 (2026-10-15, WP-0A-A0-004): app-stack 137 to 144 on its own; merged with the follow-up,
+  // app-stack 168 to 175.
   'test-kits/app-dependencies.test.mjs': 65,
   'test-kits/app-boundaries.test.mjs': 155,
-  'test-kits/app-stack.test.mjs': 168,
+  'test-kits/app-stack.test.mjs': 175,
 };
 
 // Independent review eighteen defeated the test-count floor by hollowing a suite while preserving
@@ -466,9 +471,11 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   // (2026-10-12; A1-257-10, A1's letter-case advisory) adds two tests to each; none is renamed, and both
   // name digests move. The governance-bundle follow-up (2026-10-15; Q0-259-1, Q0-257r6-1) adds one test to
   // app-boundaries and three to app-stack; none is renamed, and both name digests move.
+  // A1-AUD1015-1 (2026-10-15, WP-0A-A0-004) adds one test to app-stack; none is renamed, and its name
+  // digest moves (measured on the merge with the follow-up).
   'test-kits/app-dependencies.test.mjs': '491abfa45804df35',
   'test-kits/app-boundaries.test.mjs': '1d26d994f5722840',
-  'test-kits/app-stack.test.mjs': '6a2621b1b423d452',
+  'test-kits/app-stack.test.mjs': 'f66a1687560ef35f',
 };
 
 // How many reversals `ratchets-bite.test.mjs` puts through a suite. Independent review twenty
