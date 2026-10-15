@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-010",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "in_review",
+  "base_revision": "9b3ffbd56bd9c314e20c6e1634d5fe286cadbc92",
+  "head_revision_or_patch_checksum": "9b3ffbd56bd9c314e20c6e1634d5fe286cadbc92",
+  "task_ids": [
+    "WP-0A-A0-010",
+    "RFC-2026-034-§8-item-3"
+  ],
+  "files_added": [],
+  "files_modified": [],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "RFC-2026-034",
+    "RFC-2026-025",
+    "RFC-2026-031"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "RFC-2026-034 §8 item 3 INCREMENT 2026-10-15, the WP-0A-A0-010 open_blockers[1] part only. open_blockers[1] keeps its old text whole as prefix and gains a dated note that RFC-2026-034 (merged #251, 8086281b, 2026-10-11) amends what it describes, quoting RFC-2026-034 §3's row '| `CONTRIBUTING_AGENTS.md` \"Current gate constraint\" | §7 (a) |' verbatim and the first clause of the passage now on main. That #251 is the governance PR the entry owed, so the contradiction no longer stands, is A0's reading, marked as such, for the roles to contest.",
+    "The manifest's status is not moved (integration_verified). final_status here is in_review because an author handoff moves work no further; it describes this increment only.",
+    "This package had no author handoff (its 2026-10-08 record rode on WP-0A-A0-001's branch, PR #214). This branch is the first on its own ownership.branch, so it creates handoffs/WP-0A-A0-010-author-handoff.json, declared under ownership.amends_without_owning with a reason.",
+    "Who presses: the Owner's 2026-10-15T02:13:35.293Z answer to question 2 (item (5)), transcribed verbatim by script in evidence/WP-0A-A0-010/product-owner-disposition-2026-10-15-governance-bundle-press.md and mirrored as required_human_authorities[1]: A0 presses only after C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs, no security finding is open, no new dependency."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "open_blockers[1]'s old text is kept whole as the prefix; the note quotes RFC-2026-034 §3's row verbatim and the CONTRIBUTING_AGENTS.md passage verbatim; status unchanged.",
+      "result": "met for author self-check",
+      "evidence": "a script checked the row is a line of architecture/decisions/RFC-2026-034-fast-lane.md and the quoted clause is a substring of CONTRIBUTING_AGENTS.md; git diff shows only appended text in open_blockers[1]"
+    },
+    {
+      "criterion": "The Owner's question 2 (header, question, all three options with descriptions, answer) is transcribed byte for byte.",
+      "result": "met for author self-check",
+      "evidence": "evidence/WP-0A-A0-010/product-owner-disposition-2026-10-15-governance-bundle-press.md §2.1, compared by script against transcript lines 1631-1632 of session 325454ab"
+    }
+  ],
+  "tests": [],
+  "security_privacy_cost_impact": "None. No code, schema, grant, policy, role, contract, RFC, CI or credential is touched. The added text is a record of an amendment already in effect and of the Owner's words; it holds commit SHAs, PR numbers and repository paths, and no secret or personal data.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "None.",
+  "known_limitations": [
+    "Item (5) has other parts (RFC-2026-002, -025, -030, -031 status lines, the Decision Register, G0-024); this pull request carries none of them.",
+    "Whether open_blockers[1] is closed is A0's reading only; the roles decide."
+  ],
+  "open_risks_or_blockers": [
+    "Governance by the Owner's framing of item (5): A0 presses only after C0, A1, Q0 and R0 pass on the final head and CI is green on both jobs (required_human_authorities[1])."
+  ],
+  "rollback_or_forward_fix": "A reviewed revert PR of this increment's merge commit: open_blockers[1] returns to its pre-note text, required_human_authorities[1] and ownership.amends_without_owning are removed, and the disposition and this handoff are deleted. No status, rule or code depends on them.",
+  "recommended_next_work_packages": [
+    "The remaining item (5) notes under RFC-2026-034 §8 item 3, each by its owner: RFC-2026-025, RFC-2026-030, RFC-2026-031, the Decision Register line 373 and §5.1, and the G0 tracker's G0-024."
+  ],
+  "reviewer_instructions": [
+    "Compare open_blockers[1] with origin/main's: the old text must be an exact prefix; read the appended note against RFC-2026-034 §3, §7 (a) and §8 item 3.",
+    "Compare evidence/WP-0A-A0-010/product-owner-disposition-2026-10-15-governance-bundle-press.md §2.1 with the transcript record (lines 1631-1632) byte for byte.",
+    "Run node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-010 and node scripts/db/classify-review-tier.mjs origin/main HEAD --lane on the final head."
+  ]
+}
