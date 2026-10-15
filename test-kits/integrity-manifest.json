@@ -39,7 +39,7 @@
     "architecture/decisions/RFC-2026-028-worker-identity.md": "f65921eddc0ec6531b76872bca226a6a1be5912dc6d5e090467421e10cff6f75",
     "architecture/decisions/RFC-2026-029-application-tier-stack.md": "9894050f40f59934f5b696c3c44430f8a7f112e36517a0908eb9e380bfae1e34",
     "architecture/decisions/RFC-2026-030-risk-tiered-review.md": "541e9e86eac30aec2fbbbb465378a9f94b0ac30326468191f0cd0d8502b5e3c9",
-    "architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md": "987a348d7517684da6b3dd216d6e5e344fd56e4d7ae00f83047b6d041276f3b4",
+    "architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md": "91976af8b6c0c28162e2cae42df0c05fc65f1a220736e9f6c720539036e387a5",
     "architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md": "e3f3df2e322bc6435a455669609770845c311fa5355752bd1503e07e8e833b07",
     "architecture/decisions/RFC-2026-033-obs-label-cardinality.md": "a0bc1463894151b58e963f3dd41a6917b4581e8e42a86909e7beffcf26ecd684",
     "architecture/decisions/RFC-2026-034-fast-lane.md": "61142d84712068a8cf403c9b2a5c1c4046d8dd88c770749289bd204a3b86a756",
@@ -128,7 +128,7 @@
     "tests/db/identity/identity-isolation.test.mjs": "902679e108727dd74d71aa9cade5a2f2f9e1eb431115d151c82113197cd619ae",
     "tests/db/identity/isolation-cases.mjs": "bac0e46ce5ed241dcbf26e46f56a6e48c4bd3ca554e8c244e91ef1ebe2576fc7",
     "tests/db/identity/run-isolation.mjs": "b7df49228d82af244ba7a5ec14508ed674d11293082014cc265275fbe7823d9b",
-    "work-packages/WP-0A-CON-008.json": "45bb9c93818daa454783493427ed07446d96ef4215dc772da384fa2f50645c99"
+    "work-packages/WP-0A-CON-008.json": "ebd3572eb85ba201e13f9b83ac078089f2a6ebbad58f9d13c0350380a018ac71"
   },
   "cross_package_note": "Any package that adds a test file must add it here, because the guard requires every discovered test file to be digested. This is a deliberate coupling: an unprotected suite can be gutted with the manifest byte-identical. It surfaced when WP-0A-CON-002 added three contract suites and CI failed at exit 87 while a local run on the unrebased branch passed - GitHub tests the MERGE of head into base, so a stacked branch that has not been rebased does not see its own integration."
 }
