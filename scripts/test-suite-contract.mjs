@@ -133,7 +133,8 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/contracts/shared-kernel-contract-catalog.test.mjs': 6,
   'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': 15,
   'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': 6,
-  'test-kits/handoff-conformance.test.mjs': 19,
+  // WP-0A-CON-008 (2026-10-15, C0-262-2, A1-262-2, Q0-262-1, R0-262-2): the audit lane's four handoff-drift cases, 19 to 23.
+  'test-kits/handoff-conformance.test.mjs': 23,
   'test-kits/integrity-manifest-rebuild.test.mjs': 3,
   'test-kits/protocol-schema-conformance.test.mjs': 4,
   // RFC-2026-031 §7.1: the declared-gap rules reversed in their source, 19 to 20.
@@ -355,7 +356,8 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/contracts/shared-kernel-contract-catalog.test.mjs': 25,
   'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': 50,
   'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': 11,
-  'test-kits/handoff-conformance.test.mjs': 63,
+  // WP-0A-CON-008 (2026-10-15, C0-262-2, A1-262-2, Q0-262-1, R0-262-2): the audit lane's four handoff-drift cases, 63 to 74 assertions.
+  'test-kits/handoff-conformance.test.mjs': 74,
   'test-kits/integrity-manifest-rebuild.test.mjs': 10,
   'test-kits/protocol-schema-conformance.test.mjs': 6,
   'test-kits/ratchets-bite.test.mjs': 36,
@@ -421,7 +423,8 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/contracts/shared-kernel-contract-catalog.test.mjs': 'bd0c948ddd7fa982',
   'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': 'b56843602dd83c11',
   'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': '99724af4706e30ad',
-  'test-kits/handoff-conformance.test.mjs': 'aae5740519f84c40',
+  // WP-0A-CON-008 (2026-10-15): four names added, none removed or renamed.
+  'test-kits/handoff-conformance.test.mjs': '26c4caea710dd1c9',
   'test-kits/integrity-manifest-rebuild.test.mjs': '91b24d70c4ac8fcb',
   'test-kits/protocol-schema-conformance.test.mjs': 'dc9a77399529cead',
   'test-kits/ratchets-bite.test.mjs': '319ac851dad85691',

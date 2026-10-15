@@ -4,81 +4,107 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "f0b948c78a02211805dcb22bf0922a26404a6b41",
-  "head_revision_or_patch_checksum": "7c1c04e6dc2ec9496066644f39ceadc14b61652b",
+  "base_revision": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
+  "head_revision_or_patch_checksum": "11fa3163435f2f16292f6c6cbdeb568e521712ac",
   "task_ids": [
     "WP-0A-CON-008",
-    "PR245-records-2026-10-11"
+    "governance-bundle-item-2-audit-lane-2026-10-15"
   ],
   "files_added": [
-    "evidence/WP-0A-CON-008/a1-review-2026-10-11-pr249.md",
-    "evidence/WP-0A-CON-008/c0-review-2026-10-11-pr249.md",
-    "evidence/WP-0A-CON-008/q0-review-2026-10-11-pr249.md",
-    "evidence/WP-0A-CON-008/r0-review-2026-10-11-pr249.md",
-    "evidence/WP-0A-CON-008/records-transcription-2026-10-11.md"
+    "evidence/WP-0A-CON-008/a1-review-2026-10-15-pr266.md",
+    "evidence/WP-0A-CON-008/c0-review-2026-10-15-pr266.md",
+    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-15-governance-bundle-press.md",
+    "evidence/WP-0A-CON-008/q0-review-2026-10-15-pr266.md",
+    "evidence/WP-0A-CON-008/r0-review-2026-10-15-pr266.md"
   ],
   "files_modified": [
+    "evidence/VERIFICATION.md",
     "handoffs/WP-0A-CON-008-author-handoff.json",
+    "scripts/refresh-author-handoff.mjs",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/handoff-conformance.test.mjs",
     "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-CON-008.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "DEC-021",
-    "RFC-2026-010",
-    "RFC-2026-025"
+    "RFC-2026-034",
+    "RFC-2026-025",
+    "RFC-2026-030"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT records R0's post-merge words for PR #245 (r0-review-2026-10-11-ntf4.md §7), appended to open_blockers[12] with the old text whole, and the status record in_review -> integration_verified on R0's behalf as open_blockers[14]. test-kits/integrity-manifest.json is regenerated because this manifest is digested there. The branch was cut at #245's merge, so the handoff range was set to the branch point by hand and then regenerated.",
-    "Records only: every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-CON-008/records-transcription-2026-10-11.md.",
-    "Path: the full path (C0, A1, Q0, R0 on the final head, CI green), as the Owner directed for this session."
+    "THIS INCREMENT is item (2) of the Owner's 2026-10-15 governance bundle (question 2, evidence/WP-0A-CON-008/product-owner-disposition-2026-10-15-governance-bundle-press.md): RFC-2026-034 §2.2's Audit lane made passable in CI, as C0-262-2, A1-262-2, Q0-262-1 and R0-262-2 on PR #262 asked. scripts/refresh-author-handoff.mjs gains auditLaneOf and handoffDrift: when the branch's diff since its merge-base with the integration branch is lane: audit by the base classifier's own predicate (classifyTierRange and laneOfRange imported from scripts/db/classify-review-tier.mjs, not copied; the classifier keeps AUDIT_PATH and calendarDate unexported, so the exported lane function is what is reused), the drift check measures from that merge-base; anything else is measured as before, and a citation on no path to the branch still fails.",
+    "Lane: governance (RFC-2026-034 §2.2): scripts/refresh-author-handoff.mjs, test-kits/handoff-conformance.test.mjs and scripts/test-suite-contract.mjs are governance paths. Read by C0, A1, Q0 and R0 on the final head. A0 presses only on the Owner's 2026-10-15 direction and its conditions (four roles pass, CI green on both jobs, no open security finding, no new dependency).",
+    "The classifier's fork check is given this checkout as both repositories ('(this checkout)'): a checkout cannot see where a pull request comes from. CI's lane step still runs that check with the real repositories. A path outside evidence/audits/ is rejected before the classifier runs, which only narrows."
   ],
   "acceptance_results": [
     {
-      "criterion": "Recorded words match their sources; old entries byte-equal; no status, contract, test or script change beyond what is stated",
-      "result": "pass for author self-check: extracted by script from the cited role files"
+      "criterion": "An audit-only branch on WP-0A-A0-001's branch over a moved main passes the drift check (npm run check:handoff and the conformance test)",
+      "result": "pass for author self-check: test 'an audit-only branch on a moved main is not drift'; against origin/main's refresh-author-handoff.mjs the same test fails (negative control run by the author); and on a scratch branch named WP-0A-A0-001's ownership.branch, cut from origin/main 94c858f0 with one file under evidence/audits/2026-10-16/, check:handoff exited 0 with the fix and 91 without, and the live conformance test passed with the fix and failed without"
+    },
+    {
+      "criterion": "The same branch plus one substantive path, an audit-only branch under another package's branch name, and a branch adding src/** on the audit branch all still fail",
+      "result": "pass for author self-check: the three cases each exit 91 and name main's substantive path"
+    },
+    {
+      "criterion": "No change to the classifier, CI, any RFC or CONTRIBUTING_AGENTS.md",
+      "result": "pass for author self-check: git diff origin/main --stat"
     }
   ],
   "tests": [
+    {
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit f1a4f14d, on origin/main 14716adf)",
+      "exit_code": 0,
+      "result": "clean: exit 0 — tests 831, pass 831, fail 0, skipped 0, todo 0"
+    },
+    {
+      "command": "node --test test-kits/handoff-conformance.test.mjs (the four audit cases against origin/main's scripts/refresh-author-handoff.mjs, negative control)",
+      "exit_code": 1,
+      "result": "'an audit-only branch on a moved main is not drift' fails without the fix; the three 'drift as before' cases pass either way"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008",
+      "exit_code": 0,
+      "result": "all 8 changed path(s) are declared, and every amendment explains one"
+    },
     {
       "command": "npm run validate:protocol",
       "exit_code": 0,
       "result": "valid"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 9d1062f8)",
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 740, pass 740, fail 0"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008",
-      "exit_code": 0,
-      "result": "every changed path declared, every amendment explains one"
+      "result": "tier H; lane: governance (refresh-author-handoff.mjs, test-suite-contract.mjs, handoff-conformance.test.mjs, integrity-manifest.json)"
     },
     {
       "command": "npm run check:handoff",
       "exit_code": 0,
-      "result": "the handoff cites this branch"
+      "result": "see the handoff commit"
     }
   ],
-  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, customer data or provider call.",
+  "security_privacy_cost_impact": "A guard is narrowed for exactly one shape: an audit-lane branch by the base classifier's predicate. No credential, customer data, provider call or dependency. A1 reads it as a governance change.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
+  "compatibility_impact": "No contract changes; no contract-catalog file.",
   "known_limitations": [
-    "Status integration_verified is R0's, recorded by A0; WP-0A-A0-002's record of this regeneration is owed by its next PR."
+    "The audit lane's fork condition is not checked by the handoff guard (it cannot be from a checkout); CI's lane step checks it.",
+    "scripts/commit-when-clean.mjs still runs npm run verify before git add -A, so files a commit adds are untracked while the suite runs. Recorded as owed in the manifest's open_blockers; it is not item (2) of the Owner's question, so it is not fixed here.",
+    "auditLaneOf runs the classifier (about 10 s on this repository) only when every changed path is under evidence/audits/; other branches pay one git diff."
   ],
   "open_risks_or_blockers": [
-    "Full path, as the Owner directed for this session. Readings carried with -x, each verdict and carry clause in its own file under evidence/WP-0A-CON-008/ at the head they read: c0-review-2026-10-11-pr249.md (review_approved), a1-review-2026-10-11-pr249.md (security_approved, no finding), q0-review-2026-10-11-pr249.md (test_verified 740/740 on the branch name), r0-review-2026-10-11-pr249.md (integration_verified; merge first, it alone touches the integrity manifest). Presser: A0 (/claude/a0_atlas) under the Owner's standing delegation (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-127.md §6); not a governance PR. Pressed once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit."
+    "GOVERNANCE (governance bundle item (2)). Round one at f3ee0c1d: C0 review_approved, A1 security_approved (no finding open), Q0 test_verified (831/831; CI run 38723764656 green both jobs), R0 ready (R0-262-2 discharged on merge); files carried with -x. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories open, none blocking: C0-266-1..4, A1-266-1, -2, Q0-266-1 (Low: one test owed for the unrelated-citation and empty-branch cases), Q0-266-2..4, R0-266-2 (main was measured at 14716adf, not 94c858f0), R0-266-3."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the appended records; nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores refresh-author-handoff.mjs, the four test cases, the three registry lines and the manifest; audit pull requests then take the risk lane again, as PR #262 did.",
   "recommended_next_work_packages": [
-    "WP-0A-A0-002: record the digest move of this records PR."
+    "WP-0A-A0-001: the next round audit pull request, audit-files only, on its branch.",
+    "WP-0A-A0-002: record the amendment of scripts/test-suite-contract.mjs and the integrity manifest regeneration.",
+    "WP-0A-CON-008: scripts/commit-when-clean.mjs stage-before-verify, as its own pull request."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-CON-008/records-transcription-2026-10-11.md, then git diff origin/main.",
-    "open_blockers[12] tail against r0-review-2026-10-11-ntf4.md §7; [14]; status."
+    "Read evidence/WP-0A-CON-008/product-owner-disposition-2026-10-15-governance-bundle-press.md, then git diff origin/main.",
+    "In scripts/refresh-author-handoff.mjs read auditLaneOf and handoffDrift against laneOf's audit branch in scripts/db/classify-review-tier.mjs; run node --test test-kits/handoff-conformance.test.mjs and, as a negative control, the four audit cases against origin/main's refresh-author-handoff.mjs."
   ],
   "superseded_by": null
 }
