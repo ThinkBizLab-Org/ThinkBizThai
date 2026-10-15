@@ -5,61 +5,117 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
-  "head_revision_or_patch_checksum": "14716adf00d4d27c23d4ff1771b3dbcc9a9aea76",
+  "head_revision_or_patch_checksum": "b92def7db88cd4de7e865b8b0d291907cb3ab2b4",
   "task_ids": [
     "WP-1A-A0-002",
-    "pr258-records-2026-10-15"
+    "gov-a002-2026-10-15"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-1A-A0-002/product-owner-disposition-2026-10-15-governance-bundle-press.md"
+  ],
+  "files_modified": [
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-1A-A0-002-author-handoff.json",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/app-boundaries.test.mjs",
+    "test-kits/app-stack.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-1A-A0-002.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
+    "RFC-2026-029",
     "RFC-2026-034"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT records, after PR #258 merged (2026-10-12T21:06:31Z, 5d8f8fd4): its merge record (final head f0bcb870, CI run 38307173517 green on both jobs), the four role verdict lines (evidence/WP-1A-A0-002/{c0,a1,q0,r0}-review-2026-10-13-pr258.md), the press direction as transcribed on main in evidence/WP-0A-A0-004/product-owner-disposition-2026-10-13-lane-walk-ts.md (PR #260), and R0's post-merge words (R0-258-1, §0) verbatim with the pointer R0-258-1 asks for, as open_blockers[7]; R0's closing words on R0-257-7 appended to open_blockers[5].",
-    "Records only: every quoted word is a role's own, in its file on main, or the Owner's, in a disposition on main; facts from gh and git; nothing quoted from a chat or a local file. Sources: evidence/WP-1A-A0-002/records-transcription-2026-10-15.md. status stays in_review: R0's file authorises no move."
+    "THIS INCREMENT is the governance bundle's items (3) and (4) of the Product Owner's question 2 of 2026-10-15 (asked 02:09:48Z, answered 02:13:35Z, `A0 กดเมื่อ 4 role ผ่าน ทีละ PR (Recommended)`), transcribed by script in evidence/WP-1A-A0-002/product-owner-disposition-2026-10-15-governance-bundle-press.md and mirrored in required_human_authorities. Question 1 of that call concerns PR #265 and is not this increment's authority.",
+    "Item (3), Q0-259-1 / Q0-AUD1015-5: a new test in test-kits/app-stack.test.mjs holds that tsconfig.json's include has \"src/**/*.ts\" and \"src/**/*.tsx\" and that no exclude pattern reaches any TypeScript file under src/ (the real files and three synthetic paths), with Q0's M1-M3 and seven exclude forms as negative controls inside the test.",
+    "Item (4), Q0-257r6-1 / Q0-AUD1015-4: (a) a test in app-stack that runBuildControls reports a control that is not refused (left-pad made reachable) and a refused clean build (next unreachable), and that the graph CLI, run in a temporary directory whose lockfile makes left-pad reachable, exits 1 on the control before it reads the build; (b) a test in app-stack that takes parsedShape from scripts/verify-app-boundaries.mjs's text (no test may import the CLI) and runs it with readConfigShape and a stand-in parser, holding agreement, each reader's refusal, a missing parsed reading, and the CLI's three uses of parsedShape, with M176, M177 and five other cuts as controls; (c) a test in test-kits/app-boundaries.test.mjs that a next.config or postcss.config whose default export is a call fails, and that vitest.config's one call is its allowlisted wrapper.",
+    "A0's reading, not the Owner's words: `ทีละ PR` is read as each pull request pressed on its own, so items (3) and (4) travel together here (disposition §3 (b)); if a role reads it as one item per pull request, they split.",
+    "No guard script, tsconfig, CI file, RFC, allowlist or dependency changes. The stand-in parser's two readings follow typescript 7.0.2 as measured on this branch with npm ci --ignore-scripts: an `import type` in next.config.mjs does not parse; a hashbang is read past.",
+    "The change commit b92def7d also refreshes this handoff's range only (npm run refresh:handoff, to the empty range at the branch point 14716adf), because commit-when-clean runs the handoff guard before the commit on a tree whose HEAD is main's merge commit and the previous citation (PR #264's range) was no longer on this branch's path; this commit then makes the handoff true for this increment, last and alone. The branch was first cut from 94c858f0 and rebased, unpushed, onto 14716adf (PR #265) on the coordinator's instruction; the tests and the mutation results are the same on both bases."
   ],
   "acceptance_results": [
     {
-      "criterion": "Recorded words match their sources on main; open_blockers[0]-[4] and [6] byte-equal, [5] kept whole as the prefix; no status, test, guard, CI, RFC or contract change; classify-records-only exits 0",
-      "result": "pass for author self-check: quotes extracted by script from the files on main; independent reading owed (RFC-2026-025 §6.2)"
+      "criterion": "Q0-259-1: a test fails when tsconfig.json's include loses src/**/*.ts or src/**/*.tsx, or when exclude reaches src/**",
+      "result": "pass for author self-check: mutation harness on the worktree, Q0's M1, M2, M3 each fail the new test (exit 1) and pass app-stack on origin/main (exit 0); independent reading owed (C0, A1, Q0, R0)"
+    },
+    {
+      "criterion": "Q0-257r6-1 (a): a test fails when runBuildControls is hollowed",
+      "result": "pass for author self-check: M200 fails the new test and passes app-stack on origin/main; the CLI continuing after a failed control fails the new test and the existing A1-257-7 test"
+    },
+    {
+      "criterion": "Q0-257r6-1 (b): a test fails when either reader alone decides",
+      "result": "pass for author self-check: M176, M177 and the comparison removed each fail the new test and pass app-stack on origin/main; dropping one reader's own refusal leaves the file refused through the comparison and is caught as a lost reason"
+    },
+    {
+      "criterion": "Q0-257r6-1 (c): a test fails when a call is admitted in next.config or postcss.config",
+      "result": "pass for author self-check: M142 fails the new test and passes app-boundaries on origin/main"
+    },
+    {
+      "criterion": "Tests only: no guard behaviour changes",
+      "result": "pass for author self-check: git diff 14716adf..b92def7d touches no scripts/verify-*.mjs, scripts/app-boundaries*.mjs, tsconfig, .github or package file; no test exposed a defect"
     }
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (the records commit 210e933c)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (the change commit b92def7d; no node_modules)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 827, pass 827, fail 0 (C0-264-1, Q0-264-1)"
+      "result": "clean: exit 0 — tests 831, pass 831, fail 0, skipped 0, todo 0"
+    },
+    {
+      "command": "node --test test-kits/app-stack.test.mjs; node --test test-kits/app-boundaries.test.mjs",
+      "exit_code": 0,
+      "result": "18/18 and 29/29"
+    },
+    {
+      "command": "node <scratchpad>/mutate.mjs (mutation harness, sha256 f830c464…cabe; output 2ac3f420…87ac2)",
+      "exit_code": 0,
+      "result": "M200, M176, M177, the comparison removed, M142, Q0's M1-M3: each fails its new test, and the origin/main suite passes it; the CLI going on after a failed control was already caught on origin/main; re-run on 14716adf with the same results"
+    },
+    {
+      "command": "npm ci --ignore-scripts, then node scripts/verify-app-boundaries.mjs --require-parser; npm run typecheck; node scripts/verify-typecheck-control.mjs; npm run test:app",
+      "exit_code": 0,
+      "result": "54 controls held first, 24 source files; typecheck 0; control 0; vitest 224 passed; node_modules removed afterwards"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-002",
       "exit_code": 0,
-      "result": "all changed paths declared"
+      "result": "all 8 changed paths declared, every amendment explains one (origin/main 14716adf)"
+    },
+    {
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
+      "exit_code": 0,
+      "result": "tier H (14716ad..b92def7), lane governance: scripts/test-suite-contract.mjs (a guard contract and test registry), the two guard tests (top-level guard tests whose subject is a governance path), test-kits/integrity-manifest.json"
+    },
+    {
+      "command": "npm run validate:protocol",
+      "exit_code": 0,
+      "result": "pass"
     }
   ],
-  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, customer data or provider call. The one account name recorded (workstationgroup, mergedBy) is already on main in the WP-0A-A0-004 disposition.",
+  "security_privacy_cost_impact": "Tests and records only. No guard, CI, credential, provider call or data path changes; the new tests write only to an OS temporary directory they remove, and spawn node on scripts/verify-app-build-graph.mjs, which imports no package.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
+  "compatibility_impact": "No contract changes: no contract-catalog file.",
   "known_limitations": [
-    "R0-258-1 asked this package's next records increment to transcribe the Owner's answer of 20:28:22Z; it reached main through PR #260 in WP-0A-A0-004's evidence, so this increment records a pointer rather than a second transcription. Whether that meets R0-258-1 is R0's to write.",
-    "C0-258-1 (advisory, the skeleton-licences disposition §8 (a) wording) is not acted on: editing a disposition leaves the records path.",
-    "open_blockers[0] (\"AUTHOR COMPLETE ONLY ...\") is stale and left byte-equal (Q0 N2 on PR #258).",
-    "Whether the press of #258 was pinned with --match-head-commit is not recorded: neither gh nor main records it; the merge's second parent equals the final head."
+    "Test (b) runs parsedShape taken from the CLI's text with a stand-in parser, because no test may import the CLI or the parser (§8/6, pinned in app-stack); the real parser's readings it stands in for were measured once on this branch, not in the suite. A rewrite of parsedShape under another name, or wiring that no longer matches the three pinned lines, fails the test rather than passing it.",
+    "Two cuts are equivalent in safety and caught only as a lost reason: dropping the text reader's or the parser's own refusal leaves the file refused through the comparison (\"read it differently\").",
+    "Q0's other survivors of q0-reread5 §5 (M184, M185, M146, M179, M210) are outside Q0-257r6-1 and not addressed."
   ],
   "open_risks_or_blockers": [
-    "RISK LANE at the final head, not records: the records commit alone is records-only (lane records), but the four role readings of this pull request (evidence/WP-1A-A0-002/{c0,a1,q0,r0}-review-2026-10-15-pr264.md), carried with -x, are role files RFC-2026-025 §6.1 item 2 does not admit, so the base's classifier prints lane risk. Readers: C0 review_approved, A1 security_approved (no finding), Q0 test_verified, R0 records right and complete (R0-258-1 closed), all at 86f3d767. A0 presses under RFC-2026-034 §2.2's risk lane (Q-034-1) once CI is green on both jobs, with --match-head-commit. Not recorded anywhere on main: whether #258's press used --match-head-commit (C0-264-2, R0-264-3); its merge's second parent equals the head the roles read."
+    "GOVERNANCE LANE: C0, A1, Q0 and R0 read the final head; A0 presses only under the Owner's answer of 2026-10-15T02:13:35Z, with CI green on both jobs and no security finding of any grade open. Whether the tests close Q0-259-1, Q0-AUD1015-5, Q0-257r6-1 and Q0-AUD1015-4 is Q0's to write. Status stays in_review."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[7], the clause appended to open_blockers[5] and records-transcription-2026-10-15.md; nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the four tests, the disposition and the required_human_authorities entry, and restores the registry counts, digests, integrity manifest and VERIFICATION.md; no guard depends on them.",
   "recommended_next_work_packages": [
-    "WP-1A-A0-002: the Q0-257r6-1 tests (a small follow-up pull request)."
+    "WP-1A-A0-002: none owed by this package after this increment except what open_blockers lists; the bundle's items (1), (2) and (5) travel in their own pull requests."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-1A-A0-002/records-transcription-2026-10-15.md, then git diff origin/main.",
-    "open_blockers[7] against gh pr view 258, gh run view 38307173517, the four *-review-2026-10-13-pr258.md files and evidence/WP-0A-A0-004/product-owner-disposition-2026-10-13-lane-walk-ts.md; the [5] clause against r0-review-2026-10-13-pr258.md §4."
+    "Read evidence/WP-1A-A0-002/product-owner-disposition-2026-10-15-governance-bundle-press.md, then git diff 14716adf..HEAD.",
+    "Re-run Q0's mutations M1-M3 (tsconfig.json), M200 (runBuildControls), M176, M177 (parsedShape) and M142 (configShapeProblems) against the new tests and against the suites on origin/main.",
+    "Check that no guard script, tsconfig, CI file or dependency changed, and that scripts/test-suite-contract.mjs only raises the two suites' floors and moves their name digests."
   ],
   "superseded_by": null,
   "outputs": null
