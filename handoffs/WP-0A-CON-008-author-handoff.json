@@ -5,13 +5,24 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "b61b3db25be98f34f85b6ca7a76b32d3ff555a98",
-  "head_revision_or_patch_checksum": "b61b3db25be98f34f85b6ca7a76b32d3ff555a98",
+  "head_revision_or_patch_checksum": "9a26bd1c291d6b3c0bd2cc46205c451bea759465",
   "task_ids": [
     "WP-0A-CON-008",
     "commit-when-clean-stage-first-and-q0-266-1-2026-10-16"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-16-overnight-direction.md"
+  ],
+  "files_modified": [
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-CON-008-author-handoff.json",
+    "scripts/commit-when-clean.mjs",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/handoff-conformance.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/ratchets-bite.test.mjs",
+    "work-packages/WP-0A-CON-008.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-034",
@@ -35,14 +46,14 @@
     },
     {
       "criterion": "npm run check stays green with no test skipped",
-      "result": "pass: pending: recorded at the refresh"
+      "result": "pass: clean: exit 0 — tests 838, pass 838, fail 0, skipped 0, todo 0"
     }
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commit PENDING, under the suite lock, on the branch name)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 9a26bd1c, under the suite lock, on the branch name)",
       "exit_code": 0,
-      "result": "pending: recorded at the refresh"
+      "result": "clean: exit 0 — tests 838, pass 838, fail 0, skipped 0, todo 0"
     },
     {
       "command": "node --test --test-name-pattern='commit gate' test-kits/ratchets-bite.test.mjs with main's scripts/commit-when-clean.mjs swapped in",
@@ -57,7 +68,7 @@
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008",
       "exit_code": 0,
-      "result": "pending"
+      "result": "all 9 changed path(s) are declared, and every amendment explains one"
     },
     {
       "command": "npm run validate:protocol",
@@ -67,7 +78,7 @@
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "pending"
+      "result": "tier H (9 paths, b61b3db..9a26bd1), lane governance: scripts/commit-when-clean.mjs (reached from a guard), scripts/test-suite-contract.mjs (a test registry), test-kits/handoff-conformance.test.mjs and test-kits/ratchets-bite.test.mjs (top-level guard tests), test-kits/integrity-manifest.json (the integrity manifest)"
     }
   ],
   "security_privacy_cost_impact": "Narrows a local gap: the commit gate now verifies the index it commits. No credential, customer data, provider call or dependency. The new test copies the repository into the system temporary directory and gives the copy its own git directory, so neither commit-gate case can stage into the checkout the suite runs from.",
