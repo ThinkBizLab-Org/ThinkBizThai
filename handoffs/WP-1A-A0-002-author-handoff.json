@@ -5,12 +5,16 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "2aef81825e198f298039ef3d8fa32200034d54f4",
-  "head_revision_or_patch_checksum": "210e933c11257f6068424342a0f484e342d00bc3",
+  "head_revision_or_patch_checksum": "a6acbeb35d07f6576600487685e944e79bed3b8c",
   "task_ids": [
     "WP-1A-A0-002",
     "pr258-records-2026-10-15"
   ],
   "files_added": [
+    "evidence/WP-1A-A0-002/a1-review-2026-10-15-pr264.md",
+    "evidence/WP-1A-A0-002/c0-review-2026-10-15-pr264.md",
+    "evidence/WP-1A-A0-002/q0-review-2026-10-15-pr264.md",
+    "evidence/WP-1A-A0-002/r0-review-2026-10-15-pr264.md",
     "evidence/WP-1A-A0-002/records-transcription-2026-10-15.md"
   ],
   "files_modified": [
@@ -36,9 +40,9 @@
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs (npm run verify, under the suite lock) at b1836820",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (the records commit 210e933c)",
       "exit_code": 0,
-      "result": "tests 821, pass 821, fail 0, skipped 0, todo 0"
+      "result": "clean: exit 0 — tests 827, pass 827, fail 0 (C0-264-1, Q0-264-1)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-002",
@@ -56,7 +60,7 @@
     "Whether the press of #258 was pinned with --match-head-commit is not recorded: neither gh nor main records it; the merge's second parent equals the final head."
   ],
   "open_risks_or_blockers": [
-    "Owed, unchanged from open_blockers[6]: Q0-257r6-1's tests (a follow-up pull request that needs Q0 again); A1 N1 and N2; ESLint deferred."
+    "RISK LANE at the final head, not records: the records commit alone is records-only (lane records), but the four role readings of this pull request (evidence/WP-1A-A0-002/{c0,a1,q0,r0}-review-2026-10-15-pr264.md), carried with -x, are role files RFC-2026-025 §6.1 item 2 does not admit, so the base's classifier prints lane risk. Readers: C0 review_approved, A1 security_approved (no finding), Q0 test_verified, R0 records right and complete (R0-258-1 closed), all at 86f3d767. A0 presses under RFC-2026-034 §2.2's risk lane (Q-034-1) once CI is green on both jobs, with --match-head-commit. Not recorded anywhere on main: whether #258's press used --match-head-commit (C0-264-2, R0-264-3); its merge's second parent equals the head the roles read."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[7], the clause appended to open_blockers[5] and records-transcription-2026-10-15.md; nothing depends on them.",
   "recommended_next_work_packages": [
