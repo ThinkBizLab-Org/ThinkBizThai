@@ -80,3 +80,45 @@ merged by the Owner personally**, never by delegation."
 - They do not decide whether the note is accurate and complete: that is C0's, A1's, Q0's and R0's to read.
 - They do not decide items (1) to (4), or the other parts of item (5), beyond who presses each one's own pull request,
   and they do not decide PR #265 (question 1).
+
+## 6. The same answer applied to item (5)'s G0-024 part (second pull request, added 2026-10-15)
+
+Added by A0 (`/claude/a0_atlas`), drafted by an author subagent of that run, on a second pull request of `WP-0A-A0-001`
+from `main` at `c9554ef9` (PR #272 merged; PR #269, which carried the RFC-2026-002 part, merged as `dab0ed55`). §1 to §5 above are kept whole. The
+question, header, options and answer of §2.1 were compared again by script with transcript lines 1631 and 1632 of
+session `325454ab` (both stamps as in §2) and match byte for byte. Question 1 of the same call (header "guard test")
+concerns PR #265 and is not this pull request's authority. This section is a record and A0's reading; it is not a role
+verdict and approves nothing.
+
+**(a) What this pull request carries.** RFC-2026-034 §8 item 3 owes a note on "the G0 tracker's G0-024".
+`evidence/g0-tracker-th.md` is a path of this package (`writable_paths`). This pull request appends one dated note, in
+the tracker's language (Thai), to the G0-024 row's "ที่ขาด" cell, keeping every word of the row; the note quotes
+RFC-2026-034 §3's row for "RFC-2026-031 §6 item 2" verbatim, cell by cell (a `|` inside a table cell would break the
+row). It changes no status, count or other row.
+
+**(b) Which §3 row is relevant (A0's reading, which a role may not share).** G0-024 records the conditional G0 exit
+(D0), whose closing conditions are RFC-2026-031 §6; RFC-2026-034 §3 amends that section in one row, "RFC-2026-031 §6
+item 2" ("narrowed"). The §3 row on "RFC-2026-031 §3.3 … Decision Register line 373 and §5.1 lines 190–191; 2026-10-08
+disposition §10.3" concerns writing and merging application code (the gate constraint), not the exit G0-024 records,
+so the note does not quote it.
+
+**(c) Who presses (A0's reading).** This pull request is item (5) of question 2, its G0-024 part only. §3 (a) applies to
+it as to the first: A0 may press it once C0, A1, Q0 and R0 have passed on its final head, CI is green there on both jobs
+(`bootstrap` and `application`), no security finding of any grade is open against it, and it adds no dependency; the
+Owner may press it himself. Its lane: the base's classifier places it in the risk lane (tier H; `evidence/g0-tracker-th.md`
+is not an L or M path); A0 treats it as governance, the stricter reading, because the tracker is a gate record (as PR
+#214 was), and the answer requires the four roles either way. §4 applies unchanged: it is an Owner-directed exception to RFC-2026-025 §5 item 6's last
+bullet for this pull request; the third bullet is met in A0's reading because the question named the item and its
+sequence ("ทีละ PR") before this pull request existed; the other conditions are kept.
+
+**(d) The Decision Register part of §8 item 3 waits for an owner.** §8 item 3 also owes "a note on Decision Register
+line 373 and §5.1 by the register's owner". The register,
+`docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md`, is in no work package's `writable_paths` or
+`outputs.files` on `main` at `c9554ef9` (read by script over `work-packages/*.json`), so no package can write that
+note. This pull request does not write it and records it as owed in the manifest (`open_blockers`). Naming the
+register's owner is not decided by these words.
+
+**(e) What this section does not do.** It does not move `WP-0A-A0-001`'s status (`integration_verified`); it decides
+nothing about the notes on RFC-2026-025, RFC-2026-030 and RFC-2026-031 or WP-0A-A0-010 `open_blockers[1]`, nor about
+items (1) to (4); and it does not decide whether the G0-024 note is accurate and complete, which is C0's, A1's, Q0's and
+R0's to read.
