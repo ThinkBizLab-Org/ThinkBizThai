@@ -5,13 +5,17 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "c2979b28b3c5ee553f10e15ad323be5451c6389a",
-  "head_revision_or_patch_checksum": "09206604a20922248f0429c0ed604729c690bd0e",
+  "head_revision_or_patch_checksum": "0964db7c4ee0ec436b27395d0f2cf3b643c5648c",
   "task_ids": [
     "WP-0A-DB-00",
     "gov-a1280-2026-10-17"
   ],
   "files_added": [
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-kernel-deletion-gap.md"
+    "evidence/WP-0A-DB-00/a1-review-2026-10-17-pr281.md",
+    "evidence/WP-0A-DB-00/c0-review-2026-10-17-pr281.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-kernel-deletion-gap.md",
+    "evidence/WP-0A-DB-00/q0-review-2026-10-17-pr281.md",
+    "evidence/WP-0A-DB-00/r0-review-2026-10-17-pr281.md"
   ],
   "files_modified": [
     "db/foundation/lint/audit-coverage-map.json",
@@ -84,7 +88,7 @@
     "RFC-2026-007 §F's text still says the gap exists; this PR records the closure in the manifest only, as the Owner's answer reaches the test and not the RFC."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (A1-280-1). A0 presses once C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs and no security finding is open, under the Owner's answer of 2026-10-16T17:10:27Z (disposition §4)."
+    "GOVERNANCE (A1-280-1 fix; Owner's reply of 2026-10-16T17:10:27Z). Round one at 34319ac8: C0 review_approved, A1 security_approved (no security finding), Q0 test_verified 843/843, R0 ready; files carried with -x. A0 presses once CI is green on both jobs on the final head, with --match-head-commit. Owed after merge (R0-281-2 option (ii), recommended by R0): a records entry in WP-1A-A0-003 open_blockers that the PR creating adapters/job-store.ts must add it to PLATFORM_KERNEL_CREATED (C0-281-1, A1-281-1, Q0-281-1 offered the self-enforcing assertion as an alternative); R0-281-1: RFC-2026-007 §F item 4 becomes false at merge — a dated note by WP-0A-A0-004 is owed."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores the earlier test body, removes the disposition and the required_human_authorities entry and shifts the pins back; nothing depends on them.",
   "recommended_next_work_packages": [
