@@ -394,10 +394,12 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   // (2026-10-12; A1-257-10): app-boundaries 124 to 144, app-stack 120 to 137. The governance-bundle
   // follow-up (2026-10-15; Q0-259-1, Q0-257r6-1): app-boundaries 144 to 155, app-stack 137 to 168.
   // A1-AUD1015-1 (2026-10-15, WP-0A-A0-004): app-stack 137 to 144 on its own; merged with the follow-up,
-  // app-stack 168 to 175. A1-270-1 and A1-270-2 (2026-10-16, WP-0A-A0-004): app-stack 175 to 187.
+  // app-stack 168 to 175. A1-270-1 and A1-270-2 (2026-10-16, WP-0A-A0-004): app-stack 175 to 187; with
+  // A1-279-1 and A1-279-2 (the YAML spellings the condition reading refuses; the audit's environment),
+  // 187 to 192.
   'test-kits/app-dependencies.test.mjs': 65,
   'test-kits/app-boundaries.test.mjs': 155,
-  'test-kits/app-stack.test.mjs': 187,
+  'test-kits/app-stack.test.mjs': 192,
 };
 
 // Independent review eighteen defeated the test-count floor by hollowing a suite while preserving
