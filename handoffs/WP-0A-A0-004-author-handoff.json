@@ -5,13 +5,17 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "42b37f00b461afe3cba1e999cec52e7f29728484",
-  "head_revision_or_patch_checksum": "18cc41886bb68f8e801a0b573263d66706ccf031",
+  "head_revision_or_patch_checksum": "3cb7cb6d75902fdc4e7f09cca33358abaf9e2e0c",
   "task_ids": [
     "WP-0A-A0-004",
     "gov-a004d-rfc007-wording-2026-10-16"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-rfc007-wording.md"
+    "evidence/WP-0A-A0-004/a1-review-2026-10-16-pr280.md",
+    "evidence/WP-0A-A0-004/c0-review-2026-10-16-pr280.md",
+    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-rfc007-wording.md",
+    "evidence/WP-0A-A0-004/q0-review-2026-10-16-pr280.md",
+    "evidence/WP-0A-A0-004/r0-review-2026-10-16-pr280.md"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
@@ -91,7 +95,7 @@
     "The Amendment 2026-10-06's Owner disposition stays OWED (required_human_authorities)."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (RFC-2026-007 wording; Owner's answer of 2026-10-16T02:40:07Z, question 2). Needs C0, A1, Q0 and R0 on the final head and CI green on bootstrap and application there before A0 presses; no role has read it yet."
+    "GOVERNANCE (RFC-2026-007 wording; Owner's answer of 2026-10-16T02:40:07Z, question 2). Round one at 8fa33aa1: C0 review_approved, A1 security_approved (no security finding), Q0 test_verified 843/843, R0 ready; files carried with -x. A0 presses once CI is green on both jobs on the final head, with --match-head-commit. Owed (not this PR): the gap A1-280-1 / Q0-280-1 (Low): since #265, deleting platform-kernel index.ts/run.ts (with their tests) passes the suite and prints lane risk; closing it needs a test change and a new Owner question. Records: §F cites WP-1A-A0-003 open_blockers[16] as at #261; on main it is [17] (C0-280-1, R0-280-1, Q0-280-2, A1-280-2)."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR removes §F from RFC-2026-007, this increment's required_human_authorities entry and the disposition, and regenerates the integrity manifest; the emptied amends_without_owning paths stay empty (they described #279's work, which is on main). Nothing depends on the record.",
   "recommended_next_work_packages": [
