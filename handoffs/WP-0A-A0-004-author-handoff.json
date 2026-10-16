@@ -4,40 +4,18 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "4f9ab1401f1f5fa3105046127730ae8b89866fb4",
-  "head_revision_or_patch_checksum": "42b37f00b461afe3cba1e999cec52e7f29728484",
+  "base_revision": "42b37f00b461afe3cba1e999cec52e7f29728484",
+  "head_revision_or_patch_checksum": "18cc41886bb68f8e801a0b573263d66706ccf031",
   "task_ids": [
     "WP-0A-A0-004",
-    "gov-a004c-ci-audit-2026-10-16",
-    "pr279-a1-279-1-fix-2026-10-16",
-    "pr279-r2-a1-279r2-1-fix-2026-10-16",
-    "pr279-r3-a1-279r3-fix-2026-10-16"
+    "gov-a004d-rfc007-wording-2026-10-16"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-004/a1-reread-2026-10-16-pr279.md",
-    "evidence/WP-0A-A0-004/a1-reread3-2026-10-16-pr279.md",
-    "evidence/WP-0A-A0-004/a1-reread4-2026-10-16-pr279.md",
-    "evidence/WP-0A-A0-004/a1-review-2026-10-16-pr279.md",
-    "evidence/WP-0A-A0-004/c0-reread-2026-10-16-pr279.md",
-    "evidence/WP-0A-A0-004/c0-reread3-2026-10-16-pr279.md",
-    "evidence/WP-0A-A0-004/c0-reread4-2026-10-16-pr279.md",
-    "evidence/WP-0A-A0-004/c0-review-2026-10-16-pr279.md",
-    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-ci-audit.md",
-    "evidence/WP-0A-A0-004/q0-reread-2026-10-16-pr279.md",
-    "evidence/WP-0A-A0-004/q0-reread3-2026-10-16-pr279.md",
-    "evidence/WP-0A-A0-004/q0-reread4-2026-10-16-pr279.md",
-    "evidence/WP-0A-A0-004/q0-review-2026-10-16-pr279.md",
-    "evidence/WP-0A-A0-004/r0-reread-2026-10-16-pr279.md",
-    "evidence/WP-0A-A0-004/r0-reread3-2026-10-16-pr279.md",
-    "evidence/WP-0A-A0-004/r0-reread4-2026-10-16-pr279.md",
-    "evidence/WP-0A-A0-004/r0-review-2026-10-16-pr279.md"
+    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-rfc007-wording.md"
   ],
   "files_modified": [
-    ".github/workflows/ci.yml",
-    "evidence/VERIFICATION.md",
+    "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
     "handoffs/WP-0A-A0-004-author-handoff.json",
-    "scripts/test-suite-contract.mjs",
-    "test-kits/app-stack.test.mjs",
     "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-A0-004.json"
   ],
@@ -45,70 +23,52 @@
   "decisions_consumed": [
     "RFC-2026-007",
     "RFC-2026-025",
-    "RFC-2026-029",
     "RFC-2026-034"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT (gov-a004c) closes A1-270-1 and A1-270-2 (evidence/WP-0A-A0-004/a1-review-2026-10-15-pr270.md §6) under question 3 (header \"CI audit\") of the Product Owner's answer of 2026-10-16T02:40:07Z, transcribed verbatim by script in evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-ci-audit.md and mirrored in required_human_authorities.",
-    "In .github/workflows/ci.yml's application job the audit step runs `npm audit --include=dev --audit-level=high` in place of `npm audit --omit=dev --audit-level=high`: same step, place, name and audit level; the job header comment and one step comment say why. No other CI line changes. --include=dev was chosen over dropping the flag because npm drops the dev tree from a plain `npm audit` under NODE_ENV=production, and --include=dev overrides that and an omit config (measured below).",
-    "test-kits/app-stack.test.mjs (WP-1A-A0-002's, declared under amends_without_owning) follows the audit command in its two pins and gains two tests: the audit covers the dev dependencies (A1-270-1), and no `if:` or `continue-on-error` on the application job or its steps except the release age's `if: github.event_name == 'pull_request'` (A1-270-2). A0 reads the Owner's \"test กัน if:\" as covering continue-on-error too, since both let package code run after a failed check (disposition, What it directs, 1).",
-    "Floors move with the tests: app-stack 19 to 21 tests, 175 to 187 assertions, name digest f66a1687560ef35f to 3c58028044a6dd71; evidence/VERIFICATION.md 836 to 838; test-kits/integrity-manifest.json regenerated.",
-    "FIX ROUND (PR #279, A1-279-1 and A1-279-2; commit 7913226d): test-kits/app-stack.test.mjs only, no test added or renamed, ci.yml unchanged; app-stack's assertion floor 187 to 192 (tests 21 and digest 3c58028044a6dd71 unchanged); integrity manifest regenerated; VERIFICATION stays 838. C0-279-1 is corrected in acceptance_results[0].",
-    "FIX ROUND 2 (PR #279, A1-279r2-1, A1-279r2-2, Q0-279r2-1; commit e6f68c48): test-kits/app-stack.test.mjs only, no test added or renamed, ci.yml unchanged. The condition reading now fails closed on flow context as a class: within the application job any `{`, `}`, `[` or `]` outside a `${{ ... }}` expression and any `?` or `:` where a YAML token can start are refused; npm_config_* key lines are refused anywhere in ci.yml (workflow-level env included). app-stack's assertion floor 192 to 198 (21 tests, digest 3c58028044a6dd71 unchanged).",
-    "MERGE 9661d29c of origin/main 4f9ab140 (PR #278): conflicts only in the generated evidence/VERIFICATION.md and test-kits/integrity-manifest.json, regenerated on the merged tree (843 tests); scripts/test-suite-contract.mjs merged without conflict, main's handoff-conformance (25 / 80 / 6ea42ca277d4828a) and ratchets-bite (23 / 55 / 088ea5adcc8ee194) lines and this branch's app-stack lines (21 / 198 / 3c58028044a6dd71) all kept; the coverage-floor guard passes. The base is now 4f9ab140.",
-    "FIX ROUND 3 (PR #279, A1-279r3-1, A1-279r3-2; commit baecb3c7): test-kits/app-stack.test.mjs only, no test added or renamed, ci.yml unchanged, origin/main unmoved (4f9ab140). keyLines decides a block-scalar header with the trailing comment removed; within the application job a comment after content, a dash line with no key and a dash line the step reader cannot place are refused (the job's 32 whole-line comments are dropped before reading and hide nothing, so they stay); every top-level line of ci.yml must be a plain name:, on:, permissions: or jobs:, which refuses a workflow env: or defaults: in any spelling (the file has neither). app-stack's assertion floor 198 to 204 (21 tests, digest 3c58028044a6dd71 unchanged).",
-    "THE RESIDUAL, as the test's comment states it: the condition and npm_config readings are a line-based reader, not a YAML parser. They refuse the YAML features the application job does not use (flow collections, explicit keys, tags, anchors, aliases and merges, escapes in keys, comments after content, bare dashes; at the workflow level any top-level key but name, on, permissions and jobs) and anything they cannot place. A spelling that needs a parser more lenient than YAML allows, beyond these, is held by the review of every ci.yml change, a governance path four roles read."
+    "THIS INCREMENT (gov-a004d) answers R0-265-1 (evidence/WP-1A-A0-003/r0-review-2026-10-15-pr265.md), R0-AUD1015-9 (evidence/audits/2026-10-15/r0-audit.md) and C0-AUD1015-2 (evidence/audits/2026-10-15/c0-audit.md) under question 2 (header \"RFC-007\") of the Product Owner's answer of 2026-10-16T02:40:07Z, transcribed verbatim by script in evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-rfc007-wording.md and mirrored in required_human_authorities.",
+    "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md gains §F \"Record 2026-10-16\" at the end of Amendment 2026-10-13; §A to §E are kept whole (git diff origin/main shows additions only in that file), as the RFC's earlier dated records are (the Record 2026-10-08, the Correction 2026-10-11). The record states: PR-1 #261 (2aef8182) created no listed file and printed lane risk; PR-2 #265 (14716adf) created src/modules/platform-kernel/index.ts and application/run.ts and printed lane governance; §C tests 2 and 3 hold before and after creation since ca8fde5f, their names quoted verbatim; adapters/job-store.ts is still absent (5 of the 48 pairs name it); PR-3 #275 changed none of these.",
+    "The record also states one consequence of #265's test change that the original text does not: a platform-kernel file that leaves after it was created no longer fails §C test 2, so §B item 1's and §D's 'fails the suite (§C, test 2)' holds for the other named files only. It claims no replacement check; the disposition leaves whether one is wanted to a later question.",
+    "No classifier, guard, test, CI or STRING_NAME_EXCEPTIONS change (the option's description bars them; A0 reads 'guard' as including the guard tests).",
+    "work-packages/WP-0A-A0-004.json: one required_human_authorities entry for this increment; ownership.amends_without_owning.paths emptied with a dated rationale (the three paths reached main with PR #279, 42b37f00, and this branch amends none; verify-branch-scope exits 74 on a declaration that matches nothing). test-kits/integrity-manifest.json is regenerated for the RFC's digest (authorized_cross_package_amendments).",
+    "The first commit 18cc4188 also moved this handoff's head_revision_or_patch_checksum from #279's fe07eec7 to its merge 42b37f00 so that the commit gate's handoff guard read a path to the branch (the branch starts on #279's own merge commit, whose branch-side tip is main's first parent); this commit then refreshes the handoff last and alone, as #276's first commit did after #270."
   ],
   "acceptance_results": [
     {
-      "criterion": "The application job's audit includes the dev dependencies; every other flag, pin, step and order unchanged",
-      "result": "pass for author self-check: git diff origin/main -- .github/workflows/ci.yml changes the audit's run line and comments only: +7 -3, the run line, six comment lines added and two removed (the header comment's two lines rewritten as three, three new lines above the step; corrected for C0-279-1, the earlier text said three comment lines); measured 2026-10-16T02:42Z with the lockfile only, `npm audit --include=dev --audit-level=high` found 0 vulnerabilities (exit 0), and so did --omit=dev; a local capture of the bulk advisory request carries 162 package names with --include=dev (typescript, vitest, tailwindcss in) against 54 with --omit=dev, and 162 with --include=dev under NODE_ENV=production or npm_config_omit=dev (a plain npm audit under NODE_ENV=production carries 54)"
+      "criterion": "RFC-2026-007 Amendment 2026-10-13 is true of the code and tests on main after #261, #265 and #275, with its original text kept whole",
+      "result": "pass for author self-check: §F appended; git diff origin/main -- architecture/decisions/RFC-2026-007-ci-independent-guard-step.md is additions only; the facts were measured on 42b37f00: index.ts and application/run.ts present, adapters/job-store.ts absent; STRING_NAME_EXCEPTIONS 48 pairs, 5 with an absent named file (all job-store.ts); test names copied from test-kits/db/foundation-contract.test.mjs; lanes from evidence/WP-1A-A0-003/r0-review-2026-10-14-pr261.md §3 and r0-review-2026-10-15-pr265.md"
     },
     {
-      "criterion": "A test pins the dev-inclusive audit",
-      "result": "pass for author self-check: 'CI audits the dev dependencies too, ...(A1-270-1)' fails on the ci.yml of origin/main d1057429 and on --omit=dev, --omit dev, --production and a plain npm audit written into the file (with the A1-257-4 and A1-AUD1015-1 pins), and its in-test controls refuse --only=prod, --omit beside --include=dev, --omit=optional and a job with no audit; for A1-279-2 it also refuses an env: on the audit step and any npm_config_* key in the application job: A1's P8b (npm_config_workspace after the audit's run line) written into ci.yml fails it (59 pass, 1 fail), and its in-test controls refuse NPM_CONFIG_REGISTRY before the run line, an unrelated env: on the audit and npm_config_workspace in the job env; for A1-279r2-2 and Q0-279r2-1: a workflow-level env: with npm_config_workspace (E1) written into ci.yml fails it (59 pass, 1 fail), a flow job env with `? npm_config_workspace` fails it and three other pins (56 pass, 4 fail), and its in-test controls add the explicit-key and flow forms at the workflow and job level; for A1-279r3-2: W1 to W5 and a workflow defaults: written into ci.yml each fail it (59 pass, 1 fail), and its in-test controls add an escaped and an explicit-key top-level env"
+      "criterion": "No classifier, guard or test changes",
+      "result": "pass for author self-check: git diff origin/main --name-only lists the RFC, the disposition, the manifest, the integrity manifest and this handoff only"
     },
     {
-      "criterion": "A test refuses `if:` (and continue-on-error) on the application job's steps but the release age's existing condition",
-      "result": "pass for author self-check: 'no step of the application job runs on a condition or may fail softly, ...(A1-270-2)' passes on the head and fails with `if: always()`, `if: ${{ !cancelled() }}`, `if: success() || failure()` or `continue-on-error: true` written into ci.yml on Application tests, and `if: always()` on Build the web application; its in-test controls also refuse quoted keys, a flow-mapping step, the release age's condition widened, replaced or joined by continue-on-error, its exact text on another step, and a condition or continue-on-error on the job; for A1-279-1 (PR #279) it also refuses, within the application job, the YAML spellings the reading does not interpret, and fails with each written into ci.yml: \"\\x69f\": always() (P1), ? if / : always() (P2), !!str if: always() (P3), \"continue-on-\\x65rror\": true (P4), <<: *c with &c on a bootstrap with: map (P5), and at job level \"\\x69f\" (P6), \"continue-on-\\x65rror\" (P7), ? if (P10): each 59 pass, 1 fail over app-stack and branch-scope; its in-test controls cover the same at step and job level, a tagged continue-on-error and a local anchor; for A1-279r2-1 (round two), as a class: A1's S3 `{ ? if : always(),`, S10 `{ ? 'if' : always(),`, S6 `{ ? !!str if : always(),` and S4 `{ ? \"continue-on-\\x65rror\" : true,` as multi-line flow steps on \"Verify the application boundaries (parsed)\" written into ci.yml each fail it (59 pass, 1 fail over app-stack and branch-scope), and its in-test controls add a one-line flow entry, a flow job env with `? if`, a flow-sequence env and `x: y, ? if : always()` on a step; for A1-279r3-1 (round three): U1, U2 and U3 on \"Type-check negative control\" written into ci.yml fail it (U1: 58 pass, 2 fail with the A1-257-4 step pins; U2, U3: 59 pass, 1 fail), and its in-test controls add a bare `-`, a comment after a step key and a comment after a job key"
-    },
-    {
-      "criterion": "No dependency added; nothing else in CI changed",
-      "result": "pass for author self-check: package.json and package-lock.json untouched (git diff origin/main --name-only)"
+      "criterion": "The Owner's words are transcribed verbatim",
+      "result": "pass for author self-check: a script compared every question, header, option label and description, and answer in the disposition with transcript lines 4341 and 4342 and with the raw tool result (26 checks, all equal)"
     }
   ],
   "tests": [
     {
-      "command": "npm audit --include=dev --audit-level=high (worktree, lockfile only, no node_modules)",
+      "command": "node --test --test-name-pattern='string-name exception|a pair listed for a file' test-kits/db/foundation-contract.test.mjs",
       "exit_code": 0,
-      "result": "found 0 vulnerabilities; --json metadata: 0 at every level"
+      "result": "5 pass, 0 fail (the §C tests the record describes, on 42b37f00)"
     },
     {
-      "command": "node --test test-kits/app-stack.test.mjs",
+      "command": "transcript check by script (python3, transcript lines 4341/4342 against the disposition)",
       "exit_code": 0,
-      "result": "21 pass, 0 fail (204 assertions by the guard's count)"
-    },
-    {
-      "command": "ci.yml mutations written into the file, node --test test-kits/app-stack.test.mjs, file restored after each",
-      "exit_code": 1,
-      "result": "origin/main's ci.yml, --omit=dev, --omit dev, --production, a plain npm audit: 3 fail each (A1-270-1, A1-AUD1015-1, A1-257-4); if: always(), if: ${{ !cancelled() }}, if: success() || failure() on Application tests: 1 fail (A1-270-2); continue-on-error: true there: 2 fail (A1-270-2, Q0-257-5); if: always() on Build the web application: 1 fail (A1-270-2)"
-    },
-    {
-      "command": "node scripts/verify-test-coverage-floor.mjs",
-      "exit_code": 0,
-      "result": "floors met: app-stack 21 tests, 204 assertions, digest 3c58028044a6dd71"
+      "result": "ok, 26 checks"
     },
     {
       "command": "node scripts/commit-when-clean.mjs (npm run verify under the suite lock)",
       "exit_code": 0,
-      "result": "clean: tests 838, pass 838 at 787ee93f, 7913226d and e6f68c48; tests 843, pass 843 at the merge 9661d29c and at baecb3c7"
+      "result": "clean: tests 843, pass 843 at 18cc4188 (a first attempt without the handoff head move exited 1: 841 of 843, the two handoff-path tests)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004",
       "exit_code": 0,
-      "result": "all 8 changed path(s) are declared, and every amendment explains one (against origin/main 4f9ab140)"
+      "result": "all 5 changed path(s) are declared, and every amendment explains one (against origin/main 42b37f00)"
     },
     {
       "command": "npm run validate:protocol",
@@ -118,54 +78,30 @@
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "tier: H; lane: governance (ci.yml under .github/**; scripts/test-suite-contract.mjs a test registry; test-kits/app-stack.test.mjs a top-level guard test; test-kits/integrity-manifest.json the integrity manifest); classifier copy: the base's"
-    },
-    {
-      "command": "A1's probes P1-P5, P6, P7, P10 and P8b written into ci.yml, node --test test-kits/app-stack.test.mjs test-kits/branch-scope.test.mjs, file restored after each",
-      "exit_code": 1,
-      "result": "each fails: P1-P7 and P10 fail the A1-270-2 test, P8b fails the A1-270-1 test; 59 pass, 1 fail each; the head passes 60/60"
-    },
-    {
-      "command": "round-two probes S3, S10, S6, S4, a flow job env with ? npm_config_workspace and E1 written into ci.yml, node --test test-kits/app-stack.test.mjs test-kits/branch-scope.test.mjs, file restored with git checkout after each",
-      "exit_code": 1,
-      "result": "S3, S10, S6, S4: 59 pass, 1 fail (A1-270-2); flow job env: 56 pass, 4 fail (A1-270-2, A1-270-1, A1-257-4, A1-257-9); E1: 59 pass, 1 fail (A1-270-1); the head passes 60/60"
-    },
-    {
-      "command": "npm run record:verification (merged tree)",
-      "exit_code": 0,
-      "result": "recorded 843 passing, 0 skipped, 0 todo"
-    },
-    {
-      "command": "round-three probes U1-U3, W1-W5 and a workflow defaults: written into ci.yml, node --test test-kits/app-stack.test.mjs test-kits/branch-scope.test.mjs, file restored with git checkout after each",
-      "exit_code": 1,
-      "result": "U1: 58 pass, 2 fail (A1-270-2, A1-257-4); U2, U3: 59 pass, 1 fail (A1-270-2); W1-W5, defaults: 59 pass, 1 fail (A1-270-1); the head passes 60/60"
+      "result": "tier: H; lane: governance (the RFC under architecture/decisions/**; test-kits/integrity-manifest.json the integrity manifest); classifier copy: the base's"
     }
   ],
-  "security_privacy_cost_impact": "Raises a check: the vulnerability audit now screens the dev dependencies (typescript, vitest, the Tailwind/PostCSS toolchain), the packages the application job runs first, and a test refuses a step condition or continue-on-error that could run package code after a failed audit or release age. No credential, secret, personal data or provider call; no dependency added; no permission changed.",
+  "security_privacy_cost_impact": "None: a text record in an RFC and this package's records. No code, CI, credential, secret, personal data, provider call or dependency change.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes. A future high or critical advisory in a dev dependency now fails the application job where it did not before.",
+  "compatibility_impact": "No contract changes; no rule of RFC-2026-007 changes.",
   "known_limitations": [
-    "Residual (A1-279r3-1): the readings are line-based, not a YAML parser; spellings that need a parser more lenient than YAML allows, beyond the refused features, are held by review of every ci.yml change (governance).",
-    "A1-279-3 (Info, owed): a `shell:` key (or defaults.run.shell) in the application job can make a multi-line step soft (`shell: bash {0}`); no test refuses it. It is outside the Owner's item and is recorded for a later governance item.",
-    "The YAML-form refusals (A1-279-1, A1-279r2-1) cover the application job only (the npm_config_* and top-level refusals cover all of ci.yml); the bootstrap job and Q0-257-5's file-wide continue-on-error substring check do not see an escaped key there.",
-    "Q0-279r2-2 (owed): a shell step can append npm_config_* to $GITHUB_ENV before the audit; a run: body is shell and is not read. Outside the Owner's item, with A1-279-3.",
-    "RFC-2026-029 §4.6 still proposes `npm audit --omit=dev --audit-level=high`, and WP-1A-A0-002.json names that command (its acceptance text and deterministic_commands); neither is this package's, and the Owner's answer amends no RFC. A wording follow-up is for A0 to raise.",
-    "The condition test reads the application job only; the bootstrap job's step conditions are pinned by test-kits/branch-scope.test.mjs as before.",
-    "The audit result is a measurement at 2026-10-16T02:42Z; advisories change, and CI's run on the head is the reading that counts.",
-    "The R0 acknowledgements owed for #270, #255 and #260 (WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008) and those this increment adds are not made here: those manifests are outside this package's writable_paths."
+    "The record states, and does not fix, that a platform-kernel file deleted after its creation no longer fails §C test 2; any check for that is a test change the Owner's answer bars here.",
+    "The record does not rewrite §B item 5, §B's count or §C items 2 and 3; it says how to read them. A reader of those sentences alone still reads the earlier state.",
+    "A1-279-3 and Q0-279r2-2 (CI shell: and $GITHUB_ENV), RFC-2026-029 §4.6's --omit=dev wording and the R0 acknowledgements owed for #270, #255, #260 and #279 (WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008) stay owed; this increment does not touch them.",
+    "The Amendment 2026-10-06's Owner disposition stays OWED (required_human_authorities)."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (CI audit; Owner's answer of 2026-10-16T02:40:07Z, question 3). Four role rounds: r1 at 4da9e0e9 (A1 changes_requested A1-279-1), r2 at a75078ad (A1 A1-279r2-1), r3 at b7b96af0 (A1 A1-279r3-1, Q0 test_failed on the same), r4 at 4754f394: C0 review_approved, A1 security_approved (residual A1-279r4-1 accepted: a line-based reader; spellings needing a lenient parser beyond YAML are held by four-role review of ci.yml), Q0 test_verified 843/843, R0 ready; all files carried with -x. CI green on both jobs at 4754f394 (dev-inclusive audit: 0 vulnerabilities). A0 presses once CI is green on the final head, with --match-head-commit. Owed: A1-279-3 (shell:), Q0-279r2-2 ($GITHUB_ENV), RFC-2026-029 §4.6 and WP-1A-A0-002's --omit=dev wording, the owners' acknowledgements (R0-279-2)."
+    "GOVERNANCE (RFC-2026-007 wording; Owner's answer of 2026-10-16T02:40:07Z, question 2). Needs C0, A1, Q0 and R0 on the final head and CI green on bootstrap and application there before A0 presses; no role has read it yet."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR restores `npm audit --omit=dev --audit-level=high` and the two comments in ci.yml, removes the two app-stack tests and the pinned command change, restores app-stack's floors (19 / 175 / f66a1687560ef35f; the fix rounds' 192, 198 and 204 included), VERIFICATION (to main's count at the revert), the integrity manifest, and this increment's manifest entries; nothing else depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR removes §F from RFC-2026-007, this increment's required_human_authorities entry and the disposition, and regenerates the integrity manifest; the emptied amends_without_owning paths stay empty (they described #279's work, which is on main). Nothing depends on the record.",
   "recommended_next_work_packages": [
-    "WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008: R0's acknowledgement records for this increment's amendments.",
+    "WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008: R0's acknowledgement records for #279's amendments.",
     "RFC-2026-029 §4.6 and WP-1A-A0-002's audit command text, to match ci.yml (a wording item for the Owner)."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-ci-audit.md, then git diff origin/main.",
-    "Check the ci.yml diff is the audit's run line and comments only; run npm audit --include=dev --audit-level=high on the head.",
-    "Run node --test test-kits/app-stack.test.mjs, then write if: always(), if: ${{ !cancelled() }} and if: success() || failure() on Application tests and --omit=dev on the audit into ci.yml and see the new tests fail.",
+    "Read evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-rfc007-wording.md, then git diff origin/main.",
+    "Check the RFC diff is additions only (§F) and each fact in it against git log, src/modules/platform-kernel/, STRING_NAME_EXCEPTIONS and test-kits/db/foundation-contract.test.mjs (§C tests 2 and 3).",
+    "Run node --test test-kits/db/foundation-contract.test.mjs; nothing in it changed.",
     "Run classify-review-tier.mjs --lane; expect governance."
   ],
   "superseded_by": null
