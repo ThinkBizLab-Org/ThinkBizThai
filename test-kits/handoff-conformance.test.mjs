@@ -996,21 +996,23 @@ test('a merge with more than one candidate for the branch is refused rather than
 // package's handoff always cites a head `main` has since moved past, and the drift check counted
 // `main`'s paths as the branch's. Refreshing the handoff takes the pull request out of the lane.
 // `handoffDrift` measures an audit-lane branch -- by the classifier's own predicate, imported --
-// from its merge-base. These four cases pin that it does so for that branch and for nothing else.
+// from its merge-base. These cases pin that it does so for that branch and for nothing else.
 const AUDIT_BRANCH = 'agent/test/round-audit';
 const AUDIT_HANDOFF = 'handoffs/WP-0A-A0-001-author-handoff.json';
 const AUDIT_FILE = 'evidence/audits/2026-10-15/c0-audit.md';
 
 // main: WP-0A-A0-001 owns AUDIT_BRANCH and its handoff cites the first commit; then another
 // package's substantive work lands on main. Returns the repository on main.
-async function movedMainWithAuditPackage(otherBranch = null) {
+// `cite` chooses what the audit package's handoff names as its head; by default the first commit.
+async function movedMainWithAuditPackage(otherBranch = null, cite = (first) => first) {
   const scenario = await scenarioRepository();
   const { root, git } = scenario;
   const first = git('rev-parse', 'HEAD');
+  const cited = cite(first, git);
   await writeFile(join(root, 'work-packages/WP-0A-A0-001.json'),
     `${JSON.stringify({ work_package_id: 'WP-0A-A0-001', ownership: { branch: AUDIT_BRANCH } }, null, 2)}\n`);
   await writeFile(join(root, AUDIT_HANDOFF), `${JSON.stringify({
-    work_package_id: 'WP-0A-A0-001', base_revision: first, head_revision_or_patch_checksum: first,
+    work_package_id: 'WP-0A-A0-001', base_revision: first, head_revision_or_patch_checksum: cited,
     files_added: [], files_modified: [], files_deleted: [],
   }, null, 2)}\n`);
   if (otherBranch !== null) {
@@ -1086,6 +1088,44 @@ test('a branch adding src/** on the audit package\'s branch is drift as before',
     assert.equal(checked.status, 91, `${checked.stdout}${checked.stderr}`);
     assert.match(checked.stderr, /scripts\/landed-on-main\.mjs/,
       'a path outside evidence/audits/ means the branch is not audit-lane, so main\'s paths count as before');
+    assert.doesNotMatch(checked.stdout, /audit-lane/);
+  } finally {
+    await rm(scenario.root, { recursive: true, force: true });
+  }
+});
+
+// Q0-266-1: two rules `handoffDrift` and `auditLaneOf` state that no case above reaches. Each was
+// measured live by mutation on PR #266 (M12, M9): with the rule removed, the guard exits 0 here.
+// A citation on no path to the branch -- a commit that exists but is unrelated, or one that does not
+// exist -- is refused as such, audit-lane or not: it is not drift, so it is never excused as drift.
+test('an audit-only branch whose handoff cites a revision on no path to it fails, as before', async () => {
+  const unrelated = (first, git) => git('commit-tree', git('rev-parse', `${first}^{tree}`), '-m', 'a commit on no path to main');
+  const missing = () => 'f'.repeat(40);
+  for (const [what, cite] of [['an unrelated commit', unrelated], ['a revision that does not exist', missing]]) {
+    const scenario = await movedMainWithAuditPackage(null, cite);
+    try {
+      await commitOnBranch(scenario, AUDIT_BRANCH, { [AUDIT_FILE]: '# C0 round audit\n' });
+      const checked = refresh(scenario.root, ['--check']);
+      assert.equal(checked.status, 91, `${what}: ${checked.stdout}${checked.stderr}`);
+      assert.match(checked.stderr, /WP-0A-A0-001-author-handoff\.json cites [0-9a-f]{7}, which is on no path to this branch/,
+        `${what}: refused as a citation on no path, not measured as an audit-lane branch`);
+      assert.doesNotMatch(checked.stdout, /audit-lane/, `${what}: and not excused as one`);
+    } finally {
+      await rm(scenario.root, { recursive: true, force: true });
+    }
+  }
+});
+
+// An empty branch -- the audit package's branch with no commit since main -- changes nothing, so it
+// holds no audit files and is not audit-lane: it is measured from its cited head as before.
+test('an empty branch on the audit package\'s branch name is not audit-lane, and is drift as before', async () => {
+  const scenario = await movedMainWithAuditPackage();
+  try {
+    scenario.git('checkout', '-qb', AUDIT_BRANCH);
+    const checked = refresh(scenario.root, ['--check']);
+    assert.equal(checked.status, 91, `${checked.stdout}${checked.stderr}`);
+    assert.match(checked.stderr, /WP-0A-A0-001-author-handoff\.json cites a head [0-9a-f]{7} with \d+ substantive change\(s\) after it/,
+      'a branch that changes nothing is not audit-lane, so it is measured from its cited head as before');
     assert.doesNotMatch(checked.stdout, /audit-lane/);
   } finally {
     await rm(scenario.root, { recursive: true, force: true });
