@@ -789,3 +789,34 @@ exist; §C item 2's "the named files not at the head are exactly the three platf
 three, and each of the three is at the head or absent" (now `adapters/job-store.ts` alone), and item 3's "created at
 the head" reads "at the head, created or already there". PR-3 (#275) changed none of these files or tests. Nothing in
 the classifier, the list, any guard or any test changes with this record, and no rule of §A to §E changes.
+
+**Note 2026-10-17 (R0-281-1, R0-280-1; the text of §F above is kept whole and is not changed by it).** Directed by the
+Product Owner's answer of 2026-10-16T19:13:38Z to A0's list of open items, item 2 of which named this note
+(`evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-rfc-007-f-note.md`). Measured on `main` at `01b49187`:
+
+1. **§F item 4's gap is closed for `index.ts` and `application/run.ts`.** PR #281 (merged 2026-10-16T18:50:35Z as
+   `01b49187`, head `e3eaf3ce`; WP-0A-DB-00) changed §C test 2's body, not its name, in
+   `test-kits/db/foundation-contract.test.mjs` (the test opens at line 7600): line 7626 declares
+   `PLATFORM_KERNEL_CREATED` as `src/modules/platform-kernel/application/run.ts` and
+   `src/modules/platform-kernel/index.ts`, line 7629 asserts that none of them is absent from the head
+   (`'a platform-kernel file once created left the repository'`), and line 7630 that each is one of the three
+   platform-kernel files. §F item 4's sentence "A platform-kernel file that leaves after it was created does not fail
+   test 2 now", and its "holds for the other named files only", no longer hold for those two files: deleting either,
+   or both, with or without their tests, fails test 2 as deleting any other named file does
+   (`evidence/WP-0A-DB-00/q0-review-2026-10-17-pr281.md`, `evidence/WP-0A-DB-00/a1-review-2026-10-17-pr281.md`). Test 2
+   still lets every absent named file be one of the three (line 7628), so the sentence still holds for
+   `adapters/job-store.ts`, which is absent. Test 3 is unchanged.
+2. **§F item 1's pointer: the deferral is WP-1A-A0-003 `open_blockers[17]` on `main`.** `open_blockers[16]` was its
+   index at `2aef8182`; PR #265 inserted an entry above it, and at `01b49187` `[16]` is "For PR-1 (recorded
+   2026-10-13): A1's advisories on PR #259 …" and `[17]` is the deferral, reworded "PR-1 DEFERRALS — STATUS 2026-10-15
+   (PR-2): …" (R0-280-1, `evidence/WP-0A-A0-004/r0-review-2026-10-16-pr280.md` §5). Read item 1's `open_blockers[16]`
+   as "`[16]` at `2aef8182`, `[17]` at `01b49187`"; an index into that list is exact only with its commit.
+3. **`src/modules/platform-kernel/adapters/job-store.ts` is still absent, and `PLATFORM_KERNEL_CREATED` is a hand
+   list.** The pull request that creates the file must add it there, or a later deletion of it would again pass test 2
+   (R0-281-2, C0-281-1, Q0-281-1). On `main` that duty is recorded only by WP-0A-DB-00: the comment above line 7626,
+   the `amends_without_owning` rationale of `work-packages/WP-0A-DB-00.json` (increment gov-a1280), and the
+   `known_limitations` and `recommended_next_work_packages` of `handoffs/WP-0A-DB-00-author-handoff.json`. WP-1A-A0-003,
+   the package that will create the file, does not carry it: a records entry on its `open_blockers` naming the duty is
+   owed (R0-281-2 (ii)).
+
+This note changes no rule of §A to §F, and no classifier, list, guard or test changes with it.
