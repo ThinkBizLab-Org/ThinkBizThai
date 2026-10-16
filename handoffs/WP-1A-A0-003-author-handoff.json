@@ -4,122 +4,68 @@
   "work_package_id": "WP-1A-A0-003",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "047385f8855d01b09ea46b2e5c40bfedb9cd5042",
-  "head_revision_or_patch_checksum": "7f34adb5fd652fed34e6bfdb34370550daf9af31",
+  "base_revision": "01b49187fe488f58929a9d14b361d17c81ec1c70",
+  "head_revision_or_patch_checksum": "01b49187fe488f58929a9d14b361d17c81ec1c70",
   "task_ids": [
     "WP-1A-A0-003",
-    "pr3-kernel-test-gaps-2026-10-16"
+    "pr259-275-records-2026-10-17"
   ],
-  "files_added": [
-    "evidence/WP-1A-A0-003/a1-review-2026-10-16-pr275.md",
-    "evidence/WP-1A-A0-003/c0-review-2026-10-16-pr275.md",
-    "evidence/WP-1A-A0-003/q0-review-2026-10-16-pr275.md",
-    "evidence/WP-1A-A0-003/r0-review-2026-10-15-pr275.md"
-  ],
-  "files_modified": [
-    "handoffs/WP-1A-A0-003-author-handoff.json",
-    "src/modules/platform-kernel/application/tenant-context.test.ts",
-    "work-packages/WP-1A-A0-003.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
-    "DEC-021",
-    "DEC-022",
-    "RFC-2026-029",
-    "RFC-2026-034",
     "RFC-2026-025",
+    "RFC-2026-034",
     "RFC-2026-007"
   ],
-  "contracts_consumed": [
-    "CTR-TEN-001",
-    "CTR-API-001",
-    "CTR-ERR-001",
-    "CTR-IDM-001"
-  ],
+  "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS PACKAGE'S FOURTH PULL REQUEST (PR-3), RISK LANE (RFC-2026-034 §2.2, module code; classify-review-tier --lane: risk, tier H for the 'tenant' word in the test's path): tests only, no non-test file changed. Its press is required_human_authorities[1]: A1 and Q0 pass on the final head and A0 presses; the round audit carries C0's and R0's readings. index.ts, application/run.ts and adapters/** are not touched, so required_human_authorities[2] and [3] are not read.",
-    "Q0-265-1 (Low, test gap) closed and A1-265-N4 (advisory) answered by one table-driven case in application/tenant-context.test.ts: own kind with an inherited id, and own id with an inherited kind, each through a prototype object and through a polluted Object.prototype with a plain principal; each must be tenant.unauthenticated before the directory is asked.",
-    "Q0-AUD1015-3 was already closed by PR #265 (Q0's P6/P7 killed by the non-object tests); Q0-261-6 and Q0-261-7 were Info with nothing owed. Nothing added for them.",
-    "ownership.amends_without_owning.paths emptied: both PR-2 amendments reached main with PR #265 (14716adf) and this branch touches neither, so verify-branch-scope would refuse them as dead; the rationale keeps what PR-2 changed."
+    "THIS INCREMENT records, after their merges, what main did not carry about PR #259 (2026-10-14T09:20:11Z, e69fc87b; final head f723662b; CI run 38539239403 green, lane governance), PR #261 (2026-10-14T12:55:51Z, 2aef8182; final head 1c34880d; CI run 38564806352 green, lane risk), PR #265 (2026-10-15T10:36:19Z, 14716adf; final head 38f5dd82; CI run 38681569474 green, lane governance) and PR #275 (2026-10-15T19:19:55Z, e7840468; final head 960207d8; CI run 38789797692 green, lane risk): merge facts from gh and git, the role verdicts quoted from their files on main, who pressed under which Owner answer or lane rule, and the roles' words for after the merges (R0-265-1..4, R0-275-2/-3, C0-275-1/-2, Q0-AUD1015-7). They are open_blockers[21] (#259, #261), [22] (#265) and [23] (#275), appended.",
+    "open_blockers[24], appended: R0-281-2 option (ii), the duty of the pull request that creates src/modules/platform-kernel/adapters/job-store.ts to add it to PLATFORM_KERNEL_CREATED in test-kits/db/foundation-contract.test.mjs §C test 2, with the self-enforcing assertion C0-281-1, A1-281-1 and Q0-281-1 offered as the alternative.",
+    "Status stays in_progress: R0's #265 and #275 files keep the manifest there, and the last acceptance criterion (the provider-bound increment, C0-259-3) holds the package short of integration_verified. open_blockers[0]-[20], required_human_authorities and every other field are byte-equal."
   ],
   "acceptance_results": [
     {
-      "criterion": "3: the resolver's refusals",
-      "result": "pass for author self-check: actorOf's own-property read of kind and of id is now pinned separately (Q0-265-1, A1-265-N4); no behaviour changed; independent reading owed"
-    },
-    {
-      "criterion": "1, 2, 4, 5, 6, 7",
-      "result": "unchanged by PR-3 (tests only); 7 re-run: boundary guard exit 0, vitest 293 tests"
+      "criterion": "Recorded words match their sources on main; old open_blockers unchanged; no status, scope, test, guard, CI, RFC, disposition or contract change",
+      "result": "pass for author self-check: 37 quotes extracted by script (whitespace folded) from the role files, the two dispositions, the fast-lane disposition, PR #280's and PR #281's role files, the Q0 audit of 2026-10-15 and the test file; open_blockers[0]-[20] byte-equal"
     },
     {
       "criterion": "8 (the plan row end to end)",
-      "result": "not met by this increment (C0-259-3), as the manifest states"
+      "result": "not met; unchanged by a records increment (C0-259-3)"
     }
   ],
   "tests": [
     {
-      "command": "npm run typecheck",
+      "command": "python3 -I (scratchpad quote check: every quoted span searched, whitespace folded, in its source file on origin/main 01b49187)",
       "exit_code": 0,
-      "result": "tsc --noEmit clean on d37dafc5"
-    },
-    {
-      "command": "npm run test:app",
-      "exit_code": 0,
-      "result": "8 test files, 293 tests passed on d37dafc5 (291 at main + the 2 new cases)"
-    },
-    {
-      "command": "node scripts/verify-app-boundaries.mjs --require-parser",
-      "exit_code": 0,
-      "result": "28 source files keep RFC-2026-029 §6.3, §2.1/3 and §8/5 (54 controls held first)"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-003",
-      "exit_code": 0,
-      "result": "all 3 changed paths declared on d37dafc5 against origin/main b61b3db2, every amendment explains one"
-    },
-    {
-      "command": "npm run validate:protocol",
-      "exit_code": 0,
-      "result": "manifests, capability profiles and ownership valid"
-    },
-    {
-      "command": "lane: node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
-      "exit_code": 0,
-      "result": "tier H (3 paths, b61b3db..d37dafc; the 'tenant' word in the test's path), lane risk: tier H outside governance, records and audit (RFC-2026-034 §2.2); classifier copy is the base's"
-    },
-    {
-      "command": "npm run check (through scripts/commit-when-clean.mjs, under the suite lock, staged with git add -A first)",
-      "exit_code": 0,
-      "result": "d37dafc5: clean, 835 tests, 835 pass"
-    },
-    {
-      "command": "author negative controls (local mutations of actorOf, reverted)",
-      "exit_code": 0,
-      "result": "`const id = value.id` (Q0's N4b, kind still own): exactly 1 test fails, 'refuses a principal with an own kind with an inherited id ...'; `const kind = value.kind` (id still own): exactly 1 test fails, '... an own id with an inherited kind ...'; both pass on actorOf as it is (292 tests in the platform-kernel run, 291 pass under each mutation)"
+      "result": "37 of 37 quotes found verbatim; open_blockers 21 -> 25 entries, [0]-[20] unchanged"
     }
   ],
-  "security_privacy_cost_impact": "Tests only: a regression of either own-property read in actorOf (a polluted Object.prototype supplying a principal's kind or id) is now caught on its own. Synthetic ids only; no I/O, provider, credential, clock or randomness; no cost.",
+  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no code, credential, personal data, customer data, provider call or cost.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "None: no non-test file changed.",
+  "compatibility_impact": "None: records only; no contract-catalog or source file.",
   "known_limitations": [
-    "Q1: a refusal before a context exists (`error`) and a failure before any correlation id (`uncorrelated`) have no CTR-API-001 wire form yet.",
-    "The runner reads no clock, so a handler that never settles is not timed out; a deadline belongs to the composition increment.",
-    "field_errors' field and code strings remain the caller's (held by review); a CTR-IDM-001 error read back from a store is not minted and must be re-minted by its owning module before replay.",
-    "The failure report port has no real adapter until CTR-OBS-001's logger (WP-1A-A6-002); adapters/** stays deferred to the provider-bound increment.",
-    "The vitest tests are not under the integrity manifest or the test-suite floor (manifest open_blockers, R7)."
+    "R0-265-2 is not done: adding FailureReportPort to scope.include (and CTR-OBS-001 to the consumed-later list) changes scope, which RFC-2026-025 §6.1 item 4 does not admit on the records path; it is owed by the next increment that amends this manifest outside the records path. The port stays named in open_blockers[18] (2).",
+    "R0-265-4's amended_by entries on WP-0A-DB-00 and WP-0A-A0-002 for #265 (and #259) are not made: both manifests are outside this package's writable_paths, and an added amended_by entry is not a record under §6.1 item 4. The commit-when-clean half is on WP-0A-CON-008 and fixed by PR #278.",
+    "That A0 pressed #259, #261, #265 and #275 is A0's own statement as scribe; gh records only the account workstationgroup. Whether --match-head-commit was used is not recorded on main; each merge's second parent is the final head.",
+    "The --sync checks name the generated files each main merge involved and leave their regeneration to the reader; this increment did not re-run record:verification on the old heads.",
+    "Carried from the code increments: Q1 (no CTR-API-001 wire form for a refusal before a context exists, or for `uncorrelated`); the runner reads no clock; a stored CTR-IDM-001 error must be re-minted before replay; the failure report port has no real adapter until CTR-OBS-001's logger (WP-1A-A6-002); vitest tests are not under the integrity manifest or the test-suite floor (R7)."
   ],
   "open_risks_or_blockers": [
-    "RISK LANE (module tests). C0 review_approved, A1 security_approved (no finding), Q0 test_verified (835/835; mutations killed), R0 ready, all at a8656d04; files carried with -x; main 047385f8 (#270) merged mechanically. A0 presses under required_human_authorities[1], applying the stricter condition of all four roles (C0-275-2, R0-275-3) once CI is green on both jobs on the final head. Still owed in the next records pass (C0-275-1, R0-275-2): R0-265-1..4 and the other #265 advisories."
+    "RECORDS LANE expected (RFC-2026-025 §6): evidence records-transcription, this handoff, and open_blockers appended. Status stays in_progress; the package is held by its last acceptance criterion (the provider-bound increment), which no direction yet reaches.",
+    "The pull request that creates adapters/job-store.ts owes the PLATFORM_KERNEL_CREATED entry (open_blockers[24]); it edits a WP-0A-DB-00 guard test, so it is governance and needs its own Owner direction: required_human_authorities[2] does not reach adapters/**."
   ],
-  "rollback_or_forward_fix": "Before merge: close the pull request. After merge: revert the one test commit; nothing depends on it.",
+  "rollback_or_forward_fix": "Before merge: close the pull request. After merge: a reviewed revert removes open_blockers[21]-[24] and records-transcription-2026-10-17.md (pr259-275-records-2026-10-17); nothing depends on them. For the code increments (R0-265-3): a revert of PR #265 drops both authorities it added, required_human_authorities[2] and [3], deletes two files a guard names and edits a guard test, so it is governance that neither Owner answer reaches (they never reach a later pull request that only edits either file); the Owner presses it or is asked. A revert of PR #275 (tests only) is risk lane under [1].",
   "recommended_next_work_packages": [
-    "The provider-bound increment of WP-1A-A0-003 by manifest amendment (C0-259-3), which needs its own Owner direction for anything under adapters/**."
+    "WP-0A-DB-00 and WP-0A-A0-002: the amended_by records R0-265-4 asks for #265 (and #259), outside the records path.",
+    "WP-1A-A0-003: the next non-records manifest amendment adds FailureReportPort to scope.include (R0-265-2); the provider-bound increment by manifest amendment (C0-259-3), carrying open_blockers[24] when it creates adapters/job-store.ts."
   ],
   "reviewer_instructions": [
-    "Read the diff of application/tenant-context.test.ts against Q0-265-1 (evidence/WP-1A-A0-003/q0-review-2026-10-15-pr265.md §9) and A1-265-N4 (a1-review-2026-10-15-pr265.md); and the manifest's new last open_blockers entry and the emptied amends_without_owning.",
-    "Mutate actorOf's two hasOwn reads one at a time: each must fail exactly its own case.",
-    "Run npm ci --ignore-scripts, then npm run typecheck, npm run test:app, node scripts/verify-app-boundaries.mjs --require-parser, node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-003 and npm run check on the branch name; remove node_modules after."
+    "Read evidence/WP-1A-A0-003/records-transcription-2026-10-17.md, then git diff origin/main.",
+    "open_blockers[21]-[23] against gh pr view 259/261/265/275 --json mergedAt,mergeCommit,headRefOid,mergedBy, gh run view 38539239403/38564806352/38681569474/38789797692 and the role files cited; the Owner's words against the two dispositions under evidence/WP-1A-A0-003/ and the fast-lane disposition under evidence/WP-0A-A0-001/.",
+    "open_blockers[24] against evidence/WP-0A-DB-00/{r0,c0,a1,q0}-review-2026-10-17-pr281.md and PLATFORM_KERNEL_CREATED in test-kits/db/foundation-contract.test.mjs at origin/main.",
+    "Run node scripts/db/classify-records-only.mjs origin/main <head> and node scripts/db/classify-review-tier.mjs origin/main <head> --lane; expect records-only and lane records, with no status move printed."
   ],
   "superseded_by": null,
   "outputs": null
