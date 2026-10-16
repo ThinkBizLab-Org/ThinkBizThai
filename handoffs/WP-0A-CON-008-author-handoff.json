@@ -5,13 +5,21 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "d1057429a61ab58c4a54cd99c4e4cb7e0120ab6f",
-  "head_revision_or_patch_checksum": "9e288517ee977b22d6889cc9f166d412023b4fe4",
+  "head_revision_or_patch_checksum": "665b62267b65a6bbce43dd7e974e84c1d3d7c1ff",
   "task_ids": [
     "WP-0A-CON-008",
     "commit-when-clean-stage-first-and-q0-266-1-2026-10-16"
   ],
   "files_added": [
-    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-16-commit-gate.md"
+    "evidence/WP-0A-CON-008/a1-reread-2026-10-16-pr278.md",
+    "evidence/WP-0A-CON-008/a1-review-2026-10-16-pr278.md",
+    "evidence/WP-0A-CON-008/c0-reread-2026-10-16-pr278.md",
+    "evidence/WP-0A-CON-008/c0-review-2026-10-16-pr278.md",
+    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-16-commit-gate.md",
+    "evidence/WP-0A-CON-008/q0-reread-2026-10-16-pr278.md",
+    "evidence/WP-0A-CON-008/q0-review-2026-10-16-pr278.md",
+    "evidence/WP-0A-CON-008/r0-reread-2026-10-16-pr278.md",
+    "evidence/WP-0A-CON-008/r0-review-2026-10-16-pr278.md"
   ],
   "files_modified": [
     "evidence/VERIFICATION.md",
@@ -100,7 +108,7 @@
     "The new commit-gate case pins the order against one guard that reads the index, not the whole check."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE. A0 presses this pull request under the Owner's 2026-10-16 answer to question 1 (required_human_authorities[5]) once C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs, the head contains current main and no security finding is open. RFC-2026-007's wording and the CI audit (questions 2 and 3) are other pull requests."
+    "GOVERNANCE (commit gate; Owner's answer of 2026-10-16T02:40:07Z, question 1). Round one at 83274247 (C0 review_approved, A1 changes_requested on A1-278-1, Q0 test_verified, R0 ready); fix 9e288517 (exit 95 before staging on unresolved conflicts; restore tests); round two at 2b50d10a: C0 review_approved, A1 security_approved (A1-278-1 and -4 closed; A1-278r2-1/-2 Low advisories, not security findings), Q0 test_verified 841/841, R0 ready; all files carried with -x. A0 presses once CI is green on both jobs on the final head, with --match-head-commit. Known limit (A1-278r2-1, C0-278-5, Q0-278r2-2): on a refusal the restore puts back the staged content but drops per-entry index flags (intent-to-add returns as untracked; skip-worktree/assume-unchanged bits cleared); nothing in this repository sets them. A1-278r2-2: the commit-gate test cases inherit the caller's GIT_* environment (matters only under a pre-commit hook; none is configured)."
   ],
   "rollback_or_forward_fix": "Before merge: close the pull request. After merge: a reviewed revert pull request restores scripts/commit-when-clean.mjs, removes the three test cases and the copy isolation, restores the floors in scripts/test-suite-contract.mjs, regenerates the integrity manifest and re-records evidence/VERIFICATION.md; a revert is itself governance and goes to the Owner.",
   "recommended_next_work_packages": [
