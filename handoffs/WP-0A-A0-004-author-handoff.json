@@ -5,10 +5,11 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "d1057429a61ab58c4a54cd99c4e4cb7e0120ab6f",
-  "head_revision_or_patch_checksum": "787ee93f4531fc8de170bed269638269812120ff",
+  "head_revision_or_patch_checksum": "7913226d974a92e2b0c43bba02f1a9316065ba29",
   "task_ids": [
     "WP-0A-A0-004",
-    "gov-a004c-ci-audit-2026-10-16"
+    "gov-a004c-ci-audit-2026-10-16",
+    "pr279-a1-279-1-fix-2026-10-16"
   ],
   "files_added": [
     "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-ci-audit.md"
@@ -16,6 +17,7 @@
   "files_modified": [
     ".github/workflows/ci.yml",
     "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-A0-004-author-handoff.json",
     "scripts/test-suite-contract.mjs",
     "test-kits/app-stack.test.mjs",
     "test-kits/integrity-manifest.json",
@@ -34,20 +36,21 @@
     "THIS INCREMENT (gov-a004c) closes A1-270-1 and A1-270-2 (evidence/WP-0A-A0-004/a1-review-2026-10-15-pr270.md §6) under question 3 (header \"CI audit\") of the Product Owner's answer of 2026-10-16T02:40:07Z, transcribed verbatim by script in evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-ci-audit.md and mirrored in required_human_authorities.",
     "In .github/workflows/ci.yml's application job the audit step runs `npm audit --include=dev --audit-level=high` in place of `npm audit --omit=dev --audit-level=high`: same step, place, name and audit level; the job header comment and one step comment say why. No other CI line changes. --include=dev was chosen over dropping the flag because npm drops the dev tree from a plain `npm audit` under NODE_ENV=production, and --include=dev overrides that and an omit config (measured below).",
     "test-kits/app-stack.test.mjs (WP-1A-A0-002's, declared under amends_without_owning) follows the audit command in its two pins and gains two tests: the audit covers the dev dependencies (A1-270-1), and no `if:` or `continue-on-error` on the application job or its steps except the release age's `if: github.event_name == 'pull_request'` (A1-270-2). A0 reads the Owner's \"test กัน if:\" as covering continue-on-error too, since both let package code run after a failed check (disposition, What it directs, 1).",
-    "Floors move with the tests: app-stack 19 to 21 tests, 175 to 187 assertions, name digest f66a1687560ef35f to 3c58028044a6dd71; evidence/VERIFICATION.md 836 to 838; test-kits/integrity-manifest.json regenerated."
+    "Floors move with the tests: app-stack 19 to 21 tests, 175 to 187 assertions, name digest f66a1687560ef35f to 3c58028044a6dd71; evidence/VERIFICATION.md 836 to 838; test-kits/integrity-manifest.json regenerated.",
+    "FIX ROUND (PR #279, A1-279-1 and A1-279-2; commit 7913226d): test-kits/app-stack.test.mjs only, no test added or renamed, ci.yml unchanged; app-stack's assertion floor 187 to 192 (tests 21 and digest 3c58028044a6dd71 unchanged); integrity manifest regenerated; VERIFICATION stays 838. C0-279-1 is corrected in acceptance_results[0]."
   ],
   "acceptance_results": [
     {
       "criterion": "The application job's audit includes the dev dependencies; every other flag, pin, step and order unchanged",
-      "result": "pass for author self-check: git diff origin/main -- .github/workflows/ci.yml changes the audit's run line and three comment lines only; measured 2026-10-16T02:42Z with the lockfile only, `npm audit --include=dev --audit-level=high` found 0 vulnerabilities (exit 0), and so did --omit=dev; a local capture of the bulk advisory request carries 162 package names with --include=dev (typescript, vitest, tailwindcss in) against 54 with --omit=dev, and 162 with --include=dev under NODE_ENV=production or npm_config_omit=dev (a plain npm audit under NODE_ENV=production carries 54)"
+      "result": "pass for author self-check: git diff origin/main -- .github/workflows/ci.yml changes the audit's run line and comments only: +7 -3, the run line, six comment lines added and two removed (the header comment's two lines rewritten as three, three new lines above the step; corrected for C0-279-1, the earlier text said three comment lines); measured 2026-10-16T02:42Z with the lockfile only, `npm audit --include=dev --audit-level=high` found 0 vulnerabilities (exit 0), and so did --omit=dev; a local capture of the bulk advisory request carries 162 package names with --include=dev (typescript, vitest, tailwindcss in) against 54 with --omit=dev, and 162 with --include=dev under NODE_ENV=production or npm_config_omit=dev (a plain npm audit under NODE_ENV=production carries 54)"
     },
     {
       "criterion": "A test pins the dev-inclusive audit",
-      "result": "pass for author self-check: 'CI audits the dev dependencies too, ...(A1-270-1)' fails on the ci.yml of origin/main d1057429 and on --omit=dev, --omit dev, --production and a plain npm audit written into the file (with the A1-257-4 and A1-AUD1015-1 pins), and its in-test controls refuse --only=prod, --omit beside --include=dev, --omit=optional and a job with no audit"
+      "result": "pass for author self-check: 'CI audits the dev dependencies too, ...(A1-270-1)' fails on the ci.yml of origin/main d1057429 and on --omit=dev, --omit dev, --production and a plain npm audit written into the file (with the A1-257-4 and A1-AUD1015-1 pins), and its in-test controls refuse --only=prod, --omit beside --include=dev, --omit=optional and a job with no audit; for A1-279-2 it also refuses an env: on the audit step and any npm_config_* key in the application job: A1's P8b (npm_config_workspace after the audit's run line) written into ci.yml fails it (59 pass, 1 fail), and its in-test controls refuse NPM_CONFIG_REGISTRY before the run line, an unrelated env: on the audit and npm_config_workspace in the job env"
     },
     {
       "criterion": "A test refuses `if:` (and continue-on-error) on the application job's steps but the release age's existing condition",
-      "result": "pass for author self-check: 'no step of the application job runs on a condition or may fail softly, ...(A1-270-2)' passes on the head and fails with `if: always()`, `if: ${{ !cancelled() }}`, `if: success() || failure()` or `continue-on-error: true` written into ci.yml on Application tests, and `if: always()` on Build the web application; its in-test controls also refuse quoted keys, a flow-mapping step, the release age's condition widened, replaced or joined by continue-on-error, its exact text on another step, and a condition or continue-on-error on the job"
+      "result": "pass for author self-check: 'no step of the application job runs on a condition or may fail softly, ...(A1-270-2)' passes on the head and fails with `if: always()`, `if: ${{ !cancelled() }}`, `if: success() || failure()` or `continue-on-error: true` written into ci.yml on Application tests, and `if: always()` on Build the web application; its in-test controls also refuse quoted keys, a flow-mapping step, the release age's condition widened, replaced or joined by continue-on-error, its exact text on another step, and a condition or continue-on-error on the job; for A1-279-1 (PR #279) it also refuses, within the application job, the YAML spellings the reading does not interpret, and fails with each written into ci.yml: \"\\x69f\": always() (P1), ? if / : always() (P2), !!str if: always() (P3), \"continue-on-\\x65rror\": true (P4), <<: *c with &c on a bootstrap with: map (P5), and at job level \"\\x69f\" (P6), \"continue-on-\\x65rror\" (P7), ? if (P10): each 59 pass, 1 fail over app-stack and branch-scope; its in-test controls cover the same at step and job level, a tagged continue-on-error and a local anchor"
     },
     {
       "criterion": "No dependency added; nothing else in CI changed",
@@ -63,7 +66,7 @@
     {
       "command": "node --test test-kits/app-stack.test.mjs",
       "exit_code": 0,
-      "result": "21 pass, 0 fail"
+      "result": "21 pass, 0 fail (192 assertions by the guard's count)"
     },
     {
       "command": "ci.yml mutations written into the file, node --test test-kits/app-stack.test.mjs, file restored after each",
@@ -73,12 +76,12 @@
     {
       "command": "node scripts/verify-test-coverage-floor.mjs",
       "exit_code": 0,
-      "result": "floors met after the three app-stack values moved"
+      "result": "floors met: app-stack 21 tests, 192 assertions, digest 3c58028044a6dd71"
     },
     {
       "command": "node scripts/commit-when-clean.mjs (npm run verify under the suite lock)",
       "exit_code": 0,
-      "result": "clean: tests 838, pass 838, fail 0, skipped 0, todo 0; commit 787ee93f"
+      "result": "clean: tests 838, pass 838, fail 0 at 787ee93f and again at 7913226d (the A1-279 fix)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004",
@@ -94,12 +97,19 @@
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
       "result": "tier: H; lane: governance (ci.yml under .github/**; scripts/test-suite-contract.mjs a test registry; test-kits/app-stack.test.mjs a top-level guard test; test-kits/integrity-manifest.json the integrity manifest); classifier copy: the base's"
+    },
+    {
+      "command": "A1's probes P1-P5, P6, P7, P10 and P8b written into ci.yml, node --test test-kits/app-stack.test.mjs test-kits/branch-scope.test.mjs, file restored after each",
+      "exit_code": 1,
+      "result": "each fails: P1-P7 and P10 fail the A1-270-2 test, P8b fails the A1-270-1 test; 59 pass, 1 fail each; the head passes 60/60"
     }
   ],
   "security_privacy_cost_impact": "Raises a check: the vulnerability audit now screens the dev dependencies (typescript, vitest, the Tailwind/PostCSS toolchain), the packages the application job runs first, and a test refuses a step condition or continue-on-error that could run package code after a failed audit or release age. No credential, secret, personal data or provider call; no dependency added; no permission changed.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes. A future high or critical advisory in a dev dependency now fails the application job where it did not before.",
   "known_limitations": [
+    "A1-279-3 (Info, owed): a `shell:` key (or defaults.run.shell) in the application job can make a multi-line step soft (`shell: bash {0}`); no test refuses it. It is outside the Owner's item and is recorded for a later governance item.",
+    "The YAML-spelling refusals (A1-279-1) cover the application job only; the bootstrap job and Q0-257-5's file-wide continue-on-error substring check do not see an escaped key there.",
     "RFC-2026-029 §4.6 still proposes `npm audit --omit=dev --audit-level=high`, and WP-1A-A0-002.json names that command (its acceptance text and deterministic_commands); neither is this package's, and the Owner's answer amends no RFC. A wording follow-up is for A0 to raise.",
     "The condition test reads the application job only; the bootstrap job's step conditions are pinned by test-kits/branch-scope.test.mjs as before.",
     "The audit result is a measurement at 2026-10-16T02:42Z; advisories change, and CI's run on the head is the reading that counts.",
@@ -108,7 +118,7 @@
   "open_risks_or_blockers": [
     "GOVERNANCE (CI). This pull request changes .github/workflows/ci.yml; C0, A1, Q0 and R0 read it. A0 presses under question 3 of the Owner's answer of 2026-10-16T02:40:07Z only once all four pass on the final head, CI is green on bootstrap and application there, no security finding is open and no dependency is added."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR restores `npm audit --omit=dev --audit-level=high` and the two comments in ci.yml, removes the two app-stack tests and the pinned command change, restores app-stack's floors (19 / 175 / f66a1687560ef35f), VERIFICATION (836), the integrity manifest, and this increment's manifest entries; nothing else depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR restores `npm audit --omit=dev --audit-level=high` and the two comments in ci.yml, removes the two app-stack tests and the pinned command change, restores app-stack's floors (19 / 175 / f66a1687560ef35f; the fix round's 192 included), VERIFICATION (836), the integrity manifest, and this increment's manifest entries; nothing else depends on them.",
   "recommended_next_work_packages": [
     "WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008: R0's acknowledgement records for this increment's amendments.",
     "RFC-2026-029 §4.6 and WP-1A-A0-002's audit command text, to match ci.yml (a wording item for the Owner)."
