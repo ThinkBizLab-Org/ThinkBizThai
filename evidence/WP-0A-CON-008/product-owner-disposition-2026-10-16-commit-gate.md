@@ -100,5 +100,6 @@ merged by the Owner personally**, never by delegation."
 - They do not decide questions 2 and 3 for this pull request, nor any other pull request.
 - They are not a standing delegation, and they are spent by this pull request's merge.
 - An earlier draft of this branch read the Owner's overnight words of 2026-10-15 (transcript lines 3637 and 3646) as the
-  press basis. That draft was never pushed or merged and is replaced by this record; this pull request rests on the
-  answer above only.
+  press basis. That draft was added in `9a26bd1c` and deleted in `d7772bab`, both on this pull request's pushed history
+  (C0-278-2); it is not in the head's tree, was never merged, and was never the press basis of any head this record
+  covers. This pull request rests on the answer above only.

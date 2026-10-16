@@ -728,6 +728,102 @@ test('the commit gate verifies the tree it commits: a new file a guard refuses i
   }
 });
 
+// A throwaway repository for the commit gate's refusals that never reach the verifier's suite: no
+// copy of this repository, only git and a `verify` script whose source the case chooses. The gate is
+// run from this checkout's scripts/ with the throwaway as its working directory.
+async function throwawayRepository(verifier = null) {
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'commit-gate-')));
+  const git = (...args) => {
+    const result = spawnSync('git', args, { cwd: root, encoding: 'utf8', env: CHILD_ENV });
+    return { status: result.status, out: (result.stdout ?? '').trim(), err: result.stderr ?? '' };
+  };
+  const ok = (...args) => {
+    const result = git(...args);
+    assert.equal(result.status, 0, `git ${args.join(' ')}: ${result.err}`);
+    return result.out;
+  };
+  ok('-c', 'init.defaultBranch=main', 'init', '-q');
+  for (const [key, value] of [['user.name', 'ratchet'], ['user.email', 'ratchet@invalid'], ['commit.gpgsign', 'false'],
+    ['gc.auto', '0'], ['maintenance.auto', 'false'], ['core.fsmonitor', 'false']]) ok('config', key, value);
+  if (verifier !== null) {
+    await writeFile(join(root, 'package.json'), `${JSON.stringify({ name: 'gate-probe', private: true, scripts: { verify: 'node verifier.mjs' } }, null, 2)}\n`);
+    await writeFile(join(root, 'verifier.mjs'), verifier);
+  }
+  await writeFile(join(root, 'shared.txt'), 'base\n');
+  ok('add', '-A');
+  ok('commit', '-qm', 'base');
+  const message = join(root, '.git', 'probe-message.txt');
+  await writeFile(message, 'probe: this commit must be refused\n');
+  const gate = () => spawnSync('node', [join(REPOSITORY, 'scripts/commit-when-clean.mjs'), message], { cwd: root, encoding: 'utf8', env: CHILD_ENV });
+  return { root, git, ok, gate };
+}
+
+// A1-278-1. A merge stopped on a conflict holds unmerged index entries, and git refuses a plain
+// `git commit` while it does. Staging first resolved them -- `git add -A` takes the file with its
+// `<<<<<<<` markers as the resolution -- and `git write-tree` cannot record such an index, so the
+// refusal that followed had nothing to restore: the conflict was gone and a later plain `git commit`
+// committed the markers. The gate must refuse before it stages, and leave the merge as it found it.
+test('the commit gate refuses a merge with unresolved conflicts before it stages anything', async () => {
+  const { root, ok, gate } = await throwawayRepository();
+  try {
+    ok('checkout', '-qb', 'side');
+    await writeFile(join(root, 'shared.txt'), 'side\n');
+    ok('commit', '-qam', 'side');
+    ok('checkout', '-q', 'main');
+    await writeFile(join(root, 'shared.txt'), 'main\n');
+    ok('commit', '-qam', 'main');
+    const head = ok('rev-parse', 'HEAD');
+    const merge = spawnSync('git', ['merge', 'side'], { cwd: root, encoding: 'utf8', env: CHILD_ENV });
+    assert.notEqual(merge.status, 0, 'the merge must stop on its conflict for this case to mean anything');
+    const unmergedBefore = ok('ls-files', '-u');
+    assert.notEqual(unmergedBefore, '', 'and leave unmerged entries in the index');
+    const conflicted = await readFile(join(root, 'shared.txt'), 'utf8');
+    assert.match(conflicted, /^<<<<<<< /m);
+
+    const refused = gate();
+    assertFailed(refused, 'the gate must refuse an index with unresolved conflicts');
+    assert.equal(ok('ls-files', '-u'), unmergedBefore,
+      `and leave every unmerged entry where it was: nothing staged, nothing resolved\n${refused.stdout}${refused.stderr}`);
+    assert.equal(await readFile(join(root, 'shared.txt'), 'utf8'), conflicted, 'and leave the conflicted file untouched');
+    assert.equal(refused.status, 95, `with 95, before anything is staged:\n${refused.stdout}${refused.stderr}`);
+    assert.match(refused.stderr, /unresolved conflicts/);
+    assert.equal(ok('rev-parse', 'HEAD'), head, 'and make no commit');
+    assert.ok(existsSync(join(root, '.git', 'MERGE_HEAD')), 'and leave the merge in progress');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+// A1-278-4. The gate's own refusals after staging -- a verifier that exits 0 without the clean line
+// (90) and a tree that moved while it ran (92) -- put the index back as they found it: what the
+// caller had staged stays staged, and what the gate staged is unstaged again.
+test('the commit gate\'s refusals after staging restore the index it found', async () => {
+  const clean = "process.stdout.write('clean: exit 0 — tests 1, pass 1, fail 0\\n');\n";
+  const cases = [
+    [90, '// exits 0 and prints nothing\n'],
+    [92, `import { appendFileSync } from 'node:fs';\nappendFileSync('shared.txt', 'moved while verifying\\n');\n${clean}`],
+  ];
+  for (const [code, verifier] of cases) {
+    const { root, ok, gate } = await throwawayRepository(verifier);
+    try {
+      await writeFile(join(root, 'staged-by-caller.txt'), 'staged before the gate ran\n');
+      ok('add', 'staged-by-caller.txt');
+      await writeFile(join(root, 'left-unstaged.txt'), 'never staged by the caller\n');
+      const head = ok('rev-parse', 'HEAD');
+      const index = ok('write-tree');
+
+      const refused = gate();
+      assert.equal(refused.status, code, `the gate must refuse with ${code}:\n${refused.stdout}${refused.stderr}`);
+      assert.equal(ok('rev-parse', 'HEAD'), head, `${code}: and make no commit`);
+      assert.equal(ok('write-tree'), index, `${code}: and leave the index as it found it`);
+      assert.deepEqual(ok('diff', '--cached', '--name-only').split('\n'), ['staged-by-caller.txt'],
+        `${code}: what the caller staged stays staged, and nothing else is`);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+});
+
 // The sweeper's own case, added after it deleted four concurrent runs' repository copies.
 //
 // It is not testing tidiness. A sweep that removes a copy another process is executing inside makes

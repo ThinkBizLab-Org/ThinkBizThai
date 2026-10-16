@@ -9,7 +9,9 @@
 // a commit through this path.
 //
 // Usage: node scripts/commit-when-clean.mjs <message-file>
-// Exit codes: the verifier's own code when it is not clean; git's when the commit fails; 0 clean.
+// Exit codes: the verifier's own code when it is not clean; git's when the commit fails; 0 clean;
+// 2 usage; 90 a silent verifier; 92 the tree moved; 95 the index holds unresolved conflicts or cannot
+// be recorded (refused before anything is staged).
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync, realpathSync } from 'node:fs';
@@ -75,17 +77,25 @@ async function main(argv) {
   // `git commit` takes the index, so a write landing after the second sample is left out of the
   // commit rather than committed unverified -- the window the old third sample only narrowed.
   //
-  // A refusal puts the index back as it was found, as the old order never touched it before the
-  // verifier passed. `git write-tree` cannot record an index with unresolved conflicts; then there
-  // is nothing to restore to, and the refusal says the changes were left staged.
+  // Every refusal of the gate's own (a failed `git add`, a verifier that is not clean, 90, 92) puts
+  // the index back as it was found, as the old order never touched it before the verifier passed. A
+  // failing `git commit` itself leaves the index staged, as it did on main.
+  //
+  // AN INDEX WITH UNRESOLVED CONFLICTS IS REFUSED BEFORE ANYTHING IS STAGED (A1-278-1). `git add -A`
+  // marks every conflicted path resolved, `<<<<<<<` markers included, and `git write-tree` cannot
+  // record such an index, so there would be nothing to restore to: a refusal would leave the
+  // conflicts silently resolved and a later plain `git commit` would commit the markers, which git
+  // itself refuses while the paths are unmerged. So the gate stops first, with the index untouched.
+  // 95 is a code of its own: no other refusal here means "resolve the conflicts first", and none of
+  // the verifier's own codes is 95, so a caller reading only the code cannot mistake it.
+  const unmerged = run('git', ['ls-files', '-u']);
   const index = run('git', ['write-tree']);
-  const restore = () => {
-    if (index.status === 0) {
-      run('git', ['read-tree', index.stdout.trim()]);
-      return '';
-    }
-    return ' (its changes are left staged)';
-  };
+  if (unmerged.status !== 0 || (unmerged.stdout ?? '').trim() !== '' || index.status !== 0) {
+    process.stderr.write('refusing to commit: the index holds unresolved conflicts or cannot be recorded; '
+      + 'resolve them and stage the result, then run this again. Nothing was staged.\n');
+    return 95;
+  }
+  const restore = () => { run('git', ['read-tree', index.stdout.trim()]); };
   const staged = run('git', ['add', '-A']);
   if (staged.status !== 0) {
     process.stderr.write(`${staged.stderr}`);
@@ -96,22 +106,25 @@ async function main(argv) {
   const verify = run('npm', ['run', 'verify']);
   const output = `${verify.stdout ?? ''}${verify.stderr ?? ''}`;
   if (verify.status !== 0) {
-    process.stderr.write(`refusing to commit: the tree is not clean${restore()}\n`);
+    restore();
+    process.stderr.write('refusing to commit: the tree is not clean\n');
     process.stderr.write(`${output.trimEnd().split('\n').slice(-3).join('\n')}\n`);
     return verify.status ?? 1;
   }
   // The verifier prints `clean: exit 0 — tests N, pass N, …`. Requiring that line as well as the
   // status closes the case where something silences npm and every command exits 0 saying nothing.
   if (!/^clean: exit 0 — tests \d+, pass \d+/m.test(output)) {
-    process.stderr.write(`refusing to commit: the verifier exited 0 without reporting a clean run${restore()}\n`);
+    restore();
+    process.stderr.write('refusing to commit: the verifier exited 0 without reporting a clean run\n');
     return 90;
   }
 
   // The index was staged from the tree before the verifier ran; the tree must still be what it was,
   // or the index may not be what the verifier read.
   if (treeState() !== before) {
+    restore();
     process.stderr.write('refusing to commit: the working tree changed while the verifier was running. '
-      + `What was verified is not what would be committed.${restore()}\n`);
+      + 'What was verified is not what would be committed.\n');
     return 92;
   }
   const commit = run('git', ['commit', '-F', messageFile]);
