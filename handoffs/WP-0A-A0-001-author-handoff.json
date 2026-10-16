@@ -5,16 +5,20 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "e8fc2601713293331643e9aad73ceb83f19226ed",
-  "head_revision_or_patch_checksum": "2e3799c6ac579180e4de677f29278a8425fa4339",
+  "head_revision_or_patch_checksum": "e6eb390ea5d9a3a2cf5b3bee7a10e85f09fa9fe0",
   "task_ids": [
     "WP-0A-A0-001",
     "pr262-pr269-pr273-pr274-records-2026-10-16",
     "pr277-records-fix-2026-10-16"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-001/a1-reread-2026-10-16-pr277.md",
     "evidence/WP-0A-A0-001/a1-review-2026-10-16-pr277.md",
+    "evidence/WP-0A-A0-001/c0-reread-2026-10-16-pr277.md",
     "evidence/WP-0A-A0-001/c0-review-2026-10-16-pr277.md",
+    "evidence/WP-0A-A0-001/q0-reread-2026-10-16-pr277.md",
     "evidence/WP-0A-A0-001/q0-review-2026-10-16-pr277.md",
+    "evidence/WP-0A-A0-001/r0-reread-2026-10-16-pr277.md",
     "evidence/WP-0A-A0-001/r0-review-2026-10-16-pr277.md",
     "evidence/WP-0A-A0-001/records-transcription-2026-10-16.md"
   ],
@@ -79,7 +83,7 @@
     "Owed by this package outside the records path: OPEN-018 in the G0 tracker and the Decision Register (R0-AUD1015-2); the amended_by entries for PR #257's amendments of package-lock.json and test-kits/repository-json.test.mjs (R0-AUD1015-6). Owed by WP-0A-A0-002: its acknowledgements of the integrity-manifest digests of #269 and #274."
   ],
   "open_risks_or_blockers": [
-    "RECORDS-ONLY under RFC-2026-025 §6.1: one independent light-path reading (§6.2) before a delegated press; these records transcribe R0's own words, so §6.2 item 1 says who reads. Still owed: R0's integration_verified for #269, #273, #274 on the merged heads; WP-0A-A0-002's two acknowledgements; the OPEN-018 edits and the two #257 amended_by entries (package-lock.json, test-kits/repository-json.test.mjs) (non-records increments)."
+    "RISK LANE at the final head (C0-277r2-1, R0-277-5, A1-277r2-1): the records commit alone is records-only, but the carried role files are not record files, so the base's classifier prints tier H, lane risk. Round one at 6dedc7da (C0 changes_requested on C0-277-1/-2; A1, Q0, R0 pass), fix b450bc38, main e8fc2601 merged mechanically, round two at 5f58bd17: C0 review_approved, A1 pass (no security finding), Q0 test_verified 836/836, R0 ready; all files carried with -x. A0 presses under RFC-2026-034 §2.2's risk lane (Q-034-1) once CI is green on both jobs on the final head, with --match-head-commit. Owed elsewhere: R0's post-merge integration_verified for #269/#273/#274 (R0-277-4)."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[11] to [15] and the closing clauses on [9] and [10], restores amends_without_owning.paths [\"test-kits/integrity-manifest.json\"] with the earlier rationale, and removes evidence/WP-0A-A0-001/records-transcription-2026-10-16.md (pr262-pr269-pr273-pr274-records-2026-10-16); nothing depends on them.",
   "recommended_next_work_packages": [
