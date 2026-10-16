@@ -105,7 +105,7 @@
     "test-kits/contracts/shared-kernel-contract-catalog.test.mjs": "38814bfd034bf0e914367926a8c22a030d8587d99dadba185525d67854a22e8f",
     "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs": "2af93d6e855b493d76f872dc3a3a04a18eb6ae41c215ca1d8ff096696a966f0d",
     "test-kits/contracts/shared-kernel-schema-conformance.test.mjs": "df1e8514583e84e2634d4271d61bba8feb87c00d97c68c9a0cbf0322ef71e19b",
-    "test-kits/db/foundation-contract.test.mjs": "af1b966cf0bb497ebbeb3d2e9c23a820582d0f1b8136805c769abd50d34039fc",
+    "test-kits/db/foundation-contract.test.mjs": "776f9554d2b0350cdd7f7dbab8eec5e3384e38bfbd21b691d7f325d6c2fe6e93",
     "test-kits/db/rls-assertions.test.mjs": "deea6741e6de5936d85e4315a1315ebf3a34e6341d024c95f1b694bcbc4079a6",
     "test-kits/db/ws905-fixture.mjs": "8bac36137d83b2ec14d2b341834124093fb919d4303fc8daadcfcbaa2e355c32",
     "test-kits/handoff-conformance.test.mjs": "29fa10c126bef40f4ad6bec7f5443c6684f13c180ddcf922df8bec3176e18fa7",

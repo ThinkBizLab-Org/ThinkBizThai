@@ -7618,13 +7618,16 @@ test('a records-only diff on the repository as it stands prints the records lane
   assert.ok(none.reasons.length >= atHead.length, `${none.reasons.length} mentions`);
   assert.deepEqual([...found].sort(), atHead.map(([namer, named]) => JSON.stringify([namer, named])).sort());
   // The rest name files no pull request has created yet (R0-259-1): only platform-kernel files WP-1A-A0-003 creates
-  // (index.ts and application/run.ts by its PR-2; adapters/job-store.ts later). Read from the repository, so it holds
-  // before and after a file is created: every absent named file is one of them, and each of them is either at the
-  // head, where its pairs are among those found above, or absent and listed here. The run-time check does not reach
-  // the absent ones; here, every entry's namer still spells its file.
+  // (index.ts and application/run.ts by its PR-2; adapters/job-store.ts later). Every absent named file is one of them.
+  // A platform-kernel file once created must stay (A1-280-1, Q0-280-1): the two PR-2 created are pinned present here,
+  // so a pull request that deletes either, with or without its test, fails as deleting any other named file does;
+  // adapters/job-store.ts alone may still be absent, and the pull request that creates it adds it to this list. The
+  // run-time check does not reach the absent ones; here, every entry's namer still spells its file.
+  const PLATFORM_KERNEL_CREATED = ['src/modules/platform-kernel/application/run.ts', 'src/modules/platform-kernel/index.ts'];
   const absent = [...new Set(STRING_NAME_EXCEPTIONS.filter(([, named]) => !files.has(named)).map(([, named]) => named))].sort();
   assert.ok(absent.every((named) => PLATFORM_KERNEL.includes(named)), `absent named files outside the platform-kernel three: ${JSON.stringify(absent)}`);
-  assert.deepEqual([...absent, ...PLATFORM_KERNEL.filter((p) => files.has(p))].sort(), PLATFORM_KERNEL);
+  assert.deepEqual(PLATFORM_KERNEL_CREATED.filter((p) => !files.has(p)), [], 'a platform-kernel file once created left the repository');
+  assert.ok(PLATFORM_KERNEL_CREATED.every((p) => PLATFORM_KERNEL.includes(p)));
   const { mentioned } = governanceClosure({ files, readHead });
   assert.deepEqual([...mentioned].sort(), STRING_NAME_EXCEPTIONS.map(([namer, named]) => JSON.stringify([namer, named])).sort());
 });

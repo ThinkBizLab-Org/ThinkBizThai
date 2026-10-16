@@ -4,49 +4,48 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "9b3ffbd56bd9c314e20c6e1634d5fe286cadbc92",
-  "head_revision_or_patch_checksum": "649ef1911642d3ab7665a4a200dd94c4fe90eea5",
+  "base_revision": "c2979b28b3c5ee553f10e15ad323be5451c6389a",
+  "head_revision_or_patch_checksum": "0964db7c4ee0ec436b27395d0f2cf3b643c5648c",
   "task_ids": [
     "WP-0A-DB-00",
-    "gov-db00-2026-10-15"
+    "gov-a1280-2026-10-17"
   ],
   "files_added": [
-    "evidence/WP-0A-DB-00/a1-review-2026-10-15-pr268.md",
-    "evidence/WP-0A-DB-00/c0-review-2026-10-15-pr268.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-15-governance-bundle-press.md",
-    "evidence/WP-0A-DB-00/q0-review-2026-10-15-pr268.md",
-    "evidence/WP-0A-DB-00/r0-review-2026-10-15-pr268.md"
+    "evidence/WP-0A-DB-00/a1-review-2026-10-17-pr281.md",
+    "evidence/WP-0A-DB-00/c0-review-2026-10-17-pr281.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-kernel-deletion-gap.md",
+    "evidence/WP-0A-DB-00/q0-review-2026-10-17-pr281.md",
+    "evidence/WP-0A-DB-00/r0-review-2026-10-17-pr281.md"
   ],
   "files_modified": [
-    "architecture/decisions/RFC-2026-025-owner-delegated-merge.md",
-    "architecture/decisions/RFC-2026-030-risk-tiered-review.md",
     "db/foundation/lint/audit-coverage-map.json",
     "handoffs/WP-0A-DB-00-author-handoff.json",
+    "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
+    "RFC-2026-007",
     "RFC-2026-025",
-    "RFC-2026-030",
     "RFC-2026-034"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT is the governance bundle's item (5), RFC-2026-034 §8 item 3, as far as this package owns it: one dated status-line note each in RFC-2026-025 and RFC-2026-030 that RFC-2026-034 (merged #251, 2026-10-11) amends it, quoting what RFC-2026-034 §3 names for each, and recording, as A1-251f-2 and R0-251-43 (1) asked, the Owner's answer to Q-034-6 (2026-10-11, `ยืนยันทั้ง 6 ข้อ (Recommended)`, 02:59:23Z) as his named exception to RFC-2026-025 §5 item 6's last bullet, quoting RFC-2026-034 §2.2, with that item's other conditions binding. No rule text changes.",
-    "Every quotation in the two notes was checked by script against RFC-2026-034 and RFC-2026-030 as on main (whitespace-normalised for line wraps).",
-    "Authority to press: the Owner's answer of 2026-10-15 to question 2 (header \"ชุด governance\"), `A0 กดเมื่อ 4 role ผ่าน ทีละ PR (Recommended)`, transcribed byte for byte by script in evidence/WP-0A-DB-00/product-owner-disposition-2026-10-15-governance-bundle-press.md and mirrored in required_human_authorities. Question 1 of the same call concerns PR #265. That this PR carries only the two notes this package owns, and that the other §8 item 3 notes travel by their owners under the same item (5), is A0's reading (the disposition §3 (b)).",
-    "db/foundation/lint/audit-coverage-map.json's 34 line pins into this manifest move by three (one required_human_authorities line and two amends_without_owning lines above open_blockers); each pin's quote was re-checked on its new line."
+    "THIS INCREMENT closes A1-280-1 / Q0-280-1: RFC-2026-007 Amendment 2026-10-13 §C test 2 in test-kits/db/foundation-contract.test.mjs (name unchanged) pins the platform-kernel files created so far, src/modules/platform-kernel/index.ts and src/modules/platform-kernel/application/run.ts, as present. Deleting either or both, with or without their tests, now fails test 2, as deleting vitest.config.ts already did; adapters/job-store.ts may still be absent until the pull request that creates it adds it to the pinned list. No classifier, STRING_NAME_EXCEPTIONS, other guard or other test changes; the test count is unchanged (843).",
+    "RFC-2026-007 §F item 4's gap statement is recorded as closed by this PR in the manifest's amends_without_owning rationale; the RFC is not edited (the Owner's answer reaches the test only).",
+    "Authority to press: A0's recommendation on A1-280-1 (2026-10-16T16:39:12Z, transcript line 5264) and the Owner's answer `ตาแนะนำ` (17:10:27Z, line 5268), transcribed byte for byte by script in evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-kernel-deletion-gap.md and mirrored in required_human_authorities. Reading `ตาแนะนำ` as `ตามแนะนำ` (\"as recommended\") is A0's reading, marked there.",
+    "db/foundation/lint/audit-coverage-map.json's 34 line pins into this manifest move by one (one required_human_authorities line above open_blockers). The pin publish.now_or_cancel (index 167) quotes a JSON-escaped phrase and matches the manifest's raw line only after unescaping, on main as here."
   ],
   "acceptance_results": [
     {
-      "criterion": "Each note quotes RFC-2026-034 §3 (and §2.2 for Q-034-6) exactly, changes no rule text, and touches nothing else in the two RFCs",
-      "result": "pass for author self-check: quotes verified by script; git diff shows one added line per RFC"
+      "criterion": "A platform-kernel file once created that leaves the repository fails §C test 2, with or without its test; job-store.ts may still be absent; the head passes",
+      "result": "pass for author self-check: mutation by staged git rm, reset after each: none -> pass; index.ts, run.ts, both, index.ts+index.test.ts, run.ts+run.test.ts, all four -> test 2 fails ('a platform-kernel file once created left the repository'); controls vitest.config.ts and apps/web/app/page.tsx -> fail; a staged stub job-store.ts -> pass; test 3 passes in every row. The origin/main test passes both-deleted and all-four-deleted (the gap) and fails vitest.config.ts."
     },
     {
       "criterion": "The Owner's words transcribed byte for byte",
-      "result": "pass for author self-check: header, question, all three options with descriptions and the answer asserted present by script against transcript lines 1631-1632"
+      "result": "pass for author self-check: the A1-280-1 paragraph equals the transcript line 5264 paragraph, the closing question is a substring of it, and the answer equals line 5268's content, asserted by script"
     }
   ],
   "tests": [
@@ -56,43 +55,48 @@
       "result": "valid"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 899278cc, under the suite lock)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (change commit 09206604, under the suite lock)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 827, pass 827, fail 0"
+      "result": "clean: exit 0 — tests 843, pass 843, fail 0"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
       "exit_code": 0,
-      "result": "all 7 changed path(s) are declared, and every amendment explains one"
+      "result": "all 6 changed path(s) are declared, and every amendment explains one"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "tier H; lane governance: the two RFCs (architecture/decisions/**), db/foundation/lint/audit-coverage-map.json (data the database guards read), test-kits/integrity-manifest.json"
+      "result": "tier H; lane governance: db/foundation/lint/audit-coverage-map.json (data the database guards read), test-kits/db/foundation-contract.test.mjs (the foundation contract test, which pins the classifier), test-kits/integrity-manifest.json; it prints additive-eligible: yes, but the change rewrites an assertion of a test that pins the classifier, so it is not additive and stays governance"
     },
     {
       "command": "npm run regenerate:manifest",
       "exit_code": 0,
       "result": "rebuilt 128 digest(s)"
+    },
+    {
+      "command": "npm run check:handoff",
+      "exit_code": 0,
+      "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "None: two dated notes recording an amendment and an Owner answer already on main; no authority beyond the Owner's own words is granted or widened; no credential, customer data or provider call.",
+  "security_privacy_cost_impact": "Integrity only: a test pins two existing files as present; no guard is lowered, no exemption widened, no authority granted beyond the Owner's own words; no credential, customer data or provider call.",
   "migration_and_data_impact": "None. audit-coverage-map.json changes only line numbers of its pins into this manifest.",
   "compatibility_impact": "No contract changes; no contract-catalog file.",
   "known_limitations": [
-    "The other notes RFC-2026-034 §8 item 3 owes (RFC-2026-002, RFC-2026-031, the Decision Register line 373 and §5.1, WP-0A-A0-010 open_blockers[1], G0-024) belong to other owners and are not in this PR.",
-    "R0-251-43 (2) (an item 2, 4 or 5 PR that edits an RFC, guide or gate beyond its own item returns to the Owner) is R0's reading to apply on those PRs and is not written into either RFC."
+    "The pinned list is written by hand: when WP-1A-A0-003 creates adapters/job-store.ts, that pull request must add it to PLATFORM_KERNEL_CREATED in §C test 2, or a later deletion of job-store.ts would not fail the test.",
+    "RFC-2026-007 §F's text still says the gap exists; this PR records the closure in the manifest only, as the Owner's answer reaches the test and not the RFC."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (governance bundle). PR #268: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
+    "GOVERNANCE (A1-280-1 fix; Owner's reply of 2026-10-16T17:10:27Z). Round one at 34319ac8: C0 review_approved, A1 security_approved (no security finding), Q0 test_verified 843/843, R0 ready; files carried with -x. A0 presses once CI is green on both jobs on the final head, with --match-head-commit. Owed after merge (R0-281-2 option (ii), recommended by R0): a records entry in WP-1A-A0-003 open_blockers that the PR creating adapters/job-store.ts must add it to PLATFORM_KERNEL_CREATED (C0-281-1, A1-281-1, Q0-281-1 offered the self-enforcing assertion as an alternative); R0-281-1: RFC-2026-007 §F item 4 becomes false at merge — a dated note by WP-0A-A0-004 is owed."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the two status notes, the disposition, the required_human_authorities entry and the pin shift; nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores the earlier test body, removes the disposition and the required_human_authorities entry and shifts the pins back; nothing depends on them.",
   "recommended_next_work_packages": [
-    "WP-0A-A0-001 and the other owners: the remaining RFC-2026-034 §8 item 3 notes (RFC-2026-002, RFC-2026-031, the Decision Register, WP-0A-A0-010, G0-024)."
+    "WP-1A-A0-003: the pull request that creates adapters/job-store.ts adds it to PLATFORM_KERNEL_CREATED."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-DB-00/product-owner-disposition-2026-10-15-governance-bundle-press.md, then git diff origin/main: one added line in each RFC header.",
-    "Check each note's quotations against RFC-2026-034 §3 and §2.2 and the A1-251f-2 / R0-251-43 texts in evidence/WP-0A-A0-001/."
+    "Read evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-kernel-deletion-gap.md, then git diff origin/main -- test-kits/db/foundation-contract.test.mjs.",
+    "Repeat the deletions: git rm the kernel files (with and without their tests), run node --test --test-name-pattern='records-only diff on the repository as it stands' test-kits/db/foundation-contract.test.mjs, reset after each."
   ],
   "superseded_by": null
 }
