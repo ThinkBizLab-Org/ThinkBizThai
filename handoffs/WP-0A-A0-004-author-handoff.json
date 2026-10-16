@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "4f9ab1401f1f5fa3105046127730ae8b89866fb4",
-  "head_revision_or_patch_checksum": "baecb3c77ddf7ee32b4717c6c60c7aa94aeaec53",
+  "head_revision_or_patch_checksum": "fe07eec761ef4d0e631cc3a0c4c8178d290dc448",
   "task_ids": [
     "WP-0A-A0-004",
     "gov-a004c-ci-audit-2026-10-16",
@@ -14,7 +14,23 @@
     "pr279-r3-a1-279r3-fix-2026-10-16"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-ci-audit.md"
+    "evidence/WP-0A-A0-004/a1-reread-2026-10-16-pr279.md",
+    "evidence/WP-0A-A0-004/a1-reread3-2026-10-16-pr279.md",
+    "evidence/WP-0A-A0-004/a1-reread4-2026-10-16-pr279.md",
+    "evidence/WP-0A-A0-004/a1-review-2026-10-16-pr279.md",
+    "evidence/WP-0A-A0-004/c0-reread-2026-10-16-pr279.md",
+    "evidence/WP-0A-A0-004/c0-reread3-2026-10-16-pr279.md",
+    "evidence/WP-0A-A0-004/c0-reread4-2026-10-16-pr279.md",
+    "evidence/WP-0A-A0-004/c0-review-2026-10-16-pr279.md",
+    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-ci-audit.md",
+    "evidence/WP-0A-A0-004/q0-reread-2026-10-16-pr279.md",
+    "evidence/WP-0A-A0-004/q0-reread3-2026-10-16-pr279.md",
+    "evidence/WP-0A-A0-004/q0-reread4-2026-10-16-pr279.md",
+    "evidence/WP-0A-A0-004/q0-review-2026-10-16-pr279.md",
+    "evidence/WP-0A-A0-004/r0-reread-2026-10-16-pr279.md",
+    "evidence/WP-0A-A0-004/r0-reread3-2026-10-16-pr279.md",
+    "evidence/WP-0A-A0-004/r0-reread4-2026-10-16-pr279.md",
+    "evidence/WP-0A-A0-004/r0-review-2026-10-16-pr279.md"
   ],
   "files_modified": [
     ".github/workflows/ci.yml",
@@ -139,7 +155,7 @@
     "The R0 acknowledgements owed for #270, #255 and #260 (WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008) and those this increment adds are not made here: those manifests are outside this package's writable_paths."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (CI). This pull request changes .github/workflows/ci.yml; C0, A1, Q0 and R0 read it. A0 presses under question 3 of the Owner's answer of 2026-10-16T02:40:07Z only once all four pass on the final head, CI is green on bootstrap and application there, no security finding is open and no dependency is added."
+    "GOVERNANCE (CI audit; Owner's answer of 2026-10-16T02:40:07Z, question 3). Four role rounds: r1 at 4da9e0e9 (A1 changes_requested A1-279-1), r2 at a75078ad (A1 A1-279r2-1), r3 at b7b96af0 (A1 A1-279r3-1, Q0 test_failed on the same), r4 at 4754f394: C0 review_approved, A1 security_approved (residual A1-279r4-1 accepted: a line-based reader; spellings needing a lenient parser beyond YAML are held by four-role review of ci.yml), Q0 test_verified 843/843, R0 ready; all files carried with -x. CI green on both jobs at 4754f394 (dev-inclusive audit: 0 vulnerabilities). A0 presses once CI is green on the final head, with --match-head-commit. Owed: A1-279-3 (shell:), Q0-279r2-2 ($GITHUB_ENV), RFC-2026-029 §4.6 and WP-1A-A0-002's --omit=dev wording, the owners' acknowledgements (R0-279-2)."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR restores `npm audit --omit=dev --audit-level=high` and the two comments in ci.yml, removes the two app-stack tests and the pinned command change, restores app-stack's floors (19 / 175 / f66a1687560ef35f; the fix rounds' 192, 198 and 204 included), VERIFICATION (to main's count at the revert), the integrity manifest, and this increment's manifest entries; nothing else depends on them.",
   "recommended_next_work_packages": [
