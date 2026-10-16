@@ -5,13 +5,18 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "01b49187fe488f58929a9d14b361d17c81ec1c70",
-  "head_revision_or_patch_checksum": "01b49187fe488f58929a9d14b361d17c81ec1c70",
+  "head_revision_or_patch_checksum": "4cf7ddac75b16039f7cf32eb8bdb75d4054b4ab0",
   "task_ids": [
     "WP-1A-A0-003",
     "pr259-275-records-2026-10-17"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-1A-A0-003/records-transcription-2026-10-17.md"
+  ],
+  "files_modified": [
+    "handoffs/WP-1A-A0-003-author-handoff.json",
+    "work-packages/WP-1A-A0-003.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
@@ -40,6 +45,31 @@
       "command": "python3 -I (scratchpad quote check: every quoted span searched, whitespace folded, in its source file on origin/main 01b49187)",
       "exit_code": 0,
       "result": "37 of 37 quotes found verbatim; open_blockers 21 -> 25 entries, [0]-[20] unchanged"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (records commit 4cf7ddac, under the suite lock; npm run regenerate:manifest before it left no diff)",
+      "exit_code": 0,
+      "result": "clean: tests 843, pass 843, fail 0"
+    },
+    {
+      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD (records commit)",
+      "exit_code": 0,
+      "result": "records-only: all 3 changed path(s) are records (01b4918..4cf7dda); no status move printed"
+    },
+    {
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane (records commit)",
+      "exit_code": 0,
+      "result": "tier: records; lane: records (the records-only classifier says records-only, RFC-2026-025 §6.1); classifier copy: the base's"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-003",
+      "exit_code": 0,
+      "result": "all 3 changed path(s) are declared"
+    },
+    {
+      "command": "node scripts/db/classify-records-only.mjs --sync e86463f8 e1bce345 94c858f0; --sync 1ee0c826 cd8fcaa5 20f92350; --sync cc52fefd 7f34adb5 047385f8",
+      "exit_code": 0,
+      "result": "mechanical sync, each (the main merges inside #265 and #275)"
     }
   ],
   "security_privacy_cost_impact": "Records only. No authority is granted or widened; no code, credential, personal data, customer data, provider call or cost.",
