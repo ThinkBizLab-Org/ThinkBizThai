@@ -4,14 +4,14 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "b61b3db25be98f34f85b6ca7a76b32d3ff555a98",
-  "head_revision_or_patch_checksum": "9a26bd1c291d6b3c0bd2cc46205c451bea759465",
+  "base_revision": "d1057429a61ab58c4a54cd99c4e4cb7e0120ab6f",
+  "head_revision_or_patch_checksum": "d7772bab282d71aa6419a5a3439cbfcb9eba782a",
   "task_ids": [
     "WP-0A-CON-008",
     "commit-when-clean-stage-first-and-q0-266-1-2026-10-16"
   ],
   "files_added": [
-    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-16-overnight-direction.md"
+    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-16-commit-gate.md"
   ],
   "files_modified": [
     "evidence/VERIFICATION.md",
@@ -31,9 +31,10 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT is two items only: the commit-when-clean gap (Q0-265-4, R0-265-4; open_blockers[15]'s OWED item) and the test Q0-266-1 owes in the handoff guard (evidence/WP-0A-CON-008/q0-review-2026-10-15-pr266.md §9). The press basis is A0's reading, marked as A0's, of the Owner's overnight words of 2026-10-15 (transcript 325454ab lines 3637 and 3646, answering A0's line 3642), transcribed by script in evidence/WP-0A-CON-008/product-owner-disposition-2026-10-16-overnight-direction.md and mirrored as required_human_authorities[5]. That file also records the other reading: A0's message said the three matters needed the Owner and would be gathered for the morning, and 'เอาทุกอย่างตามคุณแนะนำ' can be read as agreeing to that. If any role reads it so, the pull request waits for the Owner.",
+    "THIS INCREMENT is two items only, in one pull request: the commit-when-clean gap (Q0-265-4, R0-265-4; open_blockers[15]'s OWED item) and the test Q0-266-1 owes in the handoff guard (evidence/WP-0A-CON-008/q0-review-2026-10-15-pr266.md §9). The press basis is the Owner's answer of 2026-10-16 to question 1 (header 'commit gate', answer 'เปิด PR + A0 กดเมื่อ 4 role ผ่าน (Recommended)'), transcribed by script in evidence/WP-0A-CON-008/product-owner-disposition-2026-10-16-commit-gate.md and mirrored as required_human_authorities[5]; questions 2 and 3 of that call concern other pull requests. An earlier local draft citing the Owner's overnight words of 2026-10-15 was never pushed and is deleted on this branch.",
     "scripts/commit-when-clean.mjs keeps the prepared patch's order (stage, verify, sample, commit the index) and adds one behaviour the patch lacked: every refusal after staging restores the index with git read-tree of the tree git write-tree recorded before staging, so a refused commit leaves the index as the old order left it. When write-tree cannot record the index (unresolved conflicts) the refusal says the changes were left staged.",
-    "The new commit-gate case narrows the verifier to one real guard (A1-257-9's case in test-kits/app-boundaries.test.mjs, which reads git ls-files) because the whole check contains ratchets-bite.test.mjs and re-enters itself. The narrowed verifier prints the clean line only when that run exits 0 having passed a test; it does not import verify-clean-run.mjs's decide, because importing that script runs the coverage-floor guard, which refuses the copy's edited package.json."
+    "The new commit-gate case narrows the verifier to one real guard (A1-257-9's case in test-kits/app-boundaries.test.mjs, which reads git ls-files) because the whole check contains ratchets-bite.test.mjs and re-enters itself. The narrowed verifier prints the clean line only when that run exits 0 having passed a test; it does not import verify-clean-run.mjs's decide, because importing that script runs the coverage-floor guard, which refuses the copy's edited package.json.",
+    "The branch merges origin/main d1057429 mechanically under RFC-2026-025 §6.3 (ac1a347d). Main-side paths since b61b3db2 overlap this branch's at evidence/VERIFICATION.md and test-kits/integrity-manifest.json (generated; resolved by regeneration only) and scripts/test-suite-contract.mjs (merged by git without conflict: main moved the app-stack lines, this branch the handoff-conformance and ratchets-bite lines)."
   ],
   "acceptance_results": [
     {
@@ -46,14 +47,14 @@
     },
     {
       "criterion": "npm run check stays green with no test skipped",
-      "result": "pass: clean: exit 0 — tests 838, pass 838, fail 0, skipped 0, todo 0"
+      "result": "pass: clean: exit 0 — tests 839, pass 839, fail 0, skipped 0, todo 0"
     }
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 9a26bd1c, under the suite lock, on the branch name)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (change commit 9a26bd1c at 838/838; merge ac1a347d and records commit d7772bab each at 839/839; under the suite lock, on the branch name)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 838, pass 838, fail 0, skipped 0, todo 0"
+      "result": "clean: exit 0 — tests 839, pass 839, fail 0, skipped 0, todo 0"
     },
     {
       "command": "node --test --test-name-pattern='commit gate' test-kits/ratchets-bite.test.mjs with main's scripts/commit-when-clean.mjs swapped in",
@@ -78,7 +79,7 @@
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "tier H (9 paths, b61b3db..9a26bd1), lane governance: scripts/commit-when-clean.mjs (reached from a guard), scripts/test-suite-contract.mjs (a test registry), test-kits/handoff-conformance.test.mjs and test-kits/ratchets-bite.test.mjs (top-level guard tests), test-kits/integrity-manifest.json (the integrity manifest)"
+      "result": "tier H, lane governance: scripts/commit-when-clean.mjs (reached from a guard), scripts/test-suite-contract.mjs (a test registry), test-kits/handoff-conformance.test.mjs and test-kits/ratchets-bite.test.mjs (top-level guard tests), test-kits/integrity-manifest.json (the integrity manifest)"
     }
   ],
   "security_privacy_cost_impact": "Narrows a local gap: the commit gate now verifies the index it commits. No credential, customer data, provider call or dependency. The new test copies the repository into the system temporary directory and gives the copy its own git directory, so neither commit-gate case can stage into the checkout the suite runs from.",
@@ -90,14 +91,14 @@
     "The new commit-gate case pins the order against one guard that reads the index, not the whole check."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE. A0 opens and presses this pull request only on its reading of the Owner's 2026-10-15 overnight words (required_human_authorities[5]), once C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs, the head contains current main and no security finding is open; if any role reads the words as leaving the items for the Owner, it waits for him. RFC-2026-007's wording after #265, the third matter in A0's message, is not in this pull request."
+    "GOVERNANCE. A0 presses this pull request under the Owner's 2026-10-16 answer to question 1 (required_human_authorities[5]) once C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs, the head contains current main and no security finding is open. RFC-2026-007's wording and the CI audit (questions 2 and 3) are other pull requests."
   ],
   "rollback_or_forward_fix": "Before merge: close the pull request. After merge: a reviewed revert pull request restores scripts/commit-when-clean.mjs, removes the three test cases and the copy isolation, restores the floors in scripts/test-suite-contract.mjs, regenerates the integrity manifest and re-records evidence/VERIFICATION.md; a revert is itself governance and goes to the Owner.",
   "recommended_next_work_packages": [
     "WP-0A-CON-008 or RFC-2026-007's owner: RFC-2026-007's wording after #265, on the Owner's own words."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-CON-008/product-owner-disposition-2026-10-16-overnight-direction.md first, including §3's other reading.",
+    "Read evidence/WP-0A-CON-008/product-owner-disposition-2026-10-16-commit-gate.md first.",
     "git diff origin/main; then run node --test --test-name-pattern='commit gate' test-kits/ratchets-bite.test.mjs with main's scripts/commit-when-clean.mjs swapped in, and the two audit-lane cases under M12 and M9."
   ],
   "superseded_by": null
