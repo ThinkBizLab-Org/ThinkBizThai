@@ -743,3 +743,49 @@ from the closure; recording a mention only when the file resolves; and reading a
 A reviewed revert of `STRING_NAME_EXCEPTIONS`, `exceptionProblems`, the `excused` option of `importClosure`,
 `governanceClosure` and `laneOf`, and the six tests. Every pull request then prints governance again, as on `40267ae9`.
 No data, provider or credential effect.
+
+### F. Record 2026-10-16 — the platform-kernel files after PR #261 and PR #265
+
+Record 2026-10-16 (R0-265-1, R0-AUD1015-9, C0-AUD1015-2; the text of §A to §E above is kept whole and is not changed by
+it). Directed by the Product Owner's answer of 2026-10-16T02:40:07Z to question 2 (header "RFC-007"), `แก้ถ้อยคำ + A0
+กดเมื่อ 4 role ผ่าน (Recommended)`, whose option description bounds it to a note or wording that matches the tests and
+what happened, touching no classifier and no guard
+(`evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-rfc007-wording.md`). §B item 5, §B's count of the 48 pairs
+and §C items 2 and 3 describe the repository before WP-1A-A0-003 created any platform-kernel file. On `main` since then:
+
+1. **PR-1 (#261, merged 2026-10-14 as `2aef8182`) created none of the three listed files and printed `lane: risk`.**
+   It wrote `domain/**` and `application/**` only and deferred `index.ts` and `application/run.ts` (WP-1A-A0-003
+   `open_blockers[16]`). §B item 5's sentence "WP-1A-A0-003's PR-1, which creates
+   `src/modules/platform-kernel/index.ts`, prints governance" does not describe #261. The rule it illustrates held: R0
+   measured on #261's head that a throwaway commit adding `index.ts` printed `lane: governance`
+   (`evidence/WP-1A-A0-003/r0-review-2026-10-14-pr261.md` §3).
+2. **PR-2 (#265, merged 2026-10-15 as `14716adf`) created `src/modules/platform-kernel/index.ts` and
+   `src/modules/platform-kernel/application/run.ts`, and printed `lane: governance`**, with `application/run.ts` and
+   `index.ts` among its reasons as files a guard names by a string (§B items 1 and 5;
+   `evidence/WP-1A-A0-003/r0-review-2026-10-15-pr265.md`). It is the pull request §B item 5 meant by "PR-1".
+3. **`src/modules/platform-kernel/adapters/job-store.ts` is still absent.** Of the 48 pairs (still 48, unchanged by
+   #265), the five that name it are the only entries whose named file is not at the head; of the six pairs §B counts
+   "for the platform-kernel files not yet in the repository", three name it and three name files that now exist.
+4. **§C tests 2 and 3 now hold both before and after a listed file is created.** #265 (commit `ca8fde5f`) changed their
+   bodies, not their names, which read verbatim:
+   - test 2: `a records-only diff on the repository as it stands prints the records lane, and the string-name exceptions
+     are exactly the pairs the string rule finds there (RFC-2026-007 Amendment 2026-10-13)`. It no longer asserts that
+     the named files not at the head are exactly the three platform-kernel files: every absent named file must be one of
+     the three, and each of the three is either at the head, where its pairs are among those the string rule finds, or
+     absent. The walk still records a mention for every entry. A mention the list does not name, a mention that left, or
+     a listed file other than these three that left the repository still fails here. A platform-kernel file that leaves
+     after it was created does not fail test 2 now, so §B item 1's and §D's "fails the suite (§C, test 2)" for a listed
+     file that leaves holds for the other named files only; for `index.ts` and `application/run.ts` this record claims
+     no other check (the application's own TypeScript tests import both, `src/modules/platform-kernel/index.test.ts`,
+     which `npm run test:app` runs in the `application` job; that is not this amendment's rule).
+   - test 3: `a pair listed for a file a guard fixture names before it exists keeps the records lane once a pull request
+     creates the file (RFC-2026-007 Amendment 2026-10-13; R0-259-1)`. It puts all three platform-kernel files at the
+     head, a stub standing in for any that already exists, so it holds before and after a pull request creates one.
+
+So, read with this record: §B item 5's "the three platform-kernel files ... which WP-1A-A0-003 will create" now
+holds for `adapters/job-store.ts` only; the pull request that created `index.ts` was PR-2 (#265), not PR-1; §B's "six
+for the platform-kernel files not yet in the repository" are six pairs listed ahead of their files, three of which now
+exist; §C item 2's "the named files not at the head are exactly the three platform-kernel files" reads "are among the
+three, and each of the three is at the head or absent" (now `adapters/job-store.ts` alone), and item 3's "created at
+the head" reads "at the head, created or already there". PR-3 (#275) changed none of these files or tests. Nothing in
+the classifier, the list, any guard or any test changes with this record, and no rule of §A to §E changes.

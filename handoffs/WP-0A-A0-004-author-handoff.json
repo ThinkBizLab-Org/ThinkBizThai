@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "4f9ab1401f1f5fa3105046127730ae8b89866fb4",
-  "head_revision_or_patch_checksum": "fe07eec761ef4d0e631cc3a0c4c8178d290dc448",
+  "head_revision_or_patch_checksum": "42b37f00b461afe3cba1e999cec52e7f29728484",
   "task_ids": [
     "WP-0A-A0-004",
     "gov-a004c-ci-audit-2026-10-16",
