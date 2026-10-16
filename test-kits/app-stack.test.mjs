@@ -252,7 +252,7 @@ test('CI runs the application checks in a job of their own, after every guard of
     [null, /^actions\/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020$/],
     ['Verify pinned toolchain for the application', null],
     ['Clean install for the application', 'npm ci --ignore-scripts'],
-    ['Vulnerability audit (network)', 'npm audit --omit=dev --audit-level=high'],
+    ['Vulnerability audit (network)', 'npm audit --include=dev --audit-level=high'],
     ['Release age of new lockfile entries (network)', 'node scripts/verify-release-age.mjs "$BASE_SHA"'],
     ['Verify the application dependencies', 'node scripts/verify-app-dependencies.mjs'],
     ['Verify the application boundaries (parsed)', 'node scripts/verify-app-boundaries.mjs --require-parser'],
@@ -315,7 +315,7 @@ test('CI runs npm audit and the release age straight after the install, before a
   assert.deepEqual(dependencyChecksBeforePackageCode(workflowJobs(ci).get('application').steps), [], 'the application job checks its dependencies before it runs them');
   // The negative controls. The order as it stood at 2aef8182 (both checks last, after tsc, vitest and
   // next build) is refused for both checks; each check moved alone behind `npm run typecheck` is refused.
-  const AUDIT = '      - name: Vulnerability audit (network)\n        run: npm audit --omit=dev --audit-level=high\n';
+  const AUDIT = '      - name: Vulnerability audit (network)\n        run: npm audit --include=dev --audit-level=high\n';
   const AGE = "      - name: Release age of new lockfile entries (network)\n        if: github.event_name == 'pull_request'\n        env:\n          BASE_SHA: ${{ github.event.pull_request.base.sha }}\n        run: node scripts/verify-release-age.mjs \"$BASE_SHA\"\n";
   assert.ok(ci.includes(AUDIT) && ci.includes(AGE), 'the two steps read as written');
   const last = `${ci.replace(AUDIT, '').replace(AGE, '').trimEnd()}\n${AUDIT}${AGE}`;
@@ -333,9 +333,125 @@ test('CI runs npm audit and the release age straight after the install, before a
   for (const run of ['npm run typecheck', 'npm run test:app', 'npm run build --workspace apps/web', 'npx tsc -p .', 'vitest run', 'next build', 'node scripts/verify-typecheck-control.mjs', 'node scripts/verify-app-boundaries.mjs --require-parser']) {
     assert.ok(PACKAGE_CODE.test(run), `\`${run}\` executes package code`);
   }
-  for (const run of ['npm ci --ignore-scripts', 'node scripts/verify-app-dependencies.mjs', 'npm audit --omit=dev --audit-level=high', 'node scripts/verify-release-age.mjs "$BASE_SHA"', 'node scripts/verify-app-build-graph.mjs']) {
+  for (const run of ['npm ci --ignore-scripts', 'node scripts/verify-app-dependencies.mjs', 'npm audit --include=dev --audit-level=high', 'node scripts/verify-release-age.mjs "$BASE_SHA"', 'node scripts/verify-app-build-graph.mjs']) {
     assert.ok(!PACKAGE_CODE.test(run), `\`${run}\` does not`);
   }
+});
+
+// A1-270-1. The audit must screen the dev dependencies too: typescript, vitest and the Tailwind/PostCSS
+// toolchain are devDependencies, and they are the package code the application job runs first. Each
+// `npm audit` line must name --include=dev, which npm applies whatever an `omit` config or
+// NODE_ENV=production says (a plain `npm audit` drops the dev tree under NODE_ENV=production), and none
+// may name --omit, --production or --only in any form. Returns the problems.
+function auditProblems(steps) {
+  const lines = steps.flatMap((s) => (s.run ?? '').split('\n')).filter((line) => /\bnpm audit\b/.test(line)).map((line) => line.trim());
+  if (lines.length === 0) return ['no step runs npm audit'];
+  const problems = [];
+  for (const line of lines) {
+    if (!/(?:^|\s)--include=dev(?=\s|$)/.test(line)) problems.push(`\`${line}\` does not name --include=dev`);
+    const narrowing = line.match(/(?:^|\s)(--(?:omit|production|only)\b\S*)/);
+    if (narrowing) problems.push(`\`${line}\` narrows the audit with ${narrowing[1]}`);
+  }
+  return problems;
+}
+
+test('CI audits the dev dependencies too, the packages the application job runs first (A1-270-1)', async () => {
+  const ci = await readFile('.github/workflows/ci.yml', 'utf8');
+  assert.deepEqual(auditProblems(workflowJobs(ci).get('application').steps), [], 'the application job audits with --include=dev');
+  // The negative controls: the audit as it stood before A1-270-1, each other way of leaving the dev tree
+  // out, a plain `npm audit` (which NODE_ENV=production narrows), and an --omit beside --include=dev.
+  const RUN = '        run: npm audit --include=dev --audit-level=high\n';
+  assert.ok(ci.includes(RUN), 'the audit step reads as written');
+  for (const [flags, expected] of [
+    ['--omit=dev --audit-level=high', /does not name --include=dev[\s\S]*narrows the audit with --omit=dev/],
+    ['--omit dev --audit-level=high', /does not name --include=dev[\s\S]*narrows the audit with --omit/],
+    ['--production --audit-level=high', /does not name --include=dev[\s\S]*narrows the audit with --production/],
+    ['--only=prod --audit-level=high', /does not name --include=dev[\s\S]*narrows the audit with --only=prod/],
+    ['--audit-level=high', /^`npm audit --audit-level=high` does not name --include=dev$/],
+    ['--include=dev --omit=dev --audit-level=high', /^`npm audit --include=dev --omit=dev --audit-level=high` narrows the audit with --omit=dev$/],
+    ['--include=dev --audit-level=high --omit=optional', /narrows the audit with --omit=optional/],
+  ]) {
+    const mutated = ci.replace(RUN, `        run: npm audit ${flags}\n`);
+    assert.notEqual(mutated, ci);
+    assert.match(auditProblems(workflowJobs(mutated).get('application').steps).join('\n'), expected, `npm audit ${flags} is refused`);
+  }
+  const removed = ci.replace(`      - name: Vulnerability audit (network)\n${RUN}`, '');
+  assert.notEqual(removed, ci);
+  assert.deepEqual(auditProblems(workflowJobs(removed).get('application').steps), ['no step runs npm audit'], 'a job with no audit is refused');
+});
+
+// A1-270-2. A step condition such as `if: always()`, `if: ${{ !cancelled() }}` or `if: success() ||
+// failure()` runs a step after an earlier step failed, and `continue-on-error` lets a step fail without
+// failing the job: on any step of the application job either would let package code run after a failed
+// audit or release age, and undo the order above. The job carries one condition, the release age's
+// `if: github.event_name == 'pull_request'` (a push has no base to compare against), and nothing else,
+// at the job or the step level. Every key line of a step is read, at any depth and quoted or not, so a
+// condition cannot hide behind quotes or in a flow mapping; the body of a `run: |` block is shell and is
+// not read. Returns the problems.
+const RELEASE_AGE_CONDITION = "if: github.event_name == 'pull_request'";
+const CONDITION_KEY = /(?:^|[{,]|-\s)\s*["']?(if|continue-on-error)["']?\s*:/;
+function keyLines(text) {
+  const out = [];
+  let block = null;
+  for (const line of text.split('\n')) {
+    const indent = line.match(/^ */)[0].length;
+    if (block !== null) {
+      if (line.trim() === '' || indent > block) continue;
+      block = null;
+    }
+    out.push(line);
+    if (/:\s*[|>][-+0-9]*\s*$/.test(line)) block = indent;
+  }
+  return out;
+}
+function applicationConditionProblems(job) {
+  const problems = job.head.filter((line) => CONDITION_KEY.test(line)).map((line) => `the application job carries \`${line.trim()}\``);
+  job.steps.forEach((step, i) => {
+    const label = step.name ?? step.uses ?? `step ${i + 1}`;
+    const found = keyLines(step.raw).filter((line) => CONDITION_KEY.test(line)).map((line) => line.trim());
+    const allowed = step.name === 'Release age of new lockfile entries (network)' && /verify-release-age\.mjs/.test(step.run ?? '');
+    for (const line of found) {
+      if (allowed && line === RELEASE_AGE_CONDITION && found.length === 1) continue;
+      problems.push(`step "${label}" carries \`${line}\``);
+    }
+  });
+  return problems;
+}
+
+test('no step of the application job runs on a condition or may fail softly, except the release age\'s pull-request condition (A1-270-2)', async () => {
+  const ci = await readFile('.github/workflows/ci.yml', 'utf8');
+  const app = workflowJobs(ci).get('application');
+  assert.deepEqual(applicationConditionProblems(app), [], 'the application job carries no condition but the release age\'s');
+  assert.equal(app.steps.filter((s) => keyLines(s.raw).some((line) => line.trim() === RELEASE_AGE_CONDITION)).length, 1, 'the release age\'s condition is read and is the only one');
+  // The negative controls: on a package-code step ("Application tests") each condition that would run it
+  // after a failed check, in each spelling, and continue-on-error; the same on the audit; the release
+  // age's condition widened or joined by continue-on-error; its exact text on another step; and a
+  // condition or continue-on-error on the job itself.
+  const TESTS = '      - name: Application tests\n';
+  const AUDIT = '      - name: Vulnerability audit (network)\n';
+  const AGE = "      - name: Release age of new lockfile entries (network)\n        if: github.event_name == 'pull_request'\n";
+  const TYPECHECK = '      - name: Type-check the application\n';
+  const NEEDS = '  application:\n    needs: bootstrap\n';
+  for (const anchor of [TESTS, AUDIT, AGE, TYPECHECK, NEEDS]) assert.ok(ci.includes(anchor), `${JSON.stringify(anchor)} reads as written`);
+  const cases = [];
+  for (const condition of ['if: always()', 'if: ${{ always() }}', 'if: ${{ !cancelled() }}', 'if: success() || failure()', "'if': always()", '"if": ${{ !cancelled() }}', 'continue-on-error: true', 'continue-on-error: ${{ true }}']) {
+    cases.push([ci.replace(TESTS, `${TESTS}        ${condition}\n`), `step "Application tests" carries \`${condition}\``]);
+    cases.push([ci.replace(AUDIT, `${AUDIT}        ${condition}\n`), `step "Vulnerability audit (network)" carries \`${condition}\``]);
+  }
+  cases.push([ci.replace(AGE, AGE.replace("== 'pull_request'", "== 'pull_request' || always()")), "step \"Release age of new lockfile entries (network)\" carries `if: github.event_name == 'pull_request' || always()`"]);
+  cases.push([ci.replace(AGE, AGE.replace("if: github.event_name == 'pull_request'", 'if: always()')), 'step "Release age of new lockfile entries (network)" carries `if: always()`']);
+  cases.push([ci.replace(AGE, `${AGE}        continue-on-error: true\n`), 'step "Release age of new lockfile entries (network)" carries `continue-on-error: true`']);
+  cases.push([ci.replace(TYPECHECK, `${TYPECHECK}        ${RELEASE_AGE_CONDITION}\n`), `step "Type-check the application" carries \`${RELEASE_AGE_CONDITION}\``]);
+  cases.push([ci.replace(TESTS, '      - { name: Application tests, if: always(), run: npm run test:app }\n      - name: Application tests (unused)\n'), 'carries `{ name: Application tests, if: always(), run: npm run test:app }`']);
+  cases.push([ci.replace(NEEDS, `${NEEDS}    if: always()\n`), 'the application job carries `if: always()`']);
+  cases.push([ci.replace(NEEDS, `${NEEDS}    continue-on-error: true\n`), 'the application job carries `continue-on-error: true`']);
+  for (const [mutated, expected] of cases) {
+    assert.notEqual(mutated, ci);
+    const problems = applicationConditionProblems(workflowJobs(mutated).get('application'));
+    assert.ok(problems.length > 0 && problems.some((p) => p.includes(expected)), `refused: ${expected} (found ${JSON.stringify(problems)})`);
+  }
+  // A shell `if` inside a `run: |` block is not a condition: the checkout check's own `if [ ... ]` is not read.
+  assert.match(app.steps[1].run, /^if \[/m, 'the checkout check runs a shell if');
 });
 
 test('vitest runs the application tests and fails when there are none (Q0 N1)', async () => {

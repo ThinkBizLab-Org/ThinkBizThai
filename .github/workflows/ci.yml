@@ -1295,8 +1295,9 @@ jobs:
   #     deliberately mistyped fixture with one marked error per flag;
   #   RFC-2026-034 §8 item 4: the application tests (`vitest run`) on every head;
   #   the web build, which needs no network (fonts are not fetched, telemetry is off below);
-  #   §4.6: `npm audit` for runtime dependencies, and §4.8 / §8/9: the publish age of every lockfile
-  #     entry the pull request adds or changes. Both read the registry, so they need the network.
+  #   §4.6: `npm audit`, dev dependencies included (A1-270-1), and §4.8 / §8/9: the publish age of
+  #     every lockfile entry the pull request adds or changes. Both read the registry, so they need the
+  #     network.
   #
   # The dependency and boundary guards are dependency-free in their text form and also run inside
   # `npm run check` through test-kits/app-dependencies.test.mjs and test-kits/app-boundaries.test.mjs.
@@ -1346,8 +1347,11 @@ jobs:
       # straight after the install, before any step that executes installed package code (the parsed
       # boundary guard loads typescript; tsc, vitest and next build follow), which could otherwise
       # prepend a shim to $GITHUB_PATH or edit the checkout before these checks run.
+      # A1-270-1: the audit includes the dev dependencies. typescript, vitest and the Tailwind/PostCSS
+      # toolchain are devDependencies, and they are the package code this job runs first; --include=dev
+      # keeps them in the audit whatever an npm config or NODE_ENV would omit.
       - name: Vulnerability audit (network)
-        run: npm audit --omit=dev --audit-level=high
+        run: npm audit --include=dev --audit-level=high
       - name: Release age of new lockfile entries (network)
         if: github.event_name == 'pull_request'
         env:
