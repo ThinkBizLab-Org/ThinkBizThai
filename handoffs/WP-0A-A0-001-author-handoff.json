@@ -8,7 +8,8 @@
   "head_revision_or_patch_checksum": "b12ac4cf9eb8c50fc2597e9af470bab4a4c90ca7",
   "task_ids": [
     "WP-0A-A0-001",
-    "pr262-pr269-pr273-pr274-records-2026-10-16"
+    "pr262-pr269-pr273-pr274-records-2026-10-16",
+    "pr277-records-fix-2026-10-16"
   ],
   "files_added": [
     "evidence/WP-0A-A0-001/records-transcription-2026-10-16.md"
@@ -26,9 +27,10 @@
   "contracts_produced_or_changed": [],
   "assumptions": [
     "THIS INCREMENT records, after their merges, PR #262 (2026-10-15T02:40:13Z, 5e0eef47; final head 10dd575c; CI run 38670962315), PR #269 (13:56:37Z, dab0ed55; final head c9671c4c; run 38743854390), PR #273 (15:33:35Z, 6fb5ab13; final head d8d576c4; run 38759359687) and PR #274 (17:35:51Z, b61b3db2; final head 7d07ebdb; run 38775514862), each run green on bootstrap and application before its merge: merge facts from gh and git, the role verdicts from their files on main, who pressed under which Owner answer as the dispositions on main record it, and R0's post-merge words verbatim. They are open_blockers[11] to [14], appended; [9] and [10] gain a dated closing clause after their unchanged text; [0] to [8] are byte-equal. evidence/WP-0A-A0-001/records-transcription-2026-10-16.md.",
-    "open_blockers[15] records what the round audit (evidence/audits/2026-10-15/r0-audit.md) asks of this package: R0-AUD1015-2 (OPEN-018 in the G0 tracker and the Decision Register, owed, not records), R0-AUD1015-6 (an amended_by entry for PR #257's amendment of test-kits/repository-json.test.mjs, owed, not records; RFC-2026-034 §8 item 2 met, in R0's #255 words).",
+    "open_blockers[15] records what the round audit (evidence/audits/2026-10-15/r0-audit.md) asks of this package: R0-AUD1015-2 (OPEN-018 in the G0 tracker and the Decision Register, owed, not records), R0-AUD1015-6 (two amended_by entries for PR #257's amendments of package-lock.json and test-kits/repository-json.test.mjs (R0's words in r0-review-2026-10-12-pr257.md §4.2), owed, not records; RFC-2026-034 §8 item 2 met, in R0's #255 words).",
     "ownership.amends_without_owning.paths is emptied, as R0-269-3 and r0-review-2026-10-15-pr274.md §8 ask: this branch does not touch test-kits/integrity-manifest.json. The rationale keeps its old text whole after a dated prefix.",
-    "Status stays integration_verified. R0's integration_verified on the merged heads of #269, #273 and #274 is not on main and is not presumed; it is owed by /claude/r0_steward."
+    "Status stays integration_verified. R0's integration_verified on the merged heads of #269, #273 and #274 is not on main and is not presumed; it is owed by /claude/r0_steward.",
+    "RECORDS FIX after PR #277's first role round (C0 changes_requested on C0-277-1/-2; A1 pass; Q0 test_verified; R0 ready on content): the four role files carried with cherry-pick -x; package-lock.json named beside test-kits/repository-json.test.mjs with R0's §4.2 words (C0-277-1, -2); open_blockers[12] and [14] state that evidence/VERIFICATION.md was also a generated file of the #269 and #274 syncs, that §6.3's record:verification/cmp was not done there and CI's byte comparison passed (R0-277-2), with main's side listed more fully (R0-277-3, A1-277-3); the transcription attributes 'not a standing delegation' to the register-ownership disposition only (C0-277-3); open_blockers[12]-[14] and transcription §10 quote A1's and Q0's after-the-fact carry statements (A1-277-1; Q0-274-1 closed after the fact by Q0). R0's integration_verified for #269, #273, #274 stays R0's to give (R0-277-4)."
   ],
   "acceptance_results": [
     {
@@ -68,16 +70,16 @@
   "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
   "known_limitations": [
     "R0's integration_verified for #269, #273 and #274 on the merged heads is not on main; R0 gives it, not this record.",
-    "No role file on main reads a head after the reading heads of #269 (d5a4c652), #273 (1abe629b) or #274 (67a60c33); the merges of main 9f1c71e8, 94ca9650 and 789f7e2a are recorded as measured facts, and whether each role's carry clause held is the roles' to say. Q0-274-1 asked for a Q0 re-measure on the branch name before the press; no Q0 file on main records it.",
+    "No role file on main reads a head after the reading heads of #269 (d5a4c652), #273 (1abe629b) or #274 (67a60c33); the merges of main 9f1c71e8, 94ca9650 and 789f7e2a are recorded as measured facts. After the fact (PR #277's role files): A1 says its #269 verdict did not carry by its own words and that nothing it had read changed; Q0 says #269 did not carry and #274 carried in part, measured that nothing it had read changed, and closed Q0-274-1 after the fact. record:verification/cmp (RFC-2026-025 §6.3) was not done at 9f1c71e8 and 789f7e2a.",
     "Whether --match-head-commit was passed is not recorded on main; each merge's second parent is the final head. gh mergedBy (workstationgroup) does not itself show who acted.",
-    "Owed by this package outside the records path: OPEN-018 in the G0 tracker and the Decision Register (R0-AUD1015-2); the amended_by entry for PR #257's amendment of test-kits/repository-json.test.mjs (R0-AUD1015-6). Owed by WP-0A-A0-002: its acknowledgements of the integrity-manifest digests of #269 and #274."
+    "Owed by this package outside the records path: OPEN-018 in the G0 tracker and the Decision Register (R0-AUD1015-2); the amended_by entries for PR #257's amendments of package-lock.json and test-kits/repository-json.test.mjs (R0-AUD1015-6). Owed by WP-0A-A0-002: its acknowledgements of the integrity-manifest digests of #269 and #274."
   ],
   "open_risks_or_blockers": [
-    "RECORDS-ONLY under RFC-2026-025 §6.1: one independent light-path reading (§6.2) before a delegated press; these records transcribe R0's own words, so §6.2 item 1 says who reads. Still owed: R0's integration_verified for #269, #273, #274 on the merged heads; WP-0A-A0-002's two acknowledgements; the OPEN-018 edits and the #257 amended_by entry (non-records increments)."
+    "RECORDS-ONLY under RFC-2026-025 §6.1: one independent light-path reading (§6.2) before a delegated press; these records transcribe R0's own words, so §6.2 item 1 says who reads. Still owed: R0's integration_verified for #269, #273, #274 on the merged heads; WP-0A-A0-002's two acknowledgements; the OPEN-018 edits and the two #257 amended_by entries (package-lock.json, test-kits/repository-json.test.mjs) (non-records increments)."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[11] to [15] and the closing clauses on [9] and [10], restores amends_without_owning.paths [\"test-kits/integrity-manifest.json\"] with the earlier rationale, and removes evidence/WP-0A-A0-001/records-transcription-2026-10-16.md (pr262-pr269-pr273-pr274-records-2026-10-16); nothing depends on them.",
   "recommended_next_work_packages": [
-    "WP-0A-A0-001: a non-records increment for OPEN-018 in the G0 tracker and the Decision Register, and the amended_by entry for PR #257 (R0-AUD1015-2, -6).",
+    "WP-0A-A0-001: a non-records increment for OPEN-018 in the G0 tracker and the Decision Register, and the amended_by entries for PR #257 (package-lock.json, test-kits/repository-json.test.mjs) (R0-AUD1015-2, -6).",
     "WP-0A-A0-002: acknowledgements of the integrity-manifest digests of #269 and #274."
   ],
   "reviewer_instructions": [

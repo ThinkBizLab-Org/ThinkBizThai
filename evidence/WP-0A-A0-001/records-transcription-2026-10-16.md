@@ -48,11 +48,18 @@ any clause held):
 
 | Merge | `classify-records-only.mjs --sync <tip> <merge> origin/main` | `regenerate:manifest` at the merge | `main`'s side, against the PR's own paths |
 |---|---|---|---|
-| `9f1c71e8` (#269) | exit 0, "mechanical sync … no conflict inside the PR's own paths" | exit 0, tree clean | overlaps the PR only at `test-kits/integrity-manifest.json`; also brings `scripts/refresh-author-handoff.mjs`, `test-kits/handoff-conformance.test.mjs`, `scripts/test-suite-contract.mjs` (PR #266) and RFC-2026-025/-030 (PR #268) |
+| `9f1c71e8` (#269) | exit 0, "mechanical sync … no conflict inside the PR's own paths" | exit 0, tree clean | overlaps the PR only at `test-kits/integrity-manifest.json`; the rest of main's side (all of it, from `git diff --name-only 9aa14e47 9f1c71e8`): PR #266's `scripts/refresh-author-handoff.mjs`, `test-kits/handoff-conformance.test.mjs`, `scripts/test-suite-contract.mjs`, `evidence/VERIFICATION.md`, `work-packages/WP-0A-CON-008.json`, its handoff and five `evidence/WP-0A-CON-008/` files; PR #268's RFC-2026-025, RFC-2026-030, `db/foundation/lint/audit-coverage-map.json`, `work-packages/WP-0A-DB-00.json`, its handoff and five `evidence/WP-0A-DB-00/` files |
 | `94ca9650` (#273) | exit 0, same | exit 0, tree clean | no overlap with the PR's four paths |
-| `789f7e2a` (#274) | exit 0, same | exit 0, tree clean | overlaps the PR only at `test-kits/integrity-manifest.json`; also brings `scripts/test-suite-contract.mjs` and `test-kits/app-boundaries.test.mjs`, `app-stack.test.mjs` (PR #267) |
+| `789f7e2a` (#274) | exit 0, same | exit 0, tree clean | overlaps the PR only at `test-kits/integrity-manifest.json`; the rest of main's side (all of it, from `git diff --name-only f4431ab4 789f7e2a`), PR #267's: `scripts/test-suite-contract.mjs`, `test-kits/app-boundaries.test.mjs`, `test-kits/app-stack.test.mjs`, `evidence/VERIFICATION.md`, `work-packages/WP-1A-A0-002.json`, its handoff and nine `evidence/WP-1A-A0-002/` files |
 
-`record:verification` was not re-run at the merges (it runs the suite); CI on each final head is green. At each final
+`record:verification` was not re-run at the merges (it runs the suite). The classifier names `evidence/VERIFICATION.md`
+as a generated file involved in `9f1c71e8` and `789f7e2a` (only the integrity manifest in `94ca9650`), and RFC-2026-025
+§6.3 item 1 makes a sync mechanical only when every generated file involved round-trips through its generator and a
+`cmp` is cited. That `record:verification` and `cmp` were not done for those two merges, so their mechanical status
+under §6.3 is not established by this record (R0-277-2); `94ca9650` involved only the manifest, which round-trips. CI's
+byte comparison of `evidence/VERIFICATION.md` passed on each final head (run 38743854390, 831/831, in A1's words
+"the runner's byte compare was green" (`a1-review-2026-10-16-pr277.md` §3); run 38775514862 green on both jobs, 835/835
+in Q0's reading (`q0-review-2026-10-16-pr277.md` §5)). At each final
 head the PR's own paths other than the handoff and the integrity manifest are blob-equal to the reading head (#269:
 RFC-2026-002, the manifest, the disposition; #273: the tracker, the manifest, the disposition; #274: the register, the
 manifest, the disposition).
@@ -114,7 +121,8 @@ re-measure at `789f7e2a` or `7d07ebdb`, and no role file on `main` reads any hea
   (`open_risks_or_blockers[0]`) names the 02:13:35Z answer instead; the disposition is the source this record follows.
 
 Each disposition reads the answer as an Owner-directed exception to RFC-2026-025 §5 item 6's last bullet for its pull
-request only, not a standing delegation.
+request; only the register-ownership disposition adds "for this pull request only" (§4) and that the words are "not a
+standing delegation for later" register edits (§5) (C0-277-3).
 
 ## 5. R0's post-merge words, verbatim
 
@@ -149,11 +157,17 @@ From `evidence/audits/2026-10-15/r0-audit.md` §6, the items that name WP-0A-A0-
   takes the risk lane as #273 measured, a register edit is governance), so neither is made here.
 - **R0-AUD1015-6** asks each owner to record in `ownership.amended_by` the in-range amendments R0 acknowledged,
   "transcribing R0's acknowledgement words". For this package: PR #257 (WP-1A-A0-002, merged `40267ae9`) amended
-  `test-kits/repository-json.test.mjs`, which R0 acknowledged in `evidence/WP-1A-A0-002/r0-review-2026-10-12-pr257.md`
-  §5 ("TypeScript admitted for the application tier only; `.next` not walked" | "**Acknowledged for integration** (as for
-  the lockfile)") and again in `r0-reread5-2026-10-12-pr257.md` §5 ("Acknowledged as before"). A new `amended_by` entry is
-  not a record under RFC-2026-025 §6.1 item 4 (only `acknowledg*` keys of existing entries may change), so it is owed to a
-  later non-records increment of this package and not made here.
+  two of this package's files (`git diff --name-only 40267ae9^1 40267ae9` against its `writable_paths`), each
+  acknowledged by R0 in `evidence/WP-1A-A0-002/r0-review-2026-10-12-pr257.md` §4.2:
+  - `package-lock.json`: "§4.1, §4.5; reproduced byte for byte" | "**Acknowledged for integration**; WP-0A-A0-001's
+    Integration Owner is the earlier `/root/r0_steward` run, so this is my reading, not that run's";
+  - `test-kits/repository-json.test.mjs`: "TypeScript admitted for the application tier only; `.next` not walked" |
+    "**Acknowledged for integration** (as for the lockfile)";
+
+  and both again in `r0-reread5-2026-10-12-pr257.md` §5 ("Acknowledged as before"). A new `amended_by` entry is not a
+  record under RFC-2026-025 §6.1 item 4 (only `acknowledg*` keys of existing entries may change), so the two entries are
+  owed to a later non-records increment of this package and not made here. (C0-277-1 and C0-277-2: the first version of
+  this record named `test-kits/repository-json.test.mjs` only and cited §5 for the first file.)
 - R0-AUD1015-6 also cites `evidence/WP-0A-A0-004/r0-reread4-2026-10-12-pr255.md` §6, whose owed list includes
   "WP-0A-A0-001 records RFC-2026-034 §8 item 2 as met". R0's words for PR #255 (merged `3070d888`, 2026-10-11T18:32:40Z)
   in the same file §5: "RFC-2026-030 §9 item 2 and RFC-2026-034 §8 item 2 are met from the first pull request whose base
@@ -176,15 +190,15 @@ From `evidence/audits/2026-10-15/r0-audit.md` §6, the items that name WP-0A-A0-
 - **No acknowledgement and no verdict is given or presumed**: R0's `integration_verified` for #269, #273 and #274;
   WP-0A-A0-002's acknowledgements of the integrity-manifest digests of #269 and #274 (WP-0A-A0-002's manifest, outside
   this package's `writable_paths`).
-- **Not judged here:** whether each role's carry clause held at the final heads (§2, §3); those facts are for the roles
-  and R0.
+- **Not judged here:** whether each role's carry clause held at the final heads (§2, §3); the roles' own statements, made
+  after the merges, are in §10.
 - **Owed by this package, outside the records path:** the OPEN-018 edits in the G0 tracker and the Decision Register
-  (R0-AUD1015-2) and the `amended_by` entry for PR #257's amendment of `test-kits/repository-json.test.mjs`
-  (R0-AUD1015-6).
+  (R0-AUD1015-2) and the `amended_by` entries for PR #257's amendments of `package-lock.json` and
+  `test-kits/repository-json.test.mjs` (R0-AUD1015-6).
 - **No advisory is closed here.** C0-262-1 and A1-262-1 were closed by C0's and A1's own re-reads. R0-262-1..3,
   C0-262-2..4, C0-262r2-1, A1-262-2, Q0-262-1,
-  Q0-262-2, R0-269-1..4, R0-273-1..3, Q0-273-1, Q0-273-2, R0-274-1..3, C0-274-1..3, Q0-274-1..4 and the other role
-  findings stay as their files state them.
+  Q0-262-2, R0-269-1..4, R0-273-1..3, Q0-273-1, Q0-273-2, R0-274-1..3, C0-274-1..3, Q0-274-2..4 and the other role
+  findings stay as their files state them. Q0-274-1 Q0 itself closed after the fact (§10).
 - No role was run; no test, script, workflow, RFC, disposition, register, tracker or contract is changed.
 
 ## 9. Records-only shape
@@ -193,3 +207,23 @@ Measured on this branch's records commit; the commands and outputs are in the ha
 `node scripts/db/classify-records-only.mjs origin/main HEAD` and
 `node scripts/db/classify-review-tier.mjs origin/main HEAD --lane`. One independent light-path reading (RFC-2026-025
 §6.2) is owed before a delegated press; because these records transcribe R0's own words, §6.2 item 1 says who reads.
+
+## 10. After-the-fact readings on record (PR #277's role files, carried on this branch)
+
+Added after the first role round on PR #277 (head `6dedc7da`). These are the roles' own statements, quoted from their
+files; this record adds no judgement of its own.
+
+- **A1** (`a1-review-2026-10-16-pr277.md` §3): "**#273: carried.**"; "**#274: carried, on the reading A1-274-2 wrote
+  down in advance.**"; "**#269: did NOT carry under my own wording.**" … "So the press of #269 rested on an A1 verdict
+  that had not carried by its own words." Measured after the merge: "**Nothing I approved changed**"; "this file is A1's
+  post-merge statement that `security_approved` at `d5a4c652` holds for what merged at `dab0ed55`. Recorded as A1-277-1
+  so the lapse is visible."
+- **Q0** (`q0-review-2026-10-16-pr277.md` §5): #269 "**No.**"; #273 "**Yes.**"; #274 "**In part.**", the suite
+  re-measure of (b′) not made before the press, so "Q0-274-1 was therefore unresolved when #274 was pressed". Measured
+  after the merges: "**Nothing I approved changed.**" for #269 and for #274 ("this is the (b′) re-measure, made after
+  the press instead of before it"), and "Q0-274-1 is closed by this measurement after the fact". Q0: "I give no
+  `integration_verified` and presume none."
+- **C0** (`c0-review-2026-10-16-pr277.md`): states nothing about its own #269/#273/#274 carry ("not mine; I state
+  nothing about it").
+- **R0** (`r0-review-2026-10-16-pr277.md` R0-277-4): "My `integration_verified` for #269, #273 and #274 stays owed; I
+  give it in its own file, not in this reading." It remains R0's to give; this record does not presume it.
