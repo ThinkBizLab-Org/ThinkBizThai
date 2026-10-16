@@ -133,12 +133,15 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/contracts/shared-kernel-contract-catalog.test.mjs': 6,
   'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': 15,
   'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': 6,
-  // WP-0A-CON-008 (2026-10-15, C0-262-2, A1-262-2, Q0-262-1, R0-262-2): the audit lane's four handoff-drift cases, 19 to 23.
-  'test-kits/handoff-conformance.test.mjs': 23,
+  // WP-0A-CON-008 (2026-10-15, C0-262-2, A1-262-2, Q0-262-1, R0-262-2): the audit lane's four handoff-drift cases, 19 to 23;
+  // (2026-10-16, Q0-266-1): a citation on no path and an empty branch on the audit branch, 23 to 25.
+  'test-kits/handoff-conformance.test.mjs': 25,
   'test-kits/integrity-manifest-rebuild.test.mjs': 3,
   'test-kits/protocol-schema-conformance.test.mjs': 4,
-  // RFC-2026-031 §7.1: the declared-gap rules reversed in their source, 19 to 20.
-  'test-kits/ratchets-bite.test.mjs': 20,
+  // RFC-2026-031 §7.1: the declared-gap rules reversed in their source, 19 to 20. WP-0A-CON-008 (2026-10-16,
+  // Q0-265-4, A1-278-1, A1-278-4): the commit gate verifies the tree it commits, refuses unresolved conflicts
+  // before staging, and its 90 and 92 refusals restore the index, 20 to 23.
+  'test-kits/ratchets-bite.test.mjs': 23,
   'test-kits/repository-json.test.mjs': 8,
   'test-kits/role-separation.test.mjs': 8,
   'test-kits/secret-scan.test.mjs': 59,
@@ -363,11 +366,13 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/contracts/shared-kernel-contract-catalog.test.mjs': 25,
   'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': 50,
   'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': 11,
-  // WP-0A-CON-008 (2026-10-15, C0-262-2, A1-262-2, Q0-262-1, R0-262-2): the audit lane's four handoff-drift cases, 63 to 74 assertions.
-  'test-kits/handoff-conformance.test.mjs': 74,
+  // WP-0A-CON-008 (2026-10-15, C0-262-2, A1-262-2, Q0-262-1, R0-262-2): the audit lane's four handoff-drift cases, 63 to 74 assertions;
+  // (2026-10-16, Q0-266-1): 74 to 80.
+  'test-kits/handoff-conformance.test.mjs': 80,
   'test-kits/integrity-manifest-rebuild.test.mjs': 10,
   'test-kits/protocol-schema-conformance.test.mjs': 6,
-  'test-kits/ratchets-bite.test.mjs': 36,
+  // WP-0A-CON-008 (2026-10-16, Q0-265-4, A1-278-1, A1-278-4): the commit gate's three cases, 36 to 55, the guard's own count.
+  'test-kits/ratchets-bite.test.mjs': 55,
   'test-kits/repository-json.test.mjs': 18,
   'test-kits/role-separation.test.mjs': 8,
   'test-kits/secret-scan.test.mjs': 116,
@@ -433,11 +438,13 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/contracts/shared-kernel-contract-catalog.test.mjs': 'bd0c948ddd7fa982',
   'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': 'b56843602dd83c11',
   'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': '99724af4706e30ad',
-  // WP-0A-CON-008 (2026-10-15): four names added, none removed or renamed.
-  'test-kits/handoff-conformance.test.mjs': '26c4caea710dd1c9',
+  // WP-0A-CON-008 (2026-10-15): four names added, none removed or renamed; (2026-10-16, Q0-266-1): two more added, none
+  // removed or renamed.
+  'test-kits/handoff-conformance.test.mjs': '6ea42ca277d4828a',
   'test-kits/integrity-manifest-rebuild.test.mjs': '91b24d70c4ac8fcb',
   'test-kits/protocol-schema-conformance.test.mjs': 'dc9a77399529cead',
-  'test-kits/ratchets-bite.test.mjs': '319ac851dad85691',
+  // WP-0A-CON-008 (2026-10-16): three commit-gate names added, none removed or renamed.
+  'test-kits/ratchets-bite.test.mjs': '088ea5adcc8ee194',
   'test-kits/repository-json.test.mjs': '7e434c46d2b5cd7a',
   'test-kits/role-separation.test.mjs': '00a4c859fecdbbae',
   'test-kits/secret-scan.test.mjs': '29224e8a816a48e5',
