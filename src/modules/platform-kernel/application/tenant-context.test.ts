@@ -282,6 +282,31 @@ describe('resolveTenantContext', () => {
     }
   });
 
+  // Q0-265-1 and A1-265-N4: each field's own-property read is pinned on its own, the other field own.
+  it.each([
+    ['an own kind with an inherited id', { kind: 'user' }, { id: 'usr_synthetic_0001' }],
+    ['an own id with an inherited kind', { id: 'usr_synthetic_0001' }, { kind: 'user' }],
+  ])('refuses a principal with %s, a polluted Object.prototype among them', async (_label, own, inheritedPart) => {
+    const viaPrototype = Object.assign(Object.create(inheritedPart) as object, own);
+    const port: AuthenticatedPrincipalPort = { current: () => Promise.resolve(viaPrototype as never) };
+    const first = admitAll();
+    expect((await errorOf({ workspace_id: 'ws_synthetic_0001' }, port, first.directory)).code).toBe('tenant.unauthenticated');
+    expect(first.calls).toEqual([]);
+
+    const prototype = Object.prototype as Record<string, unknown>;
+    Object.assign(prototype, inheritedPart);
+    try {
+      const { directory, calls } = admitAll();
+      const plain: AuthenticatedPrincipalPort = { current: () => Promise.resolve({ ...own } as never) };
+      const error = await errorOf({ workspace_id: 'ws_synthetic_0001' }, plain, directory);
+      expect(error.code).toBe('tenant.unauthenticated');
+      expect(calls).toEqual([]);
+    } finally {
+      for (const key of Object.keys(inheritedPart)) delete prototype[key];
+    }
+    expect(Object.hasOwn(Object.prototype, 'kind') || Object.hasOwn(Object.prototype, 'id')).toBe(false);
+  });
+
   // Q0-261-5: the principal is read once, so the id that met the pattern is the id the context carries.
   it('reads the principal\'s kind and id once each', async () => {
     const reads = { kind: 0, id: 0 };

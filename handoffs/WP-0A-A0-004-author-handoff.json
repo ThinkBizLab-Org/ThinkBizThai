@@ -4,18 +4,18 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "94c858f00652499f773c6af39f128a484d8eeaca",
-  "head_revision_or_patch_checksum": "735ac03f75a8553e319381a25a27156e037e440a",
+  "base_revision": "e78404680c43cb2cc6cbeb0386f7b7caabe53c4e",
+  "head_revision_or_patch_checksum": "9d21bf6ab3ebd96c4bf8bddb7f14b617b156bb73",
   "task_ids": [
     "WP-0A-A0-004",
-    "pr260-pr255-records-2026-10-15"
+    "pr270-pr263-records-2026-10-16"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-004/a1-review-2026-10-15-pr263.md",
-    "evidence/WP-0A-A0-004/c0-review-2026-10-15-pr263.md",
-    "evidence/WP-0A-A0-004/q0-review-2026-10-15-pr263.md",
-    "evidence/WP-0A-A0-004/r0-review-2026-10-15-pr263.md",
-    "evidence/WP-0A-A0-004/records-transcription-2026-10-15.md"
+    "evidence/WP-0A-A0-004/a1-review-2026-10-16-pr276.md",
+    "evidence/WP-0A-A0-004/c0-review-2026-10-16-pr276.md",
+    "evidence/WP-0A-A0-004/q0-review-2026-10-16-pr276.md",
+    "evidence/WP-0A-A0-004/r0-review-2026-10-16-pr276.md",
+    "evidence/WP-0A-A0-004/records-transcription-2026-10-16.md"
   ],
   "files_modified": [
     "handoffs/WP-0A-A0-004-author-handoff.json",
@@ -30,52 +30,65 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT records, after their merges, PR #260 (2026-10-14T11:27:29Z, 6af75480; final head fc60f82d; CI run 38552329070 green on bootstrap and application) and PR #255 (2026-10-11T18:32:40Z, 3070d888; final head 5a17e0a4; CI run 38162633761 green): the merge facts from gh and git, the role verdicts of both rounds of #260 and of #255's round four from their files on main, R0's post-merge words verbatim (for #255 the §5 template with its placeholders filled), and that #258 was pressed under the same Owner answer of 2026-10-12T20:28:22Z, as the disposition on main records. They are open_blockers[18] (#255) and [19] (#260), appended; [0]-[17] are byte-equal. ownership.amends_without_owning.paths is emptied: its five paths reached main with #260 and this branch amends none of them (the rationale keeps its old text whole after a dated prefix).",
-    "Status stays in_review: every R0 file cited says it moves no status, and #189's and #212's records are still owed (open_blockers[14], [15])."
+    "THIS INCREMENT records, after their merges, PR #270 (2026-10-15T18:31:20Z, 047385f8; final head 2389ed10; CI run 38781107838 green on bootstrap and application, 836 tests, audit and release age at steps 7 and 8 straight after the install) and PR #263 (2026-10-15T04:11:13Z, 20f92350; final head b590762d; CI run 38678239408 green, lane risk): the merge facts from gh and git, the four role verdicts of each from their files on main, who pressed under which Owner answer or lane rule, and R0's post-merge words verbatim. They are open_blockers[20] (#263) and [21] (#270), appended; [0]-[19] are byte-equal.",
+    "It answers C0-270-1, R0-270-1 and Q0-270-1: ownership.amends_without_owning.rationale and the INCREMENT 2026-10-15 required_tests line carried pre-merge figures; they now read 19 tests, 175 assertions, digest f66a1687560ef35f, three paths, VERIFICATION 836, and the acknowledgements name WP-0A-CON-008 too. ownership.amends_without_owning.paths is emptied: its three paths reached main with #270 and this branch amends none of them (the rationale keeps its earlier HISTORY whole).",
+    "Status stays in_review: R0's #270 file gives no integration_verified for the package and every role file cited moves no status; #189's and #212's records are still owed (open_blockers[14], [15])."
   ],
   "acceptance_results": [
     {
-      "criterion": "Recorded words match their sources on main; old open_blockers unchanged; no status, test, guard, CI, RFC, disposition or contract change; the diff is records-only",
-      "result": "pass for author self-check: quotes compared by script (whitespace folded) with the role files and the disposition, R0's #255 template with its placeholders filled; classify-records-only exit 0 and lane records on the records commit; independent light-path reading owed (RFC-2026-025 §6.2)"
+      "criterion": "Recorded words match their sources on main; old open_blockers unchanged; no status, test, guard, CI, RFC, disposition or contract change",
+      "result": "pass for author self-check: quotes compared by script (whitespace folded) with the role files, RFC-2026-034, the dispositions and #263's final handoff; open_blockers[0]-[19] and required_human_authorities byte-equal; merged figures measured at 047385f8 (test-suite-contract 19 / 175 / f66a1687560ef35f, 19 test( lines, VERIFICATION 836)"
     }
   ],
   "tests": [
     {
       "command": "node scripts/db/classify-records-only.mjs origin/main HEAD (records commit)",
-      "exit_code": 0,
-      "result": "records-only: all 3 changed path(s) are records"
+      "exit_code": 1,
+      "result": "NOT records-only (2 path(s)): work-packages/WP-0A-A0-004.json: required_tests: changed (the C0-270-1 / R0-270-1 / Q0-270-1 correction; no other reason)"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane (records commit)",
       "exit_code": 0,
-      "result": "tier: records; lane: records (the records-only classifier says records-only)"
+      "result": "tier: H (required_tests: changed); lane: risk (tier H outside governance, records and audit, RFC-2026-034 §2.2); classifier copy: the base's"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004",
       "exit_code": 0,
-      "result": "all changed paths declared"
+      "result": "all 2 changed path(s) are declared, and every amendment explains one"
+    },
+    {
+      "command": "node scripts/db/classify-records-only.mjs --sync 76e3c1cb 7f1c93e4 b61b3db2; --sync c61b6ee4 355d8d3d 5e0eef47; --sync e04cb879 735ac03f 94c858f0",
+      "exit_code": 0,
+      "result": "mechanical sync, each (the main merges inside #270 and #263)"
+    },
+    {
+      "command": "npm run regenerate:manifest (at 047385f8)",
+      "exit_code": 0,
+      "result": "git status clean"
     }
   ],
-  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, personal data, customer data or provider call.",
+  "security_privacy_cost_impact": "Records only in substance. No authority is granted or widened; no credential, personal data, customer data or provider call.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
   "known_limitations": [
-    "The acknowledgement records R0 assigns to WP-0A-DB-00, WP-0A-A0-002, WP-0A-CON-008 and (for #255) WP-0A-A0-001 are not made here: those manifests are outside this package's writable_paths.",
-    "open_blockers[16] and [17] (the INCREMENT entries of #255 and #260, 'STILL OWED …') are stale since the merges and are left byte-equal, as records increments keep old entries.",
-    "R0's #255 template says 'merged … with --match-head-commit'; main records only that the merge's second parent is the final head. R0's C5 was not re-measured at 5a17e0a4 (R0 measured it at b3e430e0; the commits after it are the carried role files and the handoff)."
+    "The required_tests correction (C0-270-1 (iv), R0-270-1, Q0-270-1) is outside RFC-2026-025 §6.1 item 4's record fields, so the classifier prints NOT records-only and lane risk; every other change is records-shaped.",
+    "The owners' acknowledgement records R0 assigns for #270 (R0-270-2: WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008) and for #255/#260 are not made here: those manifests are outside this package's writable_paths.",
+    "Whether #263 and #270 were pressed with --match-head-commit is not recorded on main; each merge's second parent is the final head. The PR body of #270 keeps \"VERIFICATION (828)\".",
+    "The carry clauses of Q0 and A1 on #270, as worded, do not except a main merge touching the integrity manifest, which 7f1c93e4 did; the transcription §3 sets this out and makes no reading of it."
   ],
   "open_risks_or_blockers": [
-    "RISK LANE at the final head, not records: the records commit alone is records-only (classify-records-only exits 0, lane records), but the four role readings of this pull request (evidence/WP-0A-A0-004/{c0,a1,q0,r0}-review-2026-10-15-pr263.md), carried with -x, are role files RFC-2026-025 §6.1 item 2 does not admit, so the base's classifier prints tier H, lane risk (C0-263-1, R0-263-1). Readers used: C0 review_approved, A1 security_approved (no finding), Q0 test_verified, R0 ready, all at fb551363. A0 presses under RFC-2026-034 §2.2's risk lane (A1 and Q0 pass; Q-034-1) once CI is green on both jobs on the final head, with --match-head-commit. Advisories open, none blocking: C0-263-2..6, A1-263-1, Q0-263-1, R0-263-2, -3."
+    "GOVERNANCE (governance bundle). PR #276: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[18] and [19], restores the five ownership.amends_without_owning.paths with the earlier rationale, and removes records-transcription-2026-10-15.md (pr260-pr255-records-2026-10-15); nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[20] and [21], restores the three ownership.amends_without_owning.paths, the earlier rationale and required_tests line, and removes records-transcription-2026-10-16.md (pr270-pr263-records-2026-10-16); nothing depends on them.",
   "recommended_next_work_packages": [
-    "WP-0A-DB-00, WP-0A-A0-002, WP-0A-CON-008, WP-0A-A0-001: the acknowledgement records R0 names for #255 and #260.",
-    "WP-0A-A0-002: RFC-2026-034 §8 item 4, CI runs application tests."
+    "WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008: R0's acknowledgement records for #270 (R0-270-2), and those still owed for #255 and #260.",
+    "Governance bundle items (2) to (5), each its own PR under the same direction."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-004/records-transcription-2026-10-15.md, then git diff origin/main.",
-    "open_blockers[18] against gh pr view 255, gh run view 38162633761 and r0-reread4-2026-10-12-pr255.md §5; open_blockers[19] against gh pr view 260, gh run view 38552329070, the eight *-2026-10-14-pr260.md role files and the lane-walk-ts disposition.",
-    "Run node scripts/db/classify-records-only.mjs origin/main <head> and record its exit code and any status move it prints (none expected)."
+    "Read evidence/WP-0A-A0-004/records-transcription-2026-10-16.md, then git diff origin/main.",
+    "open_blockers[20] against gh pr view 263, gh run view 38678239408 and the four *-2026-10-15-pr263.md files; open_blockers[21] against gh pr view 270, gh run view 38781107838, the four *-2026-10-15-pr270.md files and the governance-bundle-press disposition.",
+    "The corrected figures against scripts/test-suite-contract.mjs, test-kits/app-stack.test.mjs and evidence/VERIFICATION.md at origin/main.",
+    "Run node scripts/db/classify-records-only.mjs origin/main <head> and classify-review-tier.mjs --lane; expect required_tests as the only reason."
   ],
   "superseded_by": null
 }

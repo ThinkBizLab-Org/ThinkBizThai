@@ -1342,6 +1342,17 @@ jobs:
           test "$(npm --version)" = "11.19.0"
       - name: Clean install for the application
         run: npm ci --ignore-scripts
+      # A1-AUD1015-1: the two checks that would report a compromised or freshly published package run
+      # straight after the install, before any step that executes installed package code (the parsed
+      # boundary guard loads typescript; tsc, vitest and next build follow), which could otherwise
+      # prepend a shim to $GITHUB_PATH or edit the checkout before these checks run.
+      - name: Vulnerability audit (network)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Release age of new lockfile entries (network)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/verify-release-age.mjs "$BASE_SHA"
       - name: Verify the application dependencies
         run: node scripts/verify-app-dependencies.mjs
       - name: Verify the application boundaries (parsed)
@@ -1374,10 +1385,3 @@ jobs:
       # pull request, not by a check (A1-257-10).
       - name: Verify what the build included
         run: node scripts/verify-app-build-graph.mjs
-      - name: Vulnerability audit (network)
-        run: npm audit --omit=dev --audit-level=high
-      - name: Release age of new lockfile entries (network)
-        if: github.event_name == 'pull_request'
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: node scripts/verify-release-age.mjs "$BASE_SHA"
