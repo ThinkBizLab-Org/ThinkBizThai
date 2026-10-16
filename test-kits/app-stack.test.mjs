@@ -351,8 +351,14 @@ function auditEnvProblems(job) {
   const problems = job.steps.filter((s) => /\bnpm audit\b/.test(s.run ?? '') && keyLines(s.raw).some((line) => /^\s*["']?env["']?\s*:/.test(line)))
     .map((s) => `step "${s.name}" runs npm audit with an env: of its own`);
   const lines = [...job.head, ...job.steps.flatMap((s) => keyLines(s.raw))];
-  for (const line of lines.filter((l) => /(?:^|[{,]|-\s)\s*["']?npm_config_\w*["']?\s*:/i.test(l))) problems.push(`the application job sets \`${line.trim()}\``);
+  for (const line of lines.filter((l) => /(?:^|[{,]|-\s|\?\s)\s*["']?npm_config_/i.test(l))) problems.push(`the application job sets \`${line.trim()}\``);
   return problems;
+}
+// A1-279r2-2. A workflow-level `env:` (or one on any job) applies the same way, so no key line anywhere
+// in ci.yml, outside comments and `run: |` bodies, names an npm_config_* variable. Returns the problems.
+function workflowNpmConfigProblems(ci) {
+  const lines = keyLines(ci.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n'));
+  return lines.filter((l) => /(?:^|[{[,]|-\s|\?\s)\s*["']?npm_config_/i.test(l)).map((l) => `ci.yml sets \`${l.trim()}\``);
 }
 function auditProblems(steps) {
   const lines = steps.flatMap((s) => (s.run ?? '').split('\n')).filter((line) => /\bnpm audit\b/.test(line)).map((line) => line.trim());
@@ -398,9 +404,24 @@ test('CI audits the dev dependencies too, the packages the application job runs 
     [ci.replace(AUDIT_STEP, `      - name: Vulnerability audit (network)\n        env:\n          NPM_CONFIG_REGISTRY: http://127.0.0.1:9/\n${RUN}`), /runs npm audit with an env: of its own[\s\S]*sets `NPM_CONFIG_REGISTRY: http:\/\/127\.0\.0\.1:9\/`/],
     [ci.replace(AUDIT_STEP, `${AUDIT_STEP}        env:\n          FOO: bar\n`), /^step "Vulnerability audit \(network\)" runs npm audit with an env: of its own$/],
     [ci.replace("      NODE_OPTIONS: ''\n", "      NODE_OPTIONS: ''\n      npm_config_workspace: apps/web\n"), /^the application job sets `npm_config_workspace: apps\/web`$/],
+    [ci.replace("      NODE_OPTIONS: ''\n", "      NODE_OPTIONS: ''\n      ? npm_config_workspace\n      : apps/web\n"), /^the application job sets `\? npm_config_workspace`$/],
+    [ci.replace("    env:\n      NEXT_TELEMETRY_DISABLED: '1'\n      NODE_OPTIONS: ''\n", "    env: { NEXT_TELEMETRY_DISABLED: '1', NODE_OPTIONS: '', ? NPM_CONFIG_REGISTRY : http://127.0.0.1:9/ }\n"), /^the application job sets `env: \{/],
   ]) {
     assert.notEqual(mutated, ci);
     assert.match(auditEnvProblems(workflowJobs(mutated).get('application')).join('\n'), expected, `refused: ${expected}`);
+  }
+  // A1-279r2-2: the workflow level. None on the head; a top-level env: with npm_config_workspace (E1),
+  // the same as an explicit key, and the same on the bootstrap job, are refused.
+  assert.deepEqual(workflowNpmConfigProblems(ci), [], 'no key line of ci.yml names an npm_config_* variable');
+  const PERMISSIONS = 'permissions:\n  contents: read\n';
+  assert.ok(ci.includes(PERMISSIONS), 'the workflow permissions read as written');
+  for (const [mutated, expected] of [
+    [ci.replace(PERMISSIONS, `${PERMISSIONS}env:\n  npm_config_workspace: apps/web\n`), 'ci.yml sets `npm_config_workspace: apps/web`'],
+    [ci.replace(PERMISSIONS, `${PERMISSIONS}env:\n  ? NPM_CONFIG_WORKSPACE\n  : apps/web\n`), 'ci.yml sets `? NPM_CONFIG_WORKSPACE`'],
+    [ci.replace(PERMISSIONS, `${PERMISSIONS}env: { npm_config_workspace: apps/web }\n`), 'ci.yml sets `env: { npm_config_workspace: apps/web }`'],
+  ]) {
+    assert.notEqual(mutated, ci);
+    assert.deepEqual(workflowNpmConfigProblems(mutated), [expected], `refused: ${expected}`);
   }
 });
 
@@ -411,10 +432,12 @@ test('CI audits the dev dependencies too, the packages the application job runs 
 // `if: github.event_name == 'pull_request'` (a push has no base to compare against), and nothing else,
 // at the job or the step level. Every key line of a step is read, at any depth, plain, single- or
 // double-quoted, or in a flow mapping; the body of a `run: |` block is shell and is not read. The reading
-// is a key regex, not a YAML parser, so the job may use only the spellings it reads (A1-279-1): within the
-// application job it refuses a double-quoted key holding a backslash escape (`"\x69f": always()`), an
-// explicit key or value line (`? if` / `: always()`), a tag (`!!str if:`), an anchor (`&name`), an alias
-// (`*name`) and a merge key (`<<:`), each of which a YAML parser can read as `if` or `continue-on-error`.
+// is a key regex, not a YAML parser, so the job may use only the block-style spellings it reads, and it
+// fails closed on the rest (A1-279-1, A1-279r2-1): within the application job it refuses any flow
+// collection (a `{`, `}`, `[` or `]` outside a `${{ ... }}` expression), any `?` or `:` where a YAML token
+// can start (the line start, after a `- `, `{`, `[` or `,`), a double-quoted key holding a backslash escape
+// (`"\x69f": always()`), a tag (`!!str if:`), an anchor (`&name`), an alias (`*name`) and a merge key
+// (`<<:`), each of which a YAML parser can read as `if` or `continue-on-error` where the regex does not.
 // Returns the problems.
 const RELEASE_AGE_CONDITION = "if: github.event_name == 'pull_request'";
 const CONDITION_KEY = /(?:^|[{,]|-\s)\s*["']?(if|continue-on-error)["']?\s*:/;
@@ -433,16 +456,20 @@ function keyLines(text) {
   return out;
 }
 const YAML_FORMS = [
-  ['a double-quoted key with a backslash escape', /(?:^|[{,]|-\s)\s*"(?:[^"\\]|\\.)*\\(?:[^"\\]|\\.)*"\s*:/],
-  ['an explicit key or value line', /^\s*(?:-\s+)?[?:](?:\s|$)/],
-  ['a tag', /(?:^|[{,[]|-\s|:\s)\s*!/],
-  ['an anchor or alias', /(?:^|[{,[]|-\s|:\s)\s*[&*][^\s,\]}]/],
-  ['a merge key', /(?:^|[{,]|-\s)\s*["']?<<["']?\s*:/],
+  ['a flow collection', /[{}[\]]/],
+  ['an explicit key or value indicator', /(?:^\s*(?:-\s+)?|[{[,]\s*)[?:](?:\s|$)/],
+  ['a double-quoted key with a backslash escape', /(?:^|[{,]|-\s|\?\s)\s*"(?:[^"\\]|\\.)*\\(?:[^"\\]|\\.)*"\s*:/],
+  ['a tag', /(?:^|[{,[]|-\s|:\s|\?\s)\s*!/],
+  ['an anchor or alias', /(?:^|[{,[]|-\s|:\s|\?\s)\s*[&*][^\s,\]}]/],
+  ['a merge key', /(?:^|[{,]|-\s|\?\s)\s*["']?<<["']?\s*:/],
 ];
+// A GitHub expression, `${{ ... }}`, is the one place the job writes braces; it is removed before the
+// forms are read, so its `{{`, `}}` and a `!` inside it are not taken for flow or a tag.
+const withoutExpressions = (line) => line.replace(/\$\{\{[^}]*\}\}/g, '');
 function yamlFormProblems(job) {
   const lines = [...job.head.map((line) => ['the application job', line]),
     ...job.steps.flatMap((step, i) => keyLines(step.raw).map((line) => [`step "${step.name ?? step.uses ?? `step ${i + 1}`}"`, line]))];
-  return lines.flatMap(([where, line]) => YAML_FORMS.filter(([, form]) => form.test(line)).map(([what]) => `${where} uses ${what}: \`${line.trim()}\``));
+  return lines.flatMap(([where, line]) => YAML_FORMS.filter(([, form]) => form.test(withoutExpressions(line))).map(([what]) => `${where} uses ${what}: \`${line.trim()}\``));
 }
 function applicationConditionProblems(job) {
   const problems = job.head.filter((line) => CONDITION_KEY.test(line)).map((line) => `the application job carries \`${line.trim()}\``);
@@ -491,7 +518,7 @@ test('no step of the application job runs on a condition or may fail softly, exc
   for (const [text, expected] of [
     ['"\\x69f": always()', 'step "Application tests" uses a double-quoted key with a backslash escape'],
     ['"continue-on-\\x65rror": true', 'step "Application tests" uses a double-quoted key with a backslash escape'],
-    ['? if\n        : always()', 'step "Application tests" uses an explicit key or value line: `? if`'],
+    ['? if\n        : always()', 'step "Application tests" uses an explicit key or value indicator: `? if`'],
     ['!!str if: always()', 'step "Application tests" uses a tag'],
     ['!!str continue-on-error: true', 'step "Application tests" uses a tag'],
     ['<<: *c', 'step "Application tests" uses a merge key'],
@@ -502,17 +529,36 @@ test('no step of the application job runs on a condition or may fail softly, exc
   cases.push([ci.replace(TESTS, `${TESTS}        x: &c\n          if: always()\n`), 'step "Application tests" uses an anchor or alias: `x: &c`']);
   cases.push([ci.replace(NEEDS, `${NEEDS}    "\\x69f": always()\n`), 'the application job uses a double-quoted key with a backslash escape']);
   cases.push([ci.replace(NEEDS, `${NEEDS}    "continue-on-\\x65rror": true\n`), 'the application job uses a double-quoted key with a backslash escape']);
-  cases.push([ci.replace(NEEDS, `${NEEDS}    ? if\n    : always()\n`), 'the application job uses an explicit key or value line: `? if`']);
+  cases.push([ci.replace(NEEDS, `${NEEDS}    ? if\n    : always()\n`), 'the application job uses an explicit key or value indicator: `? if`']);
   cases.push([ci.replace(NEEDS, `${NEEDS}    !!str if: always()\n`), 'the application job uses a tag']);
   cases.push([ci.replace(NEEDS, `${NEEDS}    <<: *c\n`), 'the application job uses a merge key']);
+  // A1-279r2-1 and Q0-279r2-1: an explicit key inside a flow mapping, after `{` or `,`, on a step whose
+  // name and run keep lines of their own (S3, S10, S6, S4), and in a flow env of the job. The class is
+  // refused, not the spelling: each is a flow collection, and each `?` stands where a token starts.
+  const PARSED = '      - name: Verify the application boundaries (parsed)\n        run: node scripts/verify-app-boundaries.mjs --require-parser\n';
+  const JOB_ENV = "    env:\n      NEXT_TELEMETRY_DISABLED: '1'\n      NODE_OPTIONS: ''\n";
+  assert.ok(ci.includes(PARSED) && ci.includes(JOB_ENV), 'the parsed guard step and the job env read as written');
+  // Concatenated, not a template: the guard's import walk refuses a template that names a loader word
+  // (here --require-parser) after an interpolation.
+  const flowStep = (entry) => '      - { ' + entry + ',\n        name: Verify the application boundaries (parsed)\n        ,\n        run: node scripts/verify-app-boundaries.mjs --require-parser\n        }\n';
+  for (const entry of ['? if : always()', "? 'if' : always()", '? !!str if : always()', '? "continue-on-\\x65rror" : true', 'name: x, ? if : always()']) {
+    const mutated = ci.replace(PARSED, flowStep(entry));
+    cases.push([mutated, 'uses a flow collection']);
+    cases.push([mutated, `uses an explicit key or value indicator: \`{ ${entry},\``]);
+  }
+  cases.push([ci.replace(JOB_ENV, "    env: { NEXT_TELEMETRY_DISABLED: '1', NODE_OPTIONS: '', ? if : always() }\n"), 'the application job uses a flow collection']);
+  cases.push([ci.replace(JOB_ENV, "    env: [ NEXT_TELEMETRY_DISABLED ]\n"), 'the application job uses a flow collection']);
+  cases.push([ci.replace(TESTS, `${TESTS}        x: y, ? if : always()\n`), 'step "Application tests" uses an explicit key or value indicator']);
   cases.push([ci.replace(NEEDS, `${NEEDS}    continue-on-error: true\n`), 'the application job carries `continue-on-error: true`']);
   for (const [mutated, expected] of cases) {
     assert.notEqual(mutated, ci);
     const problems = applicationConditionProblems(workflowJobs(mutated).get('application'));
     assert.ok(problems.length > 0 && problems.some((p) => p.includes(expected)), `refused: ${expected} (found ${JSON.stringify(problems)})`);
   }
-  // On the head the job uses none of those spellings, and the reading sees each where it stands.
+  // On the head the job uses none of those spellings, and the reading sees each where it stands; the
+  // braces of its `${{ ... }}` expressions are not flow.
   assert.deepEqual(yamlFormProblems(app), [], 'the application job uses only the spellings the reading reads');
+  assert.ok(app.steps.some((s) => s.raw.includes('${{')), 'the job does write expressions, and they are not refused');
   // A shell `if` inside a `run: |` block is not a condition: the checkout check's own `if [ ... ]` is not read.
   assert.match(app.steps[1].run, /^if \[/m, 'the checkout check runs a shell if');
 });
