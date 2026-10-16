@@ -187,9 +187,12 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   // A1-AUD1015-1 (2026-10-15, WP-0A-A0-004): app-stack 15 to 16 (npm audit and the release age before
   // any step that executes package code); merged with the follow-up above, app-stack 18 to 19. No test
   // removed or renamed.
+  // A1-270-1 and A1-270-2 (2026-10-16, WP-0A-A0-004): app-stack 19 to 21 (the audit includes the dev
+  // dependencies; no step of the application job runs on a condition or is continue-on-error, but the
+  // release age's pull-request condition). No test removed or renamed.
   'test-kits/app-dependencies.test.mjs': 14,
   'test-kits/app-boundaries.test.mjs': 29,
-  'test-kits/app-stack.test.mjs': 19,
+  'test-kits/app-stack.test.mjs': 21,
 };
 
 // Independent review eighteen answered the question the per-file floor was written to close, and
@@ -396,10 +399,14 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   // (2026-10-12; A1-257-10): app-boundaries 124 to 144, app-stack 120 to 137. The governance-bundle
   // follow-up (2026-10-15; Q0-259-1, Q0-257r6-1): app-boundaries 144 to 155, app-stack 137 to 168.
   // A1-AUD1015-1 (2026-10-15, WP-0A-A0-004): app-stack 137 to 144 on its own; merged with the follow-up,
-  // app-stack 168 to 175.
+  // app-stack 168 to 175. A1-270-1 and A1-270-2 (2026-10-16, WP-0A-A0-004): app-stack 175 to 187; with
+  // A1-279-1 and A1-279-2 (the YAML spellings the condition reading refuses; the audit's environment),
+  // 187 to 192; with A1-279r2-1 and A1-279r2-2 (flow collections and token-start indicators refused as a
+  // class; npm_config_* anywhere in ci.yml), 192 to 198; with A1-279r3-1 and A1-279r3-2 (comments and bare
+  // dashes in the application job; only name, on, permissions and jobs at the top level), 198 to 204.
   'test-kits/app-dependencies.test.mjs': 65,
   'test-kits/app-boundaries.test.mjs': 155,
-  'test-kits/app-stack.test.mjs': 175,
+  'test-kits/app-stack.test.mjs': 204,
 };
 
 // Independent review eighteen defeated the test-count floor by hollowing a suite while preserving
@@ -480,9 +487,11 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   // app-boundaries and three to app-stack; none is renamed, and both name digests move.
   // A1-AUD1015-1 (2026-10-15, WP-0A-A0-004) adds one test to app-stack; none is renamed, and its name
   // digest moves (measured on the merge with the follow-up).
+  // A1-270-1 and A1-270-2 (2026-10-16, WP-0A-A0-004) add two tests to app-stack; none is renamed, and its
+  // name digest moves.
   'test-kits/app-dependencies.test.mjs': '491abfa45804df35',
   'test-kits/app-boundaries.test.mjs': '1d26d994f5722840',
-  'test-kits/app-stack.test.mjs': 'f66a1687560ef35f',
+  'test-kits/app-stack.test.mjs': '3c58028044a6dd71',
 };
 
 // How many reversals `ratchets-bite.test.mjs` puts through a suite. Independent review twenty
