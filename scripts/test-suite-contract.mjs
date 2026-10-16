@@ -402,10 +402,11 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   // app-stack 168 to 175. A1-270-1 and A1-270-2 (2026-10-16, WP-0A-A0-004): app-stack 175 to 187; with
   // A1-279-1 and A1-279-2 (the YAML spellings the condition reading refuses; the audit's environment),
   // 187 to 192; with A1-279r2-1 and A1-279r2-2 (flow collections and token-start indicators refused as a
-  // class; npm_config_* anywhere in ci.yml), 192 to 198.
+  // class; npm_config_* anywhere in ci.yml), 192 to 198; with A1-279r3-1 and A1-279r3-2 (comments and bare
+  // dashes in the application job; only name, on, permissions and jobs at the top level), 198 to 204.
   'test-kits/app-dependencies.test.mjs': 65,
   'test-kits/app-boundaries.test.mjs': 155,
-  'test-kits/app-stack.test.mjs': 198,
+  'test-kits/app-stack.test.mjs': 204,
 };
 
 // Independent review eighteen defeated the test-count floor by hollowing a suite while preserving

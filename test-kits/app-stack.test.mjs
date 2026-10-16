@@ -356,6 +356,13 @@ function auditEnvProblems(job) {
 }
 // A1-279r2-2. A workflow-level `env:` (or one on any job) applies the same way, so no key line anywhere
 // in ci.yml, outside comments and `run: |` bodies, names an npm_config_* variable. Returns the problems.
+// A1-279r3-2. The workflow level, as a class: every top-level line is one of `name:`, `on:`,
+// `permissions:` or `jobs:`, written plainly. A workflow env: or defaults:, in any spelling (escaped,
+// tagged, anchored, explicit, merged, commented), is refused because it is not one of those lines.
+const TOP_LEVEL = /^(?:name|on|permissions|jobs):(?: [^#]*)?$/;
+function workflowTopLevelProblems(ci) {
+  return ci.split('\n').filter((line) => /^\S/.test(line) && !line.startsWith('#') && !TOP_LEVEL.test(line)).map((line) => `ci.yml has the top-level line \`${line}\``);
+}
 function workflowNpmConfigProblems(ci) {
   const lines = keyLines(ci.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n'));
   return lines.filter((l) => /(?:^|[{[,]|-\s|\?\s)\s*["']?npm_config_/i.test(l)).map((l) => `ci.yml sets \`${l.trim()}\``);
@@ -413,6 +420,7 @@ test('CI audits the dev dependencies too, the packages the application job runs 
   // A1-279r2-2: the workflow level. None on the head; a top-level env: with npm_config_workspace (E1),
   // the same as an explicit key, and the same on the bootstrap job, are refused.
   assert.deepEqual(workflowNpmConfigProblems(ci), [], 'no key line of ci.yml names an npm_config_* variable');
+  assert.deepEqual(workflowTopLevelProblems(ci), [], 'ci.yml has only name, on, permissions and jobs at the top level');
   const PERMISSIONS = 'permissions:\n  contents: read\n';
   assert.ok(ci.includes(PERMISSIONS), 'the workflow permissions read as written');
   for (const [mutated, expected] of [
@@ -423,6 +431,23 @@ test('CI audits the dev dependencies too, the packages the application job runs 
     assert.notEqual(mutated, ci);
     assert.deepEqual(workflowNpmConfigProblems(mutated), [expected], `refused: ${expected}`);
   }
+  // A1-279r3-2's W1 to W5 and a defaults:, each refused at the top level whatever its spelling.
+  for (const [added, line] of [
+    ['env: # :|\n  npm_config_workspace: apps/web\n', 'env: # :|'],
+    ['env:\n  "npm\\x5fconfig_workspace": apps/web\n', 'env:'],
+    ['env:\n  !!str npm_config_workspace: apps/web\n', 'env:'],
+    ['env:\n  &k npm_config_workspace: apps/web\n', 'env:'],
+    ['env:\n  "NPM_\\x43ONFIG_WORKSPACE": apps/web\n', 'env:'],
+    ['"\\x65nv":\n  npm_config_workspace: apps/web\n', '"\\x65nv":'],
+    ['? env\n: { npm_config_workspace: apps/web }\n', '? env'],
+    ['defaults:\n  run:\n    shell: bash {0}\n', 'defaults:'],
+  ]) {
+    const mutated = ci.replace(PERMISSIONS, PERMISSIONS + added);
+    assert.notEqual(mutated, ci);
+    assert.ok(workflowTopLevelProblems(mutated).includes('ci.yml has the top-level line `' + line + '`'), 'refused: ' + JSON.stringify(added));
+  }
+  // W1 is also read now: `# :|` opens no block, so the key under it is seen.
+  assert.deepEqual(workflowNpmConfigProblems(ci.replace(PERMISSIONS, PERMISSIONS + 'env: # :|\n  npm_config_workspace: apps/web\n')), ['ci.yml sets `npm_config_workspace: apps/web`'], 'W1 is read through its comment');
 });
 
 // A1-270-2. A step condition such as `if: always()`, `if: ${{ !cancelled() }}` or `if: success() ||
@@ -436,11 +461,22 @@ test('CI audits the dev dependencies too, the packages the application job runs 
 // fails closed on the rest (A1-279-1, A1-279r2-1): within the application job it refuses any flow
 // collection (a `{`, `}`, `[` or `]` outside a `${{ ... }}` expression), any `?` or `:` where a YAML token
 // can start (the line start, after a `- `, `{`, `[` or `,`), a double-quoted key holding a backslash escape
-// (`"\x69f": always()`), a tag (`!!str if:`), an anchor (`&name`), an alias (`*name`) and a merge key
-// (`<<:`), each of which a YAML parser can read as `if` or `continue-on-error` where the regex does not.
-// Returns the problems.
+// (`"\x69f": always()`), a tag (`!!str if:`), an anchor (`&name`), an alias (`*name`), a merge key (`<<:`),
+// a comment on a key or dash line (`- # :|`, A1-279r3-1) and a dash line with no key on it, each of which
+// a YAML parser can read in a way the regex does not. A block-scalar header is decided with any trailing
+// comment removed, so `# :|` opens no block. Whole-line comments are dropped before anything is read, so
+// they hide nothing.
+// THE RESIDUAL, stated plainly: this is a line-based reader, not a YAML parser. It refuses the YAML
+// features the job does not use (flow collections, explicit keys, tags, anchors, aliases and merges,
+// escapes in keys, comments after content, bare dashes; at the workflow level any top-level key but
+// name, on, permissions and jobs, so no workflow env: or defaults:) and anything it cannot place. A
+// spelling that needs a parser more lenient than YAML allows, beyond these, is held by the review of
+// every ci.yml change, which is a governance path four roles read. Returns the problems.
 const RELEASE_AGE_CONDITION = "if: github.event_name == 'pull_request'";
 const CONDITION_KEY = /(?:^|[{,]|-\s)\s*["']?(if|continue-on-error)["']?\s*:/;
+// A trailing comment, `#` at the line start or after whitespace, removed (quotes are not considered: a
+// `#` in a quoted value is refused below as a comment, failing closed).
+const withoutComment = (line) => line.replace(/(?:^|\s)#.*$/, '');
 function keyLines(text) {
   const out = [];
   let block = null;
@@ -451,11 +487,12 @@ function keyLines(text) {
       block = null;
     }
     out.push(line);
-    if (/:\s*[|>][-+0-9]*\s*$/.test(line)) block = indent;
+    if (/:\s*[|>][-+0-9]*\s*$/.test(withoutComment(line))) block = indent;
   }
   return out;
 }
 const YAML_FORMS = [
+  ['a comment after content', /(?:^|\s)#/],
   ['a flow collection', /[{}[\]]/],
   ['an explicit key or value indicator', /(?:^\s*(?:-\s+)?|[{[,]\s*)[?:](?:\s|$)/],
   ['a double-quoted key with a backslash escape', /(?:^|[{,]|-\s|\?\s)\s*"(?:[^"\\]|\\.)*\\(?:[^"\\]|\\.)*"\s*:/],
@@ -469,7 +506,11 @@ const withoutExpressions = (line) => line.replace(/\$\{\{[^}]*\}\}/g, '');
 function yamlFormProblems(job) {
   const lines = [...job.head.map((line) => ['the application job', line]),
     ...job.steps.flatMap((step, i) => keyLines(step.raw).map((line) => [`step "${step.name ?? step.uses ?? `step ${i + 1}`}"`, line]))];
-  return lines.flatMap(([where, line]) => YAML_FORMS.filter(([, form]) => form.test(withoutExpressions(line))).map(([what]) => `${where} uses ${what}: \`${line.trim()}\``));
+  const bare = job.steps.flatMap((step, i) => (withoutComment(step.raw.split('\n')[0]).trim() === '' ? [`step ${i + 1} is a dash line with no key on it: \`- ${step.raw.split('\n')[0]}\``] : []));
+  // A dash the step reader does not take for a step (a bare `-`, a `-` and a tab) lands in the job's own
+  // lines; it is refused there as a line the reading cannot place.
+  bare.push(...job.head.filter((line) => /^\s*-(?:\s|$)/.test(line)).map((line) => `the application job has a dash line the reading cannot place: \`${line.trim()}\``));
+  return [...bare, ...lines.flatMap(([where, line]) => YAML_FORMS.filter(([, form]) => form.test(withoutExpressions(line))).map(([what]) => `${where} uses ${what}: \`${line.trim()}\``))];
 }
 function applicationConditionProblems(job) {
   const problems = job.head.filter((line) => CONDITION_KEY.test(line)).map((line) => `the application job carries \`${line.trim()}\``);
@@ -549,6 +590,25 @@ test('no step of the application job runs on a condition or may fail softly, exc
   cases.push([ci.replace(JOB_ENV, "    env: { NEXT_TELEMETRY_DISABLED: '1', NODE_OPTIONS: '', ? if : always() }\n"), 'the application job uses a flow collection']);
   cases.push([ci.replace(JOB_ENV, "    env: [ NEXT_TELEMETRY_DISABLED ]\n"), 'the application job uses a flow collection']);
   cases.push([ci.replace(TESTS, `${TESTS}        x: y, ? if : always()\n`), 'step "Application tests" uses an explicit key or value indicator']);
+  // A1-279r3-1: U1 to U3 on "Type-check negative control", which no other control anchors on. The dash line
+  // carries a comment that ends in `:|`, and the keys sit a level deeper; U2 adds decoy name/run lines inside
+  // a double-quoted scalar, U3 inside a flow mapping re-opened by `, # :|`. A bare `-` line, and a comment
+  // after a key, are refused too.
+  const CONTROL = '      - name: Type-check negative control\n        run: node scripts/verify-typecheck-control.mjs\n';
+  assert.ok(ci.includes(CONTROL), 'the type-check control step reads as written');
+  const NAME_RUN = '          name: Type-check negative control\n          run: node scripts/verify-typecheck-control.mjs\n';
+  const U1 = '      - # :|\n          if: always()\n' + NAME_RUN;
+  const U2 = '      - # :|\n          if: always()\n          env:\n            X: "a\n        name: Type-check negative control\n        run: node scripts/verify-typecheck-control.mjs\n            b"\n' + NAME_RUN;
+  const U3 = '      - # :|\n          if: always()\n          env: {X: "1",\n        name: Type-check negative control\n        , # :|\n        run: node scripts/verify-typecheck-control.mjs\n        , # :|\n          }\n';
+  for (const [label, step] of [['U1', U1], ['U2', U2], ['U3', U3]]) {
+    const mutated = ci.replace(CONTROL, step);
+    cases.push([mutated, 'is a dash line with no key on it: `- # :|`']);
+    cases.push([mutated, 'carries `if: always()`']);
+    assert.ok(mutated !== ci, label);
+  }
+  cases.push([ci.replace(CONTROL, '      -\n        name: Type-check negative control\n        run: node scripts/verify-typecheck-control.mjs\n'), 'the application job has a dash line the reading cannot place: `-`']);
+  cases.push([ci.replace(CONTROL, '      - name: Type-check negative control # :|\n        run: node scripts/verify-typecheck-control.mjs\n'), 'uses a comment after content: `name: Type-check negative control # :|`']);
+  cases.push([ci.replace(NEEDS, '  application:\n    needs: bootstrap # x\n'), 'the application job uses a comment after content: `needs: bootstrap # x`']);
   cases.push([ci.replace(NEEDS, `${NEEDS}    continue-on-error: true\n`), 'the application job carries `continue-on-error: true`']);
   for (const [mutated, expected] of cases) {
     assert.notEqual(mutated, ci);
