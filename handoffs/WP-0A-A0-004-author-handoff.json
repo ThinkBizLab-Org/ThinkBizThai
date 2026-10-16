@@ -4,22 +4,17 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "42b37f00b461afe3cba1e999cec52e7f29728484",
-  "head_revision_or_patch_checksum": "3cb7cb6d75902fdc4e7f09cca33358abaf9e2e0c",
+  "base_revision": "01b49187fe488f58929a9d14b361d17c81ec1c70",
+  "head_revision_or_patch_checksum": "ddb901c6e9cac23fef783d27ecffaf958e149281",
   "task_ids": [
     "WP-0A-A0-004",
-    "gov-a004d-rfc007-wording-2026-10-16"
+    "gov-a004e-rfc007-f-note-2026-10-17"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-004/a1-review-2026-10-16-pr280.md",
-    "evidence/WP-0A-A0-004/c0-review-2026-10-16-pr280.md",
-    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-rfc007-wording.md",
-    "evidence/WP-0A-A0-004/q0-review-2026-10-16-pr280.md",
-    "evidence/WP-0A-A0-004/r0-review-2026-10-16-pr280.md"
+    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-rfc-007-f-note.md"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
-    "handoffs/WP-0A-A0-004-author-handoff.json",
     "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-A0-004.json"
   ],
@@ -32,17 +27,14 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT (gov-a004d) answers R0-265-1 (evidence/WP-1A-A0-003/r0-review-2026-10-15-pr265.md), R0-AUD1015-9 (evidence/audits/2026-10-15/r0-audit.md) and C0-AUD1015-2 (evidence/audits/2026-10-15/c0-audit.md) under question 2 (header \"RFC-007\") of the Product Owner's answer of 2026-10-16T02:40:07Z, transcribed verbatim by script in evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-rfc007-wording.md and mirrored in required_human_authorities.",
-    "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md gains §F \"Record 2026-10-16\" at the end of Amendment 2026-10-13; §A to §E are kept whole (git diff origin/main shows additions only in that file), as the RFC's earlier dated records are (the Record 2026-10-08, the Correction 2026-10-11). The record states: PR-1 #261 (2aef8182) created no listed file and printed lane risk; PR-2 #265 (14716adf) created src/modules/platform-kernel/index.ts and application/run.ts and printed lane governance; §C tests 2 and 3 hold before and after creation since ca8fde5f, their names quoted verbatim; adapters/job-store.ts is still absent (5 of the 48 pairs name it); PR-3 #275 changed none of these.",
-    "The record also states one consequence of #265's test change that the original text does not: a platform-kernel file that leaves after it was created no longer fails §C test 2, so §B item 1's and §D's 'fails the suite (§C, test 2)' holds for the other named files only. It claims no replacement check; the disposition leaves whether one is wanted to a later question.",
-    "No classifier, guard, test, CI or STRING_NAME_EXCEPTIONS change (the option's description bars them; A0 reads 'guard' as including the guard tests).",
-    "work-packages/WP-0A-A0-004.json: one required_human_authorities entry for this increment; ownership.amends_without_owning.paths emptied with a dated rationale (the three paths reached main with PR #279, 42b37f00, and this branch amends none; verify-branch-scope exits 74 on a declaration that matches nothing). test-kits/integrity-manifest.json is regenerated for the RFC's digest (authorized_cross_package_amendments).",
-    "The first commit 18cc4188 also moved this handoff's head_revision_or_patch_checksum from #279's fe07eec7 to its merge 42b37f00 so that the commit gate's handoff guard read a path to the branch (the branch starts on #279's own merge commit, whose branch-side tip is main's first parent); this commit then refreshes the handoff last and alone, as #276's first commit did after #270."
+    "THIS INCREMENT (gov-a004e) answers R0-281-1 (evidence/WP-0A-DB-00/r0-review-2026-10-17-pr281.md §7) and R0-280-1 (evidence/WP-0A-A0-004/r0-review-2026-10-16-pr280.md §5) under the Product Owner's answer of 2026-10-16T19:13:38Z to A0's list of open items (item 2 names this note), transcribed verbatim by script in evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-rfc-007-f-note.md with A0's reading; whether the words cover A0 pressing is for the roles to judge (the disposition §4 item 1).",
+    "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md gains one dated note, 'Note 2026-10-17', appended at the end of §F (the Record 2026-10-16 under the Amendment 2026-10-13); §A to §F are kept whole (git diff origin/main shows additions only in that file).",
+    "The note states, measured on main 01b49187: (1) PR #281 (merged 2026-10-16T18:50:35Z as 01b49187) closed §F item 4's gap for index.ts and application/run.ts, citing test-kits/db/foundation-contract.test.mjs lines 7600 (test 2), 7626 (PLATFORM_KERNEL_CREATED), 7628, 7629 and 7630; (2) §F item 1's open_blockers[16] is [16] at 2aef8182 and [17] at 01b49187 (R0-280-1), item 1 not edited; (3) adapters/job-store.ts is still absent, the duty to add it to PLATFORM_KERNEL_CREATED is recorded on main only by WP-0A-DB-00 (the test comment, the manifest's amends_without_owning rationale, the handoff's known_limitations and recommended_next_work_packages), and a records entry on WP-1A-A0-003 open_blockers is owed."
   ],
   "acceptance_results": [
     {
-      "criterion": "RFC-2026-007 Amendment 2026-10-13 is true of the code and tests on main after #261, #265 and #275, with its original text kept whole",
-      "result": "pass for author self-check: §F appended; git diff origin/main -- architecture/decisions/RFC-2026-007-ci-independent-guard-step.md is additions only; the facts were measured on 42b37f00: index.ts and application/run.ts present, adapters/job-store.ts absent; STRING_NAME_EXCEPTIONS 48 pairs, 5 with an absent named file (all job-store.ts); test names copied from test-kits/db/foundation-contract.test.mjs; lanes from evidence/WP-1A-A0-003/r0-review-2026-10-14-pr261.md §3 and r0-review-2026-10-15-pr265.md"
+      "criterion": "The note is true of main at 01b49187 and §F is kept whole",
+      "result": "pass for author self-check: git diff origin/main -- architecture/decisions/RFC-2026-007-ci-independent-guard-step.md is additions only; line numbers, PLATFORM_KERNEL_CREATED, the absence of src/modules/platform-kernel/adapters/, WP-1A-A0-003 open_blockers[16]/[17] at 2aef8182 and 01b49187, and the merge time and SHA of #281 (gh pr view 281) measured by script"
     },
     {
       "criterion": "No classifier, guard or test changes",
@@ -50,63 +42,49 @@
     },
     {
       "criterion": "The Owner's words are transcribed verbatim",
-      "result": "pass for author self-check: a script compared every question, header, option label and description, and answer in the disposition with transcript lines 4341 and 4342 and with the raw tool result (26 checks, all equal)"
+      "result": "pass for author self-check: a script read transcript lines 5581 and 5585 (timestamps checked) and compared the three quoted blocks of the disposition and the three quotes in the manifest entry byte for byte (all equal)"
     }
   ],
   "tests": [
     {
-      "command": "node --test --test-name-pattern='string-name exception|a pair listed for a file' test-kits/db/foundation-contract.test.mjs",
+      "command": "transcript check by script (node, transcript lines 5581/5585 against the disposition and the manifest entry)",
       "exit_code": 0,
-      "result": "5 pass, 0 fail (the §C tests the record describes, on 42b37f00)"
-    },
-    {
-      "command": "transcript check by script (python3, transcript lines 4341/4342 against the disposition)",
-      "exit_code": 0,
-      "result": "ok, 26 checks"
-    },
-    {
-      "command": "node scripts/commit-when-clean.mjs (npm run verify under the suite lock)",
-      "exit_code": 0,
-      "result": "clean: tests 843, pass 843 at 18cc4188 (a first attempt without the handoff head move exited 1: 841 of 843, the two handoff-path tests)"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004",
-      "exit_code": 0,
-      "result": "all 5 changed path(s) are declared, and every amendment explains one (against origin/main 42b37f00)"
-    },
-    {
-      "command": "npm run validate:protocol",
-      "exit_code": 0,
-      "result": "pass"
+      "result": "ok, 6 quotes equal"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "tier: H; lane: governance (the RFC under architecture/decisions/**; test-kits/integrity-manifest.json the integrity manifest); classifier copy: the base's"
+      "result": "tier: H, lane: governance on 01b4918..ddb901c (the RFC, an RFC or decision record; the integrity manifest); both classifiers equal the base's blobs"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (npm run verify under the suite lock)",
+      "exit_code": 0,
+      "result": "clean: tests 843, pass 843 at ddb901c6 (two earlier attempts exited 1, 841 of 843, with the handoff edited in the same commit: handoff-conformance's file-list test failed against the cited range; the handoff now moves in the last commit alone)"
     }
   ],
   "security_privacy_cost_impact": "None: a text record in an RFC and this package's records. No code, CI, credential, secret, personal data, provider call or dependency change.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes; no rule of RFC-2026-007 changes.",
   "known_limitations": [
-    "The record states, and does not fix, that a platform-kernel file deleted after its creation no longer fails §C test 2; any check for that is a test change the Owner's answer bars here.",
-    "The record does not rewrite §B item 5, §B's count or §C items 2 and 3; it says how to read them. A reader of those sentences alone still reads the earlier state.",
-    "A1-279-3 and Q0-279r2-2 (CI shell: and $GITHUB_ENV), RFC-2026-029 §4.6's --omit=dev wording and the R0 acknowledgements owed for #270, #255, #260 and #279 (WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008) stay owed; this increment does not touch them.",
-    "The Amendment 2026-10-06's Owner disposition stays OWED (required_human_authorities)."
+    "The note states, and does not fix, that PLATFORM_KERNEL_CREATED is a hand list: the pull request creating adapters/job-store.ts can pass without adding it (C0-281-1, Q0-281-1, R0-281-2). Enforcing it is a test change outside the Owner's words here.",
+    "The WP-1A-A0-003 records entry naming that duty (R0-281-2 (ii); item 1 of A0's message) is owed and not written here.",
+    "§F item 1 and item 4 are not rewritten; the note says how to read them. A reader of those sentences alone still reads the earlier state.",
+    "A1-279-3 and Q0-279r2-2 (CI shell: and $GITHUB_ENV), RFC-2026-029 §4.6's --omit=dev wording and the R0 acknowledgements owed for #270, #255, #260 and #279 stay owed; this increment does not touch them."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (RFC-2026-007 wording; Owner's answer of 2026-10-16T02:40:07Z, question 2). Round one at 8fa33aa1: C0 review_approved, A1 security_approved (no security finding), Q0 test_verified 843/843, R0 ready; files carried with -x. A0 presses once CI is green on both jobs on the final head, with --match-head-commit. Owed (not this PR): the gap A1-280-1 / Q0-280-1 (Low): since #265, deleting platform-kernel index.ts/run.ts (with their tests) passes the suite and prints lane risk; closing it needs a test change and a new Owner question. Records: §F cites WP-1A-A0-003 open_blockers[16] as at #261; on main it is [17] (C0-280-1, R0-280-1, Q0-280-2, A1-280-2)."
+    "GOVERNANCE (RFC-2026-007 §F note; Owner's answer of 2026-10-16T19:13:38Z). Needs C0, A1, Q0 and R0 on the final head and CI green on both jobs; A0 presses only then, with --match-head-commit, if the roles read the Owner's words as covering it. No role has run."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR removes §F from RFC-2026-007, this increment's required_human_authorities entry and the disposition, and regenerates the integrity manifest; the emptied amends_without_owning paths stay empty (they described #279's work, which is on main). Nothing depends on the record.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR removes the Note 2026-10-17 from RFC-2026-007, this increment's required_human_authorities entry and the disposition, and regenerates the integrity manifest. No data, provider or credential effect.",
   "recommended_next_work_packages": [
+    "WP-1A-A0-003: a records entry on open_blockers that the pull request creating adapters/job-store.ts adds it to PLATFORM_KERNEL_CREATED in RFC-2026-007 Amendment 2026-10-13 §C test 2 (R0-281-2 (ii)).",
     "WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008: R0's acknowledgement records for #279's amendments.",
     "RFC-2026-029 §4.6 and WP-1A-A0-002's audit command text, to match ci.yml (a wording item for the Owner)."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-rfc007-wording.md, then git diff origin/main.",
-    "Check the RFC diff is additions only (§F) and each fact in it against git log, src/modules/platform-kernel/, STRING_NAME_EXCEPTIONS and test-kits/db/foundation-contract.test.mjs (§C tests 2 and 3).",
-    "Run node --test test-kits/db/foundation-contract.test.mjs; nothing in it changed.",
-    "Run classify-review-tier.mjs --lane; expect governance."
+    "Read evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-rfc-007-f-note.md, then git diff origin/main.",
+    "Check the RFC diff is additions only (the Note 2026-10-17 under §F) and each fact in it against test-kits/db/foundation-contract.test.mjs lines 7600-7632, src/modules/platform-kernel/, git show 2aef8182:work-packages/WP-1A-A0-003.json and work-packages/WP-1A-A0-003.json (open_blockers[16], [17]), gh pr view 281, work-packages/WP-0A-DB-00.json and handoffs/WP-0A-DB-00-author-handoff.json.",
+    "Re-run the transcript comparison (lines 5581 and 5585) and judge whether the Owner's words cover A0 pressing (the disposition §2 and §4).",
+    "Run node --test test-kits/db/foundation-contract.test.mjs; nothing in it changed."
   ],
   "superseded_by": null
 }
