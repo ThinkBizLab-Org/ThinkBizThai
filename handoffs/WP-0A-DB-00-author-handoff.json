@@ -5,13 +5,21 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "c2979b28b3c5ee553f10e15ad323be5451c6389a",
-  "head_revision_or_patch_checksum": "c2979b28b3c5ee553f10e15ad323be5451c6389a",
+  "head_revision_or_patch_checksum": "09206604a20922248f0429c0ed604729c690bd0e",
   "task_ids": [
     "WP-0A-DB-00",
     "gov-a1280-2026-10-17"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-kernel-deletion-gap.md"
+  ],
+  "files_modified": [
+    "db/foundation/lint/audit-coverage-map.json",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-007",
@@ -43,24 +51,29 @@
       "result": "valid"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (the change commit, under the suite lock)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (change commit 09206604, under the suite lock)",
       "exit_code": 0,
-      "result": "clean: tests 843, pass 843, fail 0"
+      "result": "clean: exit 0 — tests 843, pass 843, fail 0"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
       "exit_code": 0,
-      "result": "every changed path declared, every amendment explains one"
+      "result": "all 6 changed path(s) are declared, and every amendment explains one"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "lane governance (the guard test's classifier pins, audit-coverage-map.json, test-kits/integrity-manifest.json)"
+      "result": "tier H; lane governance: db/foundation/lint/audit-coverage-map.json (data the database guards read), test-kits/db/foundation-contract.test.mjs (the foundation contract test, which pins the classifier), test-kits/integrity-manifest.json; it prints additive-eligible: yes, but the change rewrites an assertion of a test that pins the classifier, so it is not additive and stays governance"
     },
     {
       "command": "npm run regenerate:manifest",
       "exit_code": 0,
       "result": "rebuilt 128 digest(s)"
+    },
+    {
+      "command": "npm run check:handoff",
+      "exit_code": 0,
+      "result": "the handoff cites this branch"
     }
   ],
   "security_privacy_cost_impact": "Integrity only: a test pins two existing files as present; no guard is lowered, no exemption widened, no authority granted beyond the Owner's own words; no credential, customer data or provider call.",
