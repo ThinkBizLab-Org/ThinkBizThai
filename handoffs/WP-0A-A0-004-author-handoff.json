@@ -4,127 +4,91 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "b61b3db25be98f34f85b6ca7a76b32d3ff555a98",
-  "head_revision_or_patch_checksum": "7f1c93e4c177228389c349da1f97385c78b8902a",
+  "base_revision": "e78404680c43cb2cc6cbeb0386f7b7caabe53c4e",
+  "head_revision_or_patch_checksum": "9d21bf6ab3ebd96c4bf8bddb7f14b617b156bb73",
   "task_ids": [
     "WP-0A-A0-004",
-    "gov-a004-aud1015-1-2026-10-15"
+    "pr270-pr263-records-2026-10-16"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-004/a1-review-2026-10-15-pr270.md",
-    "evidence/WP-0A-A0-004/c0-review-2026-10-15-pr270.md",
-    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-15-governance-bundle-press.md",
-    "evidence/WP-0A-A0-004/q0-review-2026-10-15-pr270.md",
-    "evidence/WP-0A-A0-004/r0-review-2026-10-15-pr270.md"
+    "evidence/WP-0A-A0-004/a1-review-2026-10-16-pr276.md",
+    "evidence/WP-0A-A0-004/c0-review-2026-10-16-pr276.md",
+    "evidence/WP-0A-A0-004/q0-review-2026-10-16-pr276.md",
+    "evidence/WP-0A-A0-004/r0-review-2026-10-16-pr276.md",
+    "evidence/WP-0A-A0-004/records-transcription-2026-10-16.md"
   ],
   "files_modified": [
-    ".github/workflows/ci.yml",
-    "evidence/VERIFICATION.md",
     "handoffs/WP-0A-A0-004-author-handoff.json",
-    "scripts/test-suite-contract.mjs",
-    "test-kits/app-stack.test.mjs",
-    "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-A0-004.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-007",
     "RFC-2026-025",
-    "RFC-2026-029",
     "RFC-2026-034"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT (gov-a004, item (1) of the governance bundle): A1-AUD1015-1 (Low) of evidence/audits/2026-10-15/a1-audit.md. In .github/workflows/ci.yml's application job, 'Vulnerability audit (network)' and 'Release age of new lockfile entries (network)' move from the job's end to straight after 'Clean install for the application' (npm ci --ignore-scripts), before the parsed boundary guard (loads typescript), tsc, the type-check control, vitest and next build. Commands, step names, the release age's if: and env, action pins and permissions are unchanged; a four-line comment cites the finding.",
-    "The Owner's direction: question 2 (header 'ชุด governance') of the AskUserQuestion call at transcript line 1631 (2026-10-15T02:09:48.811Z), answered at line 1632 (2026-10-15T02:13:35.293Z) with 'A0 กดเมื่อ 4 role ผ่าน ทีละ PR (Recommended)', bounded to the five listed items; this PR carries item (1) only. Transcribed by script and checked byte for byte in evidence/WP-0A-A0-004/product-owner-disposition-2026-10-15-governance-bundle-press.md; mirrored in required_human_authorities. Question 1 concerns PR #265.",
-    "Paths outside writable_paths, declared under ownership.amends_without_owning with reasons: test-kits/app-stack.test.mjs (WP-1A-A0-002's; the test that already pins the application job's order and installs, as the audit names), scripts/test-suite-contract.mjs (WP-0A-A0-002's; app-stack floors, re-measured on the merge with PR #267: 18->19 tests, 168->175 assertions, name digest 6a2621b1b423d452->f66a1687560ef35f (on its own the change was 15->16, 137->144); app-boundaries stays at #267's 29 / 155), evidence/VERIFICATION.md (WP-0A-CON-008's; npm run record:verification). test-kits/integrity-manifest.json under authorized_cross_package_amendments[1].",
-    "The new test treats as package code: tsc, vitest, next (word), npm run typecheck/test:app/build, verify-typecheck-control and --require-parser. The last two are wider than the task's list; they follow the audit's reading that the type-check control runs tsc and the parsed guard loads typescript.",
-    "Rebased (unpushed work, before the first commit) from 20f92350 onto origin/main 14716adf (PR #265) as the coordinator directed; no conflict, #265 touched none of this increment's files except the integrity manifest, which was regenerated.",
-    "MERGE a1204dba: origin/main f64c537b (PR #267, governance items (3)/(4), which also edited test-kits/app-stack.test.mjs and the app-stack/app-boundaries floors) merged into this branch. app-stack.test.mjs auto-merged with both PRs' tests (19 = #267's 18 + this one). Conflicts in scripts/test-suite-contract.mjs (resolved keeping both comment lines, floors measured by verify-test-coverage-floor and node --test), test-kits/integrity-manifest.json (regenerated) and evidence/VERIFICATION.md (re-recorded, 836 passing). Not mechanical."
+    "THIS INCREMENT records, after their merges, PR #270 (2026-10-15T18:31:20Z, 047385f8; final head 2389ed10; CI run 38781107838 green on bootstrap and application, 836 tests, audit and release age at steps 7 and 8 straight after the install) and PR #263 (2026-10-15T04:11:13Z, 20f92350; final head b590762d; CI run 38678239408 green, lane risk): the merge facts from gh and git, the four role verdicts of each from their files on main, who pressed under which Owner answer or lane rule, and R0's post-merge words verbatim. They are open_blockers[20] (#263) and [21] (#270), appended; [0]-[19] are byte-equal.",
+    "It answers C0-270-1, R0-270-1 and Q0-270-1: ownership.amends_without_owning.rationale and the INCREMENT 2026-10-15 required_tests line carried pre-merge figures; they now read 19 tests, 175 assertions, digest f66a1687560ef35f, three paths, VERIFICATION 836, and the acknowledgements name WP-0A-CON-008 too. ownership.amends_without_owning.paths is emptied: its three paths reached main with #270 and this branch amends none of them (the rationale keeps its earlier HISTORY whole).",
+    "Status stays in_review: R0's #270 file gives no integration_verified for the package and every role file cited moves no status; #189's and #212's records are still owed (open_blockers[14], [15])."
   ],
   "acceptance_results": [
     {
-      "criterion": "npm audit and verify-release-age run straight after npm ci --ignore-scripts and before any step that executes package code; nothing else in the workflow changes",
-      "result": "pass for author self-check: git diff origin/main -- .github/workflows/ci.yml moves the two steps byte for byte (plus a comment); the new app-stack test passes on the head"
-    },
-    {
-      "criterion": "A test pins the order and fails under the old order",
-      "result": "pass for author self-check: with origin/main 20f92350's ci.yml swapped in, node --test --test-name-pattern='AUD1015-1|A1-257-4' test-kits/app-stack.test.mjs exits 1 (new test: both checks 'run after step \"Verify the application boundaries (parsed)\"'; A1-257-4 test: step 6 is 'Verify the application dependencies', expected 'Vulnerability audit (network)'); the test also carries in-file negative controls for the old order and each check moved alone behind npm run typecheck"
-    },
-    {
-      "criterion": "No RFC, classifier or dependency change",
-      "result": "pass for author self-check: the lane output reports both classifiers equal the base's blobs; no RFC, package.json or lockfile in the diff"
+      "criterion": "Recorded words match their sources on main; old open_blockers unchanged; no status, test, guard, CI, RFC, disposition or contract change",
+      "result": "pass for author self-check: quotes compared by script (whitespace folded) with the role files, RFC-2026-034, the dispositions and #263's final handoff; open_blockers[0]-[19] and required_human_authorities byte-equal; merged figures measured at 047385f8 (test-suite-contract 19 / 175 / f66a1687560ef35f, 19 test( lines, VERIFICATION 836)"
     }
   ],
   "tests": [
     {
-      "command": "node --test test-kits/app-stack.test.mjs",
-      "exit_code": 0,
-      "result": "19 tests, 19 pass (after the merge with PR #267)"
-    },
-    {
-      "command": "node --test --test-name-pattern='AUD1015-1|A1-257-4' test-kits/app-stack.test.mjs (ci.yml of origin/main 20f92350 swapped in, restored after)",
+      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD (records commit)",
       "exit_code": 1,
-      "result": "both selected tests fail on the old order, as intended"
+      "result": "NOT records-only (2 path(s)): work-packages/WP-0A-A0-004.json: required_tests: changed (the C0-270-1 / R0-270-1 / Q0-270-1 correction; no other reason)"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs (npm run verify; change commit 79d7418e, then merge commit a1204dba)",
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane (records commit)",
       "exit_code": 0,
-      "result": "79d7418e: clean, 828/828; a1204dba: clean: exit 0 — tests 836, pass 836, fail 0, skipped 0, todo 0"
+      "result": "tier: H (required_tests: changed); lane: risk (tier H outside governance, records and audit, RFC-2026-034 §2.2); classifier copy: the base's"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004",
       "exit_code": 0,
-      "result": "all changed path(s) are declared, and every amendment explains one"
+      "result": "all 2 changed path(s) are declared, and every amendment explains one"
     },
     {
-      "command": "npm run validate:protocol",
+      "command": "node scripts/db/classify-records-only.mjs --sync 76e3c1cb 7f1c93e4 b61b3db2; --sync c61b6ee4 355d8d3d 5e0eef47; --sync e04cb879 735ac03f 94c858f0",
       "exit_code": 0,
-      "result": "pass"
+      "result": "mechanical sync, each (the main merges inside #270 and #263)"
     },
     {
-      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
+      "command": "npm run regenerate:manifest (at 047385f8)",
       "exit_code": 0,
-      "result": "tier: H; lane: governance (.github/workflows/ci.yml, scripts/test-suite-contract.mjs, test-kits/app-stack.test.mjs, test-kits/integrity-manifest.json); classifier copy: the base's"
-    },
-    {
-      "command": "python3 verify-disp.py (transcript lines 1631/1632 against the disposition)",
-      "exit_code": 0,
-      "result": "16 verbatim checks passed (questions, headers, every option and description, answers, timestamps, the two RFC-2026-025 §5 item 6 bullets)"
-    },
-    {
-      "command": "npm run check (merge tree, before commit a1204dba)",
-      "exit_code": 0,
-      "result": "pass"
-    },
-    {
-      "command": "node scripts/verify-test-coverage-floor.mjs (merge tree)",
-      "exit_code": 0,
-      "result": "floors met with app-stack 19 / 175 / f66a1687560ef35f and app-boundaries 29 / 155"
+      "result": "git status clean"
     }
   ],
-  "security_privacy_cost_impact": "Security-positive, CI order only: the two checks that would report a compromised or freshly published package now run before any installed package code can prepend a shim to $GITHUB_PATH or edit the checkout. No credential, permission, network target or dependency change; no personal or customer data.",
+  "security_privacy_cost_impact": "Records only in substance. No authority is granted or widened; no credential, personal data, customer data or provider call.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes; CI step order only.",
+  "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
   "known_limitations": [
-    "npm ci itself is not covered: it runs with --ignore-scripts, so no package code runs during install, and the residual A1-257-10 records (code the repository itself runs after the guard) is unchanged.",
-    "The package-code pattern is a text match on run lines (\\bnext\\b, \\btsc\\b, ...); a step that ran package code under another name (e.g. a node script importing a package) would not be recognised. The exact step list in the A1-257-4 test still pins every step.",
-    "Acknowledgements from the Integration Owner of WP-1A-A0-002, WP-0A-A0-002 and WP-0A-CON-008 (/claude/r0_steward) are owed for the declared amendments."
+    "The required_tests correction (C0-270-1 (iv), R0-270-1, Q0-270-1) is outside RFC-2026-025 §6.1 item 4's record fields, so the classifier prints NOT records-only and lane risk; every other change is records-shaped.",
+    "The owners' acknowledgement records R0 assigns for #270 (R0-270-2: WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008) and for #255/#260 are not made here: those manifests are outside this package's writable_paths.",
+    "Whether #263 and #270 were pressed with --match-head-commit is not recorded on main; each merge's second parent is the final head. The PR body of #270 keeps \"VERIFICATION (828)\".",
+    "The carry clauses of Q0 and A1 on #270, as worded, do not except a main merge touching the integrity manifest, which 7f1c93e4 did; the transcription §3 sets this out and makes no reading of it."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (governance bundle). PR #270: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
+    "GOVERNANCE (governance bundle). PR #276: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores the two steps to the job's end, the app-stack expected list, floors and digest, and removes the disposition and the manifest's INCREMENT 2026-10-15 entries; nothing else depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[20] and [21], restores the three ownership.amends_without_owning.paths, the earlier rationale and required_tests line, and removes records-transcription-2026-10-16.md (pr270-pr263-records-2026-10-16); nothing depends on them.",
   "recommended_next_work_packages": [
-    "Governance bundle items (2) to (5), each its own PR under the same direction.",
-    "WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008: R0's acknowledgements of the declared amendments."
+    "WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008: R0's acknowledgement records for #270 (R0-270-2), and those still owed for #255 and #260.",
+    "Governance bundle items (2) to (5), each its own PR under the same direction."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-004/product-owner-disposition-2026-10-15-governance-bundle-press.md, then git diff origin/main.",
-    "ci.yml: confirm the two steps moved unchanged (git diff --color-moved) and nothing else changed.",
-    "Swap in origin/main's ci.yml and run node --test test-kits/app-stack.test.mjs to see the new test fail; restore.",
-    "Check the package-code pattern against every run line of the application job."
+    "Read evidence/WP-0A-A0-004/records-transcription-2026-10-16.md, then git diff origin/main.",
+    "open_blockers[20] against gh pr view 263, gh run view 38678239408 and the four *-2026-10-15-pr263.md files; open_blockers[21] against gh pr view 270, gh run view 38781107838, the four *-2026-10-15-pr270.md files and the governance-bundle-press disposition.",
+    "The corrected figures against scripts/test-suite-contract.mjs, test-kits/app-stack.test.mjs and evidence/VERIFICATION.md at origin/main.",
+    "Run node scripts/db/classify-records-only.mjs origin/main <head> and classify-review-tier.mjs --lane; expect required_tests as the only reason."
   ],
   "superseded_by": null
 }
