@@ -459,9 +459,13 @@ function applicationKeys(job) {
 // becomes `GITHUB_ENV` before the shell runs, and no `${{ }}` is evaluated here); a glob that reaches the
 // runner's file-command files without naming them; and a write made by a program a step runs (a
 // repository script, an npm script, installed package code, or the pinned actions, of which
-// actions/setup-node writes $GITHUB_PATH by design). Those are held by the review of every ci.yml and
-// script change, the step-list pin of A1-257-4, and the order of A1-AUD1015-1 (the audit and release age
-// run before any step that executes package code). The bootstrap job is not read: a job's GITHUB_ENV and
+// actions/setup-node writes $GITHUB_PATH by design). Nor is a `run:` body line, read and passed, that
+// writes a file later steps or tools read without naming either token (A1-287r2-1): npm's user or project
+// configuration (`npm config set`, a write to `~/.npmrc`, including `node-options=`, which undoes the
+// job's `NODE_OPTIONS: ''`), a project `.npmrc` created at run time, or an executable that shadows a
+// command in a directory already on PATH; it reaches the same effects and is not refused. Those are held
+// by the review of every ci.yml and script change, the step-list pin of A1-257-4, and the order of
+// A1-AUD1015-1 (the audit and release age run before any step that executes package code). The bootstrap job is not read: a job's GITHUB_ENV and
 // GITHUB_PATH reach only that job's later steps, never the application job. Returns the problems.
 const RUNNER_ENV_WRITE = /GITHUB_ENV|GITHUB_PATH|_runner_file_commands|ACTIONS_ALLOW_UNSECURE_COMMANDS|::(?:set-env|add-path)\b/i;
 function runnerEnvWriteProblems(ci) {

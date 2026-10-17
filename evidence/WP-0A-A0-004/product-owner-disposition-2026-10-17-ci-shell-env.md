@@ -154,3 +154,13 @@ and no test added or renamed. What §3 item 1 says is read is now stated exactly
 application job as `ci.yml` lays them out, `#`-led block-body lines included, YAML comments outside block bodies left
 out; quoted scalars spanning lines are refused, and the job's keys are held to allowlists pinned to `main`'s `ci.yml`.
 The press authority (gov-a004g) and its conditions are unchanged; A1 re-reads.
+
+## 8. Addendum 2026-10-17: round 3 after A1's round-2 reading of PR #287
+
+Appended after A1's `changes_requested` at `f38db9c9` (`evidence/WP-0A-A0-004/a1-review-2026-10-17-pr287-r2.md`, on
+A1's role branch): A1-287r2-1 (Low) found that a `run:` body line writing a file later steps or tools read (npm's user
+or project configuration, a runtime `.npmrc`, an executable shadowing a command on `PATH`) reaches the env/PATH effect
+naming neither token, and that the stated residual did not say so. A0 took A1's first option, inside the item §3
+bounds: one residual sentence naming that class, in the test's comment, the PR body, the gov-a004g acceptance entry and
+the handoff, held by the review of every `ci.yml` change and A1-257-4's step-list pin. No code changes in this round;
+§1 to §7 stand as written. The press authority (gov-a004g) and its conditions are unchanged; A1 re-reads.
