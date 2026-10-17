@@ -5,12 +5,13 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "ba3efcfdd2e9f9da7f79da25fe07fb0d903c031d",
-  "head_revision_or_patch_checksum": "82aaa4175f8364fa0efb6bb950a3dd0397a5818d",
+  "head_revision_or_patch_checksum": "0d546e5999f4a361e484793a31e39c9ac63d6fb3",
   "task_ids": [
     "WP-0A-DB-00",
     "records-pr268-pr281-2026-10-17"
   ],
   "files_added": [
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-records-press.md",
     "evidence/WP-0A-DB-00/records-transcription-2026-10-17.md"
   ],
   "files_modified": [
@@ -29,7 +30,8 @@
     "THIS INCREMENT records PR #268 (merge 0d566c1f, final head d8f02b36) and PR #281 (merge 01b49187, final head e3eaf3ce) after their merges, from gh, git and the role and audit files on main (evidence/WP-0A-DB-00/records-transcription-2026-10-17.md): open_blockers[207] and [208] appended, [0]..[206] byte-equal.",
     "#268's press error is recorded as #276 and #277 recorded #269, #270 and #274: A1's and Q0's carry clauses did not reach the final head d8f02b36 as worded (the merge 649ef191 changed test-kits/integrity-manifest.json, a path #268 changes); C0-AUD1017-1, A1-AUD1017-2, Q0-AUD1017-1, R0-AUD1017-1. Measured afterwards nothing changed (Q0 831/831 at d8f02b36; regenerate:manifest clean at 649ef191); no revert is owed.",
     "The branch agent/claude/WP-0A-DB-00-batch-rfc-030-risk-tiered-review is recreated from main ba3efcfd because #281's press used --delete-branch (A1-AUD1017-5).",
-    "ownership.amends_without_owning.paths is emptied (test-kits/integrity-manifest.json was a dead amendment, verify-branch-scope exit 74); that removes two lines above open_blockers, so db/foundation/lint/audit-coverage-map.json's 34 line pins are lowered by exactly two, no other field changed, as 33e02ab0 did on 2026-10-08."
+    "ownership.amends_without_owning.paths is emptied (test-kits/integrity-manifest.json was a dead amendment, verify-branch-scope exit 74); that removes two lines above open_blockers, so db/foundation/lint/audit-coverage-map.json's 34 line pins were lowered by exactly two in 805881d9, no other field changed, as 33e02ab0 did on 2026-10-08. The required_human_authorities entry of 0d546e59 adds one line back, and the pins were raised by one there: net against main, each is lowered by exactly one.",
+    "THE PRESS AUTHORITY (0d546e59): the Product Owner's answer of 2026-10-17T16:31:14Z (asked 16:21:29Z, after PR #288 existed; header #288+CON-008; transcript of session 325454ab, lines 7512 and 7524), copied verbatim by script into evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-records-press.md with A0's reading, and appended as the last required_human_authorities entry (the earlier three byte-equal). The Owner chose `A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)` over `ผมกดเอง` and `ยังไม่ต้องทำ`. records-transcription-2026-10-17.md §5 and §7 cite it."
   ],
   "acceptance_results": [
     {
@@ -38,7 +40,11 @@
     },
     {
       "criterion": "The coverage-map re-pin is mechanical",
-      "result": "pass for author self-check: 34 \"line\" values each lowered by 2, nothing else changed; node --test --test-name-pattern 'audit coverage map names real tables' test-kits/db/foundation-contract.test.mjs fails without the re-pin (open_blockers[21] is not on work-packages/WP-0A-DB-00.json:278) and passes with it"
+      "result": "pass for author self-check: 34 \"line\" values, each lowered by 2 in 805881d9 and raised by 1 in 0d546e59 (net -1 against main), nothing else changed; node --test --test-name-pattern 'audit coverage map names real tables' test-kits/db/foundation-contract.test.mjs passes with the re-pin and fails without it (open_blockers[21] is not on work-packages/WP-0A-DB-00.json:278 against main's pins; :276 against 805881d9's)"
+    },
+    {
+      "criterion": "The Owner's question, options and chosen label are quoted byte for byte",
+      "result": "pass for author self-check: the disposition is written by script from transcript lines 7512 and 7524 and re-checked byte for byte; the chosen label parsed from the tool result's text equals its structured answers field; lines 7513 to 7523 are queue-operation records only. Not a role verdict."
     }
   ],
   "tests": [
@@ -53,9 +59,14 @@
       "result": "clean: exit 0 — tests 843, pass 843, fail 0"
     },
     {
+      "command": "node scripts/commit-when-clean.mjs <message-file> (press-authority commit 0d546e59, under the suite lock)",
+      "exit_code": 0,
+      "result": "clean: exit 0 — tests 843, pass 843, fail 0"
+    },
+    {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
       "exit_code": 0,
-      "result": "all 4 changed path(s) are declared, and every amendment explains one (measured at 805881d9)"
+      "result": "all 4 changed path(s) are declared, and every amendment explains one (measured at 0d546e59)"
     },
     {
       "command": "node scripts/db/classify-records-only.mjs origin/main HEAD",
@@ -70,7 +81,7 @@
     {
       "command": "node --test --test-name-pattern 'audit coverage map names real tables' test-kits/db/foundation-contract.test.mjs",
       "exit_code": 0,
-      "result": "pass 1 with the re-pin; fail 1 without it (open_blockers[21] is not on work-packages/WP-0A-DB-00.json:278)"
+      "result": "pass 1 with the re-pin; fail 1 without it (at 0d546e59 without the +1: open_blockers[21] is not on work-packages/WP-0A-DB-00.json:276)"
     },
     {
       "command": "npm run validate:protocol",
@@ -80,7 +91,7 @@
     {
       "command": "npm run regenerate:manifest",
       "exit_code": 0,
-      "result": "rebuilt 128 digest(s); no change to test-kits/integrity-manifest.json"
+      "result": "rebuilt 128 digest(s); no change to test-kits/integrity-manifest.json (at 0d546e59)"
     },
     {
       "command": "npm run check:handoff",
@@ -92,21 +103,22 @@
   "migration_and_data_impact": "None. audit-coverage-map.json changes only line numbers of its pins into this manifest.",
   "compatibility_impact": "No contract changes; no contract-catalog file.",
   "known_limitations": [
-    "Not records-only by RFC-2026-025 §6.1: the coverage-map re-pin is under db/. The lane printed is governance (tier H; additive-eligible: yes, risk only once A1 and Q0 confirm in writing on the final head that every guard hunk only adds; the re-pin changes 34 values and adds nothing).",
+    "Not records-only by RFC-2026-025 §6.1: the coverage-map re-pin is under db/. The lane printed is governance (tier H; additive-eligible: yes, risk only once A1 and Q0 confirm in writing on the final head that every guard hunk only adds; the re-pin changes 34 values and adds nothing). The press authority for the governance lane is the Owner's answer of 2026-10-17T16:31:14Z (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-records-press.md).",
     "Owed outside this package's writable_paths and not done here: R0-281-1 (a dated note on RFC-2026-007 §F item 4, WP-0A-A0-004), R0-281-2 option (ii) (an open_blockers entry in WP-1A-A0-003 for adapters/job-store.ts and PLATFORM_KERNEL_CREATED), WP-0A-A0-002's acknowledgement of the manifest regenerations (R0-AUD1017-5).",
     "Owed by A0 outside the repository: telling the Owner the count of carry-clause press errors is four, not three (C0-AUD1017-1, R0-AUD1017-1). Any further after-the-fact statements by A1 or Q0 on #268 are theirs to give."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE LANE AS PRINTED (classify-review-tier --lane: tier H, lane governance, additive-eligible: yes; db/foundation/lint/audit-coverage-map.json is guard data). Not records-only. The press authority under RFC-2026-034 §2.2 / RFC-2026-025 §5 item 6 for a governance-lane records PR is A0's to establish; A0 had planned the risk lane (Q-034-1), which the classifier does not print unless A1 and Q0 confirm the additive rule. No role has read this branch; no role verdict is claimed. No status move: status stays in_review."
+    "GOVERNANCE LANE AS PRINTED (classify-review-tier --lane: tier H, lane governance, additive-eligible: yes; db/foundation/lint/audit-coverage-map.json is guard data). Not records-only. PRESS AUTHORITY: the Product Owner's answer of 2026-10-17T16:31:14Z (header #288+CON-008, after PR #288 existed): `A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)`, chosen over `ผมกดเอง` and `ยังไม่ต้องทำ` (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-records-press.md; required_human_authorities, last entry). A0's reading: A0 presses PR #288 only after C0, A1, Q0 and R0 pass on its final head, CI is green on both jobs there, no security finding of any grade is open and the head contains current main, with --match-head-commit; an Owner-directed exception to RFC-2026-025 §5 item 6's last bullet for PR #288 only. Whether the answer covers that press is for the four roles. No role has read this branch; no role verdict is claimed. No status move: status stays in_review."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[207] and [208] and the records transcription, restores the declared path and shifts the 34 pins back by two; nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[207] and [208], the last required_human_authorities entry, the press disposition and the records transcription, restores the declared path and shifts the 34 pins back up by one; nothing depends on them.",
   "recommended_next_work_packages": [
     "WP-1A-A0-003: the records entry of R0-281-2 option (ii); the pull request that creates adapters/job-store.ts adds it to PLATFORM_KERNEL_CREATED.",
     "WP-0A-A0-004: the dated note on RFC-2026-007 §F item 4 (R0-281-1)."
   ],
   "reviewer_instructions": [
     "Read evidence/WP-0A-DB-00/records-transcription-2026-10-17.md, then check each fact against gh pr view 268/281 and the cited role and audit files on main.",
-    "git diff origin/main -- db/foundation/lint/audit-coverage-map.json: every changed line differs only in \"line\", lowered by 2; run node --test --test-name-pattern 'audit coverage map names real tables' test-kits/db/foundation-contract.test.mjs."
+    "git diff origin/main -- db/foundation/lint/audit-coverage-map.json: every changed line differs only in \"line\", lowered by 1 net (-2 in 805881d9, +1 in 0d546e59); run node --test --test-name-pattern 'audit coverage map names real tables' test-kits/db/foundation-contract.test.mjs.",
+    "Read evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-records-press.md and check it against the transcript of session 325454ab, lines 7512 and 7524; the required_human_authorities entry is appended, the earlier three byte-equal."
   ],
   "superseded_by": null
 }
