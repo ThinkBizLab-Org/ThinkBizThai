@@ -124,6 +124,11 @@ from `main` `ba3efcfd`, and the push of this pull request puts it back on `origi
   changes (as `33e02ab0` did on the records branch of 2026-10-08). The batch 141 prep test of
   `test-kits/db/foundation-contract.test.mjs` fails without the re-pin (`open_blockers[21] is not on
   work-packages/WP-0A-DB-00.json:278`) and passes with it.
+- `required_human_authorities` gains one entry at the end (the Owner's answer of 2026-10-17T16:31:14Z, §7), the
+  earlier three byte-equal. It adds one line above `open_blockers`, so a later commit raised the 34 pins by one,
+  mechanically, as above: against `main` each is now lowered by exactly one. The same test fails without that re-pin
+  (`open_blockers[21] is not on work-packages/WP-0A-DB-00.json:276`) and passes with it.
+- `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-records-press.md`, added (§7).
 - `handoffs/WP-0A-DB-00-author-handoff.json`, refreshed for this increment.
 
 ## 6. What is not done, and why
@@ -135,7 +140,7 @@ from `main` `ba3efcfd`, and the push of this pull request puts it back on `origi
   WP-0A-A0-002's acknowledgement of the manifest regenerations (R0-AUD1017-5).
 - **No advisory is closed.** C0-268-1, C0-268-2, Q0-268-1, Q0-268-2, R0-268-1, R0-268-2, C0-281-1..3, A1-281-1,
   A1-281-2, Q0-281-1, Q0-281-2, R0-281-1 and R0-281-2 stay as their files state them.
-- No role was run; no test, script, workflow, RFC, disposition or contract is changed.
+- No role was run; no test, script, workflow, RFC, disposition or contract is changed (one disposition is added, §7).
 
 ## 7. Lane of this branch
 
@@ -146,5 +151,14 @@ mechanical consequence. Measured on the records commit `805881d9`: `classify-rec
 `classify-review-tier.mjs origin/main HEAD --lane` prints `tier: H`, `lane: governance` (the coverage map is "the data
 the database guards read") and `additive-eligible: yes`, with its proviso that the pull request "takes the risk lane
 only once A1 and Q0 each confirm in writing, on the final head, that every guard hunk only adds … Until both have, it is
-governance." The re-pin lowers 34 values; it adds nothing. This record does not judge the lane or the press authority;
-both are A0's and the readers' to settle.
+governance." The re-pin lowers 34 values; it adds nothing. This record does not judge the lane; that is A0's and the
+readers' to settle.
+
+**Press authority.** PR #288 is pressed under the Product Owner's answer of 2026-10-17T16:31:14Z (asked at
+16:21:29Z, after PR #288 existed; header `#288+CON-008`): the Owner chose `A0 กดทีละ PR เมื่อ 4 role ผ่าน
+(Recommended)` over `ผมกดเอง` and `ยังไม่ต้องทำ`
+(`evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-records-press.md`, verbatim by script, with A0's reading;
+`required_human_authorities`, its last entry). In A0's reading A0 presses only after C0, A1, Q0 and R0 pass on the
+final head, CI is green on both jobs there, no security finding of any grade is open and the head contains current
+`main`, with `--match-head-commit`: an Owner-directed exception to RFC-2026-025 §5 item 6's last bullet for PR #288
+only. Whether the answer covers that press is for the four roles to judge; no role has read this branch.
