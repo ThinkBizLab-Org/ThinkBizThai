@@ -5,16 +5,20 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "ba3efcfdd2e9f9da7f79da25fe07fb0d903c031d",
-  "head_revision_or_patch_checksum": "97eee6d3b8c61d867ec0668962fa4a4566d48603",
+  "head_revision_or_patch_checksum": "c19586df15008e00a5131f97016e695c2e7d08ad",
   "task_ids": [
     "WP-0A-CON-008",
-    "pr266-pr271-pr278-records-2026-10-17"
+    "pr266-pr271-pr278-records-2026-10-17",
+    "records-governance-lane-2026-10-17"
   ],
   "files_added": [
+    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-17-records-press.md",
     "evidence/WP-0A-CON-008/records-transcription-2026-10-17.md"
   ],
   "files_modified": [
-    "handoffs/WP-0A-CON-008-author-handoff.json"
+    "handoffs/WP-0A-CON-008-author-handoff.json",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-CON-008.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
@@ -26,63 +30,68 @@
   "assumptions": [
     "THIS INCREMENT records, after their merges, PR #266 (2026-10-15T12:37:02Z, 9b3ffbd5; final head a2d15306; CI run 38733379219 green on bootstrap and application, 831 tests; lane governance), PR #271 (2026-10-15T14:54:53Z, 0c35c265; final head 80958a8a; run 38752303650 green, 831; governance) and PR #278 (2026-10-16T04:52:52Z, 4f9ab140; final head 0d773f6f; run 38851087280 green, 841; governance): the merge facts from gh and git, the role verdicts from their files on main, the Owner direction each press rested on as its disposition on main quotes it, and R0's post-merge words, in evidence/WP-0A-CON-008/records-transcription-2026-10-17.md.",
     "It records that #278 was pressed with two A1 Lows open against its own diff (A1-AUD1017-1 (3), evidence/audits/2026-10-17/a1-audit.md, cherry-picked to main as c753eb7f from e3607cf1 on a1/audit-2026-10-17), and records A1-278r2-1 and A1-278r2-2 as open here (known_limitations, open_risks_or_blockers).",
-    "work-packages/WP-0A-CON-008.json is not changed: it is digested in test-kits/integrity-manifest.json, so any edit to it moves a generated file that RFC-2026-025 §6.1 item 5 excludes from records. So status stays in_review (also held by R0-AUD1017-2) and open_blockers[15] is not corrected here."
+    "GOVERNANCE LANE (commit c19586df, after a mechanical merge of origin/main ba3efcfd): on the Owner's answer of 2026-10-17T16:31:14.663Z (header '#288+CON-008', transcribed by script in evidence/WP-0A-CON-008/product-owner-disposition-2026-10-17-records-press.md), this branch now edits work-packages/WP-0A-CON-008.json: open_blockers[15] gains a dated correction clause, old text whole (A1-AUD1017-1 (2)); open_blockers[16] records A1-278r2-1 and A1-278r2-2 as open; ownership.amends_without_owning.paths drops scripts/test-suite-contract.mjs and keeps test-kits/integrity-manifest.json (this manifest is digested there; with [] the guard exits 73); required_human_authorities gains entry [6]. records-transcription-2026-10-17.md gains a §9 addendum. No script, test, RFC, CI file or contract is changed; status stays in_review."
   ],
   "acceptance_results": [
     {
       "criterion": "Recorded words match their sources on main; no manifest, status, test, guard, CI, RFC, disposition or contract change",
       "result": "pass for author self-check: 36 quoted spans compared by script (whitespace folded) with the role files, the three dispositions and the 2026-10-17 A1 and R0 audit files; merge facts from gh pr view, gh run view and git; carried role-file blobs equal their source commits' blobs (16 of 16)"
+    },
+    {
+      "criterion": "The disposition quotes the Owner's call byte-exact; old manifest entries kept (open_blockers append-only, required_human_authorities strictly append-only); no code change",
+      "result": "pass for author self-check: the disposition is written by a script that copies the question, header, three option labels and descriptions and the chosen label from transcript lines 7512 and 7524 and checks each back against them and against the structured answers; the manifest edit script checks every old required_human_authorities entry is equal and every old open_blockers entry and the old rationale are prefixes of the new text"
     }
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (records commit 028c1b60, under the suite lock, on the branch name)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (governance commit c19586df, under the suite lock, on the branch name)",
       "exit_code": 0,
       "result": "clean: exit 0 — tests 843, pass 843, fail 0, skipped 0, todo 0"
     },
     {
-      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD (records commit; origin/main 6fd6aa0e)",
-      "exit_code": 0,
-      "result": "records-only: all 2 changed path(s) are records"
-    },
-    {
-      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane (records commit)",
-      "exit_code": 0,
-      "result": "tier: records; lane: records (the records-only classifier says records-only, RFC-2026-025 §6.1); classifier copy: the base's"
-    },
-    {
       "command": "npm run regenerate:manifest",
       "exit_code": 0,
-      "result": "rebuilt 128 digest(s); git status clean (neither changed file is digested)"
+      "result": "rebuilt 128 digest(s); only work-packages/WP-0A-CON-008.json's digest moves"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008",
-      "exit_code": 74,
-      "result": "FAILS: the two declared amendments (test-kits/integrity-manifest.json, scripts/test-suite-contract.mjs) explain nothing this branch changed. Narrowing ownership.amends_without_owning.paths is records-shaped under RFC-2026-025 §6.1 item 4, but this manifest is digested in test-kits/integrity-manifest.json, so the edit moves a generated file and leaves the records lane. CI runs this step on every PR, so this branch cannot pass CI as a records-lane PR; see open_risks_or_blockers."
+      "exit_code": 0,
+      "result": "every changed path declared, every amendment explains one"
+    },
+    {
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
+      "exit_code": 0,
+      "result": "lane: governance (see the PR body for the printed line)"
+    },
+    {
+      "command": "npm run check:handoff",
+      "exit_code": 0,
+      "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, personal data, customer data or provider call. The only account name recorded is the GitHub login that merged, as gh reports it and as earlier records on main carry it.",
+  "security_privacy_cost_impact": "Records and governance records only. No authority is granted or widened beyond the Owner's answer as transcribed; no credential, personal data, customer data or provider call. The only account name recorded is the GitHub login that merged, as gh reports it and as earlier records on main carry it.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
+  "compatibility_impact": "No contract changes: records and manifest records only; no contract-catalog file.",
   "known_limitations": [
     "A1-278r2-1 (Low, open; evidence/WP-0A-CON-008/a1-reread-2026-10-16-pr278.md): a refusal by scripts/commit-when-clean.mjs after staging restores the tree and the staged set with git read-tree but drops per-entry index flags (intent-to-add, assume-unchanged, skip-worktree, sparse-checkout bits). open_blockers[15]'s 'puts the index back as it was found' and 'is the index after the refusal' hold for the tree and staged set, not for these flags.",
     "A1-278r2-2 (Low, open; same file): the commit-gate test cases' throwaway repositories (throwawayRepository, isolateGit in test-kits/ratchets-bite.test.mjs) inherit the caller's GIT_* environment; with GIT_INDEX_FILE set (as git sets it for a pre-commit hook) the cases pass and replace that index. No hook is configured in this repository.",
-    "open_blockers[15] is not corrected here (A1-AUD1017-1 (2)): the manifest edit moves its digest in test-kits/integrity-manifest.json, which is not a record. Owed in a WP-0A-CON-008 governance-lane PR with C0, A1, Q0 and R0, which either fixes both items (a script or test change, A1 re-read) or corrects open_blockers[15]; A1 then says whether A1-AUD1017-1 is closed.",
+    "open_blockers[15] is corrected by an appended clause and A1-278r2-1 and A1-278r2-2 are recorded open (open_blockers[16]); neither is fixed (a fix is a script or test change, owed in a later governance increment with an A1 re-read). Whether A1-AUD1017-1 is closed is A1's to say.",
     "The check:handoff exit at each of the three presses is not recorded on main (R0-AUD1017-4) and is not supplied here."
   ],
   "open_risks_or_blockers": [
-    "RECORDS LANE. Status stays in_review: R0's per-PR files for #266 and #278 direct the records PR to move it to integration_verified, but R0-AUD1017-2 holds the move until A1-AUD1017-1's fix (2) lands and A1 says the finding is closed; and the manifest edit is not records-only on this package. A1-278r2-1 and A1-278r2-2 are open (known_limitations).",
-    "SCOPE GUARD vs RECORDS LANE (not resolved here): verify-branch-scope exits 74 on this branch because ownership.amends_without_owning.paths still declares test-kits/integrity-manifest.json and scripts/test-suite-contract.mjs from the #278 increment. Any manifest edit that narrows them also moves the manifest's digest in test-kits/integrity-manifest.json (WP-0A-A0-002's generated file), which takes the PR off the records lane. A0 decides: carry these records in a WP-0A-CON-008 governance-lane PR that narrows paths to the integrity manifest, regenerates it, and can also make the open_blockers[15] correction (A1-AUD1017-1 (2)) under four roles; or another route the Owner names."
+    "GOVERNANCE LANE. Press authority: the Owner's answer of 2026-10-17T16:31:14.663Z, evidence/WP-0A-CON-008/product-owner-disposition-2026-10-17-records-press.md (required_human_authorities[6]): A0 presses only after C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs, no security finding of any grade is open and the head contains current main, with --match-head-commit. This handoff claims no role verdict; no role has read this branch.",
+    "Status stays in_review: R0's files for #266 and #278 direct the move to integration_verified, but R0-AUD1017-2 holds it until A1 says A1-AUD1017-1 is closed. A1-278r2-1 and A1-278r2-2 are open (known_limitations, open_blockers[16])."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes evidence/WP-0A-CON-008/records-transcription-2026-10-17.md and restores the handoff; nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the records transcription, the disposition, the appended manifest text and entries, restores the narrowed path and regenerates the integrity manifest; nothing depends on them.",
   "recommended_next_work_packages": [
-    "WP-0A-CON-008 (governance lane, four roles): close A1-278r2-1 and A1-278r2-2 in scripts/commit-when-clean.mjs and test-kits/ratchets-bite.test.mjs, or correct open_blockers[15] to except per-entry flags (A1-AUD1017-1 (2)); then, with A1's word that A1-AUD1017-1 is closed, the status move R0's files for #266 and #278 direct (R0-AUD1017-2).",
+    "WP-0A-CON-008 (governance lane, four roles): fix A1-278r2-1 and A1-278r2-2 in scripts/commit-when-clean.mjs and test-kits/ratchets-bite.test.mjs (A1-AUD1017-1 (2), first route); then, with A1's word that A1-AUD1017-1 is closed, the status move R0's files for #266 and #278 direct (R0-AUD1017-2).",
     "WP-0A-CON-008 or RFC-2026-007's owner: RFC-2026-007's wording after #265, on the Owner's own words."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-CON-008/records-transcription-2026-10-17.md, then git diff origin/main.",
-    "Check §1 against gh pr view 266/271/278 and gh run view 38733379219/38752303650/38851087280 --log; §3-§6 against the *-pr266.md, *-pr271.md, *-pr278.md files, the three dispositions and evidence/audits/2026-10-17/{a1,r0}-audit.md.",
-    "Run node scripts/db/classify-records-only.mjs origin/main <head> and node scripts/db/classify-review-tier.mjs origin/main <head> --lane; expect records-only and lane records, with no status move printed."
+    "Read evidence/WP-0A-CON-008/product-owner-disposition-2026-10-17-records-press.md, then evidence/WP-0A-CON-008/records-transcription-2026-10-17.md (§9 for this increment), then git diff origin/main.",
+    "Check the disposition's quoted call against transcript 325454ab lines 7512 and 7524; check the manifest diff: required_human_authorities[0..5] unchanged, open_blockers[0..15] old text as a prefix, paths narrowed only.",
+    "Check §1-§8 of the transcription against gh pr view 266/271/278 and gh run view 38733379219/38752303650/38851087280 --log, the *-pr266.md, *-pr271.md, *-pr278.md files, the three dispositions and evidence/audits/2026-10-17/{a1,r0}-audit.md.",
+    "Run node scripts/db/classify-review-tier.mjs origin/main <head> --lane (expect governance) and node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008 (expect 0)."
   ],
   "superseded_by": null
 }
