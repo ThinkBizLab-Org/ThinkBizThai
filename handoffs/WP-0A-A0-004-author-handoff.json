@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "f071591350e93afc4b159b39bbde1af1d075f8b2",
-  "head_revision_or_patch_checksum": "717428a1e67e45d25376685d8fdcd9913ff168a7",
+  "head_revision_or_patch_checksum": "6fc1bb2a91dc0eb24e9b68924ce8845519cc25fe",
   "task_ids": [
     "WP-0A-A0-004",
     "gov-a004g-ci-shell-env-2026-10-17"
@@ -30,12 +30,17 @@
   "assumptions": [
     "THIS INCREMENT (gov-a004g) closes A1-279-3 (evidence/WP-0A-A0-004/a1-review-2026-10-16-pr279.md §4) and Q0-279r2-2 (evidence/WP-0A-A0-004/q0-reread-2026-10-16-pr279.md §2), recorded as owed in PR #279's known_limitations, under question 2 of the Product Owner's answer of 2026-10-17T11:53:17Z (transcript line 6137) and the message of 12:24:40Z (line 6355), transcribed verbatim by script in evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-ci-shell-env.md with A0's reading.",
     "test-kits/app-stack.test.mjs is WP-1A-A0-002's file; this package changed it before (PR #279) and declares it in ownership.amends_without_owning with the reason. The checks sit inside two existing tests (A1-270-1's, which holds the A1-279-2 environment pin; A1-270-2's, which holds the soft-failure reading), so no test is added or renamed and scripts/test-suite-contract.mjs (count floor, name digest) does not move; the assertion count rises, which the assertion floor allows.",
-    "Each gap is closed as a class by token on every line of the application job (its own lines, its steps' keys and its run: | bodies), not by listing spellings (the lesson of #279's four rounds); the YAML forms that could spell a key without its letters are refused by the existing yamlFormProblems, which both readings run."
+    "Each gap is closed as a class by token on every line of the application job (its own lines, its steps' keys and its run: | bodies), not by listing spellings (the lesson of #279's four rounds); the YAML forms that could spell a key without its letters are refused by the existing yamlFormProblems, which both readings run.",
+    "ROUND 2 (A1-287-1, A1-287-2, A1-287-3, from A1's changes_requested at 069a537d, evidence/WP-0A-A0-004/a1-review-2026-10-17-pr287.md on A1's role branch): closed as classes inside the same two tests. The token readings read applicationJobText (the application job's lines as ci.yml lays them out, `#`-led lines inside block-scalar bodies kept, YAML comments outside them left out); yamlFormProblems refuses a quoted scalar that spans lines; applicationKeys holds the job's keys, job env: keys, step keys and step env:/with: keys to allowlists the test pins exactly to main's ci.yml. ci.yml needs and gets no change."
   ],
   "acceptance_results": [
     {
-      "criterion": "Each new check fails on crafted ci.yml variants and passes on main's ci.yml",
-      "result": "pass for author self-check: runnerEnvWriteProblems refuses 16 mutations (11 shell writes in the application toolchain step's run: | body, a write on the audit's own run line, ACTIONS_ALLOW_UNSECURE_COMMANDS in the job env, GITHUB_ENV as an env key, ${{ env.GITHUB_PATH }}, an escaped key); shellProblems refuses 18 (5 spellings at two steps, job defaults in block, flow and escaped form, an escaped step key, an explicit key, a merge, workflow defaults plain and escaped); both return [] on 09a05991's ci.yml. Each reading, disabled (its token regex replaced by /(?!)/), fails its test (20 pass, 1 fail each)."
+      "criterion": "Each check fails on crafted ci.yml variants and passes on main's ci.yml",
+      "result": "pass for author self-check at 6fc1bb2a: runnerEnvWriteProblems refuses 28 mutations (round one's 16; A1's Q1, Q2, P3, P4; a `#`-led body line; a folded `>-` body; job env BASH_ENV, PATH, ENV; step env BASH_ENV, NODE_OPTIONS; a step working-directory); shellProblems refuses 23 (round one's 18; container: as block, mapping and quoted key; services:; a `#`-led body line); a YAML comment naming the tokens outside a body is still not read (2 positive controls); every reading returns [] on main's ci.yml, and each allowlist equals the keys main uses. PyYAML 6.0.3 loads Q1, Q2, P3, P4 and the folded variant as valid workflows whose run text names the token."
+    },
+    {
+      "criterion": "Each part bites",
+      "result": "pass for author self-check: with body comments dropped, spanning quotes allowed, the allowlist off, or either token regex replaced by /(?!)/, the corresponding test fails (A1-270-1's, A1-270-2's, or both)"
     },
     {
       "criterion": "No ci.yml, classifier, other guard or other test changes",
@@ -43,47 +48,53 @@
     },
     {
       "criterion": "The Owner's words are quoted byte for byte",
-      "result": "pass for author self-check: a script compares the disposition's 7 fenced quotes (8 strings) and the 6 quotes in gov-a004g with transcript lines 6128, 6137 and 6355; the chosen label parsed from the tool result text agrees with its answers field"
+      "result": "pass for author self-check (round one, unchanged in round two): the disposition's 7 fenced quotes (8 strings) and the 6 quotes in gov-a004g equal transcript lines 6128, 6137 and 6355"
     }
   ],
   "tests": [
     {
       "command": "transcript check by script (python, lines 6128/6137/6355 against the disposition and the gov-a004g entry)",
       "exit_code": 0,
-      "result": "disposition: 7 fenced quotes (8 strings) byte-equal; manifest gov-a004g: 6 quotes byte-equal"
+      "result": "disposition: 7 fenced quotes (8 strings) byte-equal; manifest gov-a004g: 6 quotes byte-equal (gov-a004g unchanged in round 2)"
     },
     {
       "command": "node --test test-kits/app-stack.test.mjs",
       "exit_code": 0,
-      "result": "tests 21, pass 21; with RUNNER_ENV_WRITE or SHELL_CHOICE replaced by /(?!)/, 20 pass and 1 fail (the A1-270-1 and A1-270-2 test respectively)"
+      "result": "tests 21, pass 21 at 6fc1bb2a; each of five parts disabled in turn fails its test"
+    },
+    {
+      "command": "python3 (PyYAML 6.0.3 safe_load of the Q1, Q2, P3, P4 and folded mutations)",
+      "exit_code": 0,
+      "result": "each is a valid workflow whose application step run text names GITHUB_ENV or GITHUB_PATH"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "lane: governance on 09a0599..a60412c (test-kits/app-stack.test.mjs, a top-level guard test; the integrity manifest); both classifiers equal the base's blobs"
+      "result": "tier: H (5 path(s), f071591..6fc1bb2), lane: governance"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004",
       "exit_code": 0,
-      "result": "all 5 changed path(s) are declared, and every amendment explains one"
+      "result": "all 5 changed path(s) are declared, and every amendment explains one; origin/main f0715913 is an ancestor of the head"
     },
     {
       "command": "node scripts/commit-when-clean.mjs (npm run verify under the suite lock)",
       "exit_code": 0,
-      "result": "clean: tests 843, pass 843 at 3fd658bc (the handoff refreshed alone first: it cited 1e32d86, on no path to the restarted branch) and at a60412c1. Two earlier attempts refused: exit 70 (the secret scan's secret-named-assignment rule matched a constant named SHELL_TOKEN, renamed SHELL_CHOICE) and exit 1 (841 of 843, the handoff's stale citation)."
+      "result": "clean: tests 843, pass 843 at 6fc1bb2a (round 2), as at 3fd658bc and a60412c1 (round 1)"
     }
   ],
   "security_privacy_cost_impact": "Raises the bar on CI: the application job's test now refuses a custom shell or defaults (a soft or empty run:) and any write to the job's environment or PATH file that the job's text names. No credential, secret, personal data, provider call or dependency change; ci.yml is unchanged.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes; ci.yml as on main passes both new readings.",
   "known_limitations": [
-    "THE RESIDUAL (stated in the test's comments): a line reader sees ci.yml's text, not what runs. A token assembled at run time (${!name}, concatenation, eval, decoding), a glob reaching the runner's file-command files without naming them, `set +e` or `bash +e`/`sh -c` in a run body, and writes or swallowed failures inside programs a step runs (repository scripts, npm scripts, package code, the pinned actions; actions/setup-node writes $GITHUB_PATH by design) are not seen; they are held by the review of every ci.yml and script change, A1-257-4's step-list pin and A1-AUD1015-1's order.",
+    "THE RESIDUAL (stated in the test's comments): the reader sees the application job's text, not what runs or what is evaluated. Not seen: a token assembled at run time by the shell (${!name}, concatenation, eval, decoding) or by the runner from a `${{ }}` expression (e.g. ${{ format('GITHUB_{0}', 'ENV') }}, A1-287-3); a glob reaching the runner's file-command files without naming them; `set +e` or `bash +e`/`sh -c` in a run body; and writes or swallowed failures inside programs a step runs (repository scripts, npm scripts, package code, the pinned actions; actions/setup-node writes $GITHUB_PATH by design). Held by the review of every ci.yml and script change, A1-257-4's step-list pin and A1-AUD1015-1's order.",
     "The bootstrap job is not read for shell: or $GITHUB_ENV; a job's environment file reaches only that job's later steps, and the two findings named the application job.",
     "The token readings fail closed: a future run body that merely mentions the word shell, defaults, GITHUB_ENV or GITHUB_PATH fails the test and needs a governance change.",
-    "WP-1A-A0-002's acknowledgement of this amendment to its test file, RFC-2026-029 §4.6's --omit=dev wording, and the R0 acknowledgements owed for #270, #255, #260 and #279 stay owed."
+    "WP-1A-A0-002's acknowledgement of this amendment to its test file, RFC-2026-029 §4.6's --omit=dev wording, and the R0 acknowledgements owed for #270, #255, #260 and #279 stay owed.",
+    "The key allowlists are pinned to main's ci.yml as of f0715913: a later ci.yml change that adds a key to the application job (a new step env:, a with: input) must widen the list in the same governance pull request."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (A1-279-3 shell:/defaults and Q0-279r2-2 runner env/path writes in the application-job test). PR #287: C0, A1, Q0 and R0 read the final head (role files carried with -x; main merged mechanically where it moved). A0 presses under gov-a004g, the Owner's AskUserQuestion answer of 2026-10-17T11:53:17.372Z, question 2 (transcript line 6137: 'A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)'), once all four pass, CI is green on both jobs on the final head and no security finding is open, with --match-head-commit. WP-1A-A0-002's Integration Owner owes an acknowledgement of the edit to test-kits/app-stack.test.mjs."
+    "GOVERNANCE (A1-279-3 shell:/defaults and Q0-279r2-2 runner env/path writes in the application-job test). PR #287 round 2 at 6fc1bb2a answers A1's changes_requested at 069a537d (A1-287-1, A1-287-2, A1-287-3); no role has read this head, and no role verdict is claimed here. Press authority: gov-a004g, the Owner's AskUserQuestion answer of 2026-10-17T11:53:17.372Z, question 2 (transcript line 6137: 'A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)'), with the message of 2026-10-17T12:24:40.564Z (line 6355); evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-ci-shell-env.md. A0 presses only after C0, A1, Q0 and R0 pass on the final head, CI is green on bootstrap and application there, no security finding of any grade is open, and the head contains current main. WP-1A-A0-002's Integration Owner owes an acknowledgement of the edit to test-kits/app-stack.test.mjs."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR removes the two readings and their controls from test-kits/app-stack.test.mjs, the gov-a004g records and the disposition, and regenerates the integrity manifest. No data, provider or credential effect.",
   "recommended_next_work_packages": [
@@ -92,9 +103,9 @@
     "WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008: R0's acknowledgement records for #279's amendments."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-ci-shell-env.md, then git diff origin/main.",
-    "In test-kits/app-stack.test.mjs read runnerEnvWriteProblems and shellProblems and their comments (the class and the residual), then the controls at the end of the A1-270-1 and A1-270-2 tests; try a spelling not listed.",
-    "Re-run the transcript comparison (lines 6128, 6137, 6355) against the disposition and gov-a004g, and confirm gov-a004f and every earlier required_human_authorities entry is unchanged.",
+    "Read evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-ci-shell-env.md (§7 is round 2), then git diff origin/main and git diff 069a537d.",
+    "In test-kits/app-stack.test.mjs read applicationJobText, quotedScalarSpansLines, applicationKeys/APPLICATION_KEYS, runnerEnvWriteProblems and shellProblems with their comments (the class, what is read, the residual), then the controls at the end of the A1-270-1 and A1-270-2 tests; try a spelling or key not listed.",
+    "Re-run A1's Q1, Q2, P3, P4, P7, R1 and R3 against the head.",
     "Run node --test test-kits/app-stack.test.mjs, node scripts/db/classify-review-tier.mjs origin/main HEAD --lane, node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004 and npm run check:handoff on the branch name."
   ],
   "superseded_by": null
