@@ -367,6 +367,36 @@ function workflowNpmConfigProblems(ci) {
   const lines = keyLines(ci.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n'));
   return lines.filter((l) => /(?:^|[{[,]|-\s|\?\s)\s*["']?npm_config_/i.test(l)).map((l) => `ci.yml sets \`${l.trim()}\``);
 }
+// Q0-279r2-2 and A1-279-3 read the same text: every line of the application job, its own lines and
+// every line of every step, the body of each `run: |` block included, whole-line comments only left out
+// (a comment after content is refused by yamlFormProblems). A token is looked for anywhere on a line,
+// not in a spelling.
+const applicationJobLines = (job) => [...job.head, ...job.steps.flatMap((s) => s.raw.split('\n'))];
+// Q0-279r2-2. A step that writes a line to the file `$GITHUB_ENV` names sets that variable for every
+// later step of the job (an `npm_config_workspace` that narrows the audit, a NODE_OPTIONS that preloads
+// a module), and one that writes to `$GITHUB_PATH` puts a directory before every later `node`, `npm` and
+// `git`. Neither shows as a YAML key, so the A1-279-2 pin, which reads keys, does not see them. Closed
+// as a CLASS, not by listing spellings: no line of the application job, shell or YAML, names the token
+// GITHUB_ENV or GITHUB_PATH in any letter case, however it is quoted, braced or redirected (`>>`, `tee
+// -a`, `>|`, a `{ ... } >>` group, an env: key or a `${{ env.* }}` expression all name it); nor the
+// runner's file-command directory `_runner_file_commands`, nor the retired `::set-env` and `::add-path`
+// workflow commands or the ACTIONS_ALLOW_UNSECURE_COMMANDS switch that would revive them. The YAML forms
+// that could spell a key without its letters (an escape, a tag, an anchor, an alias, a merge) are
+// refused with them, by yamlFormProblems.
+// THE RESIDUAL, stated in this first round: the reader sees the job's text and nothing it runs. A token
+// assembled at run time (`${!name}`, `"GITHUB_""ENV"`, eval, a decoded string, `env | grep`), a glob
+// that reaches the runner's file-command files without naming them, and a write made by a program a
+// step runs (a repository script, an npm script, installed package code, or the pinned actions, of
+// which actions/setup-node writes $GITHUB_PATH by design) are not seen. Those are held by the review of
+// every ci.yml and script change, the step-list pin of A1-257-4, and the order of A1-AUD1015-1 (the
+// audit and release age run before any step that executes package code). The bootstrap job is not read:
+// a job's GITHUB_ENV and GITHUB_PATH reach only that job's later steps, never the application job.
+// Returns the problems.
+const RUNNER_ENV_WRITE = /GITHUB_ENV|GITHUB_PATH|_runner_file_commands|ACTIONS_ALLOW_UNSECURE_COMMANDS|::(?:set-env|add-path)\b/i;
+function runnerEnvWriteProblems(job) {
+  return [...applicationJobLines(job).filter((line) => RUNNER_ENV_WRITE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which writes or opens the environment of later steps`),
+    ...yamlFormProblems(job)];
+}
 function auditProblems(steps) {
   const lines = steps.flatMap((s) => (s.run ?? '').split('\n')).filter((line) => /\bnpm audit\b/.test(line)).map((line) => line.trim());
   if (lines.length === 0) return ['no step runs npm audit'];
@@ -448,6 +478,42 @@ test('CI audits the dev dependencies too, the packages the application job runs 
   }
   // W1 is also read now: `# :|` opens no block, so the key under it is seen.
   assert.deepEqual(workflowNpmConfigProblems(ci.replace(PERMISSIONS, PERMISSIONS + 'env: # :|\n  npm_config_workspace: apps/web\n')), ['ci.yml sets `npm_config_workspace: apps/web`'], 'W1 is read through its comment');
+  // Q0-279r2-2: no step of the application job writes $GITHUB_ENV or $GITHUB_PATH. None on the head; each
+  // mutation below adds one write, in the toolchain step's `run: |` body (before the audit), on the
+  // audit's own run line, or as YAML, and each is refused. The spellings are samples of the class, not
+  // its definition: the reading refuses the token, so a spelling not listed here is refused the same.
+  assert.deepEqual(runnerEnvWriteProblems(workflowJobs(ci).get('application')), [], 'no line of the application job names GITHUB_ENV, GITHUB_PATH or a runner file command');
+  const TOOLCHAIN = '      - name: Verify pinned toolchain for the application\n        run: |\n          test "$(node --version)" = "v24.20.0"\n';
+  assert.ok(ci.includes(TOOLCHAIN), 'the application toolchain step reads as written');
+  const writes = [
+    'echo "npm_config_workspace=apps/web" >> "$GITHUB_ENV"',
+    'echo npm_config_workspace=apps/web >> $GITHUB_ENV',
+    'echo "npm_config_registry=http://127.0.0.1:9/" >> "${GITHUB_ENV}"',
+    'echo "NODE_OPTIONS=--import ./x.mjs" | tee -a "$GITHUB_ENV" > /dev/null',
+    '{ echo "npm_config_workspace=apps/web"; } >>"${GITHUB_ENV:?}"',
+    'printf \'%s\\n\' "$PWD/shim" >> "$GITHUB_PATH"',
+    'echo "$PWD/shim" | tee -a ${GITHUB_PATH}',
+    'cat .env >> "$github_env"',
+    'echo "x=1" >> "$RUNNER_TEMP"/_runner_file_commands/set_env_1',
+    'echo "::set-env name=npm_config_workspace::apps/web"',
+    'echo "::add-path::$PWD/shim"',
+  ];
+  for (const write of writes) {
+    const mutated = ci.replace(TOOLCHAIN, '      - name: Verify pinned toolchain for the application\n        run: |\n          ' + write + '\n          test "$(node --version)" = "v24.20.0"\n');
+    assert.notEqual(mutated, ci);
+    assert.deepEqual(runnerEnvWriteProblems(workflowJobs(mutated).get('application')), ['the application job names `' + write + '`, which writes or opens the environment of later steps'], 'refused: ' + write);
+  }
+  for (const [mutated, expected] of [
+    [ci.replace(RUN, '        run: echo npm_config_omit=dev >> $GITHUB_ENV && npm audit --include=dev --audit-level=high\n'), 'names `run: echo npm_config_omit=dev >> $GITHUB_ENV && npm audit'],
+    [ci.replace("      NODE_OPTIONS: ''\n", "      NODE_OPTIONS: ''\n      ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'\n"), "names `ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'`"],
+    [ci.replace(AUDIT_STEP, AUDIT_STEP + '        env:\n          GITHUB_ENV: /tmp/elsewhere\n'), 'names `GITHUB_ENV: /tmp/elsewhere`'],
+    [ci.replace(AUDIT_STEP, AUDIT_STEP + '        env:\n          OUT: ${{ env.GITHUB_PATH }}\n'), 'names `OUT: ${{ env.GITHUB_PATH }}`'],
+    [ci.replace(AUDIT_STEP, AUDIT_STEP + '        env:\n          "GITHUB_\\x45NV": /tmp/elsewhere\n'), 'uses a double-quoted key with a backslash escape'],
+  ]) {
+    assert.notEqual(mutated, ci);
+    const problems = runnerEnvWriteProblems(workflowJobs(mutated).get('application'));
+    assert.ok(problems.some((p) => p.includes(expected)), 'refused: ' + expected + ' (found ' + JSON.stringify(problems) + ')');
+  }
 });
 
 // A1-270-2. A step condition such as `if: always()`, `if: ${{ !cancelled() }}` or `if: success() ||
@@ -525,6 +591,31 @@ function applicationConditionProblems(job) {
     }
   });
   return problems;
+}
+
+// A1-279-3. `shell:` chooses the program a `run:` is handed to. `shell: bash {0}` drops the `-e` of the
+// default `bash -e {0}`, so a multi-line step whose first line fails goes on and exits 0; `shell: true
+// {0}`, or any program that ignores its script, runs nothing and passes. It can be set on a step, on the
+// job (`defaults: run: shell:`) or on the workflow (`defaults:` at the top level). Closed as a CLASS, not
+// by listing spellings: no line of the application job, its own lines, its steps' keys and the bodies of
+// its `run: |` blocks alike, holds the token `shell` or `defaults` in any letter case, so the key is
+// refused however it is quoted, nested or placed (a run body that only mentions the word is refused too,
+// failing closed); the workflow's top level may hold only name, on, permissions and jobs, so no workflow
+// `defaults:` in any spelling (workflowTopLevelProblems); and the YAML forms that could spell the key
+// without its letters (an escape such as `"\x73hell"`, a tag, an anchor, an alias, a merge key that
+// brings a `shell:` in from elsewhere) are refused by yamlFormProblems.
+// THE RESIDUAL, stated in this first round: the reader sees ci.yml's text, not what runs. A shell chosen
+// by other means (a step that runs `bash +e script.sh` or `sh -c "..."`, or `set +e` in a `run: |` body,
+// which the default `bash -e` honours), a repository or npm script that swallows its own failure, and the
+// pinned actions' own behaviour are not seen; they are held by the review of every ci.yml and script
+// change and by the step list A1-257-4 pins. The bootstrap job is not read here (A1-279-3 named the
+// application job). Returns the problems.
+const SHELL_CHOICE = /shell|defaults/i;
+function shellProblems(ci) {
+  const job = workflowJobs(ci).get('application');
+  return [...workflowTopLevelProblems(ci),
+    ...applicationJobLines(job).filter((line) => SHELL_CHOICE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which can choose the shell a run: is handed to`),
+    ...yamlFormProblems(job)];
 }
 
 test('no step of the application job runs on a condition or may fail softly, except the release age\'s pull-request condition (A1-270-2)', async () => {
@@ -621,6 +712,32 @@ test('no step of the application job runs on a condition or may fail softly, exc
   assert.ok(app.steps.some((s) => s.raw.includes('${{')), 'the job does write expressions, and they are not refused');
   // A shell `if` inside a `run: |` block is not a condition: the checkout check's own `if [ ... ]` is not read.
   assert.match(app.steps[1].run, /^if \[/m, 'the checkout check runs a shell if');
+  // A1-279-3: no `shell:` and no `defaults:` reach the application job. None on the head; each mutation
+  // below adds one, at step, job or workflow level, and each is refused. The spellings are samples of the
+  // class: the reading refuses the token, so a spelling not listed here is refused the same.
+  assert.deepEqual(shellProblems(ci), [], 'no line of the application job names shell or defaults, and the workflow has no defaults:');
+  const TOOLCHAIN_STEP = '      - name: Verify pinned toolchain for the application\n';
+  const PERMISSIONS_LINE = 'permissions:\n  contents: read\n';
+  assert.ok(ci.includes(TOOLCHAIN_STEP) && ci.includes(PERMISSIONS_LINE), 'the toolchain step and the workflow permissions read as written');
+  const shellCases = [];
+  for (const key of ['shell: bash {0}', "'shell': bash {0}", '"shell": sh {0}', 'Shell: true {0}', 'shell:   bash --noprofile --norc {0}']) {
+    shellCases.push([ci.replace(TOOLCHAIN_STEP, TOOLCHAIN_STEP + '        ' + key + '\n'), 'names `' + key.trim() + '`']);
+    shellCases.push([ci.replace(TESTS, TESTS + '        ' + key + '\n'), 'names `' + key.trim() + '`']);
+  }
+  shellCases.push([ci.replace(NEEDS, NEEDS + '    defaults:\n      run:\n        shell: bash {0}\n'), 'names `defaults:`']);
+  shellCases.push([ci.replace(NEEDS, NEEDS + '    defaults:\n      run:\n        shell: bash {0}\n'), 'names `shell: bash {0}`']);
+  shellCases.push([ci.replace(NEEDS, NEEDS + "    'defaults': { run: { shell: bash {0} } }\n"), 'uses a flow collection']);
+  shellCases.push([ci.replace(NEEDS, NEEDS + '    "\\x64efaults":\n      run:\n        "\\x73hell": bash {0}\n'), 'uses a double-quoted key with a backslash escape']);
+  shellCases.push([ci.replace(TESTS, TESTS + '        "\\x73hell": bash {0}\n'), 'step "Application tests" uses a double-quoted key with a backslash escape']);
+  shellCases.push([ci.replace(TESTS, TESTS + '        ? shell\n        : bash {0}\n'), 'names `? shell`']);
+  shellCases.push([ci.replace(TESTS, TESTS + '        <<: *s\n').replace(BOOT_WITH, BOOT_WITH.replace('with:', 'with: &s') + '          x: y\n'), 'uses a merge key']);
+  shellCases.push([ci.replace(PERMISSIONS_LINE, PERMISSIONS_LINE + 'defaults:\n  run:\n    shell: bash {0}\n'), 'ci.yml has the top-level line `defaults:`']);
+  shellCases.push([ci.replace(PERMISSIONS_LINE, PERMISSIONS_LINE + '"\\x64efaults":\n  run:\n    shell: bash {0}\n'), 'ci.yml has the top-level line `"\\x64efaults":`']);
+  for (const [mutated, expected] of shellCases) {
+    assert.notEqual(mutated, ci);
+    const problems = shellProblems(mutated);
+    assert.ok(problems.some((p) => p.includes(expected)), 'refused: ' + expected + ' (found ' + JSON.stringify(problems) + ')');
+  }
 });
 
 test('vitest runs the application tests and fails when there are none (Q0 N1)', async () => {
