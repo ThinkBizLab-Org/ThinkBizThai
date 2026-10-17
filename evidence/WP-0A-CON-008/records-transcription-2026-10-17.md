@@ -180,3 +180,23 @@ point `9b3ffbd5` (#266 moved it, the Author's move for a new increment) and at i
 - `open_blockers[15]`'s correction (§5) and the status move (§6): manifest edits, not records-only on this package.
 - `ownership.amended_by` acknowledgements for amendments other PRs made to this package's files (R0-270-2 and earlier):
   this manifest has no `amended_by` list, and adding one is not records-only here.
+
+## 9. Addendum 2026-10-17: this branch becomes a governance-lane pull request
+
+Appended after §1 to §8, which stand as written for the records commit `028c1b60`. The Owner answered, at
+2026-10-17T16:31:14.663Z, who presses this package's records pull request once it carries manifest edits:
+`evidence/WP-0A-CON-008/product-owner-disposition-2026-10-17-records-press.md` (`required_human_authorities[6]`).
+On that answer this branch, after a mechanical merge of `origin/main` (`ba3efcfd`, PR #286), now also edits
+`work-packages/WP-0A-CON-008.json`, so the "not done here" items of §5 and §8 that were held back only because the
+manifest edit is not records-only are made here, on the governance lane:
+
+- `open_blockers[15]` gains a dated correction clause, its old text kept whole (the field is append-only): the index
+  "as it was found" holds for the tree and the staged set, not for per-entry index flags (A1-AUD1017-1 (2)).
+- `open_blockers[16]` (new) records A1-278r2-1 and A1-278r2-2 as open known limitations, as the handoff does.
+- `ownership.amends_without_owning.paths` is narrowed: `scripts/test-suite-contract.mjs` is dropped (#278's amendment,
+  on `main` since `4f9ab140`); `test-kits/integrity-manifest.json` stays, because this manifest is digested there and
+  `npm run regenerate:manifest` moves that digest. The rationale gains one dated sentence; its old text is kept.
+
+Still not done: the status move (§6; R0-AUD1017-2 holds it until A1 says A1-AUD1017-1 is closed), any fix of
+A1-278r2-1 or A1-278r2-2 (a script or test change), and §7's discrepancy (R0's). No script, test, RFC, CI file or
+contract is changed.
