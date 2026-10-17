@@ -11,13 +11,37 @@
 // Usage: node scripts/commit-when-clean.mjs <message-file>
 // Exit codes: the verifier's own code when it is not clean; git's when the commit fails; 0 clean;
 // 2 usage; 90 a silent verifier; 92 the tree moved; 95 the index holds unresolved conflicts or cannot
-// be recorded (refused before anything is staged).
-import { spawnSync } from 'node:child_process';
+// be recorded (refused before anything is staged); 128 + the signal's number when SIGINT, SIGTERM or
+// SIGHUP arrives after staging and before the commit (the index put back first).
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync, realpathSync } from 'node:fs';
+import { readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { constants } from 'node:os';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const run = (command, args) => spawnSync(command, args, { encoding: 'utf8', stdio: 'pipe' });
+
+// The verifier runs asynchronously, in a process group of its own, so that a signal sent to the gate
+// can be handled while it runs: `spawnSync` blocks the event loop, and a SIGTERM that arrives during it
+// either kills the gate outright (no handler) or waits until the verifier has finished (a handler), and
+// in neither case is the index put back before the gate is gone (A1-278-2). The group lets the gate stop
+// the verifier and everything it started, so nothing of it is still touching the index when the index
+// is put back.
+function runVerifier(onSpawn) {
+  return new Promise((done) => {
+    const child = spawn('npm', ['run', 'verify'], { stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.setEncoding('utf8').on('data', (chunk) => { stdout += chunk; });
+    child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk; });
+    child.on('error', (error) => done({ status: null, signal: null, stdout, stderr: `${stderr}${error.message}\n` }));
+    child.on('close', (status, signal) => done({ status, signal, stdout, stderr }));
+    onSpawn(child);
+  });
+}
+
+const SIGNALS = ['SIGINT', 'SIGTERM', 'SIGHUP'];
 
 // A path in `git status` may have been deleted; reading it must not throw.
 function safeRead(path) {
@@ -53,8 +77,10 @@ async function main(argv) {
   // worktree, which worked around it rather than touching a guard outside its writable paths, and
   // A0 on this branch. `-uall` lists untracked files individually, so the set is the same on both
   // samples and the check measures what it claims to measure.
+  // `--no-optional-locks`: a plain `git status` refreshes the index and writes it back when it can
+  // take the lock, so the gate's own sampling would change the index bytes it has to put back.
   const treeState = () => {
-    const status = run('git', ['status', '--porcelain', '-uall']);
+    const status = run('git', ['--no-optional-locks', 'status', '--porcelain', '-uall']);
     const paths = (status.stdout ?? '').split('\n')
       .map((line) => line.slice(3).trim())
       .filter(Boolean)
@@ -66,6 +92,43 @@ async function main(argv) {
     }
     return digest.digest('hex');
   };
+
+  // THE INDEX FILE, COPIED BYTE FOR BYTE BEFORE THE GATE RUNS ANYTHING (A1-278r2-1). The first
+  // version put the index back with `git read-tree <tree>`, which restores the tree and the staged
+  // set but not what a tree cannot carry: intent-to-add entries, the assume-unchanged and
+  // skip-worktree bits, sparse-checkout bits and the other per-entry flags were dropped, so a local
+  // edit hidden with skip-worktree was visible again after a refusal and the next `git commit -a`
+  // committed it. The file itself is what the caller had; the gate keeps its bytes and writes them
+  // back -- through `index.lock` and a rename, as git writes it -- on every refusal of its own.
+  // `--git-path index` honours GIT_INDEX_FILE and a linked worktree's own index. An index that does
+  // not exist yet (a repository with nothing staged ever) is put back by removing what staging made.
+  // With `core.splitIndex` the bytes put back name a shared index file that git keeps for
+  // `splitIndex.sharedIndexExpire` (two weeks by default), so they stay readable well past any run.
+  const indexPath = run('git', ['rev-parse', '--git-path', 'index']);
+  const indexFile = indexPath.status === 0 ? resolve(indexPath.stdout.trim()) : null;
+  let found = null;
+  let unreadable = indexFile === null;
+  if (indexFile !== null) {
+    try { found = readFileSync(indexFile); } catch (error) { unreadable = error.code !== 'ENOENT'; }
+  }
+  const restore = () => {
+    const lock = `${indexFile}.lock`;
+    let now = null;
+    try { now = readFileSync(indexFile); } catch { /* absent: compared below */ }
+    if (found === null ? now === null : (now !== null && now.equals(found))) return;
+    try {
+      if (found === null) { rmSync(indexFile, { force: true }); return; }
+      writeFileSync(lock, found, { flag: 'wx' });
+      renameSync(lock, indexFile);
+    } catch (error) {
+      const kept = `${indexFile}.commit-when-clean`;
+      try { if (found !== null) writeFileSync(kept, found); } catch { /* reported below */ }
+      process.stderr.write(`could not put the index back (${error.message}); `
+        + (found === null ? 'remove the index to undo the staging.\n'
+          : `the index as found is kept in ${kept}: move it over ${indexFile} to undo the staging.\n`));
+    }
+  };
+
   const before = treeState();
 
   // STAGED BEFORE THE VERIFIER RUNS, not after it (Q0-265-4, R0-265-4). Staging after the suite
@@ -77,9 +140,11 @@ async function main(argv) {
   // `git commit` takes the index, so a write landing after the second sample is left out of the
   // commit rather than committed unverified -- the window the old third sample only narrowed.
   //
-  // Every refusal of the gate's own (a failed `git add`, a verifier that is not clean, 90, 92) puts
-  // the index back as it was found, as the old order never touched it before the verifier passed. A
-  // failing `git commit` itself leaves the index staged, as it did on main.
+  // Every refusal of the gate's own (a failed `git add`, a verifier that is not clean, 90, 92, 95,
+  // and a SIGINT, SIGTERM or SIGHUP between staging and the commit) puts the index file back byte for
+  // byte as it was found, flags included, as the old order never touched it before the verifier
+  // passed. A failing `git commit` itself leaves the index staged, as it did on main; a signal during
+  // the commit is git's to handle. SIGKILL cannot be handled: after one, the index is left staged.
   //
   // AN INDEX WITH UNRESOLVED CONFLICTS IS REFUSED BEFORE ANYTHING IS STAGED (A1-278-1). `git add -A`
   // marks every conflicted path resolved, `<<<<<<<` markers included, and `git write-tree` cannot
@@ -90,22 +155,51 @@ async function main(argv) {
   // the verifier's own codes is 95, so a caller reading only the code cannot mistake it.
   const unmerged = run('git', ['ls-files', '-u']);
   const index = run('git', ['write-tree']);
-  if (unmerged.status !== 0 || (unmerged.stdout ?? '').trim() !== '' || index.status !== 0) {
+  if (unreadable || unmerged.status !== 0 || (unmerged.stdout ?? '').trim() !== '' || index.status !== 0) {
+    // `git write-tree` may have written a cache tree into the index; nothing else has written it.
+    if (!unreadable) restore();
     process.stderr.write('refusing to commit: the index holds unresolved conflicts or cannot be recorded; '
       + 'resolve them and stage the result, then run this again. Nothing was staged.\n');
     return 95;
   }
-  const restore = () => { run('git', ['read-tree', index.stdout.trim()]); };
+
+  // From here until the commit, a signal puts the index back before the gate exits.
+  let interrupted = null;
+  let verifier = null;
+  const onSignal = (signal) => {
+    // A second signal escalates: whatever ignored the first is killed.
+    const escalate = interrupted !== null;
+    interrupted ??= signal;
+    if (verifier !== null && verifier.exitCode === null && verifier.signalCode === null) {
+      try { process.kill(-verifier.pid, escalate ? 'SIGKILL' : signal); } catch { /* already gone */ }
+    }
+  };
+  for (const signal of SIGNALS) process.on(signal, onSignal);
+  const release = () => { for (const signal of SIGNALS) process.off(signal, onSignal); };
+  const interruptedExit = () => {
+    restore();
+    release();
+    process.stderr.write(`refusing to commit: interrupted by ${interrupted}; the index is as it was found\n`);
+    return 128 + (constants.signals[interrupted] ?? 0);
+  };
+
   const staged = run('git', ['add', '-A']);
   if (staged.status !== 0) {
     process.stderr.write(`${staged.stderr}`);
     restore();
+    release();
     return staged.status ?? 1;
   }
+  // A signal that arrived during a synchronous step is delivered only when the event loop turns.
+  const turn = () => new Promise((next) => { setImmediate(next); });
+  await turn();
+  if (interrupted !== null) return interruptedExit();
 
-  const verify = run('npm', ['run', 'verify']);
+  const verify = await runVerifier((child) => { verifier = child; });
+  if (interrupted !== null) return interruptedExit();
   const output = `${verify.stdout ?? ''}${verify.stderr ?? ''}`;
   if (verify.status !== 0) {
+    release();
     restore();
     process.stderr.write('refusing to commit: the tree is not clean\n');
     process.stderr.write(`${output.trimEnd().split('\n').slice(-3).join('\n')}\n`);
@@ -115,18 +209,25 @@ async function main(argv) {
   // status closes the case where something silences npm and every command exits 0 saying nothing.
   if (!/^clean: exit 0 — tests \d+, pass \d+/m.test(output)) {
     restore();
+    release();
     process.stderr.write('refusing to commit: the verifier exited 0 without reporting a clean run\n');
     return 90;
   }
 
   // The index was staged from the tree before the verifier ran; the tree must still be what it was,
   // or the index may not be what the verifier read.
-  if (treeState() !== before) {
+  const moved = treeState() !== before;
+  // Turned once more, so a signal that arrived during the sample is handled before the commit.
+  await turn();
+  if (interrupted !== null) return interruptedExit();
+  if (moved) {
     restore();
+    release();
     process.stderr.write('refusing to commit: the working tree changed while the verifier was running. '
       + 'What was verified is not what would be committed.\n');
     return 92;
   }
+  release();
   const commit = run('git', ['commit', '-F', messageFile]);
   process.stdout.write(`${commit.stdout ?? ''}${commit.stderr ?? ''}`);
   if (commit.status !== 0) return commit.status ?? 1;
