@@ -5,13 +5,17 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "6fd6aa0ed9a0a8504442d1aad7f7ae72794baeb3",
-  "head_revision_or_patch_checksum": "6fd6aa0ed9a0a8504442d1aad7f7ae72794baeb3",
+  "head_revision_or_patch_checksum": "028c1b608bc150d340c74f3b6c279a9b444001d1",
   "task_ids": [
     "WP-0A-CON-008",
     "pr266-pr271-pr278-records-2026-10-17"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-CON-008/records-transcription-2026-10-17.md"
+  ],
+  "files_modified": [
+    "handoffs/WP-0A-CON-008-author-handoff.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
@@ -32,39 +36,29 @@
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (change commit 9a26bd1c at 838/838; merge ac1a347d and records commit d7772bab at 839/839; A1-278-1 fix 9e288517 at 841/841; under the suite lock, on the branch name)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (records commit 028c1b60, under the suite lock, on the branch name)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 841, pass 841, fail 0, skipped 0, todo 0"
+      "result": "clean: exit 0 — tests 843, pass 843, fail 0, skipped 0, todo 0"
     },
     {
-      "command": "node --test --test-name-pattern='commit gate' test-kits/ratchets-bite.test.mjs with main's scripts/commit-when-clean.mjs swapped in",
-      "exit_code": 1,
-      "result": "the new case fails (status 0: the gate committed the .config/ file); the existing case passes"
+      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD (records commit; origin/main 6fd6aa0e)",
+      "exit_code": 0,
+      "result": "records-only: all 2 changed path(s) are records"
     },
     {
-      "command": "node --test --test-name-pattern='unresolved conflicts|restore the index' test-kits/ratchets-bite.test.mjs against the script at 9e288517, at 83274247, at main d1057429, and with restore() removed from the 90 path only and from the 92 path only",
-      "exit_code": 1,
-      "result": "9e288517: 2 pass. 83274247: the conflict case fails ('and leave every unmerged entry where it was'). main: the conflict case fails ('with 95, before anything is staged'; main refuses with the verifier's code, entries kept). 90-restore removed: the restore case fails at '90: and leave the index as it found it'; 92-restore removed: it fails at '92: and leave the index as it found it'."
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane (records commit)",
+      "exit_code": 0,
+      "result": "tier: records; lane: records (the records-only classifier says records-only, RFC-2026-025 §6.1); classifier copy: the base's"
     },
     {
-      "command": "node --test --test-name-pattern='audit|empty branch' test-kits/handoff-conformance.test.mjs under M12, then under M9 (Q0-266-1's mutations of scripts/refresh-author-handoff.mjs, restored after)",
-      "exit_code": 1,
-      "result": "M12: 5 pass, 1 fail (the no-path case); M9: 5 pass, 1 fail (the empty-branch case); main's test file passes 4/4 under each"
+      "command": "npm run regenerate:manifest",
+      "exit_code": 0,
+      "result": "rebuilt 128 digest(s); git status clean (neither changed file is digested)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008",
-      "exit_code": 0,
-      "result": "all 9 changed path(s) are declared, and every amendment explains one"
-    },
-    {
-      "command": "npm run validate:protocol",
-      "exit_code": 0,
-      "result": "pass"
-    },
-    {
-      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
-      "exit_code": 0,
-      "result": "tier H, lane governance: scripts/commit-when-clean.mjs (reached from a guard), scripts/test-suite-contract.mjs (a test registry), test-kits/handoff-conformance.test.mjs and test-kits/ratchets-bite.test.mjs (top-level guard tests), test-kits/integrity-manifest.json (the integrity manifest)"
+      "exit_code": 74,
+      "result": "FAILS: the two declared amendments (test-kits/integrity-manifest.json, scripts/test-suite-contract.mjs) explain nothing this branch changed. Narrowing ownership.amends_without_owning.paths is records-shaped under RFC-2026-025 §6.1 item 4, but this manifest is digested in test-kits/integrity-manifest.json, so the edit moves a generated file and leaves the records lane. CI runs this step on every PR, so this branch cannot pass CI as a records-lane PR; see open_risks_or_blockers."
     }
   ],
   "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, personal data, customer data or provider call. The only account name recorded is the GitHub login that merged, as gh reports it and as earlier records on main carry it.",
@@ -77,7 +71,8 @@
     "The check:handoff exit at each of the three presses is not recorded on main (R0-AUD1017-4) and is not supplied here."
   ],
   "open_risks_or_blockers": [
-    "RECORDS LANE. Status stays in_review: R0's per-PR files for #266 and #278 direct the records PR to move it to integration_verified, but R0-AUD1017-2 holds the move until A1-AUD1017-1's fix (2) lands and A1 says the finding is closed; and the manifest edit is not records-only on this package. A1-278r2-1 and A1-278r2-2 are open (known_limitations)."
+    "RECORDS LANE. Status stays in_review: R0's per-PR files for #266 and #278 direct the records PR to move it to integration_verified, but R0-AUD1017-2 holds the move until A1-AUD1017-1's fix (2) lands and A1 says the finding is closed; and the manifest edit is not records-only on this package. A1-278r2-1 and A1-278r2-2 are open (known_limitations).",
+    "SCOPE GUARD vs RECORDS LANE (not resolved here): verify-branch-scope exits 74 on this branch because ownership.amends_without_owning.paths still declares test-kits/integrity-manifest.json and scripts/test-suite-contract.mjs from the #278 increment. Any manifest edit that narrows them also moves the manifest's digest in test-kits/integrity-manifest.json (WP-0A-A0-002's generated file), which takes the PR off the records lane. A0 decides: carry these records in a WP-0A-CON-008 governance-lane PR that narrows paths to the integrity manifest, regenerates it, and can also make the open_blockers[15] correction (A1-AUD1017-1 (2)) under four roles; or another route the Owner names."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes evidence/WP-0A-CON-008/records-transcription-2026-10-17.md and restores the handoff; nothing depends on them.",
   "recommended_next_work_packages": [
