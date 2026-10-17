@@ -5,13 +5,15 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "f071591350e93afc4b159b39bbde1af1d075f8b2",
-  "head_revision_or_patch_checksum": "cd20ed71ff0889b053c2614198811ba2f2c1995d",
+  "head_revision_or_patch_checksum": "2a511d97cabda20b30a4f622e3110c28cfa71c43",
   "task_ids": [
     "WP-1A-A0-002",
     "omit-dev-manifest-2026-10-17"
   ],
   "files_added": [
+    "evidence/WP-1A-A0-002/a1-review-2026-10-17-pr286-r2.md",
     "evidence/WP-1A-A0-002/a1-review-2026-10-17-pr286.md",
+    "evidence/WP-1A-A0-002/c0-review-2026-10-17-pr286-r2.md",
     "evidence/WP-1A-A0-002/c0-review-2026-10-17-pr286.md",
     "evidence/WP-1A-A0-002/product-owner-disposition-2026-10-17-omit-dev-manifest.md",
     "evidence/WP-1A-A0-002/q0-review-2026-10-17-pr286.md",
