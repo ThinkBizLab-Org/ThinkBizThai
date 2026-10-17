@@ -5,12 +5,16 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "01b49187fe488f58929a9d14b361d17c81ec1c70",
-  "head_revision_or_patch_checksum": "4cf7ddac75b16039f7cf32eb8bdb75d4054b4ab0",
+  "head_revision_or_patch_checksum": "b73785fb0a14bcc599efb79d89be070f46bdbf6b",
   "task_ids": [
     "WP-1A-A0-003",
     "pr259-275-records-2026-10-17"
   ],
   "files_added": [
+    "evidence/WP-1A-A0-003/a1-review-2026-10-17-pr282.md",
+    "evidence/WP-1A-A0-003/c0-review-2026-10-17-pr282.md",
+    "evidence/WP-1A-A0-003/q0-review-2026-10-17-pr282.md",
+    "evidence/WP-1A-A0-003/r0-review-2026-10-17-pr282.md",
     "evidence/WP-1A-A0-003/records-transcription-2026-10-17.md"
   ],
   "files_modified": [
@@ -83,8 +87,7 @@
     "Carried from the code increments: Q1 (no CTR-API-001 wire form for a refusal before a context exists, or for `uncorrelated`); the runner reads no clock; a stored CTR-IDM-001 error must be re-minted before replay; the failure report port has no real adapter until CTR-OBS-001's logger (WP-1A-A6-002); vitest tests are not under the integrity manifest or the test-suite floor (R7)."
   ],
   "open_risks_or_blockers": [
-    "RECORDS LANE expected (RFC-2026-025 §6): evidence records-transcription, this handoff, and open_blockers appended. Status stays in_progress; the package is held by its last acceptance criterion (the provider-bound increment), which no direction yet reaches.",
-    "The pull request that creates adapters/job-store.ts owes the PLATFORM_KERNEL_CREATED entry (open_blockers[24]); it edits a WP-0A-DB-00 guard test, so it is governance and needs its own Owner direction: required_human_authorities[2] does not reach adapters/**."
+    "GOVERNANCE (governance bundle). PR #282: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
   ],
   "rollback_or_forward_fix": "Before merge: close the pull request. After merge: a reviewed revert removes open_blockers[21]-[24] and records-transcription-2026-10-17.md (pr259-275-records-2026-10-17); nothing depends on them. For the code increments (R0-265-3): a revert of PR #265 drops both authorities it added, required_human_authorities[2] and [3], deletes two files a guard names and edits a guard test, so it is governance that neither Owner answer reaches (they never reach a later pull request that only edits either file); the Owner presses it or is asked. A revert of PR #275 (tests only) is risk lane under [1].",
   "recommended_next_work_packages": [
