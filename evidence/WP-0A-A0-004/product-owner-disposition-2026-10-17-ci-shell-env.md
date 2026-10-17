@@ -141,3 +141,16 @@ every earlier entry, gov-a004f included, is kept byte for byte (the field is app
 `scripts/db/classify-records-only.mjs` `appendedEntriesOnly`). `acceptance_criteria` and `required_tests` each gain one
 INCREMENT entry at the end; `ownership.amends_without_owning.paths` names `test-kits/app-stack.test.mjs` again, its
 rationale prefixed with this increment and the earlier text kept after it.
+
+## 7. Addendum 2026-10-17: round 2 after A1's reading of PR #287
+
+Appended after A1's `changes_requested` at `069a537d` (`evidence/WP-0A-A0-004/a1-review-2026-10-17-pr287.md`, on A1's
+role branch): A1-287-1 (Low; a `#`-led line inside a block-scalar body, or inside a quoted scalar that spans lines, is
+content the line reading dropped), A1-287-2 (Low; `container:`, `services:` and env keys such as `BASH_ENV` and `PATH`
+reach the same effects without either token), A1-287-3 (Info; a `${{ }}` expression can assemble the token). §1 to §6
+stand as written. A0's reading: closing them is inside the item §3 bounds (the CI-test gaps A1-279-3 and Q0-279r2-2),
+in the same two tests of `test-kits/app-stack.test.mjs`, with no `ci.yml`, classifier, other guard or other test change
+and no test added or renamed. What §3 item 1 says is read is now stated exactly in the test's comments: the lines of the
+application job as `ci.yml` lays them out, `#`-led block-body lines included, YAML comments outside block bodies left
+out; quoted scalars spanning lines are refused, and the job's keys are held to allowlists pinned to `main`'s `ci.yml`.
+The press authority (gov-a004g) and its conditions are unchanged; A1 re-reads.

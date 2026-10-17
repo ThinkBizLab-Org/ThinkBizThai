@@ -367,35 +367,107 @@ function workflowNpmConfigProblems(ci) {
   const lines = keyLines(ci.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n'));
   return lines.filter((l) => /(?:^|[{[,]|-\s|\?\s)\s*["']?npm_config_/i.test(l)).map((l) => `ci.yml sets \`${l.trim()}\``);
 }
-// Q0-279r2-2 and A1-279-3 read the same text: every line of the application job, its own lines and
-// every line of every step, the body of each `run: |` block included, whole-line comments only left out
-// (a comment after content is refused by yamlFormProblems). A token is looked for anywhere on a line,
-// not in a spelling.
-const applicationJobLines = (job) => [...job.head, ...job.steps.flatMap((s) => s.raw.split('\n'))];
+// Q0-279r2-2 and A1-279-3 read the same text, applicationJobText: the lines of ci.yml from the line after
+// `  application:` to the next two-space job key, as written, with exactly one kind of line left out: a
+// `#`-led line OUTSIDE a block scalar, which YAML reads as a comment. Inside the body of a block scalar
+// (`run: |`, `run: >`, with any chomping or indentation indicator, any line indented deeper than the line
+// that opened it) a `#`-led line is content, shell text the step runs, and it is read (A1-287-1: a shell
+// string can span such a line). A token is looked for anywhere on each line read, not in a spelling.
+// What the text does not show, the YAML layer refuses rather than reads: a quoted scalar that spans
+// lines, whose continuation lines YAML reads as content even when they begin with `#` (A1-287-1), and
+// the forms that could spell a key without its letters (an escape, a tag, an anchor, an alias, a merge),
+// both in yamlFormProblems; and every key the job may carry is on an allowlist (applicationKeyProblems).
+function applicationJobText(ci) {
+  const lines = ci.split('\n');
+  const start = lines.findIndex((line) => /^ {2}application:\s*$/.test(line));
+  if (start === -1) return ['(ci.yml has no application job: nothing to read, refused)'];
+  const out = [];
+  let block = null;
+  for (const line of lines.slice(start + 1)) {
+    const indent = line.match(/^ */)[0].length;
+    if (block !== null) {
+      if (line.trim() === '' || indent > block) { out.push(line); continue; }
+      block = null;
+    }
+    if (/^\s*#/.test(line)) continue;
+    if (/^ {2}[A-Za-z][\w-]*:\s*$/.test(line)) break;
+    out.push(line);
+    if (/:\s*[|>][-+0-9]*\s*$/.test(withoutComment(line))) block = indent;
+  }
+  return out;
+}
+// A1-287-2. The job's keys, and the environment it sets, reach the same effects without either token:
+// `container:` hands every run: to another image's shell, `services:` starts more of them, an env
+// BASH_ENV is sourced by bash before every run: (it can define `npm` as a no-op or prepend PATH), an env
+// PATH or NODE_OPTIONS redirects what runs. Closed as a CLASS by allowlist: every key line of the
+// application job, at the job level, in its env:, at a step's level and in a step's env: and with:, names
+// a key main's ci.yml uses there today, and nothing else; a key line at any other depth, or a line the
+// reading cannot place, is refused. The test pins each list to main's ci.yml exactly, so it cannot widen
+// unseen. Returns the problems and the keys seen.
+const APPLICATION_KEYS = Object.freeze({
+  job: Object.freeze(['env', 'needs', 'runs-on', 'steps']),
+  'job env': Object.freeze(['NEXT_TELEMETRY_DISABLED', 'NODE_OPTIONS']),
+  step: Object.freeze(['env', 'if', 'name', 'run', 'uses', 'with']),
+  'step env': Object.freeze(['BASE_SHA', 'EXPECTED_SHA']),
+  'step with': Object.freeze(['check-latest', 'fetch-depth', 'node-version', 'persist-credentials', 'ref']),
+});
+const KEY_LINE = /^( *)(?:-[ ]+)?("(?:[^"\\]|\\.)*"|'(?:[^']|'')*'|[^\s"'#:][^:#]*?)[ ]*:(?:[ ]|$)/;
+const unquoted = (key) => (key.startsWith('"') ? key.slice(1, -1) : key.startsWith("'") ? key.slice(1, -1).replace(/''/g, "'") : key);
+function applicationKeys(job) {
+  const seen = Object.fromEntries(Object.keys(APPLICATION_KEYS).map((level) => [level, new Set()]));
+  const problems = [];
+  const place = (where, line, level) => {
+    const key = unquoted(line.match(KEY_LINE)[2]);
+    seen[level].add(key);
+    if (!APPLICATION_KEYS[level].includes(key)) problems.push(`${where} has the ${level} key \`${key}\`, which the application job's allowlist does not hold: \`${line.trim()}\``);
+    return key;
+  };
+  let parent = null;
+  for (const line of job.head.filter((l) => l.trim() !== '')) {
+    const indent = line.match(/^ */)[0].length;
+    if (!KEY_LINE.test(line) || (indent !== 4 && indent !== 6)) { problems.push(`the application job has a line the key reading cannot place: \`${line.trim()}\``); continue; }
+    if (indent === 4) parent = place('the application job', line, 'job');
+    else if (parent === 'env') place('the application job', line, 'job env');
+    else problems.push(`the application job has a key under \`${parent}\`, which holds none: \`${line.trim()}\``);
+  }
+  job.steps.forEach((step, i) => {
+    const where = `step "${step.name ?? step.uses ?? `step ${i + 1}`}"`;
+    let under = null;
+    for (const line of keyLines(step.raw).filter((l) => l.trim() !== '')) {
+      const indent = line.match(/^ */)[0].length;
+      if (!KEY_LINE.test(line) || (indent !== 0 && indent !== 2)) { problems.push(`${where} has a line the key reading cannot place: \`${line.trim()}\``); continue; }
+      if (indent === 0) under = place(where, line, 'step');
+      else if (under === 'env' || under === 'with') place(where, line, `step ${under}`);
+      else problems.push(`${where} has a key under \`${under}\`, which holds none: \`${line.trim()}\``);
+    }
+  });
+  return { problems, seen };
+}
 // Q0-279r2-2. A step that writes a line to the file `$GITHUB_ENV` names sets that variable for every
 // later step of the job (an `npm_config_workspace` that narrows the audit, a NODE_OPTIONS that preloads
 // a module), and one that writes to `$GITHUB_PATH` puts a directory before every later `node`, `npm` and
 // `git`. Neither shows as a YAML key, so the A1-279-2 pin, which reads keys, does not see them. Closed
-// as a CLASS, not by listing spellings: no line of the application job, shell or YAML, names the token
-// GITHUB_ENV or GITHUB_PATH in any letter case, however it is quoted, braced or redirected (`>>`, `tee
-// -a`, `>|`, a `{ ... } >>` group, an env: key or a `${{ env.* }}` expression all name it); nor the
-// runner's file-command directory `_runner_file_commands`, nor the retired `::set-env` and `::add-path`
-// workflow commands or the ACTIONS_ALLOW_UNSECURE_COMMANDS switch that would revive them. The YAML forms
-// that could spell a key without its letters (an escape, a tag, an anchor, an alias, a merge) are
-// refused with them, by yamlFormProblems.
-// THE RESIDUAL, stated in this first round: the reader sees the job's text and nothing it runs. A token
-// assembled at run time (`${!name}`, `"GITHUB_""ENV"`, eval, a decoded string, `env | grep`), a glob
-// that reaches the runner's file-command files without naming them, and a write made by a program a
-// step runs (a repository script, an npm script, installed package code, or the pinned actions, of
-// which actions/setup-node writes $GITHUB_PATH by design) are not seen. Those are held by the review of
-// every ci.yml and script change, the step-list pin of A1-257-4, and the order of A1-AUD1015-1 (the
-// audit and release age run before any step that executes package code). The bootstrap job is not read:
-// a job's GITHUB_ENV and GITHUB_PATH reach only that job's later steps, never the application job.
-// Returns the problems.
+// as a CLASS, not by listing spellings: no line applicationJobText reads names the token GITHUB_ENV or
+// GITHUB_PATH in any letter case, however it is quoted, braced or redirected (`>>`, `tee -a`, `>|`, a
+// `{ ... } >>` group, an env: key or a `${{ env.* }}` expression all name it); nor the runner's
+// file-command directory `_runner_file_commands`, nor the retired `::set-env` and `::add-path` workflow
+// commands or the ACTIONS_ALLOW_UNSECURE_COMMANDS switch that would revive them. With it, yamlFormProblems
+// and the key allowlist (an env BASH_ENV or PATH is refused there).
+// THE RESIDUAL, stated plainly: the reader sees the job's text and nothing it runs or evaluates. Not
+// seen: a token assembled when the job runs, by the shell (`${!name}`, `"GITHUB_""ENV"`, eval, a decoded
+// string, `env | grep`) or by the runner from a `${{ }}` expression (`${{ format('GITHUB_{0}', 'ENV') }}`
+// becomes `GITHUB_ENV` before the shell runs, and no `${{ }}` is evaluated here); a glob that reaches the
+// runner's file-command files without naming them; and a write made by a program a step runs (a
+// repository script, an npm script, installed package code, or the pinned actions, of which
+// actions/setup-node writes $GITHUB_PATH by design). Those are held by the review of every ci.yml and
+// script change, the step-list pin of A1-257-4, and the order of A1-AUD1015-1 (the audit and release age
+// run before any step that executes package code). The bootstrap job is not read: a job's GITHUB_ENV and
+// GITHUB_PATH reach only that job's later steps, never the application job. Returns the problems.
 const RUNNER_ENV_WRITE = /GITHUB_ENV|GITHUB_PATH|_runner_file_commands|ACTIONS_ALLOW_UNSECURE_COMMANDS|::(?:set-env|add-path)\b/i;
-function runnerEnvWriteProblems(job) {
-  return [...applicationJobLines(job).filter((line) => RUNNER_ENV_WRITE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which writes or opens the environment of later steps`),
-    ...yamlFormProblems(job)];
+function runnerEnvWriteProblems(ci) {
+  const job = workflowJobs(ci).get('application');
+  return [...applicationJobText(ci).filter((line) => RUNNER_ENV_WRITE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which writes or opens the environment of later steps`),
+    ...yamlFormProblems(job), ...applicationKeys(job).problems];
 }
 function auditProblems(steps) {
   const lines = steps.flatMap((s) => (s.run ?? '').split('\n')).filter((line) => /\bnpm audit\b/.test(line)).map((line) => line.trim());
@@ -482,7 +554,7 @@ test('CI audits the dev dependencies too, the packages the application job runs 
   // mutation below adds one write, in the toolchain step's `run: |` body (before the audit), on the
   // audit's own run line, or as YAML, and each is refused. The spellings are samples of the class, not
   // its definition: the reading refuses the token, so a spelling not listed here is refused the same.
-  assert.deepEqual(runnerEnvWriteProblems(workflowJobs(ci).get('application')), [], 'no line of the application job names GITHUB_ENV, GITHUB_PATH or a runner file command');
+  assert.deepEqual(runnerEnvWriteProblems(ci), [], 'no line of the application job names GITHUB_ENV, GITHUB_PATH or a runner file command');
   const TOOLCHAIN = '      - name: Verify pinned toolchain for the application\n        run: |\n          test "$(node --version)" = "v24.20.0"\n';
   assert.ok(ci.includes(TOOLCHAIN), 'the application toolchain step reads as written');
   const writes = [
@@ -501,7 +573,7 @@ test('CI audits the dev dependencies too, the packages the application job runs 
   for (const write of writes) {
     const mutated = ci.replace(TOOLCHAIN, '      - name: Verify pinned toolchain for the application\n        run: |\n          ' + write + '\n          test "$(node --version)" = "v24.20.0"\n');
     assert.notEqual(mutated, ci);
-    assert.deepEqual(runnerEnvWriteProblems(workflowJobs(mutated).get('application')), ['the application job names `' + write + '`, which writes or opens the environment of later steps'], 'refused: ' + write);
+    assert.deepEqual(runnerEnvWriteProblems(mutated), ['the application job names `' + write + '`, which writes or opens the environment of later steps'], 'refused: ' + write);
   }
   for (const [mutated, expected] of [
     [ci.replace(RUN, '        run: echo npm_config_omit=dev >> $GITHUB_ENV && npm audit --include=dev --audit-level=high\n'), 'names `run: echo npm_config_omit=dev >> $GITHUB_ENV && npm audit'],
@@ -511,7 +583,40 @@ test('CI audits the dev dependencies too, the packages the application job runs 
     [ci.replace(AUDIT_STEP, AUDIT_STEP + '        env:\n          "GITHUB_\\x45NV": /tmp/elsewhere\n'), 'uses a double-quoted key with a backslash escape'],
   ]) {
     assert.notEqual(mutated, ci);
-    const problems = runnerEnvWriteProblems(workflowJobs(mutated).get('application'));
+    const problems = runnerEnvWriteProblems(mutated);
+    assert.ok(problems.some((p) => p.includes(expected)), 'refused: ' + expected + ' (found ' + JSON.stringify(problems) + ')');
+  }
+  // A1-287-2: the key allowlist. On the head every key line of the application job is placed and on its
+  // list, and each list is exactly the keys main's ci.yml uses there, so neither side can drift unseen.
+  const keys = applicationKeys(workflowJobs(ci).get('application'));
+  assert.deepEqual(keys.problems, [], 'every key of the application job is on its allowlist');
+  for (const [level, allowed] of Object.entries(APPLICATION_KEYS)) assert.deepEqual([...keys.seen[level]].sort(), [...allowed], 'the ' + level + ' allowlist is exactly what the application job uses');
+  // A1-287-1: a `#`-led line inside a block-scalar body is shell text, and is read; a quoted scalar that
+  // spans lines is refused. Q1 and Q2 are A1's: a shell string opened on one line and closed on a `#`-led
+  // line, writing $GITHUB_ENV (in the checkout step) and $GITHUB_PATH (in the toolchain step). P3 and P4
+  // are A1's YAML forms: a double-quoted run with an escaped line break, and a single-quoted one, each
+  // naming the token on a `#`-led continuation line. Then the environment keys A1-287-2 names.
+  const CHECKOUT_TAIL = 'is the commit this run reports on"\n';
+  const atApplication = (text, find, insert) => { const i = text.lastIndexOf(find); return text.slice(0, i + find.length) + insert + text.slice(i + find.length); };
+  assert.ok(ci.lastIndexOf(CHECKOUT_TAIL) > ci.indexOf('  application:\n'), 'the application checkout step reads as written');
+  const NEXT_ENV = "      NEXT_TELEMETRY_DISABLED: '1'\n";
+  assert.ok(ci.includes(NEXT_ENV), 'the job env reads as written');
+  for (const [mutated, expected] of [
+    [atApplication(ci, CHECKOUT_TAIL, '          echo npm_config_workspace=apps/web | tee -a "$RUNNER_TEMP/x\n          #" "$GITHUB_ENV" >/dev/null\n'), 'names `#" "$GITHUB_ENV" >/dev/null`'],
+    [ci.replace(TOOLCHAIN, TOOLCHAIN + '          echo "$PWD/node_modules/.bin" | tee -a "$RUNNER_TEMP/x\n          #" "$GITHUB_PATH" >/dev/null\n'), 'names `#" "$GITHUB_PATH" >/dev/null`'],
+    [ci.replace(TOOLCHAIN, TOOLCHAIN + '          # >> "$GITHUB_ENV"\n'), 'names `# >> "$GITHUB_ENV"`'],
+    [ci.replace(RUN, '        run: >-\n          echo x\n          # >> $GITHUB_ENV\n          npm audit --include=dev --audit-level=high\n'), 'names `# >> $GITHUB_ENV`'],
+    [ci.replace(RUN, '        run: "echo npm_config_omit=dev | tee -a x\\\n          # $GITHUB_ENV; npm audit --include=dev --audit-level=high"\n'), 'uses a quoted scalar that spans lines: `run: "echo npm_config_omit=dev | tee -a x\\`'],
+    [ci.replace(RUN, "        run: 'echo npm_config_omit=dev | tee -a \"x\n          #\" \"$GITHUB_ENV\"; npm audit --include=dev --audit-level=high'\n"), "uses a quoted scalar that spans lines: `run: 'echo npm_config_omit=dev | tee -a \"x`"],
+    [ci.replace(NEXT_ENV, NEXT_ENV + "      BASH_ENV: '$(echo /tmp/e)'\n"), 'has the job env key `BASH_ENV`'],
+    [ci.replace(NEXT_ENV, NEXT_ENV + '      PATH: /home/runner/shim:/usr/local/bin:/usr/bin:/bin\n'), 'has the job env key `PATH`'],
+    [ci.replace(NEXT_ENV, NEXT_ENV + '      "ENV": /tmp/e\n'), 'has the job env key `ENV`'],
+    [ci.replace(AUDIT_STEP, AUDIT_STEP + '        env:\n          BASH_ENV: /tmp/e\n'), 'has the step env key `BASH_ENV`'],
+    [ci.replace(AUDIT_STEP, AUDIT_STEP + "        env:\n          NODE_OPTIONS: '--import ./x.mjs'\n"), 'has the step env key `NODE_OPTIONS`'],
+    [ci.replace(AUDIT_STEP, AUDIT_STEP + '        working-directory: apps/web\n'), 'has the step key `working-directory`'],
+  ]) {
+    assert.notEqual(mutated, ci);
+    const problems = runnerEnvWriteProblems(mutated);
     assert.ok(problems.some((p) => p.includes(expected)), 'refused: ' + expected + ' (found ' + JSON.stringify(problems) + ')');
   }
 });
@@ -565,7 +670,24 @@ const YAML_FORMS = [
   ['a tag', /(?:^|[{,[]|-\s|:\s|\?\s)\s*!/],
   ['an anchor or alias', /(?:^|[{,[]|-\s|:\s|\?\s)\s*[&*][^\s,\]}]/],
   ['a merge key', /(?:^|[{,]|-\s|\?\s)\s*["']?<<["']?\s*:/],
+  ['a quoted scalar that spans lines', { test: (line) => quotedScalarSpansLines(line) }],
 ];
+// A1-287-1. A quoted scalar that does not close on its line goes on over the next lines, and YAML reads
+// every one of them as part of the value, a `#`-led one included, where the line reading drops it as a
+// comment. So within the application job a quote that opens a key or a value (at the line start, after
+// `- ` or after `: `) must close on the same line; one that does not is refused, as a class, whatever
+// the quote holds. A quote inside a plain scalar (`Owner's`) opens nothing and is not read.
+function quotedScalarSpansLines(line) {
+  const opens = /(?:^\s*(?:-\s+)?|:\s+)(["'])/g;
+  let m;
+  while ((m = opens.exec(line))) {
+    const from = m.index + m[0].length - 1;
+    const closed = (m[1] === '"' ? /^"(?:[^"\\]|\\.)*"/ : /^'(?:[^']|'')*'/).exec(line.slice(from));
+    if (!closed) return true;
+    opens.lastIndex = from + closed[0].length;
+  }
+  return false;
+}
 // A GitHub expression, `${{ ... }}`, is the one place the job writes braces; it is removed before the
 // forms are read, so its `{{`, `}}` and a `!` inside it are not taken for flow or a tag.
 const withoutExpressions = (line) => line.replace(/\$\{\{[^}]*\}\}/g, '');
@@ -597,25 +719,26 @@ function applicationConditionProblems(job) {
 // default `bash -e {0}`, so a multi-line step whose first line fails goes on and exits 0; `shell: true
 // {0}`, or any program that ignores its script, runs nothing and passes. It can be set on a step, on the
 // job (`defaults: run: shell:`) or on the workflow (`defaults:` at the top level). Closed as a CLASS, not
-// by listing spellings: no line of the application job, its own lines, its steps' keys and the bodies of
-// its `run: |` blocks alike, holds the token `shell` or `defaults` in any letter case, so the key is
-// refused however it is quoted, nested or placed (a run body that only mentions the word is refused too,
-// failing closed); the workflow's top level may hold only name, on, permissions and jobs, so no workflow
-// `defaults:` in any spelling (workflowTopLevelProblems); and the YAML forms that could spell the key
-// without its letters (an escape such as `"\x73hell"`, a tag, an anchor, an alias, a merge key that
-// brings a `shell:` in from elsewhere) are refused by yamlFormProblems.
-// THE RESIDUAL, stated in this first round: the reader sees ci.yml's text, not what runs. A shell chosen
-// by other means (a step that runs `bash +e script.sh` or `sh -c "..."`, or `set +e` in a `run: |` body,
-// which the default `bash -e` honours), a repository or npm script that swallows its own failure, and the
-// pinned actions' own behaviour are not seen; they are held by the review of every ci.yml and script
-// change and by the step list A1-257-4 pins. The bootstrap job is not read here (A1-279-3 named the
-// application job). Returns the problems.
+// by listing spellings: no line applicationJobText reads (the job's own lines, its steps' lines and every
+// line of its block-scalar bodies, `#`-led ones included; YAML comments outside them left out) holds the
+// token `shell` or `defaults` in any letter case, so the key is refused however it is quoted, nested or
+// placed (a run body that only mentions the word is refused too, failing closed); the workflow's top
+// level may hold only name, on, permissions and jobs, so no workflow `defaults:` in any spelling
+// (workflowTopLevelProblems); the YAML forms that could spell the key without its letters, or hide lines
+// in a quoted scalar, are refused by yamlFormProblems; and the job's keys are an allowlist (A1-287-2), so
+// `container:` (another image's shell) and `services:` are refused, as is any key main does not use.
+// THE RESIDUAL, stated plainly: the reader sees ci.yml's text, not what runs or what a `${{ }}`
+// expression evaluates to. A shell chosen by other means (a step that runs `bash +e script.sh` or
+// `sh -c "..."`, or `set +e` in a `run: |` body, which the default `bash -e` honours), a repository or npm
+// script that swallows its own failure, and the pinned actions' own behaviour are not seen; they are held
+// by the review of every ci.yml and script change and by the step list A1-257-4 pins. The bootstrap job
+// is not read here (A1-279-3 named the application job). Returns the problems.
 const SHELL_CHOICE = /shell|defaults/i;
 function shellProblems(ci) {
   const job = workflowJobs(ci).get('application');
   return [...workflowTopLevelProblems(ci),
-    ...applicationJobLines(job).filter((line) => SHELL_CHOICE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which can choose the shell a run: is handed to`),
-    ...yamlFormProblems(job)];
+    ...applicationJobText(ci).filter((line) => SHELL_CHOICE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which can choose the shell a run: is handed to`),
+    ...yamlFormProblems(job), ...applicationKeys(job).problems];
 }
 
 test('no step of the application job runs on a condition or may fail softly, except the release age\'s pull-request condition (A1-270-2)', async () => {
@@ -733,6 +856,15 @@ test('no step of the application job runs on a condition or may fail softly, exc
   shellCases.push([ci.replace(TESTS, TESTS + '        <<: *s\n').replace(BOOT_WITH, BOOT_WITH.replace('with:', 'with: &s') + '          x: y\n'), 'uses a merge key']);
   shellCases.push([ci.replace(PERMISSIONS_LINE, PERMISSIONS_LINE + 'defaults:\n  run:\n    shell: bash {0}\n'), 'ci.yml has the top-level line `defaults:`']);
   shellCases.push([ci.replace(PERMISSIONS_LINE, PERMISSIONS_LINE + '"\\x64efaults":\n  run:\n    shell: bash {0}\n'), 'ci.yml has the top-level line `"\\x64efaults":`']);
+  // A1-287-2: job keys that hand every run: to another shell, refused by the allowlist.
+  shellCases.push([ci.replace(NEEDS, NEEDS + '    container: ubuntu:24.04\n'), 'has the job key `container`']);
+  shellCases.push([ci.replace(NEEDS, NEEDS + '    container:\n      image: ubuntu:24.04\n'), 'has the job key `container`']);
+  shellCases.push([ci.replace(NEEDS, NEEDS + '    services:\n      cache:\n        image: redis:7\n'), 'has the job key `services`']);
+  shellCases.push([ci.replace(NEEDS, NEEDS + "    'container': ubuntu:24.04\n"), 'has the job key `container`']);
+  shellCases.push([ci.replace(TOOLCHAIN_STEP + '        run: |\n', TOOLCHAIN_STEP + '        run: |\n          # shell: x\n'), 'names `# shell: x`']);
+  // A YAML comment outside a block body is still a comment, and is not read: ci.yml's own comments stay free.
+  assert.deepEqual(shellProblems(ci.replace(TOOLCHAIN_STEP, TOOLCHAIN_STEP + '        # shell: x, $GITHUB_ENV\n')), [], 'a YAML comment is not read');
+  assert.deepEqual(runnerEnvWriteProblems(ci.replace(TOOLCHAIN_STEP, TOOLCHAIN_STEP + '        # shell: x, $GITHUB_ENV\n')), [], 'a YAML comment is not read');
   for (const [mutated, expected] of shellCases) {
     assert.notEqual(mutated, ci);
     const problems = shellProblems(mutated);
