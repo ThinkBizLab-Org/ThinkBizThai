@@ -4,14 +4,18 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "f071591350e93afc4b159b39bbde1af1d075f8b2",
-  "head_revision_or_patch_checksum": "6fc1bb2a91dc0eb24e9b68924ce8845519cc25fe",
+  "base_revision": "ba3efcfdd2e9f9da7f79da25fe07fb0d903c031d",
+  "head_revision_or_patch_checksum": "839a46bd50850fcee7b61f8bb79173e94518b55b",
   "task_ids": [
     "WP-0A-A0-004",
     "gov-a004g-ci-shell-env-2026-10-17"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-ci-shell-env.md"
+    "evidence/WP-0A-A0-004/a1-review-2026-10-17-pr287.md",
+    "evidence/WP-0A-A0-004/c0-review-2026-10-17-pr287.md",
+    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-ci-shell-env.md",
+    "evidence/WP-0A-A0-004/q0-review-2026-10-17-pr287.md",
+    "evidence/WP-0A-A0-004/r0-review-2026-10-17-pr287.md"
   ],
   "files_modified": [
     "handoffs/WP-0A-A0-004-author-handoff.json",
@@ -94,7 +98,7 @@
     "The key allowlists are pinned to main's ci.yml as of f0715913: a later ci.yml change that adds a key to the application job (a new step env:, a with: input) must widen the list in the same governance pull request."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (A1-279-3 shell:/defaults and Q0-279r2-2 runner env/path writes in the application-job test). PR #287 round 2 at 6fc1bb2a answers A1's changes_requested at 069a537d (A1-287-1, A1-287-2, A1-287-3); no role has read this head, and no role verdict is claimed here. Press authority: gov-a004g, the Owner's AskUserQuestion answer of 2026-10-17T11:53:17.372Z, question 2 (transcript line 6137: 'A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)'), with the message of 2026-10-17T12:24:40.564Z (line 6355); evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-ci-shell-env.md. A0 presses only after C0, A1, Q0 and R0 pass on the final head, CI is green on bootstrap and application there, no security finding of any grade is open, and the head contains current main. WP-1A-A0-002's Integration Owner owes an acknowledgement of the edit to test-kits/app-stack.test.mjs."
+    "GOVERNANCE (A1-279-3 shell:/defaults and Q0-279r2-2 runner env/path writes in the application-job test). PR #287 round 2 (6fc1bb2a) answers A1-287-1..3; round-one role files (at 069a537d: C0 review_approved, A1 changes_requested, Q0 test_verified, R0 ready) are carried with -x; every role re-reads this head. A0 presses under gov-a004g, the Owner's AskUserQuestion answer of 2026-10-17T11:53:17.372Z, question 2 (transcript line 6137: 'A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)'), once C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs and no security finding is open, with --match-head-commit. WP-1A-A0-002's Integration Owner acknowledgement of the edit to test-kits/app-stack.test.mjs: given by R0 in round one."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR removes the two readings and their controls from test-kits/app-stack.test.mjs, the gov-a004g records and the disposition, and regenerates the integrity manifest. No data, provider or credential effect.",
   "recommended_next_work_packages": [
