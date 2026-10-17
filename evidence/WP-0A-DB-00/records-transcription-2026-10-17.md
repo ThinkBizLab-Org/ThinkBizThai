@@ -141,5 +141,10 @@ from `main` `ba3efcfd`, and the push of this pull request puts it back on `origi
 
 The re-pinned coverage map is under `db/`, outside RFC-2026-025 §6.1's record paths, so this branch is not
 records-only by the classifier, though every change is a record of words and figures already on `main` or its
-mechanical consequence. The handoff's `tests` carry both classifiers' output measured on the records commit. A0
-presses it under RFC-2026-034 §2.2's risk lane (Q-034-1) once its readers pass on the final head and CI is green there.
+mechanical consequence. Measured on the records commit `805881d9`: `classify-records-only.mjs origin/main HEAD` exit 1
+(`db/foundation/lint/audit-coverage-map.json: outside evidence/<package>/**, handoffs/*.json and work-packages/*.json`);
+`classify-review-tier.mjs origin/main HEAD --lane` prints `tier: H`, `lane: governance` (the coverage map is "the data
+the database guards read") and `additive-eligible: yes`, with its proviso that the pull request "takes the risk lane
+only once A1 and Q0 each confirm in writing, on the final head, that every guard hunk only adds … Until both have, it is
+governance." The re-pin lowers 34 values; it adds nothing. This record does not judge the lane or the press authority;
+both are A0's and the readers' to settle.
