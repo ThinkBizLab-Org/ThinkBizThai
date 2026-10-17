@@ -309,6 +309,24 @@ The `@types/*` packages are never imported by name. `typescript` is imported by 
 6. **Vulnerability audit.** `npm audit` needs the network, so it is not part of `npm run check`. A separate
    CI step running `npm audit --omit=dev --audit-level=high` is proposed for `WP-1A-A0-002` and is a CI
    change, therefore governance.
+
+   **Note 2026-10-17 (A1-270-1; the sentence above is kept as written and is not changed by this note).** What
+   CI runs differs from the command the sentence above proposes. Measured on `main` at `6fd6aa0e`:
+   `.github/workflows/ci.yml` line 1354, the step "Vulnerability audit (network)" of the `application` job,
+   runs `npm audit --include=dev --audit-level=high`. The step was added with `--omit=dev` by `WP-1A-A0-002`
+   (PR #257, merged as `40267ae9`) and moved before every step that runs package code by `WP-0A-A0-004`
+   (PR #270, `047385f8`). A1's review of PR #270 found that `--omit=dev` leaves out every development
+   dependency, while `typescript`, `vitest` and the Tailwind/PostCSS toolchain (§3.2) are the package code
+   that job runs first (A1-270-1, Low, `evidence/WP-0A-A0-004/a1-review-2026-10-15-pr270.md`). PR #279
+   (`WP-0A-A0-004`, merged 2026-10-16T13:45:28Z as `42b37f00`) changed the step to `--include=dev`, under
+   the Product Owner's answer recorded in `evidence/WP-0A-A0-004/product-owner-disposition-2026-10-16-ci-audit.md`,
+   whose record names this sentence among what that answer does not decide. Read this item as: CI runs
+   `npm audit --include=dev --audit-level=high`, development dependencies included, at the same threshold.
+   `work-packages/WP-1A-A0-002.json` still reads `--omit=dev` in `acceptance_criteria[7]` and
+   `deterministic_commands.package_evidence[4]`; that manifest is `WP-1A-A0-002`'s, and a separate pull
+   request of that package corrects them. This note changes no rule, threshold, CI step, guard or test; it
+   is recorded under the Product Owner's direction of 2026-10-17T11:53:17Z
+   (`evidence/WP-1A-A0-001/product-owner-disposition-2026-10-17-omit-dev-wording.md`).
 7. **Telemetry is off** for every allowlisted package that has it: in CI and in every deployment
    (`NEXT_TELEMETRY_DISABLED=1` for Next.js; the Sentry build plugin's own telemetry switched off in its
    configuration, which `NEXT_TELEMETRY_DISABLED` does not cover). `WP-1A-A0-002` lists, per allowlisted

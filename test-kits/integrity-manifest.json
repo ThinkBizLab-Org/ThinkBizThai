@@ -37,7 +37,7 @@
     "architecture/decisions/RFC-2026-026-audit-row-producer.md": "7c60977df514335d4f8b32a506daa744118e4eb2c8e65ef296722489bf206ab3",
     "architecture/decisions/RFC-2026-027-lifecycle-visibility.md": "86c48089aef99689a94c10abd54328060096a1f36b118d7db92be3a4f2da4dc2",
     "architecture/decisions/RFC-2026-028-worker-identity.md": "f65921eddc0ec6531b76872bca226a6a1be5912dc6d5e090467421e10cff6f75",
-    "architecture/decisions/RFC-2026-029-application-tier-stack.md": "9894050f40f59934f5b696c3c44430f8a7f112e36517a0908eb9e380bfae1e34",
+    "architecture/decisions/RFC-2026-029-application-tier-stack.md": "e5f417ad4e6d5c22c4e56bea5cc25fed42c75d662ad3cea68575da3beb20926f",
     "architecture/decisions/RFC-2026-030-risk-tiered-review.md": "f5ca0e881afc5751d1e0b79fff9920ce44a3a178e4b2d1c6ace8de52cfa6fc66",
     "architecture/decisions/RFC-2026-031-first-slice-contract-freeze.md": "91976af8b6c0c28162e2cae42df0c05fc65f1a220736e9f6c720539036e387a5",
     "architecture/decisions/RFC-2026-032-secret-handle-syntax-ownership.md": "e3f3df2e322bc6435a455669609770845c311fa5355752bd1503e07e8e833b07",
