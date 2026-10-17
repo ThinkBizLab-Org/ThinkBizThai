@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "09a059919f504819954932289f5299dd86875529",
-  "head_revision_or_patch_checksum": "a60412c135cab1b3c8b24e9afb7fd26f0a04b123",
+  "base_revision": "f071591350e93afc4b159b39bbde1af1d075f8b2",
+  "head_revision_or_patch_checksum": "717428a1e67e45d25376685d8fdcd9913ff168a7",
   "task_ids": [
     "WP-0A-A0-004",
     "gov-a004g-ci-shell-env-2026-10-17"
@@ -83,7 +83,7 @@
     "WP-1A-A0-002's acknowledgement of this amendment to its test file, RFC-2026-029 §4.6's --omit=dev wording, and the R0 acknowledgements owed for #270, #255, #260 and #279 stay owed."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (CI test; A1-279-3, Q0-279r2-2). Press authority: gov-a004g, question 2 of the Owner's AskUserQuestion answer of 2026-10-17T11:53:17.372Z (transcript line 6137: 'A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)') and the message of 2026-10-17T12:24:40.564Z (line 6355), evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-ci-shell-env.md. A0 presses only after C0, A1, Q0 and R0 pass on the final head, CI is green on bootstrap and application there, no security finding of any grade is open, and the head contains current main. No role has read this pull request yet."
+    "GOVERNANCE (A1-279-3 shell:/defaults and Q0-279r2-2 runner env/path writes in the application-job test). PR #287: C0, A1, Q0 and R0 read the final head (role files carried with -x; main merged mechanically where it moved). A0 presses under gov-a004g, the Owner's AskUserQuestion answer of 2026-10-17T11:53:17.372Z, question 2 (transcript line 6137: 'A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)'), once all four pass, CI is green on both jobs on the final head and no security finding is open, with --match-head-commit. WP-1A-A0-002's Integration Owner owes an acknowledgement of the edit to test-kits/app-stack.test.mjs."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR removes the two readings and their controls from test-kits/app-stack.test.mjs, the gov-a004g records and the disposition, and regenerates the integrity manifest. No data, provider or credential effect.",
   "recommended_next_work_packages": [
