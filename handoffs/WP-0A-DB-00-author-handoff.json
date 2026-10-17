@@ -4,75 +4,83 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "c2979b28b3c5ee553f10e15ad323be5451c6389a",
-  "head_revision_or_patch_checksum": "0964db7c4ee0ec436b27395d0f2cf3b643c5648c",
+  "base_revision": "ba3efcfdd2e9f9da7f79da25fe07fb0d903c031d",
+  "head_revision_or_patch_checksum": "82aaa4175f8364fa0efb6bb950a3dd0397a5818d",
   "task_ids": [
     "WP-0A-DB-00",
-    "gov-a1280-2026-10-17"
+    "records-pr268-pr281-2026-10-17"
   ],
   "files_added": [
-    "evidence/WP-0A-DB-00/a1-review-2026-10-17-pr281.md",
-    "evidence/WP-0A-DB-00/c0-review-2026-10-17-pr281.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-kernel-deletion-gap.md",
-    "evidence/WP-0A-DB-00/q0-review-2026-10-17-pr281.md",
-    "evidence/WP-0A-DB-00/r0-review-2026-10-17-pr281.md"
+    "evidence/WP-0A-DB-00/records-transcription-2026-10-17.md"
   ],
   "files_modified": [
     "db/foundation/lint/audit-coverage-map.json",
     "handoffs/WP-0A-DB-00-author-handoff.json",
-    "test-kits/db/foundation-contract.test.mjs",
-    "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "RFC-2026-007",
     "RFC-2026-025",
     "RFC-2026-034"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT closes A1-280-1 / Q0-280-1: RFC-2026-007 Amendment 2026-10-13 §C test 2 in test-kits/db/foundation-contract.test.mjs (name unchanged) pins the platform-kernel files created so far, src/modules/platform-kernel/index.ts and src/modules/platform-kernel/application/run.ts, as present. Deleting either or both, with or without their tests, now fails test 2, as deleting vitest.config.ts already did; adapters/job-store.ts may still be absent until the pull request that creates it adds it to the pinned list. No classifier, STRING_NAME_EXCEPTIONS, other guard or other test changes; the test count is unchanged (843).",
-    "RFC-2026-007 §F item 4's gap statement is recorded as closed by this PR in the manifest's amends_without_owning rationale; the RFC is not edited (the Owner's answer reaches the test only).",
-    "Authority to press: A0's recommendation on A1-280-1 (2026-10-16T16:39:12Z, transcript line 5264) and the Owner's answer `ตาแนะนำ` (17:10:27Z, line 5268), transcribed byte for byte by script in evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-kernel-deletion-gap.md and mirrored in required_human_authorities. Reading `ตาแนะนำ` as `ตามแนะนำ` (\"as recommended\") is A0's reading, marked there.",
-    "db/foundation/lint/audit-coverage-map.json's 34 line pins into this manifest move by one (one required_human_authorities line above open_blockers). The pin publish.now_or_cancel (index 167) quotes a JSON-escaped phrase and matches the manifest's raw line only after unescaping, on main as here."
+    "THIS INCREMENT records PR #268 (merge 0d566c1f, final head d8f02b36) and PR #281 (merge 01b49187, final head e3eaf3ce) after their merges, from gh, git and the role and audit files on main (evidence/WP-0A-DB-00/records-transcription-2026-10-17.md): open_blockers[207] and [208] appended, [0]..[206] byte-equal.",
+    "#268's press error is recorded as #276 and #277 recorded #269, #270 and #274: A1's and Q0's carry clauses did not reach the final head d8f02b36 as worded (the merge 649ef191 changed test-kits/integrity-manifest.json, a path #268 changes); C0-AUD1017-1, A1-AUD1017-2, Q0-AUD1017-1, R0-AUD1017-1. Measured afterwards nothing changed (Q0 831/831 at d8f02b36; regenerate:manifest clean at 649ef191); no revert is owed.",
+    "The branch agent/claude/WP-0A-DB-00-batch-rfc-030-risk-tiered-review is recreated from main ba3efcfd because #281's press used --delete-branch (A1-AUD1017-5).",
+    "ownership.amends_without_owning.paths is emptied (test-kits/integrity-manifest.json was a dead amendment, verify-branch-scope exit 74); that removes two lines above open_blockers, so db/foundation/lint/audit-coverage-map.json's 34 line pins are lowered by exactly two, no other field changed, as 33e02ab0 did on 2026-10-08."
   ],
   "acceptance_results": [
     {
-      "criterion": "A platform-kernel file once created that leaves the repository fails §C test 2, with or without its test; job-store.ts may still be absent; the head passes",
-      "result": "pass for author self-check: mutation by staged git rm, reset after each: none -> pass; index.ts, run.ts, both, index.ts+index.test.ts, run.ts+run.test.ts, all four -> test 2 fails ('a platform-kernel file once created left the repository'); controls vitest.config.ts and apps/web/app/page.tsx -> fail; a staged stub job-store.ts -> pass; test 3 passes in every row. The origin/main test passes both-deleted and all-four-deleted (the gap) and fails vitest.config.ts."
+      "criterion": "Every merge fact and quoted verdict or Owner word in the records has a source on main or in gh",
+      "result": "pass for author self-check: mergedAt, mergeCommit, headRefOid, mergedBy from gh pr view; CI runs, jobs and lane lines from gh api check-runs and gh run view --log; role-file blobs compared with git rev-parse; quotes copied from the role, audit and disposition files on main. Not a role verdict."
     },
     {
-      "criterion": "The Owner's words transcribed byte for byte",
-      "result": "pass for author self-check: the A1-280-1 paragraph equals the transcript line 5264 paragraph, the closing question is a substring of it, and the answer equals line 5268's content, asserted by script"
+      "criterion": "The coverage-map re-pin is mechanical",
+      "result": "pass for author self-check: 34 \"line\" values each lowered by 2, nothing else changed; node --test --test-name-pattern 'audit coverage map names real tables' test-kits/db/foundation-contract.test.mjs fails without the re-pin (open_blockers[21] is not on work-packages/WP-0A-DB-00.json:278) and passes with it"
     }
   ],
   "tests": [
     {
-      "command": "npm run validate:protocol",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (records commit 805881d9, under the suite lock)",
       "exit_code": 0,
-      "result": "valid"
+      "result": "clean: exit 0 — tests 843, pass 843, fail 0"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (change commit 09206604, under the suite lock)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (lane-wording commit 82aaa417, under the suite lock)",
       "exit_code": 0,
       "result": "clean: exit 0 — tests 843, pass 843, fail 0"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
       "exit_code": 0,
-      "result": "all 6 changed path(s) are declared, and every amendment explains one"
+      "result": "all 4 changed path(s) are declared, and every amendment explains one (measured at 805881d9)"
+    },
+    {
+      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD",
+      "exit_code": 1,
+      "result": "NOT records-only: db/foundation/lint/audit-coverage-map.json outside evidence/<package>/**, handoffs/*.json and work-packages/*.json (measured at 805881d9)"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "tier H; lane governance: db/foundation/lint/audit-coverage-map.json (data the database guards read), test-kits/db/foundation-contract.test.mjs (the foundation contract test, which pins the classifier), test-kits/integrity-manifest.json; it prints additive-eligible: yes, but the change rewrites an assertion of a test that pins the classifier, so it is not additive and stays governance"
+      "result": "tier H; lane governance (audit-coverage-map.json, the data the database guards read); additive-eligible: yes, risk only once A1 and Q0 confirm in writing on the final head (measured at 805881d9)"
+    },
+    {
+      "command": "node --test --test-name-pattern 'audit coverage map names real tables' test-kits/db/foundation-contract.test.mjs",
+      "exit_code": 0,
+      "result": "pass 1 with the re-pin; fail 1 without it (open_blockers[21] is not on work-packages/WP-0A-DB-00.json:278)"
+    },
+    {
+      "command": "npm run validate:protocol",
+      "exit_code": 0,
+      "result": "valid"
     },
     {
       "command": "npm run regenerate:manifest",
       "exit_code": 0,
-      "result": "rebuilt 128 digest(s)"
+      "result": "rebuilt 128 digest(s); no change to test-kits/integrity-manifest.json"
     },
     {
       "command": "npm run check:handoff",
@@ -80,23 +88,25 @@
       "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Integrity only: a test pins two existing files as present; no guard is lowered, no exemption widened, no authority granted beyond the Owner's own words; no credential, customer data or provider call.",
+  "security_privacy_cost_impact": "None: records of merges and role words already on main; no credential, personal data, customer content or provider call. The added lines quote only role files, audit files and Owner dispositions on main.",
   "migration_and_data_impact": "None. audit-coverage-map.json changes only line numbers of its pins into this manifest.",
   "compatibility_impact": "No contract changes; no contract-catalog file.",
   "known_limitations": [
-    "The pinned list is written by hand: when WP-1A-A0-003 creates adapters/job-store.ts, that pull request must add it to PLATFORM_KERNEL_CREATED in §C test 2, or a later deletion of job-store.ts would not fail the test.",
-    "RFC-2026-007 §F's text still says the gap exists; this PR records the closure in the manifest only, as the Owner's answer reaches the test and not the RFC."
+    "Not records-only by RFC-2026-025 §6.1: the coverage-map re-pin is under db/. The lane printed is governance (tier H; additive-eligible: yes, risk only once A1 and Q0 confirm in writing on the final head that every guard hunk only adds; the re-pin changes 34 values and adds nothing).",
+    "Owed outside this package's writable_paths and not done here: R0-281-1 (a dated note on RFC-2026-007 §F item 4, WP-0A-A0-004), R0-281-2 option (ii) (an open_blockers entry in WP-1A-A0-003 for adapters/job-store.ts and PLATFORM_KERNEL_CREATED), WP-0A-A0-002's acknowledgement of the manifest regenerations (R0-AUD1017-5).",
+    "Owed by A0 outside the repository: telling the Owner the count of carry-clause press errors is four, not three (C0-AUD1017-1, R0-AUD1017-1). Any further after-the-fact statements by A1 or Q0 on #268 are theirs to give."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (A1-280-1 fix; Owner's reply of 2026-10-16T17:10:27Z). Round one at 34319ac8: C0 review_approved, A1 security_approved (no security finding), Q0 test_verified 843/843, R0 ready; files carried with -x. A0 presses once CI is green on both jobs on the final head, with --match-head-commit. Owed after merge (R0-281-2 option (ii), recommended by R0): a records entry in WP-1A-A0-003 open_blockers that the PR creating adapters/job-store.ts must add it to PLATFORM_KERNEL_CREATED (C0-281-1, A1-281-1, Q0-281-1 offered the self-enforcing assertion as an alternative); R0-281-1: RFC-2026-007 §F item 4 becomes false at merge — a dated note by WP-0A-A0-004 is owed."
+    "GOVERNANCE LANE AS PRINTED (classify-review-tier --lane: tier H, lane governance, additive-eligible: yes; db/foundation/lint/audit-coverage-map.json is guard data). Not records-only. The press authority under RFC-2026-034 §2.2 / RFC-2026-025 §5 item 6 for a governance-lane records PR is A0's to establish; A0 had planned the risk lane (Q-034-1), which the classifier does not print unless A1 and Q0 confirm the additive rule. No role has read this branch; no role verdict is claimed. No status move: status stays in_review."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores the earlier test body, removes the disposition and the required_human_authorities entry and shifts the pins back; nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[207] and [208] and the records transcription, restores the declared path and shifts the 34 pins back by two; nothing depends on them.",
   "recommended_next_work_packages": [
-    "WP-1A-A0-003: the pull request that creates adapters/job-store.ts adds it to PLATFORM_KERNEL_CREATED."
+    "WP-1A-A0-003: the records entry of R0-281-2 option (ii); the pull request that creates adapters/job-store.ts adds it to PLATFORM_KERNEL_CREATED.",
+    "WP-0A-A0-004: the dated note on RFC-2026-007 §F item 4 (R0-281-1)."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-DB-00/product-owner-disposition-2026-10-17-kernel-deletion-gap.md, then git diff origin/main -- test-kits/db/foundation-contract.test.mjs.",
-    "Repeat the deletions: git rm the kernel files (with and without their tests), run node --test --test-name-pattern='records-only diff on the repository as it stands' test-kits/db/foundation-contract.test.mjs, reset after each."
+    "Read evidence/WP-0A-DB-00/records-transcription-2026-10-17.md, then check each fact against gh pr view 268/281 and the cited role and audit files on main.",
+    "git diff origin/main -- db/foundation/lint/audit-coverage-map.json: every changed line differs only in \"line\", lowered by 2; run node --test --test-name-pattern 'audit coverage map names real tables' test-kits/db/foundation-contract.test.mjs."
   ],
   "superseded_by": null
 }
