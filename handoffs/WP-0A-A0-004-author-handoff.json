@@ -5,20 +5,24 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "ba3efcfdd2e9f9da7f79da25fe07fb0d903c031d",
-  "head_revision_or_patch_checksum": "6e1b3d2db6c036911557417144403cb64cf52138",
+  "head_revision_or_patch_checksum": "ca57a8259e7498462fc5c09f9e05b9dbdb6bd995",
   "task_ids": [
     "WP-0A-A0-004",
     "gov-a004g-ci-shell-env-2026-10-17"
   ],
   "files_added": [
     "evidence/WP-0A-A0-004/a1-review-2026-10-17-pr287-r2.md",
+    "evidence/WP-0A-A0-004/a1-review-2026-10-17-pr287-r3.md",
     "evidence/WP-0A-A0-004/a1-review-2026-10-17-pr287.md",
     "evidence/WP-0A-A0-004/c0-review-2026-10-17-pr287-r2.md",
+    "evidence/WP-0A-A0-004/c0-review-2026-10-17-pr287-r3.md",
     "evidence/WP-0A-A0-004/c0-review-2026-10-17-pr287.md",
     "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-ci-shell-env.md",
     "evidence/WP-0A-A0-004/q0-review-2026-10-17-pr287-r2.md",
+    "evidence/WP-0A-A0-004/q0-review-2026-10-17-pr287-r3.md",
     "evidence/WP-0A-A0-004/q0-review-2026-10-17-pr287.md",
     "evidence/WP-0A-A0-004/r0-review-2026-10-17-pr287-r2.md",
+    "evidence/WP-0A-A0-004/r0-review-2026-10-17-pr287-r3.md",
     "evidence/WP-0A-A0-004/r0-review-2026-10-17-pr287.md"
   ],
   "files_modified": [
@@ -103,7 +107,7 @@
     "The key allowlists are pinned to main's ci.yml as of f0715913: a later ci.yml change that adds a key to the application job (a new step env:, a with: input) must widen the list in the same governance pull request."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (A1-279-3 shell:/defaults and Q0-279r2-2 runner env/path writes in the application-job test). PR #287 round 3 (3610d86f, a residual sentence for A1-287r2-1, no code change). Role files of rounds one (069a537d) and two (f38db9c9) are carried with -x; they are verdicts on those heads, not this one: every role re-reads this head. A0 presses under gov-a004g, the Owner's AskUserQuestion answer of 2026-10-17T11:53:17.372Z, question 2 (transcript line 6137: 'A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)'), once C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs and no security finding is open, with --match-head-commit."
+    "GOVERNANCE (A1-279-3 shell:/defaults and Q0-279r2-2 runner env/path writes in the application-job test). PR #287 round 3 (3610d86f, a residual sentence for A1-287r2-1, no code change). Role files of rounds one (069a537d), two (f38db9c9) and three (2c50e9a8) are carried with -x; the round-three files are the verdicts for the press (C0 review_approved, A1 security_approved, Q0 test_verified, R0 ready). A0 presses under gov-a004g, the Owner's AskUserQuestion answer of 2026-10-17T11:53:17.372Z, question 2 (transcript line 6137: 'A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)'), once C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs and no security finding is open, with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR removes the two readings and their controls from test-kits/app-stack.test.mjs, the gov-a004g records and the disposition, and regenerates the integrity manifest. No data, provider or credential effect.",
   "recommended_next_work_packages": [
