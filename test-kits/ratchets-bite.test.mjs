@@ -966,6 +966,74 @@ test('the commit gate runs its verifier with no GIT_* of its caller\'s', async (
   }
 });
 
+// A1-292-7. The verifier runs with no `GIT_*`, so it checks the repository it finds from its directory
+// and that repository's own index. A caller whose GIT_INDEX_FILE named another index had the gate
+// stage and commit that index while the verifier's guards read the other: a file a guard refuses was
+// committed at exit 0. Each variable that points git elsewhere must be refused with 95 before anything
+// is staged, the index and any other index untouched, nothing committed; GIT_INDEX_FILE naming the
+// repository's own index (a plain `git commit`'s pre-commit hook) is allowed and reaches the verifier.
+test('the commit gate refuses a caller whose GIT_* points git away from what its verifier checks', async () => {
+  const { root, ok } = await throwawayRepository("process.stderr.write('NOT clean\\n');\nprocess.exit(3);\n");
+  try {
+    const { indexFile, bytes } = await flaggedIndex(root, ok);
+    const other = join(root, '.git', 'another-index');
+    await writeFile(other, bytes);
+    const head = ok('rev-parse', 'HEAD');
+    const message = join(root, '.git', 'probe-message.txt');
+    const run = (extra) => spawnSync('node', [join(REPOSITORY, 'scripts/commit-when-clean.mjs'), message],
+      { cwd: root, encoding: 'utf8', env: { ...CHILD_ENV, ...extra } });
+    const refusals = [
+      ['GIT_DIR', join(root, '.git')],
+      ['GIT_WORK_TREE', root],
+      ['GIT_COMMON_DIR', join(root, '.git')],
+      ['GIT_OBJECT_DIRECTORY', join(root, '.git', 'objects')],
+      ['GIT_ALTERNATE_OBJECT_DIRECTORIES', join(root, '.git', 'objects')],
+      ['GIT_INDEX_FILE', other],
+    ];
+    let ran = 0;
+    for (const [name, value] of refusals) {
+      const refused = run({ [name]: value });
+      assert.equal(refused.status, 95, `${name}: the gate must refuse before staging:\n${refused.stdout}${refused.stderr}`);
+      assert.match(refused.stderr, new RegExp(name), `${name}: and name the variable`);
+      assert.equal(ok('rev-parse', 'HEAD'), head, `${name}: and make no commit`);
+      assert.ok((await readFile(indexFile)).equals(bytes), `${name}: and leave the repository's index untouched`);
+      assert.ok((await readFile(other)).equals(bytes), `${name}: and leave the other index untouched`);
+      ran += 1;
+    }
+    assert.equal(ran, refusals.length, `${ran} of ${refusals.length} variables executed`);
+    const allowed = run({ GIT_INDEX_FILE: indexFile });
+    assert.equal(allowed.status, 3, `GIT_INDEX_FILE naming the repository's own index must reach the verifier:\n${allowed.stdout}${allowed.stderr}`);
+    assert.ok((await readFile(indexFile)).equals(bytes), 'and its refusal still puts the index back');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+// C0-292r2-1. An index git could not read before the gate ran is refused with 95 (`git write-tree`
+// fails on it), and the gate must leave it as it found it. The first version's readability check
+// then "rebuilt" it from HEAD, replacing what the caller had staged while saying nothing was staged.
+test('the commit gate leaves an index git could not read before it ran as it found it', async () => {
+  const { root, ok, git, gate } = await throwawayRepository('// exits 0 and prints nothing\n');
+  try {
+    await writeFile(join(root, 'staged-one.txt'), 'one\n');
+    await writeFile(join(root, 'staged-two.txt'), 'two\n');
+    ok('add', 'staged-one.txt', 'staged-two.txt');
+    const indexFile = join(root, '.git', 'index');
+    const corrupted = Buffer.from(await readFile(indexFile));
+    corrupted.write('XXXX', 0);
+    await writeFile(indexFile, corrupted);
+    assert.notEqual(git('ls-files', '-s').status, 0, 'git must be unable to read the index for this case to mean anything');
+    const head = ok('rev-parse', 'HEAD');
+
+    const refused = gate();
+    assert.equal(refused.status, 95, `the gate must refuse with 95:\n${refused.stdout}${refused.stderr}`);
+    assert.ok((await readFile(indexFile)).equals(corrupted), 'and leave the index byte for byte as it found it');
+    assert.equal(ok('rev-parse', 'HEAD'), head, 'and make no commit');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 // A1-292-4. A terminal's Ctrl-C reaches the gate's whole process group, so it kills a `git add -A` in
 // progress as well as interrupting the gate. The gate read git's failure first and exited 1 -- a
 // caller reading only the code saw a failed `git add`, not an interrupt. It must exit 130 with the
@@ -1088,7 +1156,7 @@ test('a caller\'s GIT_* environment reaches no repository but the cases\' own', 
       const names = Object.keys(redirection).join(', ');
       const count = (key) => Number(output.match(new RegExp(`^ℹ ${key} (\\d+)$`, 'm'))?.[1] ?? -1);
       assert.equal(run.status, 0, `the commit-gate cases must pass with ${names} pointed at another repository:\n${output}`);
-      assert.ok(count('pass') >= 8 && count('fail') === 0, `and run every commit-gate case (pass ${count('pass')}, fail ${count('fail')}):\n${output}`);
+      assert.ok(count('pass') >= 10 && count('fail') === 0, `and run every commit-gate case (pass ${count('pass')}, fail ${count('fail')}):\n${output}`);
       const after = await filesUnder(victim);
       const changed = [...new Set([...before.keys(), ...after.keys()])].filter((path) => before.get(path) !== after.get(path));
       assert.deepEqual(changed, [], `with ${names} set, the caller's repository must be untouched`);

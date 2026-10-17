@@ -143,8 +143,8 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   // before staging, and its 90 and 92 refusals restore the index, 20 to 23. (2026-10-18, A1-278r2-1, A1-278r2-2): the
   // index file put back byte for byte with its flags, an interrupt during the verifier, and no caller GIT_*, 23 to 26;
   // (2026-10-18, A1-292-1, A1-292-4, Q0-292-2): a split index left readable, an interrupt during git add, the verifier
-  // given no caller GIT_*, 26 to 29.
-  'test-kits/ratchets-bite.test.mjs': 29,
+  // given no caller GIT_*, 26 to 29; (A1-292-7, C0-292r2-1): a caller's GIT_* refused, an unreadable index left, 29 to 31.
+  'test-kits/ratchets-bite.test.mjs': 31,
   'test-kits/repository-json.test.mjs': 8,
   'test-kits/role-separation.test.mjs': 8,
   'test-kits/secret-scan.test.mjs': 59,
@@ -380,8 +380,8 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   // WP-0A-CON-008 (2026-10-16, Q0-265-4, A1-278-1, A1-278-4): the commit gate's three cases, 36 to 55, the guard's own count.
   // (2026-10-18, A1-278r2-1, A1-278r2-2): three more cases, 55 to 74, the guard's own count; (A1-292-1, A1-292-3,
   // A1-292-4, Q0-292-1, Q0-292-2): three more cases, SIGQUIT beside SIGTERM and a time bound, 74 to 91, the guard's own
-  // count.
-  'test-kits/ratchets-bite.test.mjs': 91,
+  // count; (A1-292-7, C0-292r2-1): two more cases, 91 to 103, the guard's own count.
+  'test-kits/ratchets-bite.test.mjs': 103,
   'test-kits/repository-json.test.mjs': 18,
   'test-kits/role-separation.test.mjs': 8,
   'test-kits/secret-scan.test.mjs': 116,
@@ -458,8 +458,8 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/protocol-schema-conformance.test.mjs': 'dc9a77399529cead',
   // WP-0A-CON-008 (2026-10-16): three commit-gate names added, none removed or renamed. (2026-10-18, A1-278r2-1,
   // A1-278r2-2): three more added, none removed or renamed; (A1-292-1, A1-292-4, Q0-292-2): three more added, none removed or
-  // renamed.
-  'test-kits/ratchets-bite.test.mjs': 'f897e940d39a8264',
+  // renamed; (A1-292-7, C0-292r2-1): two more added, none removed or renamed.
+  'test-kits/ratchets-bite.test.mjs': '26f1fa6d9e402703',
   'test-kits/repository-json.test.mjs': '7e434c46d2b5cd7a',
   'test-kits/role-separation.test.mjs': '00a4c859fecdbbae',
   'test-kits/secret-scan.test.mjs': '29224e8a816a48e5',

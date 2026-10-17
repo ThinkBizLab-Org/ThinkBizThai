@@ -16,7 +16,7 @@
 // first).
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { constants } from 'node:os';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -69,6 +69,40 @@ async function main(argv) {
   if (!messageFile) {
     process.stderr.write('usage: commit-when-clean.mjs <message-file>\n');
     return 2;
+  }
+
+  // THE CALLER MAY NOT POINT GIT AWAY FROM WHAT THE VERIFIER SEES (A1-292-7). The verifier runs
+  // with no `GIT_*` (VERIFIER_ENV, below), so it finds the repository from its directory and reads
+  // that repository's own index. A gate that honoured a caller's GIT_INDEX_FILE, GIT_DIR or
+  // GIT_WORK_TREE would stage and commit one index or tree while the verifier's guards read another:
+  // measured, a file an index-reading guard refuses was committed at exit 0 with GIT_INDEX_FILE set
+  // to a copy of the index. So such a caller is refused before anything runs, with 95 and nothing
+  // touched. GIT_INDEX_FILE naming the repository's own index -- what a pre-commit hook of a plain
+  // `git commit` is given -- is the same index the verifier reads, and is allowed; `git commit -a`
+  // and `git commit <paths>` give their hooks `index.lock` and `next-index-<pid>.lock`, which are
+  // refused.
+  for (const name of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES']) {
+    if (process.env[name] !== undefined) {
+      process.stderr.write(`refusing to commit: ${name} is set, so git would work on another repository, work tree or `
+        + 'object store than the one the verifier checks; unset it and run this again. Nothing was staged.\n');
+      return 95;
+    }
+  }
+  if (process.env.GIT_INDEX_FILE !== undefined) {
+    const indexOf = (env) => {
+      const where = spawnSync('git', ['rev-parse', '--git-path', 'index'], { encoding: 'utf8', stdio: 'pipe', env });
+      if (where.status !== 0) return null;
+      const path = resolve(where.stdout.trim());
+      try { return realpathSync(path); } catch { return path; }
+    };
+    const own = { ...process.env };
+    delete own.GIT_INDEX_FILE;
+    const given = indexOf(process.env);
+    if (given === null || given !== indexOf(own)) {
+      process.stderr.write(`refusing to commit: GIT_INDEX_FILE names ${given ?? process.env.GIT_INDEX_FILE}, not this `
+        + 'repository\'s own index, which is the one the verifier reads; unset it and run this again. Nothing was staged.\n');
+      return 95;
+    }
   }
 
   // The tree as it stands, before and after the verifier runs. `npm run verify` takes tens of
@@ -144,11 +178,19 @@ async function main(argv) {
   // The tree the index records before staging; set once `git write-tree` has run.
   let recordedTree = null;
   const readable = () => spawnSync('git', ['ls-files', '-s'], { stdio: ['ignore', 'ignore', 'pipe'] }).status === 0;
+  // Whether git could read the index as the gate found it. An index git could not read before the
+  // gate ran is not the gate's to repair (C0-292r2-1): it is refused with 95 and left as found.
+  const foundReadable = found === null || unreadable ? !unreadable : readable();
+  // Where the found bytes are kept when they cannot simply be put back: a name of this run's own,
+  // so a later run never overwrites a copy an earlier one kept (A1-292-8).
+  const kept = `${indexFile}.commit-when-clean-${Date.now()}-${process.pid}`;
   const putBack = () => {
+    // A shared index file is content-addressed: one with the right name and other bytes is as wrong
+    // as one that is gone, so it is written back in either case (A1-292-8).
     if (sharedFound !== null) {
-      let present = true;
-      try { readFileSync(sharedFile); } catch { present = false; }
-      if (!present) {
+      let present = null;
+      try { present = readFileSync(sharedFile); } catch { present = null; }
+      if (present === null || !present.equals(sharedFound)) {
         writeFileSync(`${sharedFile}.commit-when-clean.tmp`, sharedFound);
         renameSync(`${sharedFile}.commit-when-clean.tmp`, sharedFile);
       }
@@ -162,7 +204,6 @@ async function main(argv) {
     renameSync(lock, indexFile);
   };
   const restore = () => {
-    const kept = `${indexFile}.commit-when-clean`;
     try {
       putBack();
     } catch (error) {
@@ -173,11 +214,19 @@ async function main(argv) {
       return;
     }
     if (readable()) return;
+    // Rebuilt only from a tree recorded before staging, and only when git could read the index as
+    // found: otherwise the bytes found are what is left, untouched (C0-292r2-1).
+    if (!foundReadable || recordedTree === null) {
+      process.stderr.write(`git cannot read the index ${indexFile}`
+        + `${foundReadable ? ' and no tree was recorded before staging' : '; it could not before this gate ran either'}`
+        + ', so it is left as it was found; repair it (for example remove it and stage again) and run this again.\n');
+      return;
+    }
     try { if (found !== null) writeFileSync(kept, found); } catch { /* reported below */ }
     rmSync(indexFile, { force: true });
-    const rebuilt = run('git', ['read-tree', recordedTree ?? 'HEAD']);
+    const rebuilt = run('git', ['read-tree', recordedTree]);
     process.stderr.write('the index as found could not be read back after it was put back, so it was rebuilt '
-      + `from ${recordedTree === null ? 'HEAD' : `the tree it recorded before staging (${recordedTree})`} with git read-tree`
+      + `from the tree it recorded before staging (${recordedTree}) with git read-tree`
       + `${rebuilt.status === 0 ? '' : ' (which failed too; remove the index and stage again)'}: the staged set is kept, `
       + 'per-entry flags (intent-to-add, assume-unchanged, skip-worktree, sparse) are lost'
       + `${found === null ? '' : `; the bytes found are kept in ${kept}`}.\n`);
@@ -216,8 +265,7 @@ async function main(argv) {
     // A leftover `index.lock` makes `git write-tree` fail too; it is named, not left to read as a
     // conflict (Q0-292-4). The gate does not remove it: it may belong to a git that is still running.
     const lock = indexFile === null ? null : `${indexFile}.lock`;
-    let locked = false;
-    try { locked = lock !== null && readFileSync(lock) !== null; } catch { locked = false; }
+    const locked = lock !== null && existsSync(lock);
     process.stderr.write(locked
       ? `refusing to commit: ${lock} exists, so the index cannot be recorded; if no git process is running, `
         + 'remove it, then run this again. Nothing was staged.\n'

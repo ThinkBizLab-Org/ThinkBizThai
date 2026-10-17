@@ -123,3 +123,18 @@ Q0 then verified `2cc53986` (`test_verified`, `evidence/WP-0A-CON-008/q0-review-
 round answers Q0-292-1 (a time bound on the interrupt case), Q0-292-2 (the verifier runs with no `GIT_*` of the
 gate's caller) and Q0-292-4 (a leftover `index.lock` is named); A0 reads them as inside §3's content for the same
 reason as A1's and C0's findings. A0's reading.
+
+## 8. Round 3 (2026-10-18, after the role readings at `7f2943c2`)
+
+No new words of the Owner's are recorded here; §2 is unchanged. At `7f2943c2` (round 2 plus A0's mechanical sync with
+`main` at `27e0ee39`), A1 requested changes on A1-292-7 (Low, against the PR's own diff: with the verifier given no
+`GIT_*`, a caller's `GIT_INDEX_FILE` naming another index had the gate commit what the verifier's guards had not read),
+with A1-292-8 (Info) (`evidence/WP-0A-CON-008/a1-review-2026-10-18-pr292-r2.md` on
+`a1/WP-0A-CON-008-pr292-r2-2026-10-18`); C0 approved with C0-292r2-1 (Low: the rebuild fallback rewrote an index that
+was unreadable before the gate ran) and C0-292r2-2 to -4 (Info); R0 found the PR ready with R0-292-5 to -8 (Info).
+
+This round takes A1's option (a) for A1-292-7 (the gate refuses, before anything runs, a caller whose `GIT_*` points
+git away from what the verifier checks) and fixes C0-292r2-1, A1-292-8 and the records R0-292-5, R0-292-6 and
+C0-292r2-2 and -3 name. A0's reading, as in §7: these are inside §3's content, they are re-verified by every required
+role before a press (RFC-2026-025 §5 item 2), and §3's press conditions are unchanged: A0 presses only once A1, on its
+re-read, holds no security finding of any grade open against the PR.

@@ -10,7 +10,8 @@
     "WP-0A-CON-008",
     "a1-278r2-1-index-flags-2026-10-18",
     "a1-278r2-2-git-env-2026-10-18",
-    "pr292-round-2-2026-10-18"
+    "pr292-round-2-2026-10-18",
+    "pr292-round-3-2026-10-18"
   ],
   "files_added": [
     "evidence/WP-0A-CON-008/a1-review-2026-10-18-pr292.md",
@@ -41,8 +42,8 @@
     "A1-278r2-2: CHILD_ENV in test-kits/ratchets-bite.test.mjs removes every GIT_* variable as a class (beside NODE_TEST_CONTEXT and NODE_OPTIONS) and is now the environment of every child the file starts: runSuite's suites, isolateGit's and throwawayRepository's git, the commit gate, the sweep case's node.",
     "Three cases added, none removed or renamed: 'the commit gate's refusals put the index file back byte for byte, its per-entry flags included', 'the commit gate puts the index back and stops its verifier when it is interrupted', 'a caller's GIT_* environment reaches no repository but the cases' own'. Measured to fail on the old code: the first two with origin/main's scripts/commit-when-clean.mjs (flags dropped; the gate dies of SIGTERM), the third with the GIT_* line removed from CHILD_ENV (with GIT_DIR and GIT_WORK_TREE set the cases fail on the other repository; with only GIT_INDEX_FILE and GIT_OBJECT_DIRECTORY set the cases fail too).",
     "Amended without owning, mechanically: scripts/test-suite-contract.mjs (WP-0A-A0-002) for ratchets-bite.test.mjs: test floor 23 to 26, assertion floor 55 to 74 (the guard's own counts), name digest 088ea5adcc8ee194 to 24e6ae248357857b; test-kits/integrity-manifest.json regenerated. Press authority: the Owner's reply of 2026-10-17T20:36:01.360Z, transcribed by script in evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-a1-278r2-fix.md (required_human_authorities[7]). status stays in_review.",
-    "ROUND 2 ON PR #292 (fix commit after A1's changes_requested and C0's review at 2cc53986): A1-292-1 (Low) the gate also keeps and restores the shared index file a split index names (git rev-parse --shared-index-path) and checks every restore with git ls-files -s, falling back to git read-tree of the recorded tree (staged set kept, flags lost, said on stderr, the refusal's own code) if git cannot read it; A1-292-5/C0-292-3 the not-clean path restores before releasing the handlers; A1-292-4 an interrupt that also kills git add -A exits 128 + n; A1-292-3 SIGQUIT handled (131); C0-292-1 the test comment's attribution corrected. Two cases added ('the commit gate reports an interrupt during its git add as the interrupt, with the index put back', 'the commit gate's refusal leaves a split index readable when git expires shared indexes at once') and the interrupt case now sends SIGTERM and SIGQUIT; each fails with 2cc53986's gate. scripts/test-suite-contract.mjs: ratchets-bite 26 to 28 tests, 74 to 87 assertions, name digest to b6e6e6f503eabe03. A1-292-2 recorded open in open_blockers[16] for its owners; A1-292-6 recorded as an Info residual.",
-    "ROUND 2, Q0's findings at 2cc53986: Q0-292-1 the interrupt case requires the gate to exit within 5 s of the signal (fails with the group kill removed: 59971 ms); Q0-292-2 the gate spawns its verifier with every GIT_* removed (VERIFIER_ENV), pinned by 'the commit gate runs its verifier with no GIT_* of its caller's' (fails with 2cc53986's gate); Q0-292-4 a leftover index.lock is named in the 95 message. scripts/test-suite-contract.mjs: ratchets-bite 26 to 29 tests, 74 to 91 assertions, name digest f897e940d39a8264."
+    "ROUND 2 ON PR #292 (commit 2971e0da, after the role readings at 2cc53986): A1-292-1 (Low) the gate also keeps and restores the shared index file a split index names (git rev-parse --shared-index-path) and checks every restore with git ls-files -s; A1-292-5/C0-292-3 the not-clean path restores before releasing the handlers; A1-292-4 an interrupt that also kills git add -A exits 128 + n; A1-292-3 SIGQUIT handled (131); C0-292-1 the test comment's attribution corrected; Q0-292-1 the interrupt case requires the gate to exit within 5 s of the signal; Q0-292-2 the verifier is spawned with every GIT_* removed (VERIFIER_ENV); Q0-292-4 a leftover index.lock is named in the 95 message. Three cases added and the interrupt case also sends SIGQUIT; each fails with 2cc53986's gate. scripts/test-suite-contract.mjs: ratchets-bite 26 to 29 tests, 74 to 91 assertions, name digest f897e940d39a8264. A1-292-2 recorded open in open_blockers[16] for its owners; A1-292-6 recorded as an Info residual.",
+    "ROUND 3 ON PR #292 (after the role readings at 7f2943c2, which carries A0's mechanical sync with main 27e0ee39): A1-292-7 (Low, A1's option (a)) the gate refuses with 95 before anything runs, naming the variable, when GIT_DIR, GIT_WORK_TREE, GIT_COMMON_DIR, GIT_OBJECT_DIRECTORY or GIT_ALTERNATE_OBJECT_DIRECTORIES is set or GIT_INDEX_FILE names another file than the repository's own index (a plain git commit's hook allowed; git commit -a and git commit <paths> hooks refused); C0-292r2-1 (Low) the rebuild fallback never runs on an index git could not read before the gate ran, nor without a recorded tree, and never from HEAD; A1-292-8 (Info) the shared index file is rewritten when missing or different, and found bytes are kept under a name of the run's own; C0-292r2-4 the lock check is an existence check. Two cases added: 'the commit gate refuses a caller whose GIT_* points git away from what its verifier checks', 'the commit gate leaves an index git could not read before it ran as it found it'; each fails with 7f2943c2's gate. scripts/test-suite-contract.mjs: ratchets-bite 29 to 31 tests, 91 to 103 assertions, name digest 26f1fa6d9e402703. open_blockers[16] corrects the round-2 hook sentence (plain commit vs -a vs <paths>, R0-292-6)."
   ],
   "acceptance_results": [
     {
@@ -60,14 +61,14 @@
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (substantive commit f8595c01, and 2971e0da for round 2, under the suite lock, on the branch name)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (substantive commit (this round-3 commit), under the suite lock, on the branch name)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 849, pass 849, fail 0, skipped 0, todo 0"
+      "result": "clean: exit 0 (see the commit log)"
     },
     {
       "command": "node --test --test-name-pattern='^the commit gate' test-kits/ratchets-bite.test.mjs",
       "exit_code": 0,
-      "result": "tests 9, pass 9, fail 0"
+      "result": "tests 11, pass 11, fail 0"
     },
     {
       "command": "the two new commit-gate cases with origin/main's scripts/commit-when-clean.mjs",
@@ -80,9 +81,9 @@
       "result": "fail 1 (expected)"
     },
     {
-      "command": "the four round-2 cases against 2cc53986's scripts/commit-when-clean.mjs",
+      "command": "the four round-2 cases against 2cc53986's gate, and the two round-3 cases against 7f2943c2's",
       "exit_code": 1,
-      "result": "fail 4 (expected: dies of SIGQUIT; exits 1 not 130 on an interrupt during git add; leaves a split index git cannot read; the verifier sees the caller's GIT_*)"
+      "result": "fail 4 (expected: dies of SIGQUIT; exits 1 not 130 on an interrupt during git add; leaves a split index git cannot read; the verifier sees the caller's GIT_*; round 3: fail 2, a caller's GIT_* not refused, an unreadable index rebuilt from HEAD)"
     },
     {
       "command": "node scripts/verify-test-coverage-floor.mjs",
@@ -92,12 +93,12 @@
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008",
       "exit_code": 0,
-      "result": "WP-0A-CON-008: all 8 changed path(s) are declared, and every amendment explains one"
+      "result": "every changed path declared"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "tier: H (8 path(s), dbde14d..2971e0d);lane: governance"
+      "result": "lane: governance"
     },
     {
       "command": "npm run check:handoff",
@@ -107,10 +108,10 @@
   ],
   "security_privacy_cost_impact": "Local commit tooling and its tests. The commit gate now writes the caller's own index bytes back on a refusal instead of a tree-derived index, so a skip-worktree or assume-unchanged local edit (a common way to keep a private configuration out of commits) stays hidden after a refusal; the test children can no longer act on a repository named by an inherited GIT_* variable. No credential, personal data, customer data, provider call, CI file, RFC or contract.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes. scripts/commit-when-clean.mjs keeps its usage and every exit code, and adds 129, 130 and 143 for SIGHUP, SIGINT and SIGTERM between staging and the commit (previously the gate died of the signal). The verifier runs in a process group of its own, so a terminal's Ctrl-C reaches it through the gate.",
+  "compatibility_impact": "No contract changes. scripts/commit-when-clean.mjs keeps its usage and every exit code, and adds 129, 130, 131 and 143 for SIGHUP, SIGINT, SIGQUIT and SIGTERM between staging and the commit (previously the gate died of the signal); 95 now also refuses, before anything runs, a caller whose GIT_DIR, GIT_WORK_TREE, GIT_COMMON_DIR, GIT_OBJECT_DIRECTORY or GIT_ALTERNATE_OBJECT_DIRECTORIES is set or whose GIT_INDEX_FILE is not the repository's own index; the verifier runs with no GIT_*. The verifier runs in a process group of its own, so a terminal's Ctrl-C reaches it through the gate.",
   "known_limitations": [
     "SIGKILL, or a crash of the gate itself, still leaves the index staged; a failing git commit leaves it staged, as on main (R0-278-1, C0-278-3).",
-    "The gate itself still honours its own caller's GIT_* (run from a hook it stages into the hook's index, as git does); A1's 'the gate's ... child environment' (A1-AUD1017-1 (2)) is read as the gate the cases start, whose environment has no GIT_*.",
+    "The gate's own git calls honour only a GIT_INDEX_FILE that names the repository's own index; every other GIT_* that points git elsewhere is refused with 95 (A1-292-7), and the verifier runs with no GIT_* (Q0-292-2).",
     "The GIT_* case runs the commit-gate cases but the .config/ one in its child (that one's git calls are isolateGit and the gate, as the red-tree case's are); runSuite's suites get CHILD_ENV by construction and are not run under a redirected GIT_* by any case.",
     "A1-292-2 (Low, pre-existing on main, not this PR's): test-kits/ci-guard-behaviour.test.mjs and test-kits/handoff-conformance.test.mjs (this package's) and test-kits/branch-scope.test.mjs (WP-0A-A0-004's) start git with the caller's GIT_* inherited; recorded in open_blockers[16], owed before the next press of any of them.",
     "A1-292-6 (Info, not measured): the restored index file has a new mtime, so a racily clean entry is no longer re-checked by content; it can hide a same-size edit made in the same timestamp tick from git status, and commits nothing.",
