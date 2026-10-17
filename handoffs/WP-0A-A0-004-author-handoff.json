@@ -4,29 +4,15 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "6fd6aa0ed9a0a8504442d1aad7f7ae72794baeb3",
-  "head_revision_or_patch_checksum": "1e32d86b3e60889680ec6e80c0d1f17edfb0b603",
+  "base_revision": "09a059919f504819954932289f5299dd86875529",
+  "head_revision_or_patch_checksum": "09a059919f504819954932289f5299dd86875529",
   "task_ids": [
     "WP-0A-A0-004",
     "gov-a004e-rfc007-f-note-2026-10-17",
     "gov-a004f-press-answer-2026-10-17"
   ],
-  "files_added": [
-    "evidence/WP-0A-A0-004/a1-review-2026-10-17-pr283-r2.md",
-    "evidence/WP-0A-A0-004/a1-review-2026-10-17-pr283.md",
-    "evidence/WP-0A-A0-004/c0-review-2026-10-17-pr283-r2.md",
-    "evidence/WP-0A-A0-004/c0-review-2026-10-17-pr283.md",
-    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-rfc-007-f-note.md",
-    "evidence/WP-0A-A0-004/q0-review-2026-10-17-pr283.md",
-    "evidence/WP-0A-A0-004/r0-review-2026-10-17-pr283-r2.md",
-    "evidence/WP-0A-A0-004/r0-review-2026-10-17-pr283.md"
-  ],
-  "files_modified": [
-    "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
-    "handoffs/WP-0A-A0-004-author-handoff.json",
-    "test-kits/integrity-manifest.json",
-    "work-packages/WP-0A-A0-004.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-007",
