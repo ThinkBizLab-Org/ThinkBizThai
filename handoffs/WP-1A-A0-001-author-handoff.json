@@ -4,22 +4,19 @@
   "work_package_id": "WP-1A-A0-001",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "3070d888e164e0979cf438e86af6d4c83c02fc79",
-  "head_revision_or_patch_checksum": "9670d32df3c131bd22de626d0b0a27c1408b24b9",
+  "base_revision": "09a059919f504819954932289f5299dd86875529",
+  "head_revision_or_patch_checksum": "3267c0969147ccd98b3d2e9c8533313448ba09b1",
   "task_ids": [
     "WP-1A-A0-001",
-    "rfc-029-approval-2026-10-12"
+    "rfc-029-approval-2026-10-12",
+    "omit-dev-note-2026-10-17"
   ],
   "files_added": [
-    "evidence/WP-1A-A0-001/a1-reread-2026-10-12-pr256.md",
-    "evidence/WP-1A-A0-001/a1-review-2026-10-12-pr256.md",
-    "evidence/WP-1A-A0-001/c0-reread-2026-10-12-pr256.md",
-    "evidence/WP-1A-A0-001/c0-review-2026-10-12-pr256.md",
-    "evidence/WP-1A-A0-001/product-owner-disposition-2026-10-12-rfc-029-approval.md",
-    "evidence/WP-1A-A0-001/q0-reread-2026-10-12-pr256.md",
-    "evidence/WP-1A-A0-001/q0-review-2026-10-12-pr256.md",
-    "evidence/WP-1A-A0-001/r0-reread-2026-10-12-pr256.md",
-    "evidence/WP-1A-A0-001/r0-review-2026-10-12-pr256.md"
+    "evidence/WP-1A-A0-001/a1-review-2026-10-17-pr285.md",
+    "evidence/WP-1A-A0-001/c0-review-2026-10-17-pr285.md",
+    "evidence/WP-1A-A0-001/product-owner-disposition-2026-10-17-omit-dev-wording.md",
+    "evidence/WP-1A-A0-001/q0-review-2026-10-17-pr285.md",
+    "evidence/WP-1A-A0-001/r0-review-2026-10-17-pr285.md"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-029-application-tier-stack.md",
@@ -31,20 +28,19 @@
   "decisions_consumed": [
     "RFC-2026-025",
     "RFC-2026-029",
-    "RFC-2026-031",
     "RFC-2026-034"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT transcribes the Product Owner's answers of 2026-10-11 UTC (asked 18:42:55Z, answered 18:46:09Z, session c2816eec) in evidence/WP-1A-A0-001/product-owner-disposition-2026-10-12-rfc-029-approval.md: his choice `อนุมัติ RFC-029 ตามที่เขียน + ปรับ §7 ตาม RFC-034 (Recommended)` for RFC-2026-029, and his direction `A0 กดได้เองเมื่อ 4 role ผ่าน (Recommended)` that A0 may press the WP-1A-A0-002 skeleton pull request once C0, A1, Q0 and R0 pass on its final head and CI is green. RFC-2026-029's status line now says so.",
-    "§7 now follows RFC-2026-034 §2.1: application code, fakes and consumer tests against contracts at Candidate or above may be merged into src/modules/ and apps/ as reversible work (synthetic data only; local and CI databases only; no provider bound); Draft stays a spike; every contract a deploy uses is Frozen before paid beta, real customer data or a production deploy. Dated facts in §7 and §11 are brought up to main at 3070d888.",
-    "amends_without_owning.paths narrows to test-kits/integrity-manifest.json, the one amendment this increment makes (the RFC's digest); the three registration paths explained PR #215 only.",
-    "GOVERNANCE (RFC-2026-034 §2.2: architecture/decisions/**): C0, A1, Q0 and R0 read the final head; the Product Owner merges it personally (RFC-2026-025 §5 item 6). The skeleton direction does not reach this PR."
+    "THIS INCREMENT (omit-dev-note-2026-10-17) appends a dated note under RFC-2026-029 §4 item 6 (§4.6): CI's step \"Vulnerability audit (network)\" runs `npm audit --include=dev --audit-level=high` (.github/workflows/ci.yml line 1354 on main at 6fd6aa0e) since PR #279 (42b37f00; A1-270-1), where the item's sentence, kept as written, proposes `--omit=dev`. No other line of the RFC changes.",
+    "Press authority: the Product Owner's answer of 2026-10-17T11:53:17Z to question 2 (header `gov ที่เหลือ`), `A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)`, and his message of 12:24:40Z `ลุยต่อเลย ไม่ต้องหยุดถาม`, transcribed by script in evidence/WP-1A-A0-001/product-owner-disposition-2026-10-17-omit-dev-wording.md and appended to required_human_authorities (INCREMENT 2026-10-17 omit-dev-note). The manifest's first required_human_authorities entry (the Owner merges personally) concerned the approval of RFC-2026-029 by PR #256 and is kept as written (append-only).",
+    "work-packages/WP-1A-A0-002.json acceptance_criteria[7] and deterministic_commands.package_evidence[4] still read --omit=dev. They are WP-1A-A0-002's and outside this package's writable_paths; a separate WP-1A-A0-002 pull request corrects them, as the note says.",
+    "GOVERNANCE (RFC-2026-034 §2.2: architecture/decisions/**): C0, A1, Q0 and R0 read the final head; CI green on bootstrap and application."
   ],
   "acceptance_results": [
     {
-      "criterion": "Owner's words transcribed verbatim with transcript times; §7 matches RFC-2026-034 §2.1; nothing installs a package, adds a lockfile entry, creates apps/ or src/, changes CI or provisions a provider",
+      "criterion": "The note records what CI runs, cites PR #279 and A1-270-1, keeps §4 item 6's sentence whole, names the two WP-1A-A0-002 strings left to that package, and changes no rule, threshold, CI step, guard or test; the Owner's words are quoted byte-exact by script with transcript lines and times",
       "result": "pass for author self-check; independent reading owed"
     }
   ],
@@ -55,7 +51,12 @@
       "result": "valid"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (the approval commit)",
+      "command": "npm run regenerate:manifest",
+      "exit_code": 0,
+      "result": "rebuilt 128 digest(s); RFC-2026-029's digest changes"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs <message-file> (the omit-dev-note commit)",
       "exit_code": 0,
       "result": "clean: exit 0 — the full suite under the suite lock"
     },
@@ -65,29 +66,34 @@
       "result": "every changed path declared, every amendment explains one"
     },
     {
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
+      "exit_code": 0,
+      "result": "lane: governance"
+    },
+    {
       "command": "npm run check:handoff",
       "exit_code": 0,
       "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Decision text only: approves the application tier's stack and dependency allowlist and lets application code on Candidate contracts merge as reversible, synthetic, provider-free work. No package installed, no credential, no customer data, no provider call.",
+  "security_privacy_cost_impact": "Decision text only: a dated note recording a CI command already on main. No package installed, no CI or lockfile change, no credential, no customer data, no provider call.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes: an RFC status line and section, a disposition and a manifest line; no contract-catalog file.",
+  "compatibility_impact": "No contract changes: a dated note in an RFC, a disposition and two appended manifest strings; no contract-catalog file.",
   "known_limitations": [
     "Still open from the 2026-10-07 review, owed by named packages (A1-256-2): A1 N1 (Low), any package the worker app builds or loads can read the worker database credential, and whether Vercel exposes it at build time is unmeasured, owed by WP-1A-A6-001; A1 N2 (Low), the answer to Q-028-3 must record that the Cron-called dispatcher is the worker, not a request path, and WP-1A-A0-004 must list the worker project's deployed routes. Both matter only once the worker is provisioned.",
     "Owed by other owners: evidence/g0-tracker-th.md:270 still says RFC-029 is unwritten (WP-0A-A0-001's file); OPEN-018 in the register is closed by the register's owner.",
     "The skeleton direction reaches the WP-1A-A0-002 skeleton pull request only. A dated amendment to RFC-029's allowlist (Q-029-7), or a provider SDK in the skeleton, is outside the direction: A0 asks the Owner before pressing such a skeleton pull request; if the skeleton is split, A0 asks again before pressing any part (disposition §3 (b), A0's reading)."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE, tier H, full path: C0, A1, Q0 and R0 on the final head; the Product Owner un-drafts and merges it personally with --match-head-commit (RFC-2026-025 §5 item 6). Not pressed by A0."
+    "GOVERNANCE (RFC-2026-029 §4.6 dated note on --include=dev). PR #285: C0 review_approved, A1 security_approved, Q0 test_verified 843/843, R0 ready, all at 700362d0; their files carried with -x; main merged mechanically (09a05991, PR #283). A0 presses under the Owner's AskUserQuestion answer of 2026-10-17T11:53:17.372Z, question 2 (transcript line 6137: 'A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)'), recorded in this PR's disposition and required_human_authorities entry, once CI is green on both jobs on the final head, with --match-head-commit. Owed: a separate WP-1A-A0-002 PR corrects acceptance_criteria[7] and deterministic_commands.package_evidence[4] (A1-285-1)."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance PR sets RFC-2026-029 back to In review and restores its earlier §7 (WP-1A-A0-001 rfc-029-approval-2026-10-12); nothing is installed by it.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert removes the note, the disposition and the two appended manifest strings; nothing runs differently.",
   "recommended_next_work_packages": [
-    "WP-1A-A0-002: the skeleton (Next.js + TypeScript + Tailwind, package.json and lockfile, CI running tsc and the application tests; RFC-2026-034 §8 item 4)."
+    "WP-1A-A0-002: correct acceptance_criteria[7] and deterministic_commands.package_evidence[4] to npm audit --include=dev --audit-level=high, under the same answer (question 2), in its own pull request."
   ],
   "reviewer_instructions": [
-    "Read the disposition against the session transcript, then git diff origin/main -- architecture/decisions/RFC-2026-029-application-tier-stack.md work-packages/WP-1A-A0-001.json.",
-    "Check §7 against RFC-2026-034 §2.1 and §3 sentence by sentence."
+    "Read the disposition against the session transcript (session 325454ab, lines 6128, 6137, 6355), then git diff origin/main -- architecture/decisions/RFC-2026-029-application-tier-stack.md work-packages/WP-1A-A0-001.json.",
+    "Check the note against .github/workflows/ci.yml on main and against PR #279 and A1-270-1; confirm §4 item 6's sentence is unchanged."
   ],
   "superseded_by": null,
   "outputs": null
