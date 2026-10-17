@@ -4,20 +4,18 @@
   "work_package_id": "WP-1A-A0-002",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "f071591350e93afc4b159b39bbde1af1d075f8b2",
-  "head_revision_or_patch_checksum": "2a511d97cabda20b30a4f622e3110c28cfa71c43",
+  "base_revision": "dbde14dabdc58748184141c65d8ca7af29363a8f",
+  "head_revision_or_patch_checksum": "ba8711f08d76c7e964bfd6ba74f6a94fc7c436eb",
   "task_ids": [
     "WP-1A-A0-002",
-    "omit-dev-manifest-2026-10-17"
+    "amended-by-records-2026-10-18"
   ],
   "files_added": [
-    "evidence/WP-1A-A0-002/a1-review-2026-10-17-pr286-r2.md",
-    "evidence/WP-1A-A0-002/a1-review-2026-10-17-pr286.md",
-    "evidence/WP-1A-A0-002/c0-review-2026-10-17-pr286-r2.md",
-    "evidence/WP-1A-A0-002/c0-review-2026-10-17-pr286.md",
-    "evidence/WP-1A-A0-002/product-owner-disposition-2026-10-17-omit-dev-manifest.md",
-    "evidence/WP-1A-A0-002/q0-review-2026-10-17-pr286.md",
-    "evidence/WP-1A-A0-002/r0-review-2026-10-17-pr286.md"
+    "evidence/WP-1A-A0-002/a1-review-2026-10-18-pr290.md",
+    "evidence/WP-1A-A0-002/c0-review-2026-10-18-pr290.md",
+    "evidence/WP-1A-A0-002/q0-review-2026-10-18-pr290.md",
+    "evidence/WP-1A-A0-002/r0-review-2026-10-18-pr290.md",
+    "evidence/WP-1A-A0-002/records-transcription-2026-10-18.md"
   ],
   "files_modified": [
     "handoffs/WP-1A-A0-002-author-handoff.json",
@@ -32,44 +30,41 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT (omit-dev-manifest-2026-10-17) changes `--omit=dev` to `--include=dev` in work-packages/WP-1A-A0-002.json acceptance_criteria[7] and deterministic_commands.package_evidence[4], so both say what CI's step \"Vulnerability audit (network)\" runs: `npm audit --include=dev --audit-level=high` (.github/workflows/ci.yml line 1354 on main at 09a05991), since PR #279 (42b37f00; A1-270-1). Nothing else in either string changes. Both fields are edited in place: the manifest validators and the package's rules do not hold them append-only (only required_human_authorities is, and it gains one appended entry).",
-    "Press authority: the Product Owner's answer of 2026-10-17T11:53:17Z to question 2 (header `gov ที่เหลือ`), `A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)`, and his message of 12:24:40Z `ลุยต่อเลย ไม่ต้องหยุดถาม`, transcribed by script (byte-exact against transcript lines 6128, 6137, 6355 of session 325454ab) in evidence/WP-1A-A0-002/product-owner-disposition-2026-10-17-omit-dev-manifest.md and appended to required_human_authorities (INCREMENT 2026-10-17 omit-dev-manifest). The earlier entries are kept as written (append-only).",
-    "The RFC half of the item (a dated note under RFC-2026-029 §4 item 6) is WP-1A-A0-001's PR #285, merged 2026-10-17T14:00:07Z (f0715913); RFC-2026-029 is outside this package's writable_paths.",
-    "Lane: the base's classifier prints `risk` (tier H: work-packages/WP-1A-A0-002.json acceptance_criteria and deterministic_commands changed), not governance; a work-package manifest is not on RFC-2026-034 §2.2's governance list. A0 treats the pull request as governance because the Owner's question 2 put it among the governance items: C0, A1, Q0 and R0 read the final head (a reading raised above the printed lane, never lowered). Making the classifier print governance would need a governance path in the diff, which this increment does not touch.",
-    "Commit cf71f52a narrows ownership.amends_without_owning.paths to empty, at A0's direction: PR #267's three declared paths (scripts/test-suite-contract.mjs, test-kits/integrity-manifest.json, evidence/VERIFICATION.md) are not changed on this branch, so verify-branch-scope read them as a standing permission (exit 74). The rationale's text is kept and one dated sentence appended (RFC-2026-025 §6.1 rule 4 admits narrowing).",
-    "The commit df8ad2c5 also refreshed this handoff's range only (npm run refresh:handoff), because it cited PR #267's range (6fb5ab13..fdd6b583), no longer on this branch's path; this commit makes the handoff true for the whole increment, last and alone."
+    "THIS INCREMENT (amended-by-records-2026-10-18) records what R0 lists as owed to this package: ownership.amended_by, new, with two entries for WP-0A-A0-004's amendments of test-kits/app-stack.test.mjs in PR #279 (42b37f00) and PR #287 (f025d3d1), each quoting R0's acknowledgement as this package's Integration Owner verbatim (R0-287-2); open_blockers[0] gets a closing clause and [6] a note on item (1), each appended after the old text; open_blockers[8] and [9] are the merge records of PR #264 (94c858f0) and PR #267 (f64c537b) (R0-AUD1017-3, evidence/audits/2026-10-17/r0-audit.md §7 item 3).",
+    "Every quoted word is a role's own in its file on main, extracted by script with line wraps folded; facts from gh and git on 2026-10-18 against main dbde14da. A0 gives no acknowledgement and no verdict. Sources and facts: evidence/WP-1A-A0-002/records-transcription-2026-10-18.md.",
+    "No status move: R0's audit gives integration_verified at f64c537b only once C0's review_approved and Q0's test_verified for the package are on main, and neither is."
   ],
   "acceptance_results": [
     {
-      "criterion": "acceptance_criteria[7] and deterministic_commands.package_evidence[4] say what CI runs (`npm audit --include=dev --audit-level=high`); nothing else in the manifest changes except one appended required_human_authorities entry and amends_without_owning narrowed to empty; no rule, threshold, CI step, guard, test or RFC changes; the Owner's words are quoted byte-exact by script with transcript lines and times",
-      "result": "pass for author self-check; independent reading owed (C0, A1, Q0, R0)"
+      "criterion": "Recorded words match their sources; old open_blockers entries kept whole (byte-equal or as the prefix); no status, test, script, CI or contract change",
+      "result": "pass for author self-check: quotes extracted by script from the cited files; prefixes asserted by script"
     }
   ],
   "tests": [
     {
-      "command": "python3 (scratchpad script) extracting transcript lines 6128, 6137, 6355 and asserting every quoted string is present byte-for-byte in the disposition and the appended manifest entry",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 1f803516, under the suite lock)",
       "exit_code": 0,
-      "result": "ok: question 2, header, three labels, three descriptions, the chosen answer, tool use id and the 12:24:40Z message match"
-    },
-    {
-      "command": "npm run regenerate:manifest",
-      "exit_code": 0,
-      "result": "rebuilt 128 digest(s); test-kits/integrity-manifest.json unchanged"
-    },
-    {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commits df8ad2c5 and cf71f52a, each under the suite lock; no node_modules)",
-      "exit_code": 0,
-      "result": "clean: exit 0 — tests 843, pass 843, fail 0, skipped 0, todo 0 (each)"
-    },
-    {
-      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
-      "exit_code": 0,
-      "result": "tier H over f071591..HEAD; lane: risk (tier H outside governance, records and audit); see assumptions[3]"
+      "result": "clean: exit 0 — tests 843, pass 843, fail 0, skipped 0, todo 0"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-002",
       "exit_code": 0,
-      "result": "WP-1A-A0-002: all 3 changed path(s) are declared, and every amendment explains one (after cf71f52a)"
+      "result": "every changed path declared"
+    },
+    {
+      "command": "npm run regenerate:manifest",
+      "exit_code": 0,
+      "result": "no diff (no changed path is digested)"
+    },
+    {
+      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD",
+      "exit_code": 1,
+      "result": "NOT records-only: work-packages/WP-1A-A0-002.json: ownership.amended_by: changed shape (not a list on both sides)"
+    },
+    {
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane --head-ref=agent/claude/WP-1A-A0-002-skeleton",
+      "exit_code": 0,
+      "result": "tier: H; lane: risk (tier H outside governance, records and audit, RFC-2026-034 §2.2)"
     },
     {
       "command": "npm run check:handoff",
@@ -77,22 +72,26 @@
       "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Records only: two manifest strings brought into line with a CI command already on main, a disposition and an appended authority entry and amends_without_owning narrowed to empty. No CI, guard, lockfile or dependency change, no credential, no customer data, no provider call.",
+  "security_privacy_cost_impact": "Records only in content: manifest strings and one evidence file. No authority granted or widened, no CI, guard, test, lockfile or dependency change, no credential, no customer data, no provider call.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes: no contract-catalog file.",
   "known_limitations": [
-    "RFC-2026-029 §4 item 6 keeps its original `--omit=dev` sentence; WP-1A-A0-001's PR #285 (merged 2026-10-17T14:00:07Z as f0715913) appended a dated note after it saying CI runs --include=dev; acceptance_criteria[7] cites §4.6 and now says what CI runs."
+    "The scripts/test-suite-contract.mjs and integrity-manifest sides of #279 and #287 are WP-0A-A0-002's records, not this package's.",
+    "Owners' amended_by entries for #255, #257, #259, #260 (R0-AUD1015-6) and #270 (R0-270-2) are not transcribed here.",
+    "PR #286's merge record (ba3efcfd) is outside the audit's range and R0's §7 list, and is not recorded here.",
+    "Whether R0-287-2 and R0-AUD1017-3 item 3 are closed is R0's to write."
   ],
   "open_risks_or_blockers": [
-    "Lane risk (manifest fields), read as governance by all four roles. PR #286: C0, A1, Q0 and R0 read the final head (role files carried with -x; main merged mechanically where it moved). A0 presses under the Owner's AskUserQuestion answer of 2026-10-17T11:53:17.372Z, question 2 (transcript line 6137: 'A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)'), recorded in this PR's disposition and required_human_authorities entry, once all four pass, CI is green on both jobs on the final head and no security finding is open, with --match-head-commit."
+    "Lane printed by the base's classifier: risk (tier H; adding ownership.amended_by is not a records-only shape under RFC-2026-025 §6.1 item 4). A0 presses under RFC-2026-034 §2.2 (Q-034-1) after A1 and Q0 pass on the final head and CI is green. No role verdict is claimed here."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert restores the two `--omit=dev` strings and amends_without_owning's three paths and removes the disposition and the appended required_human_authorities entry; nothing runs differently.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert removes ownership.amended_by, the clause on open_blockers[0], the note on [6], entries [8] and [9] and the transcription; nothing depends on them.",
   "recommended_next_work_packages": [
-    "WP-1A-A0-002's Integration Owner: acknowledge the WP-0A-A0-004 edit to test-kits/app-stack.test.mjs (PR #287) when it merges."
+    "C0 and Q0: package verdicts for WP-1A-A0-002 on main, after which R0's integration_verified at f64c537b can be recorded (r0-audit.md §5).",
+    "WP-0A-A0-002: R0-AUD1017-5's acknowledgement on its own manifest."
   ],
   "reviewer_instructions": [
-    "Read the disposition against the session transcript (session 325454ab, lines 6128, 6137, 6355), then git diff origin/main -- work-packages/WP-1A-A0-002.json.",
-    "Check the two strings against .github/workflows/ci.yml line 1354 on main, PR #279 and A1-270-1; confirm nothing else in the manifest changed but the appended required_human_authorities entry and amends_without_owning narrowed (paths emptied, one dated sentence appended to the rationale)."
+    "Read evidence/WP-1A-A0-002/records-transcription-2026-10-18.md, then git diff origin/main -- work-packages/WP-1A-A0-002.json.",
+    "Check each amended_by acknowledgement_note against evidence/WP-0A-A0-004/r0-review-2026-10-16-pr279.md, r0-reread*-2026-10-16-pr279.md and r0-review-2026-10-17-pr287*.md; open_blockers[8] and [9] against gh, git and the role files cited; [0] and [6] keep their old text as the prefix."
   ],
   "superseded_by": null,
   "outputs": null
