@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "01b49187fe488f58929a9d14b361d17c81ec1c70",
-  "head_revision_or_patch_checksum": "14ac2e29e41ea61b8b816314571706eb7eb0e3b9",
+  "base_revision": "411dc065b74570ab03a787b83ca3ed4840770da2",
+  "head_revision_or_patch_checksum": "434d641cfa55d6c5d4165ac78f4d964008db0d84",
   "task_ids": [
     "WP-0A-A0-004",
     "gov-a004e-rfc007-f-note-2026-10-17"
@@ -76,7 +76,7 @@
     "A1-279-3 and Q0-279r2-2 (CI shell: and $GITHUB_ENV), RFC-2026-029 §4.6's --omit=dev wording and the R0 acknowledgements owed for #270, #255, #260 and #279 stay owed; this increment does not touch them."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (RFC-2026-007 §F note; Owner's answer of 2026-10-16T19:13:38Z). Needs C0, A1, Q0 and R0 on the final head and CI green on both jobs; A0 presses only then, with --match-head-commit, if the roles read the Owner's words as covering it. No role has run."
+    "GOVERNANCE (governance bundle). PR #283: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR removes the Note 2026-10-17 from RFC-2026-007, this increment's required_human_authorities entry and the disposition, and regenerates the integrity manifest. No data, provider or credential effect.",
   "recommended_next_work_packages": [
