@@ -4,62 +4,30 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "d1057429a61ab58c4a54cd99c4e4cb7e0120ab6f",
-  "head_revision_or_patch_checksum": "665b62267b65a6bbce43dd7e974e84c1d3d7c1ff",
+  "base_revision": "6fd6aa0ed9a0a8504442d1aad7f7ae72794baeb3",
+  "head_revision_or_patch_checksum": "6fd6aa0ed9a0a8504442d1aad7f7ae72794baeb3",
   "task_ids": [
     "WP-0A-CON-008",
-    "commit-when-clean-stage-first-and-q0-266-1-2026-10-16"
+    "pr266-pr271-pr278-records-2026-10-17"
   ],
-  "files_added": [
-    "evidence/WP-0A-CON-008/a1-reread-2026-10-16-pr278.md",
-    "evidence/WP-0A-CON-008/a1-review-2026-10-16-pr278.md",
-    "evidence/WP-0A-CON-008/c0-reread-2026-10-16-pr278.md",
-    "evidence/WP-0A-CON-008/c0-review-2026-10-16-pr278.md",
-    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-16-commit-gate.md",
-    "evidence/WP-0A-CON-008/q0-reread-2026-10-16-pr278.md",
-    "evidence/WP-0A-CON-008/q0-review-2026-10-16-pr278.md",
-    "evidence/WP-0A-CON-008/r0-reread-2026-10-16-pr278.md",
-    "evidence/WP-0A-CON-008/r0-review-2026-10-16-pr278.md"
-  ],
-  "files_modified": [
-    "evidence/VERIFICATION.md",
-    "handoffs/WP-0A-CON-008-author-handoff.json",
-    "scripts/commit-when-clean.mjs",
-    "scripts/test-suite-contract.mjs",
-    "test-kits/handoff-conformance.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "test-kits/ratchets-bite.test.mjs",
-    "work-packages/WP-0A-CON-008.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
-    "RFC-2026-034",
-    "RFC-2026-025"
+    "RFC-2026-025",
+    "RFC-2026-034"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT is two items only, in one pull request: the commit-when-clean gap (Q0-265-4, R0-265-4; open_blockers[15]'s OWED item) and the test Q0-266-1 owes in the handoff guard (evidence/WP-0A-CON-008/q0-review-2026-10-15-pr266.md §9). The press basis is the Owner's answer of 2026-10-16 to question 1 (header 'commit gate', answer 'เปิด PR + A0 กดเมื่อ 4 role ผ่าน (Recommended)'), transcribed by script in evidence/WP-0A-CON-008/product-owner-disposition-2026-10-16-commit-gate.md and mirrored as required_human_authorities[5]; questions 2 and 3 of that call concern other pull requests. An earlier draft citing the Owner's overnight words of 2026-10-15 was added in 9a26bd1c and deleted in d7772bab, both pushed on this pull request's history (C0-278-2); it is not in the head's tree and was never the press basis.",
-    "scripts/commit-when-clean.mjs keeps the prepared patch's order (stage, verify, sample, commit the index) and adds two behaviours the patch lacked. Every refusal by the script itself (a failed git add -A, a verifier that is not clean, 90, 92) restores the index with git read-tree of the tree git write-tree recorded before staging; a failing git commit leaves it staged, as on main (R0-278-1). An index with unresolved conflicts, or one git write-tree cannot record, is refused with the new code 95 before anything is staged (A1-278-1). 95 is new because no existing refusal means 'resolve the conflicts first' and no code the verifier passes through is 95.",
-    "The new commit-gate case narrows the verifier to one real guard (A1-257-9's case in test-kits/app-boundaries.test.mjs, which reads git ls-files) because the whole check contains ratchets-bite.test.mjs and re-enters itself. The narrowed verifier prints the clean line only when that run exits 0 having passed a test; it does not import verify-clean-run.mjs's decide, because importing that script runs the coverage-floor guard, which refuses the copy's edited package.json.",
-    "Merge ac1a347d brings origin/main d1057429 in. It is git's clean three-way merge, with the generated files (evidence/VERIFICATION.md, test-kits/integrity-manifest.json) regenerated rather than hand-resolved; it is NOT §6.3-mechanical, although its commit message says so: `node scripts/db/classify-records-only.mjs --sync 125adce6 ac1a347d d1057429` exits 1 ('main changed the PR's own path(s): scripts/test-suite-contract.mjs'), because main moved the app-stack lines of scripts/test-suite-contract.mjs, one of this pull request's paths, and git merged them with this branch's handoff-conformance and ratchets-bite lines without conflict (Q0-278-1). Reviewers read the merge's diff to that file accordingly."
+    "THIS INCREMENT records, after their merges, PR #266 (2026-10-15T12:37:02Z, 9b3ffbd5; final head a2d15306; CI run 38733379219 green on bootstrap and application, 831 tests; lane governance), PR #271 (2026-10-15T14:54:53Z, 0c35c265; final head 80958a8a; run 38752303650 green, 831; governance) and PR #278 (2026-10-16T04:52:52Z, 4f9ab140; final head 0d773f6f; run 38851087280 green, 841; governance): the merge facts from gh and git, the role verdicts from their files on main, the Owner direction each press rested on as its disposition on main quotes it, and R0's post-merge words, in evidence/WP-0A-CON-008/records-transcription-2026-10-17.md.",
+    "It records that #278 was pressed with two A1 Lows open against its own diff (A1-AUD1017-1 (3), evidence/audits/2026-10-17/a1-audit.md, cherry-picked to main as c753eb7f from e3607cf1 on a1/audit-2026-10-17), and records A1-278r2-1 and A1-278r2-2 as open here (known_limitations, open_risks_or_blockers).",
+    "work-packages/WP-0A-CON-008.json is not changed: it is digested in test-kits/integrity-manifest.json, so any edit to it moves a generated file that RFC-2026-025 §6.1 item 5 excludes from records. So status stays in_review (also held by R0-AUD1017-2) and open_blockers[15] is not corrected here."
   ],
   "acceptance_results": [
     {
-      "criterion": "commit-when-clean verifies the tree it commits, new files included, keeping its exit codes",
-      "result": "pass for author self-check: the new ratchets-bite case passes at this head and fails with main's script (status 0, a commit made); the existing commit-gate case passes; exit codes 2, verifier's, 90, 92 and git's are unchanged in the source"
-    },
-    {
-      "criterion": "Q0-266-1: an audit-only branch citing a revision on no path fails, and an empty branch is not audit-lane, each failing when its guarding check is removed",
-      "result": "pass for author self-check: both new cases pass at this head; M12 (handoffDrift passes an unrelated citation to the audit check) fails the first; M9 (auditLaneOf calls an empty branch audit) fails the second; main's four audit cases pass under both. Deleting the empty-branch line outright is equivalent, because laneOf refuses an empty path list itself"
-    },
-    {
-      "criterion": "A1-278-1: an index with unresolved conflicts is refused before staging, leaving it untouched; Q0-278-2/A1-278-4: the 90 and 92 refusals restore the index, each pinned",
-      "result": "pass for author self-check: see the tests entry for the conflict and restore cases"
-    },
-    {
-      "criterion": "npm run check stays green with no test skipped",
-      "result": "pass: clean: exit 0 — tests 839, pass 839, fail 0, skipped 0, todo 0"
+      "criterion": "Recorded words match their sources on main; no manifest, status, test, guard, CI, RFC, disposition or contract change",
+      "result": "pass for author self-check: 36 quoted spans compared by script (whitespace folded) with the role files, the three dispositions and the 2026-10-17 A1 and R0 audit files; merge facts from gh pr view, gh run view and git; carried role-file blobs equal their source commits' blobs (16 of 16)"
     }
   ],
   "tests": [
@@ -99,24 +67,27 @@
       "result": "tier H, lane governance: scripts/commit-when-clean.mjs (reached from a guard), scripts/test-suite-contract.mjs (a test registry), test-kits/handoff-conformance.test.mjs and test-kits/ratchets-bite.test.mjs (top-level guard tests), test-kits/integrity-manifest.json (the integrity manifest)"
     }
   ],
-  "security_privacy_cost_impact": "Narrows a local gap: the commit gate now verifies the index it commits. No credential, customer data, provider call or dependency. The new test copies the repository into the system temporary directory and gives the copy its own git directory, so neither commit-gate case can stage into the checkout the suite runs from.",
+  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no credential, personal data, customer data or provider call. The only account name recorded is the GitHub login that merged, as gh reports it and as earlier records on main carry it.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes. commit-when-clean keeps exit codes 2, the verifier's, 90, 92 and git's, and adds 95 (unresolved conflicts, refused before staging). The old 'changed while staging' refusal is gone because staging comes first. A refusal by the script itself restores the index; a failing git commit leaves it staged, as on main.",
+  "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
   "known_limitations": [
-    "A write that lands between the commit gate's second tree sample and git commit is not in the index and is left out of the commit, not refused; the gate cannot see it.",
-    "git status --porcelain shows a staged rename as 'old -> new', so a rename unstaged at the first sample still reads as a moved tree after staging and is refused with 92; this was true of the old post-staging sample too and is not changed here.",
-    "The new commit-gate case pins the order against one guard that reads the index, not the whole check."
+    "A1-278r2-1 (Low, open; evidence/WP-0A-CON-008/a1-reread-2026-10-16-pr278.md): a refusal by scripts/commit-when-clean.mjs after staging restores the tree and the staged set with git read-tree but drops per-entry index flags (intent-to-add, assume-unchanged, skip-worktree, sparse-checkout bits). open_blockers[15]'s 'puts the index back as it was found' and 'is the index after the refusal' hold for the tree and staged set, not for these flags.",
+    "A1-278r2-2 (Low, open; same file): the commit-gate test cases' throwaway repositories (throwawayRepository, isolateGit in test-kits/ratchets-bite.test.mjs) inherit the caller's GIT_* environment; with GIT_INDEX_FILE set (as git sets it for a pre-commit hook) the cases pass and replace that index. No hook is configured in this repository.",
+    "open_blockers[15] is not corrected here (A1-AUD1017-1 (2)): the manifest edit moves its digest in test-kits/integrity-manifest.json, which is not a record. Owed in a WP-0A-CON-008 governance-lane PR with C0, A1, Q0 and R0, which either fixes both items (a script or test change, A1 re-read) or corrects open_blockers[15]; A1 then says whether A1-AUD1017-1 is closed.",
+    "The check:handoff exit at each of the three presses is not recorded on main (R0-AUD1017-4) and is not supplied here."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (commit gate; Owner's answer of 2026-10-16T02:40:07Z, question 1). Round one at 83274247 (C0 review_approved, A1 changes_requested on A1-278-1, Q0 test_verified, R0 ready); fix 9e288517 (exit 95 before staging on unresolved conflicts; restore tests); round two at 2b50d10a: C0 review_approved, A1 security_approved (A1-278-1 and -4 closed; A1-278r2-1/-2 Low advisories, not security findings), Q0 test_verified 841/841, R0 ready; all files carried with -x. A0 presses once CI is green on both jobs on the final head, with --match-head-commit. Known limit (A1-278r2-1, C0-278-5, Q0-278r2-2): on a refusal the restore puts back the staged content but drops per-entry index flags (intent-to-add returns as untracked; skip-worktree/assume-unchanged bits cleared); nothing in this repository sets them. A1-278r2-2: the commit-gate test cases inherit the caller's GIT_* environment (matters only under a pre-commit hook; none is configured)."
+    "RECORDS LANE. Status stays in_review: R0's per-PR files for #266 and #278 direct the records PR to move it to integration_verified, but R0-AUD1017-2 holds the move until A1-AUD1017-1's fix (2) lands and A1 says the finding is closed; and the manifest edit is not records-only on this package. A1-278r2-1 and A1-278r2-2 are open (known_limitations)."
   ],
-  "rollback_or_forward_fix": "Before merge: close the pull request. After merge: a reviewed revert pull request restores scripts/commit-when-clean.mjs, removes the three test cases and the copy isolation, restores the floors in scripts/test-suite-contract.mjs, regenerates the integrity manifest and re-records evidence/VERIFICATION.md; a revert is itself governance and goes to the Owner.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes evidence/WP-0A-CON-008/records-transcription-2026-10-17.md and restores the handoff; nothing depends on them.",
   "recommended_next_work_packages": [
+    "WP-0A-CON-008 (governance lane, four roles): close A1-278r2-1 and A1-278r2-2 in scripts/commit-when-clean.mjs and test-kits/ratchets-bite.test.mjs, or correct open_blockers[15] to except per-entry flags (A1-AUD1017-1 (2)); then, with A1's word that A1-AUD1017-1 is closed, the status move R0's files for #266 and #278 direct (R0-AUD1017-2).",
     "WP-0A-CON-008 or RFC-2026-007's owner: RFC-2026-007's wording after #265, on the Owner's own words."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-CON-008/product-owner-disposition-2026-10-16-commit-gate.md first.",
-    "git diff origin/main; then run node --test --test-name-pattern='commit gate' test-kits/ratchets-bite.test.mjs with main's scripts/commit-when-clean.mjs swapped in, and the two audit-lane cases under M12 and M9."
+    "Read evidence/WP-0A-CON-008/records-transcription-2026-10-17.md, then git diff origin/main.",
+    "Check §1 against gh pr view 266/271/278 and gh run view 38733379219/38752303650/38851087280 --log; §3-§6 against the *-pr266.md, *-pr271.md, *-pr278.md files, the three dispositions and evidence/audits/2026-10-17/{a1,r0}-audit.md.",
+    "Run node scripts/db/classify-records-only.mjs origin/main <head> and node scripts/db/classify-review-tier.mjs origin/main <head> --lane; expect records-only and lane records, with no status move printed."
   ],
   "superseded_by": null
 }
