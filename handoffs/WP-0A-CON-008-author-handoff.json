@@ -5,14 +5,24 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "dbde14dabdc58748184141c65d8ca7af29363a8f",
-  "head_revision_or_patch_checksum": "dbde14dabdc58748184141c65d8ca7af29363a8f",
+  "head_revision_or_patch_checksum": "f8595c0162e23bbf417870c40c0b6fe9d1fb64a0",
   "task_ids": [
     "WP-0A-CON-008",
     "a1-278r2-1-index-flags-2026-10-18",
     "a1-278r2-2-git-env-2026-10-18"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-a1-278r2-fix.md"
+  ],
+  "files_modified": [
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-CON-008-author-handoff.json",
+    "scripts/commit-when-clean.mjs",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/ratchets-bite.test.mjs",
+    "work-packages/WP-0A-CON-008.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
@@ -43,9 +53,9 @@
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (substantive commit (the substantive commit), under the suite lock, on the branch name)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (substantive commit f8595c01, under the suite lock, on the branch name)",
       "exit_code": 0,
-      "result": "clean: exit 0 (see the commit log)"
+      "result": "clean: exit 0 — tests 846, pass 846, fail 0, skipped 0, todo 0"
     },
     {
       "command": "node --test --test-name-pattern='^the commit gate|GIT_\\*' test-kits/ratchets-bite.test.mjs",
@@ -70,12 +80,12 @@
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008",
       "exit_code": 0,
-      "result": "every changed path declared"
+      "result": "WP-0A-CON-008: all 8 changed path(s) are declared, and every amendment explains one"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "lane: governance"
+      "result": "tier: H (8 path(s), dbde14d..f8595c0); lane: governance"
     },
     {
       "command": "npm run check:handoff",
