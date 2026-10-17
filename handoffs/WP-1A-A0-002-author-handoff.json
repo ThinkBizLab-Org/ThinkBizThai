@@ -5,13 +5,17 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "f071591350e93afc4b159b39bbde1af1d075f8b2",
-  "head_revision_or_patch_checksum": "d66c410cacd3672ac563e1ac3b37f714934bd264",
+  "head_revision_or_patch_checksum": "cd20ed71ff0889b053c2614198811ba2f2c1995d",
   "task_ids": [
     "WP-1A-A0-002",
     "omit-dev-manifest-2026-10-17"
   ],
   "files_added": [
-    "evidence/WP-1A-A0-002/product-owner-disposition-2026-10-17-omit-dev-manifest.md"
+    "evidence/WP-1A-A0-002/a1-review-2026-10-17-pr286.md",
+    "evidence/WP-1A-A0-002/c0-review-2026-10-17-pr286.md",
+    "evidence/WP-1A-A0-002/product-owner-disposition-2026-10-17-omit-dev-manifest.md",
+    "evidence/WP-1A-A0-002/q0-review-2026-10-17-pr286.md",
+    "evidence/WP-1A-A0-002/r0-review-2026-10-17-pr286.md"
   ],
   "files_modified": [
     "handoffs/WP-1A-A0-002-author-handoff.json",
@@ -28,7 +32,7 @@
   "assumptions": [
     "THIS INCREMENT (omit-dev-manifest-2026-10-17) changes `--omit=dev` to `--include=dev` in work-packages/WP-1A-A0-002.json acceptance_criteria[7] and deterministic_commands.package_evidence[4], so both say what CI's step \"Vulnerability audit (network)\" runs: `npm audit --include=dev --audit-level=high` (.github/workflows/ci.yml line 1354 on main at 09a05991), since PR #279 (42b37f00; A1-270-1). Nothing else in either string changes. Both fields are edited in place: the manifest validators and the package's rules do not hold them append-only (only required_human_authorities is, and it gains one appended entry).",
     "Press authority: the Product Owner's answer of 2026-10-17T11:53:17Z to question 2 (header `gov ที่เหลือ`), `A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)`, and his message of 12:24:40Z `ลุยต่อเลย ไม่ต้องหยุดถาม`, transcribed by script (byte-exact against transcript lines 6128, 6137, 6355 of session 325454ab) in evidence/WP-1A-A0-002/product-owner-disposition-2026-10-17-omit-dev-manifest.md and appended to required_human_authorities (INCREMENT 2026-10-17 omit-dev-manifest). The earlier entries are kept as written (append-only).",
-    "The RFC half of the item (a dated note under RFC-2026-029 §4 item 6) is WP-1A-A0-001's PR #285, open; RFC-2026-029 is outside this package's writable_paths.",
+    "The RFC half of the item (a dated note under RFC-2026-029 §4 item 6) is WP-1A-A0-001's PR #285, merged 2026-10-17T14:00:07Z (f0715913); RFC-2026-029 is outside this package's writable_paths.",
     "Lane: the base's classifier prints `risk` (tier H: work-packages/WP-1A-A0-002.json acceptance_criteria and deterministic_commands changed), not governance; a work-package manifest is not on RFC-2026-034 §2.2's governance list. A0 treats the pull request as governance because the Owner's question 2 put it among the governance items: C0, A1, Q0 and R0 read the final head (a reading raised above the printed lane, never lowered). Making the classifier print governance would need a governance path in the diff, which this increment does not touch.",
     "Commit cf71f52a narrows ownership.amends_without_owning.paths to empty, at A0's direction: PR #267's three declared paths (scripts/test-suite-contract.mjs, test-kits/integrity-manifest.json, evidence/VERIFICATION.md) are not changed on this branch, so verify-branch-scope read them as a standing permission (exit 74). The rationale's text is kept and one dated sentence appended (RFC-2026-025 §6.1 rule 4 admits narrowing).",
     "The commit df8ad2c5 also refreshed this handoff's range only (npm run refresh:handoff), because it cited PR #267's range (6fb5ab13..fdd6b583), no longer on this branch's path; this commit makes the handoff true for the whole increment, last and alone."
@@ -58,7 +62,7 @@
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "tier H (09a0599..cf71f52); lane: risk (tier H outside governance, records and audit); see assumptions[3]"
+      "result": "tier H over f071591..HEAD; lane: risk (tier H outside governance, records and audit); see assumptions[3]"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-002",
@@ -75,14 +79,14 @@
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes: no contract-catalog file.",
   "known_limitations": [
-    "RFC-2026-029 §4 item 6 still reads `--omit=dev` until WP-1A-A0-001's PR #285 (a dated note, the sentence kept) merges; acceptance_criteria[7] cites §4.6 and now says what CI runs."
+    "RFC-2026-029 §4 item 6 keeps its original `--omit=dev` sentence; WP-1A-A0-001's PR #285 (merged 2026-10-17T14:00:07Z as f0715913) appended a dated note after it saying CI runs --include=dev; acceptance_criteria[7] cites §4.6 and now says what CI runs."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (governance bundle). PR #286: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
+    "Lane risk (manifest fields), read as governance by all four roles. PR #286: C0, A1, Q0 and R0 read the final head (role files carried with -x; main merged mechanically where it moved). A0 presses under the Owner's AskUserQuestion answer of 2026-10-17T11:53:17.372Z, question 2 (transcript line 6137: 'A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)'), recorded in this PR's disposition and required_human_authorities entry, once all four pass, CI is green on both jobs on the final head and no security finding is open, with --match-head-commit."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert restores the two `--omit=dev` strings and amends_without_owning's three paths and removes the disposition and the appended required_human_authorities entry; nothing runs differently.",
   "recommended_next_work_packages": [
-    "WP-1A-A0-001: PR #285 (the RFC-2026-029 §4.6 dated note), the other half of the same item, under the same answer."
+    "WP-1A-A0-002's Integration Owner: acknowledge the WP-0A-A0-004 edit to test-kits/app-stack.test.mjs (PR #287) when it merges."
   ],
   "reviewer_instructions": [
     "Read the disposition against the session transcript (session 325454ab, lines 6128, 6137, 6355), then git diff origin/main -- work-packages/WP-1A-A0-002.json.",
