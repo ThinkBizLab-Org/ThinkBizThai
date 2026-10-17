@@ -4,32 +4,14 @@
   "work_package_id": "WP-1A-A0-002",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "6fb5ab13e78117f4b4b9c86864bbaa4e2e575d8e",
-  "head_revision_or_patch_checksum": "fdd6b58366a49be5deb55e8ca1c0d9429f0ffac3",
+  "base_revision": "09a059919f504819954932289f5299dd86875529",
+  "head_revision_or_patch_checksum": "09a059919f504819954932289f5299dd86875529",
   "task_ids": [
     "WP-1A-A0-002",
     "gov-a002-2026-10-15"
   ],
-  "files_added": [
-    "evidence/WP-1A-A0-002/a1-reread-2026-10-15-pr267.md",
-    "evidence/WP-1A-A0-002/a1-review-2026-10-15-pr267.md",
-    "evidence/WP-1A-A0-002/c0-reread-2026-10-15-pr267.md",
-    "evidence/WP-1A-A0-002/c0-review-2026-10-15-pr267.md",
-    "evidence/WP-1A-A0-002/product-owner-disposition-2026-10-15-governance-bundle-press.md",
-    "evidence/WP-1A-A0-002/q0-reread-2026-10-15-pr267.md",
-    "evidence/WP-1A-A0-002/q0-review-2026-10-15-pr267.md",
-    "evidence/WP-1A-A0-002/r0-reread-2026-10-15-pr267.md",
-    "evidence/WP-1A-A0-002/r0-review-2026-10-15-pr267.md"
-  ],
-  "files_modified": [
-    "evidence/VERIFICATION.md",
-    "handoffs/WP-1A-A0-002-author-handoff.json",
-    "scripts/test-suite-contract.mjs",
-    "test-kits/app-boundaries.test.mjs",
-    "test-kits/app-stack.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "work-packages/WP-1A-A0-002.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
