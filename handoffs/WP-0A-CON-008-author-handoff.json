@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "dbde14dabdc58748184141c65d8ca7af29363a8f",
-  "head_revision_or_patch_checksum": "f8595c0162e23bbf417870c40c0b6fe9d1fb64a0",
+  "head_revision_or_patch_checksum": "2971e0daebe870b52f3122a131886cc7b45ca25c",
   "task_ids": [
     "WP-0A-CON-008",
     "a1-278r2-1-index-flags-2026-10-18",
@@ -56,9 +56,9 @@
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (substantive commit (this round-2 commit), under the suite lock, on the branch name)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (substantive commit f8595c01, and 2971e0da for round 2, under the suite lock, on the branch name)",
       "exit_code": 0,
-      "result": "clean: exit 0 (see the commit log)"
+      "result": "clean: exit 0 — tests 849, pass 849, fail 0, skipped 0, todo 0"
     },
     {
       "command": "node --test --test-name-pattern='^the commit gate' test-kits/ratchets-bite.test.mjs",
@@ -88,12 +88,12 @@
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008",
       "exit_code": 0,
-      "result": "every changed path declared"
+      "result": "WP-0A-CON-008: all 8 changed path(s) are declared, and every amendment explains one"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "lane: governance"
+      "result": "tier: H (8 path(s), dbde14d..2971e0d);lane: governance"
     },
     {
       "command": "npm run check:handoff",
@@ -114,7 +114,7 @@
     "Whether A1-278r2-1, A1-278r2-2 and A1-AUD1017-1 are closed is A1's to say on its re-read."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE LANE. Press authority: the Owner's reply of 2026-10-17T20:36:01.360Z, evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-a1-278r2-fix.md (required_human_authorities[7]), read by A0 as accepting its recommendation that A0 presses after four roles: A0 presses only after C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs, no security finding of any grade is open against it and the head contains current main, with --match-head-commit. The role files will hold the verdicts; this handoff claims none.",
+    "GOVERNANCE LANE. Press authority: the Owner's reply of 2026-10-17T20:36:01.360Z (transcript 325454ab line 7906), evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-a1-278r2-fix.md (required_human_authorities[7]), read by A0 as accepting its recommendation that A0 presses after four roles: A0 presses only after C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs, no security finding of any grade is open against it and the head contains current main, with --match-head-commit. The role files will hold the verdicts; this handoff claims none.",
     "Status stays in_review: R0-AUD1017-2 holds the move R0's files for #266 and #278 direct until A1 says A1-AUD1017-1 is closed."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores scripts/commit-when-clean.mjs (read-tree restore, spawnSync verifier) and test-kits/ratchets-bite.test.mjs, the three scripts/test-suite-contract.mjs lines, regenerates the integrity manifest and keeps the records (append-only), A1-278r2-1 and A1-278r2-2 then open again.",
