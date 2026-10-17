@@ -4,16 +4,21 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "411dc065b74570ab03a787b83ca3ed4840770da2",
-  "head_revision_or_patch_checksum": "434d641cfa55d6c5d4165ac78f4d964008db0d84",
+  "base_revision": "6fd6aa0ed9a0a8504442d1aad7f7ae72794baeb3",
+  "head_revision_or_patch_checksum": "1e32d86b3e60889680ec6e80c0d1f17edfb0b603",
   "task_ids": [
     "WP-0A-A0-004",
-    "gov-a004e-rfc007-f-note-2026-10-17"
+    "gov-a004e-rfc007-f-note-2026-10-17",
+    "gov-a004f-press-answer-2026-10-17"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-004/a1-review-2026-10-17-pr283-r2.md",
     "evidence/WP-0A-A0-004/a1-review-2026-10-17-pr283.md",
+    "evidence/WP-0A-A0-004/c0-review-2026-10-17-pr283-r2.md",
     "evidence/WP-0A-A0-004/c0-review-2026-10-17-pr283.md",
     "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-rfc-007-f-note.md",
+    "evidence/WP-0A-A0-004/q0-review-2026-10-17-pr283.md",
+    "evidence/WP-0A-A0-004/r0-review-2026-10-17-pr283-r2.md",
     "evidence/WP-0A-A0-004/r0-review-2026-10-17-pr283.md"
   ],
   "files_modified": [
@@ -76,7 +81,7 @@
     "A1-279-3 and Q0-279r2-2 (CI shell: and $GITHUB_ENV), RFC-2026-029 §4.6's --omit=dev wording and the R0 acknowledgements owed for #270, #255, #260 and #279 stay owed; this increment does not touch them."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (governance bundle). PR #283: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
+    "GOVERNANCE (RFC-2026-007 §F dated note). PR #283: round one at 6d98ccd6 (C0 review_approved; A1 security_approved with A1-283-1 Medium on press authority; R0 ready on content, not for an A0 press, R0-283-1 Medium); Q0 had not read. Round two at cd7f26ad after the Owner's AskUserQuestion answer of 2026-10-17T11:53:17.372Z (transcript line 6137; gov-a004f): question 1 'A0 กดเมื่อ 4 role ผ่าน (Recommended)'. All four role files of round two are carried with -x; main merged mechanically where it moved. A0 presses under gov-a004f (not gov-a004, the 2026-10-15T02:13:35Z answer) once CI is green on both jobs on the final head, with --match-head-commit. Findings are listed in the role files."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR removes the Note 2026-10-17 from RFC-2026-007, this increment's required_human_authorities entry and the disposition, and regenerates the integrity manifest. No data, provider or credential effect.",
   "recommended_next_work_packages": [
@@ -87,7 +92,7 @@
   "reviewer_instructions": [
     "Read evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-rfc-007-f-note.md, then git diff origin/main.",
     "Check the RFC diff is additions only (the Note 2026-10-17 under §F) and each fact in it against test-kits/db/foundation-contract.test.mjs lines 7600-7632, src/modules/platform-kernel/, git show 2aef8182:work-packages/WP-1A-A0-003.json and work-packages/WP-1A-A0-003.json (open_blockers[16], [17]), gh pr view 281, work-packages/WP-0A-DB-00.json and handoffs/WP-0A-DB-00-author-handoff.json.",
-    "Re-run the transcript comparison (lines 5581 and 5585) and judge whether the Owner's words cover A0 pressing (the disposition §2 and §4).",
+    "Re-run the transcript comparison (lines 5581 and 5585; and 6128 and 6137, the Owner's AskUserQuestion answer of 2026-10-17T11:53:17.372Z recorded in disposition §6 and gov-a004f) and confirm the press authority is gov-a004f, question 1: 'A0 กดเมื่อ 4 role ผ่าน (Recommended)'.",
     "Run node --test test-kits/db/foundation-contract.test.mjs; nothing in it changed."
   ],
   "superseded_by": null
