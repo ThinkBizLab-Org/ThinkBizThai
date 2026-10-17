@@ -5,14 +5,18 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "f025d3d1fb9817382b14d23755b5ca08b971f096",
-  "head_revision_or_patch_checksum": "ec1e2b4a19dc8b0eb0069666debabfeb8892a48e",
+  "head_revision_or_patch_checksum": "b9a772a82d07d78c195319b801ad0a31e4c7247c",
   "task_ids": [
     "WP-0A-CON-008",
     "pr266-pr271-pr278-records-2026-10-17",
     "records-governance-lane-2026-10-17"
   ],
   "files_added": [
+    "evidence/WP-0A-CON-008/a1-review-2026-10-18-pr289.md",
+    "evidence/WP-0A-CON-008/c0-review-2026-10-18-pr289.md",
     "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-17-records-press.md",
+    "evidence/WP-0A-CON-008/q0-review-2026-10-18-pr289.md",
+    "evidence/WP-0A-CON-008/r0-review-2026-10-18-pr289.md",
     "evidence/WP-0A-CON-008/records-transcription-2026-10-17.md"
   ],
   "files_modified": [
@@ -34,7 +38,7 @@
   ],
   "acceptance_results": [
     {
-      "criterion": "Recorded words match their sources on main; no manifest, status, test, guard, CI, RFC, disposition or contract change",
+      "criterion": "Recorded words match their sources on main; the governance increment changes only the manifest's appendable fields (required_human_authorities[6], open_blockers[15] correction clause, open_blockers[16]), narrows amends_without_owning, adds a disposition and regenerates the integrity manifest; no status, test, guard, CI, RFC or contract change",
       "result": "pass for author self-check: 36 quoted spans compared by script (whitespace folded) with the role files, the three dispositions and the 2026-10-17 A1 and R0 audit files; merge facts from gh pr view, gh run view and git; carried role-file blobs equal their source commits' blobs (16 of 16)"
     },
     {
@@ -79,7 +83,7 @@
     "The check:handoff exit at each of the three presses is not recorded on main (R0-AUD1017-4) and is not supplied here."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE LANE. Press authority: the Owner's answer of 2026-10-17T16:31:14.663Z, evidence/WP-0A-CON-008/product-owner-disposition-2026-10-17-records-press.md (required_human_authorities[6]): A0 presses only after C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs, no security finding of any grade is open and the head contains current main, with --match-head-commit. This handoff claims no role verdict; no role has read this branch.",
+    "GOVERNANCE LANE. Press authority: the Owner's answer of 2026-10-17T16:31:14.663Z, evidence/WP-0A-CON-008/product-owner-disposition-2026-10-17-records-press.md (required_human_authorities[6]): A0 presses only after C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs, no security finding of any grade is open against it (A1-278r2-1 and A1-278r2-2 stay open against main's state since 4f9ab140, recorded in open_blockers[16]) and the head contains current main, with --match-head-commit. The role files on this branch hold the verdicts; this handoff claims none.",
     "Status stays in_review: R0's files for #266 and #278 direct the move to integration_verified, but R0-AUD1017-2 holds it until A1 says A1-AUD1017-1 is closed. A1-278r2-1 and A1-278r2-2 are open (known_limitations, open_blockers[16])."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the records transcription, the disposition, the appended manifest text and entries, restores the narrowed path and regenerates the integrity manifest; nothing depends on them.",
