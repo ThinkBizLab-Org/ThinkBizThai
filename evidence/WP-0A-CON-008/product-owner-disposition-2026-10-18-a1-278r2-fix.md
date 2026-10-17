@@ -97,3 +97,29 @@ A0's reading of the reply against that item:
 seven existing entries are kept byte for byte (the field is strictly append-only, RFC-2026-025 §6.1 item 4,
 `scripts/db/classify-records-only.mjs` `appendedEntriesOnly`). `open_blockers[16]` is extended, its old text kept
 whole in front.
+
+## 7. Round 2 (2026-10-18, after the role readings at `2cc53986`)
+
+No new words of the Owner's are recorded here; §2 is unchanged. A1 read PR #292 at `2cc53986` and requested changes on
+A1-292-1 (Low, against the PR's own diff: a split index with `splitIndex.sharedIndexExpire=now` left unreadable after a
+refusal), with A1-292-3 to A1-292-6 Info and A1-292-2 (Low) recorded against the suite, not this PR
+(`evidence/WP-0A-CON-008/a1-review-2026-10-18-pr292.md` on `a1/WP-0A-CON-008-pr292-2026-10-18`). C0 approved with
+C0-292-1 (Low, a misattributed quote in a test comment) and C0-292-2 to -4 (Info).
+
+A0's reading: the fix commits of this round answer those findings inside the content §3 names (the commit gate, its
+cases, the registry lines the added cases move, the regenerated integrity manifest and the records), so the Owner's
+reply of `2026-10-17T20:36:01.360Z` covers them as it covers the first round. Under RFC-2026-025 §5 item 2 they are
+re-verified before a press: they touch a script and test cases, so every required role reads the new head. The press
+conditions of §3 are unchanged, and A1-292-1 being open at `2cc53986` is exactly what they stop: A0 presses only once A1,
+on its re-read, holds no security finding of any grade open against the PR.
+
+A1-292-2 is recorded in `open_blockers[16]` for its owners (this package for `test-kits/ci-guard-behaviour.test.mjs`
+and `test-kits/handoff-conformance.test.mjs`, WP-0A-A0-004 for `test-kits/branch-scope.test.mjs`); it is not fixed in
+this pull request, because item 1 of A0's message, which the reply answered, names commit-when-clean and its tests
+only. A0's reading.
+
+Q0 then verified `2cc53986` (`test_verified`, `evidence/WP-0A-CON-008/q0-review-2026-10-18-pr292.md` on
+`q0/WP-0A-CON-008-pr292-2026-10-18`) with Q0-292-1 and Q0-292-2 (Low) and Q0-292-3 and Q0-292-4 (Info). The same
+round answers Q0-292-1 (a time bound on the interrupt case), Q0-292-2 (the verifier runs with no `GIT_*` of the
+gate's caller) and Q0-292-4 (a leftover `index.lock` is named); A0 reads them as inside §3's content for the same
+reason as A1's and C0's findings. A0's reading.

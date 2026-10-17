@@ -11,8 +11,9 @@
 // Usage: node scripts/commit-when-clean.mjs <message-file>
 // Exit codes: the verifier's own code when it is not clean; git's when the commit fails; 0 clean;
 // 2 usage; 90 a silent verifier; 92 the tree moved; 95 the index holds unresolved conflicts or cannot
-// be recorded (refused before anything is staged); 128 + the signal's number when SIGINT, SIGTERM or
-// SIGHUP arrives after staging and before the commit (the index put back first).
+// be recorded (refused before anything is staged); 128 + the signal's number when SIGINT, SIGTERM,
+// SIGHUP or SIGQUIT arrives after the gate starts staging and before the commit (the index put back
+// first).
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
@@ -28,9 +29,22 @@ const run = (command, args) => spawnSync(command, args, { encoding: 'utf8', stdi
 // in neither case is the index put back before the gate is gone (A1-278-2). The group lets the gate stop
 // the verifier and everything it started, so nothing of it is still touching the index when the index
 // is put back.
+//
+// AND WITHOUT ANY `GIT_*` OF THE CALLER'S (Q0-292-2). A gate run from a hook carries the hook's
+// GIT_INDEX_FILE (and a caller may set GIT_DIR, GIT_WORK_TREE, GIT_OBJECT_DIRECTORY, GIT_CONFIG_*),
+// and the suite's own test files that start git in throwaway repositories would then act on the
+// caller's repository (A1-292-2). The gate itself honours them -- it stages where its caller points
+// it -- but the verifier runs in the working tree with a clean git environment, finding the
+// repository from its directory as `npm run check` does in CI.
+const VERIFIER_ENV = (() => {
+  const env = { ...process.env };
+  for (const key of Object.keys(env)) if (key.startsWith('GIT_')) delete env[key];
+  return env;
+})();
+
 function runVerifier(onSpawn) {
   return new Promise((done) => {
-    const child = spawn('npm', ['run', 'verify'], { stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+    const child = spawn('npm', ['run', 'verify'], { stdio: ['ignore', 'pipe', 'pipe'], detached: true, env: VERIFIER_ENV });
     let stdout = '';
     let stderr = '';
     child.stdout.setEncoding('utf8').on('data', (chunk) => { stdout += chunk; });
@@ -41,7 +55,9 @@ function runVerifier(onSpawn) {
   });
 }
 
-const SIGNALS = ['SIGINT', 'SIGTERM', 'SIGHUP'];
+// SIGQUIT too (A1-292-3): the verifier sits in a process group of its own, so a Ctrl-\\ the gate did not
+// handle would kill the gate and leave the verifier running, orphaned, with the index staged.
+const SIGNALS = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT'];
 
 // A path in `git status` may have been deleted; reading it must not throw.
 function safeRead(path) {
@@ -102,8 +118,16 @@ async function main(argv) {
   // back -- through `index.lock` and a rename, as git writes it -- on every refusal of its own.
   // `--git-path index` honours GIT_INDEX_FILE and a linked worktree's own index. An index that does
   // not exist yet (a repository with nothing staged ever) is put back by removing what staging made.
-  // With `core.splitIndex` the bytes put back name a shared index file that git keeps for
-  // `splitIndex.sharedIndexExpire` (two weeks by default), so they stay readable well past any run.
+  //
+  // A SPLIT INDEX NAMES A SECOND FILE (A1-292-1). With `core.splitIndex` the index bytes refer to
+  // `sharedindex.<sha>`, and when the gate's `git add -A` writes a new shared index git expires old
+  // ones under `splitIndex.sharedIndexExpire`; with `now`, the file the found bytes name was deleted
+  // and every git command then failed on the restored index. So the shared index file the found
+  // index names (`git rev-parse --shared-index-path`) is kept too, and written back first if it is
+  // gone. And whatever the configuration, the restore is CHECKED: `git ls-files -s` must read the
+  // index put back. If it cannot, the gate does not leave an index no git command can read: it keeps
+  // the found bytes beside the index, rebuilds the index from the tree it recorded before staging
+  // (`git read-tree`, the old restore: the staged set kept, per-entry flags lost) and says so.
   const indexPath = run('git', ['rev-parse', '--git-path', 'index']);
   const indexFile = indexPath.status === 0 ? resolve(indexPath.stdout.trim()) : null;
   let found = null;
@@ -111,22 +135,52 @@ async function main(argv) {
   if (indexFile !== null) {
     try { found = readFileSync(indexFile); } catch (error) { unreadable = error.code !== 'ENOENT'; }
   }
-  const restore = () => {
-    const lock = `${indexFile}.lock`;
+  const sharedPath = found === null ? null : run('git', ['rev-parse', '--shared-index-path']);
+  const sharedFile = sharedPath?.status === 0 && sharedPath.stdout.trim() !== '' ? resolve(sharedPath.stdout.trim()) : null;
+  let sharedFound = null;
+  if (sharedFile !== null) {
+    try { sharedFound = readFileSync(sharedFile); } catch { unreadable = true; }
+  }
+  // The tree the index records before staging; set once `git write-tree` has run.
+  let recordedTree = null;
+  const readable = () => spawnSync('git', ['ls-files', '-s'], { stdio: ['ignore', 'ignore', 'pipe'] }).status === 0;
+  const putBack = () => {
+    if (sharedFound !== null) {
+      let present = true;
+      try { readFileSync(sharedFile); } catch { present = false; }
+      if (!present) {
+        writeFileSync(`${sharedFile}.commit-when-clean.tmp`, sharedFound);
+        renameSync(`${sharedFile}.commit-when-clean.tmp`, sharedFile);
+      }
+    }
     let now = null;
     try { now = readFileSync(indexFile); } catch { /* absent: compared below */ }
     if (found === null ? now === null : (now !== null && now.equals(found))) return;
+    if (found === null) { rmSync(indexFile, { force: true }); return; }
+    const lock = `${indexFile}.lock`;
+    writeFileSync(lock, found, { flag: 'wx' });
+    renameSync(lock, indexFile);
+  };
+  const restore = () => {
+    const kept = `${indexFile}.commit-when-clean`;
     try {
-      if (found === null) { rmSync(indexFile, { force: true }); return; }
-      writeFileSync(lock, found, { flag: 'wx' });
-      renameSync(lock, indexFile);
+      putBack();
     } catch (error) {
-      const kept = `${indexFile}.commit-when-clean`;
       try { if (found !== null) writeFileSync(kept, found); } catch { /* reported below */ }
       process.stderr.write(`could not put the index back (${error.message}); `
         + (found === null ? 'remove the index to undo the staging.\n'
           : `the index as found is kept in ${kept}: move it over ${indexFile} to undo the staging.\n`));
+      return;
     }
+    if (readable()) return;
+    try { if (found !== null) writeFileSync(kept, found); } catch { /* reported below */ }
+    rmSync(indexFile, { force: true });
+    const rebuilt = run('git', ['read-tree', recordedTree ?? 'HEAD']);
+    process.stderr.write('the index as found could not be read back after it was put back, so it was rebuilt '
+      + `from ${recordedTree === null ? 'HEAD' : `the tree it recorded before staging (${recordedTree})`} with git read-tree`
+      + `${rebuilt.status === 0 ? '' : ' (which failed too; remove the index and stage again)'}: the staged set is kept, `
+      + 'per-entry flags (intent-to-add, assume-unchanged, skip-worktree, sparse) are lost'
+      + `${found === null ? '' : `; the bytes found are kept in ${kept}`}.\n`);
   };
 
   const before = treeState();
@@ -141,7 +195,7 @@ async function main(argv) {
   // commit rather than committed unverified -- the window the old third sample only narrowed.
   //
   // Every refusal of the gate's own (a failed `git add`, a verifier that is not clean, 90, 92, 95,
-  // and a SIGINT, SIGTERM or SIGHUP between staging and the commit) puts the index file back byte for
+  // and a SIGINT, SIGTERM, SIGHUP or SIGQUIT between staging and the commit) puts the index file back byte for
   // byte as it was found, flags included, as the old order never touched it before the verifier
   // passed. A failing `git commit` itself leaves the index staged, as it did on main; a signal during
   // the commit is git's to handle. SIGKILL cannot be handled: after one, the index is left staged.
@@ -155,11 +209,20 @@ async function main(argv) {
   // the verifier's own codes is 95, so a caller reading only the code cannot mistake it.
   const unmerged = run('git', ['ls-files', '-u']);
   const index = run('git', ['write-tree']);
+  if (index.status === 0) recordedTree = index.stdout.trim();
   if (unreadable || unmerged.status !== 0 || (unmerged.stdout ?? '').trim() !== '' || index.status !== 0) {
     // `git write-tree` may have written a cache tree into the index; nothing else has written it.
     if (!unreadable) restore();
-    process.stderr.write('refusing to commit: the index holds unresolved conflicts or cannot be recorded; '
-      + 'resolve them and stage the result, then run this again. Nothing was staged.\n');
+    // A leftover `index.lock` makes `git write-tree` fail too; it is named, not left to read as a
+    // conflict (Q0-292-4). The gate does not remove it: it may belong to a git that is still running.
+    const lock = indexFile === null ? null : `${indexFile}.lock`;
+    let locked = false;
+    try { locked = lock !== null && readFileSync(lock) !== null; } catch { locked = false; }
+    process.stderr.write(locked
+      ? `refusing to commit: ${lock} exists, so the index cannot be recorded; if no git process is running, `
+        + 'remove it, then run this again. Nothing was staged.\n'
+      : 'refusing to commit: the index holds unresolved conflicts or cannot be recorded; '
+        + 'resolve them and stage the result, then run this again. Nothing was staged.\n');
     return 95;
   }
 
@@ -183,24 +246,28 @@ async function main(argv) {
     return 128 + (constants.signals[interrupted] ?? 0);
   };
 
+  // A signal that arrived during a synchronous step is delivered only when the event loop turns.
+  const turn = () => new Promise((next) => { setImmediate(next); });
   const staged = run('git', ['add', '-A']);
+  // Turned before the status is read, so a Ctrl-C that killed `git add -A` along with the gate's own
+  // group is reported as the interrupt it was, 128 + n, not as git's failure (A1-292-4).
+  await turn();
+  if (interrupted !== null) return interruptedExit();
   if (staged.status !== 0) {
     process.stderr.write(`${staged.stderr}`);
     restore();
     release();
     return staged.status ?? 1;
   }
-  // A signal that arrived during a synchronous step is delivered only when the event loop turns.
-  const turn = () => new Promise((next) => { setImmediate(next); });
-  await turn();
   if (interrupted !== null) return interruptedExit();
 
   const verify = await runVerifier((child) => { verifier = child; });
   if (interrupted !== null) return interruptedExit();
   const output = `${verify.stdout ?? ''}${verify.stderr ?? ''}`;
   if (verify.status !== 0) {
-    release();
+    // Restored before the handlers are released, as on every other path (A1-292-5, C0-292-3).
     restore();
+    release();
     process.stderr.write('refusing to commit: the tree is not clean\n');
     process.stderr.write(`${output.trimEnd().split('\n').slice(-3).join('\n')}\n`);
     return verify.status ?? 1;

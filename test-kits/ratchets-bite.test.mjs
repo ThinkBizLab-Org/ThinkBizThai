@@ -884,11 +884,13 @@ test('the commit gate\'s refusals put the index file back byte for byte, its per
   assert.equal(ran, cases.length, `${ran} of ${cases.length} refusals executed`);
 });
 
-// A1-278-2, and the "signals where feasible" half of A1-278r2-1. The gate stages before the verifier
-// runs, so an interrupt while it runs used to leave everything staged: the gate blocked in `spawnSync`
-// and died of the signal. It must stop the verifier, put the index file back and exit 128 + the
-// signal's number, making no commit. The verifier here announces itself and then waits; the case
-// signals the gate alone, so it is the gate that has to stop the verifier.
+// A1-278-2 (Info: an interrupt during the verifier left everything staged), and A1-292-3 (SIGQUIT). The
+// gate stages before the verifier runs, so an interrupt while it runs used to leave everything staged:
+// the gate blocked in `spawnSync` and died of the signal. It must stop the verifier, put the index file
+// back and exit 128 + the signal's number, making no commit. The verifier here announces itself and
+// then waits; the case signals the gate alone, so it is the gate that has to stop the verifier. SIGQUIT
+// is the one a terminal sends with Ctrl-\, and with the verifier in a group of its own an unhandled one
+// killed the gate and left the verifier running.
 test('the commit gate puts the index back and stops its verifier when it is interrupted', async () => {
   const verifier = [
     "import { writeFileSync } from 'node:fs';",
@@ -896,31 +898,141 @@ test('the commit gate puts the index back and stops its verifier when it is inte
     'setTimeout(() => {}, 60_000);',
     '',
   ].join('\n');
+  let ran = 0;
+  const signals = [['SIGTERM', 143], ['SIGQUIT', 131]];
+  for (const [sent, expected] of signals) {
+    const { root, ok } = await throwawayRepository(verifier);
+    try {
+      const { indexFile, bytes, flags } = await flaggedIndex(root, ok);
+      const head = ok('rev-parse', 'HEAD');
+      const message = join(root, '.git', 'probe-message.txt');
+      const child = spawn('node', [join(REPOSITORY, 'scripts/commit-when-clean.mjs'), message], { cwd: root, env: CHILD_ENV, stdio: ['ignore', 'pipe', 'pipe'] });
+      let output = '';
+      child.stdout.on('data', (chunk) => { output += chunk; });
+      child.stderr.on('data', (chunk) => { output += chunk; });
+      const exited = new Promise((done) => { child.on('exit', (code, signal) => done({ code, signal })); });
+
+      const marker = join(root, '.git', 'verifier-started');
+      const deadline = Date.now() + 30_000;
+      while (!existsSync(marker) && Date.now() < deadline) await new Promise((next) => { setTimeout(next, 50); });
+      assert.ok(existsSync(marker), `${sent}: the verifier must have started for this case to mean anything:\n${output}`);
+      const verifierPid = Number(await readFile(marker, 'utf8'));
+      const signalled = Date.now();
+      child.kill(sent);
+      const { code, signal } = await exited;
+      // Bounded well under the verifier's own 60 s timer, so a gate that merely waits for its verifier
+      // to end by itself -- no group kill, or a verifier not in a group of its own -- fails (Q0-292-1).
+      const took = Date.now() - signalled;
+      assert.ok(took < 5_000, `${sent}: the gate must stop its verifier, not wait for it: it exited ${took} ms after the signal`);
+
+      assert.equal(signal, null, `the gate must handle ${sent} rather than die of it:\n${output}`);
+      assert.equal(code, expected, `${sent}: and exit 128 + its number:\n${output}`);
+      assert.equal(ok('rev-parse', 'HEAD'), head, `${sent}: and make no commit`);
+      assert.equal(ok('ls-files', '-v'), flags, `${sent}: and keep every per-entry flag`);
+      assert.ok((await readFile(indexFile)).equals(bytes), `${sent}: and put the index file back byte for byte`);
+      assert.equal(stillRunning(verifierPid), false, `${sent}: and leave no verifier running`);
+      ran += 1;
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+  assert.equal(ran, signals.length, `${ran} of ${signals.length} signals executed`);
+});
+
+// Q0-292-2. The gate honours its caller's `GIT_*` for its own git calls, but the verifier must not
+// inherit them: run from a hook, it would carry the hook's GIT_INDEX_FILE into the whole suite, whose
+// throwaway-repository tests would then act on the index being committed. The verifier here records
+// every `GIT_*` it sees and refuses, so the gate refuses too; the gate is run with GIT_INDEX_FILE
+// naming its own repository's index (harmless to its own calls) and a variable of no meaning to git.
+test('the commit gate runs its verifier with no GIT_* of its caller\'s', async () => {
+  const verifier = [
+    "import { writeFileSync } from 'node:fs';",
+    "writeFileSync('.git/verifier-git-env.json', JSON.stringify(Object.keys(process.env).filter((key) => key.startsWith('GIT_')).sort()));",
+    'process.exit(3);',
+    '',
+  ].join('\n');
   const { root, ok } = await throwawayRepository(verifier);
   try {
+    const message = join(root, '.git', 'probe-message.txt');
+    const env = { ...CHILD_ENV, GIT_INDEX_FILE: join(root, '.git', 'index'), GIT_PROBE_FROM_THE_CALLER: 'set' };
+    const head = ok('rev-parse', 'HEAD');
+    const refused = spawnSync('node', [join(REPOSITORY, 'scripts/commit-when-clean.mjs'), message], { cwd: root, encoding: 'utf8', env });
+    assert.equal(refused.status, 3, `the gate must pass on its verifier's refusal:\n${refused.stdout}${refused.stderr}`);
+    assert.equal(ok('rev-parse', 'HEAD'), head, 'and make no commit');
+    const seen = JSON.parse(await readFile(join(root, '.git', 'verifier-git-env.json'), 'utf8'));
+    assert.deepEqual(seen, [], 'and the verifier must see no GIT_* variable from the gate\'s caller');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+// A1-292-4. A terminal's Ctrl-C reaches the gate's whole process group, so it kills a `git add -A` in
+// progress as well as interrupting the gate. The gate read git's failure first and exited 1 -- a
+// caller reading only the code saw a failed `git add`, not an interrupt. It must exit 130 with the
+// index file put back. A clean filter that announces itself and then waits holds `git add -A` open;
+// the gate runs in a group of its own here, so the case can signal that group as a terminal would.
+test('the commit gate reports an interrupt during its git add as the interrupt, with the index put back', async () => {
+  const { root, ok } = await throwawayRepository("process.stdout.write('clean: exit 0 — tests 1, pass 1, fail 0\\n');\n");
+  let group = null;
+  try {
+    ok('config', 'filter.slow.clean', "sh -c 'touch .git/add-started; sleep 20; cat'");
+    await writeFile(join(root, '.gitattributes'), '*.slow filter=slow\n');
+    ok('add', '.gitattributes');
+    ok('commit', '-qm', 'attributes');
     const { indexFile, bytes, flags } = await flaggedIndex(root, ok);
+    await writeFile(join(root, 'held-by-the-filter.slow'), 'staged only through the slow filter\n');
     const head = ok('rev-parse', 'HEAD');
     const message = join(root, '.git', 'probe-message.txt');
-    const child = spawn('node', [join(REPOSITORY, 'scripts/commit-when-clean.mjs'), message], { cwd: root, env: CHILD_ENV, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn('node', [join(REPOSITORY, 'scripts/commit-when-clean.mjs'), message], { cwd: root, env: CHILD_ENV, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+    group = child.pid;
     let output = '';
     child.stdout.on('data', (chunk) => { output += chunk; });
     child.stderr.on('data', (chunk) => { output += chunk; });
     const exited = new Promise((done) => { child.on('exit', (code, signal) => done({ code, signal })); });
 
-    const marker = join(root, '.git', 'verifier-started');
+    const marker = join(root, '.git', 'add-started');
     const deadline = Date.now() + 30_000;
     while (!existsSync(marker) && Date.now() < deadline) await new Promise((next) => { setTimeout(next, 50); });
-    assert.ok(existsSync(marker), `the verifier must have started for this case to mean anything:\n${output}`);
-    const verifierPid = Number(await readFile(marker, 'utf8'));
-    child.kill('SIGTERM');
+    assert.ok(existsSync(marker), `git add -A must have reached the filter for this case to mean anything:\n${output}`);
+    process.kill(-child.pid, 'SIGINT');
     const { code, signal } = await exited;
 
-    assert.equal(signal, null, `the gate must handle SIGTERM rather than die of it:\n${output}`);
-    assert.equal(code, 143, `and exit 128 + 15:\n${output}`);
+    assert.equal(signal, null, `the gate must handle SIGINT rather than die of it:\n${output}`);
+    assert.equal(code, 130, `and exit 128 + 2, not git's failure:\n${output}`);
     assert.equal(ok('rev-parse', 'HEAD'), head, 'and make no commit');
     assert.equal(ok('ls-files', '-v'), flags, 'and keep every per-entry flag');
     assert.ok((await readFile(indexFile)).equals(bytes), 'and put the index file back byte for byte');
-    assert.equal(stillRunning(verifierPid), false, 'and leave no verifier running');
+  } finally {
+    // Whatever of the group is left (the filter's `sleep` when the case fails) is stopped.
+    if (group !== null) { try { process.kill(-group, 'SIGKILL'); } catch { /* already gone */ } }
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+// A1-292-1. With `core.splitIndex` the index bytes name a `sharedindex.<sha>` file, and with
+// `splitIndex.sharedIndexExpire=now` the gate's own `git add -A` deleted the one the found bytes name:
+// putting the bytes back left an index no git command could read. A refusal must leave a readable
+// index, byte-equal to the one found, flags included.
+test('the commit gate\'s refusal leaves a split index readable when git expires shared indexes at once', async () => {
+  const { root, ok, git, gate } = await throwawayRepository('// exits 0 and prints nothing\n');
+  try {
+    ok('config', 'core.splitIndex', 'true');
+    ok('config', 'splitIndex.sharedIndexExpire', 'now');
+    ok('config', 'splitIndex.maxPercentChange', '0');
+    ok('update-index', '--split-index');
+    const { indexFile, bytes, flags } = await flaggedIndex(root, ok);
+    const shared = ok('rev-parse', '--shared-index-path');
+    assert.notEqual(shared, '', 'the index must be split for this case to mean anything');
+    for (let i = 0; i < 8; i += 1) await writeFile(join(root, `new-${i}.txt`), `new ${i}\n`);
+    const head = ok('rev-parse', 'HEAD');
+
+    const refused = gate();
+    assert.equal(refused.status, 90, `the gate must refuse with 90:\n${refused.stdout}${refused.stderr}`);
+    const read = git('ls-files', '-s');
+    assert.equal(read.status, 0, `and leave an index git can read:\n${read.err}`);
+    assert.equal(ok('rev-parse', 'HEAD'), head, 'and make no commit');
+    assert.equal(ok('ls-files', '-v'), flags, 'and keep every per-entry flag');
+    assert.ok((await readFile(indexFile)).equals(bytes), 'and put the index file back byte for byte');
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -976,7 +1088,7 @@ test('a caller\'s GIT_* environment reaches no repository but the cases\' own', 
       const names = Object.keys(redirection).join(', ');
       const count = (key) => Number(output.match(new RegExp(`^ℹ ${key} (\\d+)$`, 'm'))?.[1] ?? -1);
       assert.equal(run.status, 0, `the commit-gate cases must pass with ${names} pointed at another repository:\n${output}`);
-      assert.ok(count('pass') >= 5 && count('fail') === 0, `and run every commit-gate case (pass ${count('pass')}, fail ${count('fail')}):\n${output}`);
+      assert.ok(count('pass') >= 8 && count('fail') === 0, `and run every commit-gate case (pass ${count('pass')}, fail ${count('fail')}):\n${output}`);
       const after = await filesUnder(victim);
       const changed = [...new Set([...before.keys(), ...after.keys()])].filter((path) => before.get(path) !== after.get(path));
       assert.deepEqual(changed, [], `with ${names} set, the caller's repository must be untouched`);
