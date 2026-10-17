@@ -5,13 +5,19 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "ba3efcfdd2e9f9da7f79da25fe07fb0d903c031d",
-  "head_revision_or_patch_checksum": "ba3efcfdd2e9f9da7f79da25fe07fb0d903c031d",
+  "head_revision_or_patch_checksum": "82aaa4175f8364fa0efb6bb950a3dd0397a5818d",
   "task_ids": [
     "WP-0A-DB-00",
     "records-pr268-pr281-2026-10-17"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-DB-00/records-transcription-2026-10-17.md"
+  ],
+  "files_modified": [
+    "db/foundation/lint/audit-coverage-map.json",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
@@ -37,29 +43,44 @@
   ],
   "tests": [
     {
-      "command": "npm run validate:protocol",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (records commit 805881d9, under the suite lock)",
       "exit_code": 0,
-      "result": "valid"
+      "result": "clean: exit 0 — tests 843, pass 843, fail 0"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (change commit 09206604, under the suite lock)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (lane-wording commit 82aaa417, under the suite lock)",
       "exit_code": 0,
       "result": "clean: exit 0 — tests 843, pass 843, fail 0"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
       "exit_code": 0,
-      "result": "all 6 changed path(s) are declared, and every amendment explains one"
+      "result": "all 4 changed path(s) are declared, and every amendment explains one (measured at 805881d9)"
+    },
+    {
+      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD",
+      "exit_code": 1,
+      "result": "NOT records-only: db/foundation/lint/audit-coverage-map.json outside evidence/<package>/**, handoffs/*.json and work-packages/*.json (measured at 805881d9)"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "tier H; lane governance: db/foundation/lint/audit-coverage-map.json (data the database guards read), test-kits/db/foundation-contract.test.mjs (the foundation contract test, which pins the classifier), test-kits/integrity-manifest.json; it prints additive-eligible: yes, but the change rewrites an assertion of a test that pins the classifier, so it is not additive and stays governance"
+      "result": "tier H; lane governance (audit-coverage-map.json, the data the database guards read); additive-eligible: yes, risk only once A1 and Q0 confirm in writing on the final head (measured at 805881d9)"
+    },
+    {
+      "command": "node --test --test-name-pattern 'audit coverage map names real tables' test-kits/db/foundation-contract.test.mjs",
+      "exit_code": 0,
+      "result": "pass 1 with the re-pin; fail 1 without it (open_blockers[21] is not on work-packages/WP-0A-DB-00.json:278)"
+    },
+    {
+      "command": "npm run validate:protocol",
+      "exit_code": 0,
+      "result": "valid"
     },
     {
       "command": "npm run regenerate:manifest",
       "exit_code": 0,
-      "result": "rebuilt 128 digest(s)"
+      "result": "rebuilt 128 digest(s); no change to test-kits/integrity-manifest.json"
     },
     {
       "command": "npm run check:handoff",
@@ -71,12 +92,12 @@
   "migration_and_data_impact": "None. audit-coverage-map.json changes only line numbers of its pins into this manifest.",
   "compatibility_impact": "No contract changes; no contract-catalog file.",
   "known_limitations": [
-    "Not records-only by RFC-2026-025 §6.1: the coverage-map re-pin is under db/, so the lane is risk, not records.",
+    "Not records-only by RFC-2026-025 §6.1: the coverage-map re-pin is under db/. The lane printed is governance (tier H; additive-eligible: yes, risk only once A1 and Q0 confirm in writing on the final head that every guard hunk only adds; the re-pin changes 34 values and adds nothing).",
     "Owed outside this package's writable_paths and not done here: R0-281-1 (a dated note on RFC-2026-007 §F item 4, WP-0A-A0-004), R0-281-2 option (ii) (an open_blockers entry in WP-1A-A0-003 for adapters/job-store.ts and PLATFORM_KERNEL_CREATED), WP-0A-A0-002's acknowledgement of the manifest regenerations (R0-AUD1017-5).",
     "Owed by A0 outside the repository: telling the Owner the count of carry-clause press errors is four, not three (C0-AUD1017-1, R0-AUD1017-1). Any further after-the-fact statements by A1 or Q0 on #268 are theirs to give."
   ],
   "open_risks_or_blockers": [
-    "RISK LANE (db/foundation/lint/audit-coverage-map.json; not records-only). A0 presses under RFC-2026-034 §2.2 (Q-034-1) after the lane's readers pass on the final head and CI is green on both jobs there, with --match-head-commit. No role has read this branch; no role verdict is claimed. No status move: status stays in_review."
+    "GOVERNANCE LANE AS PRINTED (classify-review-tier --lane: tier H, lane governance, additive-eligible: yes; db/foundation/lint/audit-coverage-map.json is guard data). Not records-only. The press authority under RFC-2026-034 §2.2 / RFC-2026-025 §5 item 6 for a governance-lane records PR is A0's to establish; A0 had planned the risk lane (Q-034-1), which the classifier does not print unless A1 and Q0 confirm the additive rule. No role has read this branch; no role verdict is claimed. No status move: status stays in_review."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes open_blockers[207] and [208] and the records transcription, restores the declared path and shifts the 34 pins back by two; nothing depends on them.",
   "recommended_next_work_packages": [
