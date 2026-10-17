@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "09a059919f504819954932289f5299dd86875529",
-  "head_revision_or_patch_checksum": "df8ad2c50e83f7de4af38de43438d7177b195f9c",
+  "head_revision_or_patch_checksum": "cf71f52aca52b129d2f10e8a572f3c95c6706594",
   "task_ids": [
     "WP-1A-A0-002",
     "omit-dev-manifest-2026-10-17"
@@ -30,11 +30,12 @@
     "Press authority: the Product Owner's answer of 2026-10-17T11:53:17Z to question 2 (header `gov ที่เหลือ`), `A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)`, and his message of 12:24:40Z `ลุยต่อเลย ไม่ต้องหยุดถาม`, transcribed by script (byte-exact against transcript lines 6128, 6137, 6355 of session 325454ab) in evidence/WP-1A-A0-002/product-owner-disposition-2026-10-17-omit-dev-manifest.md and appended to required_human_authorities (INCREMENT 2026-10-17 omit-dev-manifest). The earlier entries are kept as written (append-only).",
     "The RFC half of the item (a dated note under RFC-2026-029 §4 item 6) is WP-1A-A0-001's PR #285, open; RFC-2026-029 is outside this package's writable_paths.",
     "Lane: the base's classifier prints `risk` (tier H: work-packages/WP-1A-A0-002.json acceptance_criteria and deterministic_commands changed), not governance; a work-package manifest is not on RFC-2026-034 §2.2's governance list. A0 treats the pull request as governance because the Owner's question 2 put it among the governance items: C0, A1, Q0 and R0 read the final head (a reading raised above the printed lane, never lowered). Making the classifier print governance would need a governance path in the diff, which this increment does not touch.",
-    "The commit df8ad2c5 also refreshes this handoff's range only (npm run refresh:handoff), because it cited PR #267's range (6fb5ab13..fdd6b583), no longer on this branch's path; this commit makes the handoff true for this increment, last and alone."
+    "Commit cf71f52a narrows ownership.amends_without_owning.paths to empty, at A0's direction: PR #267's three declared paths (scripts/test-suite-contract.mjs, test-kits/integrity-manifest.json, evidence/VERIFICATION.md) are not changed on this branch, so verify-branch-scope read them as a standing permission (exit 74). The rationale's text is kept and one dated sentence appended (RFC-2026-025 §6.1 rule 4 admits narrowing).",
+    "The commit df8ad2c5 also refreshed this handoff's range only (npm run refresh:handoff), because it cited PR #267's range (6fb5ab13..fdd6b583), no longer on this branch's path; this commit makes the handoff true for the whole increment, last and alone."
   ],
   "acceptance_results": [
     {
-      "criterion": "acceptance_criteria[7] and deterministic_commands.package_evidence[4] say what CI runs (`npm audit --include=dev --audit-level=high`); nothing else in the manifest changes except one appended required_human_authorities entry; no rule, threshold, CI step, guard, test or RFC changes; the Owner's words are quoted byte-exact by script with transcript lines and times",
+      "criterion": "acceptance_criteria[7] and deterministic_commands.package_evidence[4] say what CI runs (`npm audit --include=dev --audit-level=high`); nothing else in the manifest changes except one appended required_human_authorities entry and amends_without_owning narrowed to empty; no rule, threshold, CI step, guard, test or RFC changes; the Owner's words are quoted byte-exact by script with transcript lines and times",
       "result": "pass for author self-check; independent reading owed (C0, A1, Q0, R0)"
     }
   ],
@@ -50,19 +51,19 @@
       "result": "rebuilt 128 digest(s); test-kits/integrity-manifest.json unchanged"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commit df8ad2c5, under the suite lock; no node_modules)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commits df8ad2c5 and cf71f52a, each under the suite lock; no node_modules)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 843, pass 843, fail 0, skipped 0, todo 0"
+      "result": "clean: exit 0 — tests 843, pass 843, fail 0, skipped 0, todo 0 (each)"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "tier H (09a0599..df8ad2c); lane: risk (tier H outside governance, records and audit); see assumptions[3]"
+      "result": "tier H (09a0599..cf71f52); lane: risk (tier H outside governance, records and audit); see assumptions[3]"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-002",
-      "exit_code": 74,
-      "result": "the three amends_without_owning paths (scripts/test-suite-contract.mjs, test-kits/integrity-manifest.json, evidence/VERIFICATION.md), declared for PR #267's increment, explain nothing this branch changes; not narrowed by this increment (open_risks_or_blockers[1])"
+      "exit_code": 0,
+      "result": "WP-1A-A0-002: all 3 changed path(s) are declared, and every amendment explains one (after cf71f52a)"
     },
     {
       "command": "npm run check:handoff",
@@ -70,23 +71,22 @@
       "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Records only: two manifest strings brought into line with a CI command already on main, a disposition and an appended authority entry. No CI, guard, lockfile or dependency change, no credential, no customer data, no provider call.",
+  "security_privacy_cost_impact": "Records only: two manifest strings brought into line with a CI command already on main, a disposition and an appended authority entry and amends_without_owning narrowed to empty. No CI, guard, lockfile or dependency change, no credential, no customer data, no provider call.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "No contract changes: no contract-catalog file.",
   "known_limitations": [
     "RFC-2026-029 §4 item 6 still reads `--omit=dev` until WP-1A-A0-001's PR #285 (a dated note, the sentence kept) merges; acceptance_criteria[7] cites §4.6 and now says what CI runs."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE by the Owner's question, classifier lane risk (assumptions[3]): C0, A1, Q0 and R0 on the final head, CI green on bootstrap and application, no open security finding of any grade, head containing current main. A0 presses it under the Product Owner's answer of 2026-10-17T11:53:17Z to question 2 (`A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)`; evidence/WP-1A-A0-002/product-owner-disposition-2026-10-17-omit-dev-manifest.md; required_human_authorities INCREMENT 2026-10-17 omit-dev-manifest), an exception to RFC-2026-025 §5 item 6's last bullet for the items that question names, one pull request at a time; whether it covers this pull request is for the roles to judge.",
-    "verify-branch-scope exits 74: ownership.amends_without_owning still declares PR #267's three paths, which this branch does not change. Narrowing them (RFC-2026-025 §6.1 rule 4) is left to A0's direction; this increment did not edit that field."
+    "GOVERNANCE by the Owner's question, classifier lane risk, accepted, all four roles reading it as governance (assumptions[3]): C0, A1, Q0 and R0 on the final head, CI green on bootstrap and application, no open security finding of any grade, head containing current main. A0 presses it under the Product Owner's answer of 2026-10-17T11:53:17Z to question 2 (`A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)`; evidence/WP-1A-A0-002/product-owner-disposition-2026-10-17-omit-dev-manifest.md; required_human_authorities INCREMENT 2026-10-17 omit-dev-manifest), an exception to RFC-2026-025 §5 item 6's last bullet for the items that question names, one pull request at a time; whether it covers this pull request is for the roles to judge."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert restores the two `--omit=dev` strings and removes the disposition and the appended required_human_authorities entry; nothing runs differently.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert restores the two `--omit=dev` strings and amends_without_owning's three paths and removes the disposition and the appended required_human_authorities entry; nothing runs differently.",
   "recommended_next_work_packages": [
     "WP-1A-A0-001: PR #285 (the RFC-2026-029 §4.6 dated note), the other half of the same item, under the same answer."
   ],
   "reviewer_instructions": [
     "Read the disposition against the session transcript (session 325454ab, lines 6128, 6137, 6355), then git diff origin/main -- work-packages/WP-1A-A0-002.json.",
-    "Check the two strings against .github/workflows/ci.yml line 1354 on main, PR #279 and A1-270-1; confirm nothing else in the manifest changed but the appended required_human_authorities entry."
+    "Check the two strings against .github/workflows/ci.yml line 1354 on main, PR #279 and A1-270-1; confirm nothing else in the manifest changed but the appended required_human_authorities entry and amends_without_owning narrowed (paths emptied, one dated sentence appended to the rationale)."
   ],
   "superseded_by": null,
   "outputs": null
