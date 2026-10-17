@@ -4,15 +4,19 @@
   "work_package_id": "WP-1A-A0-001",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "6fd6aa0ed9a0a8504442d1aad7f7ae72794baeb3",
-  "head_revision_or_patch_checksum": "f8153d1d71e68e741f87dcdde6b1889b0ba01f84",
+  "base_revision": "09a059919f504819954932289f5299dd86875529",
+  "head_revision_or_patch_checksum": "3267c0969147ccd98b3d2e9c8533313448ba09b1",
   "task_ids": [
     "WP-1A-A0-001",
     "rfc-029-approval-2026-10-12",
     "omit-dev-note-2026-10-17"
   ],
   "files_added": [
-    "evidence/WP-1A-A0-001/product-owner-disposition-2026-10-17-omit-dev-wording.md"
+    "evidence/WP-1A-A0-001/a1-review-2026-10-17-pr285.md",
+    "evidence/WP-1A-A0-001/c0-review-2026-10-17-pr285.md",
+    "evidence/WP-1A-A0-001/product-owner-disposition-2026-10-17-omit-dev-wording.md",
+    "evidence/WP-1A-A0-001/q0-review-2026-10-17-pr285.md",
+    "evidence/WP-1A-A0-001/r0-review-2026-10-17-pr285.md"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-029-application-tier-stack.md",
@@ -81,8 +85,7 @@
     "The skeleton direction reaches the WP-1A-A0-002 skeleton pull request only. A dated amendment to RFC-029's allowlist (Q-029-7), or a provider SDK in the skeleton, is outside the direction: A0 asks the Owner before pressing such a skeleton pull request; if the skeleton is split, A0 asks again before pressing any part (disposition §3 (b), A0's reading)."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE, tier H, full path: C0, A1, Q0 and R0 on the final head, CI green on bootstrap and application, no open security finding. A0 presses it under the Product Owner's answer of 2026-10-17T11:53:17Z to question 2 (`A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)`; evidence/WP-1A-A0-001/product-owner-disposition-2026-10-17-omit-dev-wording.md; required_human_authorities INCREMENT 2026-10-17 omit-dev-note), an exception to RFC-2026-025 §5 item 6's last bullet for the items that question names, one pull request at a time; whether it covers this pull request is for the roles to judge.",
-    "Owed by WP-1A-A0-002: its own pull request correcting acceptance_criteria[7] and deterministic_commands.package_evidence[4] to --include=dev."
+    "GOVERNANCE (RFC-2026-029 §4.6 dated note on --include=dev). PR #285: C0 review_approved, A1 security_approved, Q0 test_verified 843/843, R0 ready, all at 700362d0; their files carried with -x; main merged mechanically (09a05991, PR #283). A0 presses under the Owner's AskUserQuestion answer of 2026-10-17T11:53:17.372Z, question 2 (transcript line 6137: 'A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)'), recorded in this PR's disposition and required_human_authorities entry, once CI is green on both jobs on the final head, with --match-head-commit. Owed: a separate WP-1A-A0-002 PR corrects acceptance_criteria[7] and deterministic_commands.package_evidence[4] (A1-285-1)."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert removes the note, the disposition and the two appended manifest strings; nothing runs differently.",
   "recommended_next_work_packages": [
