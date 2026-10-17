@@ -103,3 +103,96 @@ a gate) is merged by the Owner personally**, never by delegation". A0's reading 
 - The WP-1A-A0-003 records entry (item 1 of A0's message); the note says it is owed and does not write it.
 - Any rule of RFC-2026-007 or its amendments, and its Status lines; the disposition of the Amendment 2026-10-06, which
   stays OWED.
+
+## 6. Addendum 2026-10-17: the Owner's answer on who presses (R0-283-1, A1-283-1, C0-283-1)
+
+Appended after the C0, A1 and R0 readings of PR #283 at `6d98ccd6`; §1 to §5 above stand as written. R0-283-1 (Medium,
+authority) and A1-283-1 (Medium, governance) found that the answer of 2026-10-16T19:13:38Z authorizes the change but
+not plainly an A0 press, and named what is owed before one: the Owner's answer to a question that states the rule and
+offers both "A0 presses" and "the Owner presses". C0-283-1 (Low) asked that later governance questions name the
+presser. A0 put that question. Its words and the Owner's answer are copied below by script from the raw transcript of
+session `325454ab` (the same file as §2), line 6128 (an `AskUserQuestion` tool call, tool use id `toolu_01DZR9JF1Tc9J8FW2qMqvf7D`, stamped
+`2026-10-17T11:53:13.702Z`) and line 6137 (its tool result, stamped `2026-10-17T11:53:17.372Z`), and checked byte for
+byte against them by script; the chosen labels are parsed from the tool result's own text and agree with its structured
+`answers` field. Lines 6129 to 6136 are session metadata records; no message lies between. PR #283 existed from
+2026-10-16T20:11:30Z (`gh pr view 283`). Everything marked "A0's reading" is A0's, not the Owner's; this addendum, like
+the file, is a record, not a role verdict, and moves no status.
+
+### 6.1 Question 1 (header `#283 ใครกด`), verbatim
+
+```text
+PR #283 (บันทึกลงวันที่ใน RFC-007 §F) เป็น PR governance · ตาม RFC-025 §5 item 6 Owner ต้องกด merge เอง ยกเว้นคุณสั่งให้ A0 กดแทน · R0 และ A1 เห็นว่าคำว่า "หลุยส์ยาวตามที่คุณแนะนำ" ยังไม่ชัดพอให้ A0 กดแทนคุณ · จะให้ใครกด?
+```
+
+Its two options, labels verbatim, each with its description verbatim:
+
+```text
+A0 กดเมื่อ 4 role ผ่าน (Recommended)
+A0 บันทึกคำตอบนี้ใน disposition ให้ R0 อ่านใหม่ และให้ Q0 อ่าน จากนั้นกดเมื่อ CI เขียวบน head สุดท้าย
+```
+
+```text
+ผมกดเอง
+A0 ให้ Q0 อ่านให้ครบ แล้วรอคุณกด merge #283 บน GitHub · หลัง merge จะแก้บันทึก gov-a004e ที่เขียนว่า A0 กด
+```
+
+The label the Owner chose, verbatim:
+
+```text
+A0 กดเมื่อ 4 role ผ่าน (Recommended)
+```
+
+A0's translation of the question: "PR #283 (the dated note in RFC-007 §F) is a governance PR. Under RFC-025 §5 item 6
+the Owner must press merge himself, unless you direct A0 to press in your place. R0 and A1 find the words
+"หลุยส์ยาวตามที่คุณแนะนำ" not clear enough for A0 to press in your place. Who should press?" Of the chosen option:
+"A0 presses when the 4 roles pass", its description "A0 records this answer in the disposition, has R0 re-read and Q0
+read, then presses when CI is green on the final head". The question quotes the first part of the Owner's answer of
+2026-10-16T19:13:38Z, not its whole (§2 quotes the whole).
+
+### 6.2 Question 2 (header `gov ที่เหลือ`), verbatim
+
+```text
+ต่อจากนี้ PR governance ที่เหลือ (ปิดช่องว่างในเทสต์ CI: A1-279-3 `shell:` และ Q0-279r2-2 `$GITHUB_ENV` · แก้ถ้อยคำ `--omit=dev` ใน RFC-029 §4.6 และ WP-1A-A0-002) จะให้ใครกด?
+```
+
+Its options, labels verbatim: `A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)`, `ผมกดเองทุกตัว`, `ยังไม่ต้องทำ`. The label the Owner chose, verbatim, with its
+description verbatim:
+
+```text
+A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)
+แต่ละ PR ต้องผ่าน C0, A1, Q0 และ R0 บน head สุดท้าย และ CI เขียวทั้ง 2 job · ถ้ามี security finding ค้างจะไม่กด
+```
+
+A0's translation of the question: "From now on, who presses the remaining governance PRs (closing the gaps in the CI
+tests: A1-279-3 `shell:` and Q0-279r2-2 `$GITHUB_ENV`; fixing the `--omit=dev` wording in RFC-029 §4.6 and
+WP-1A-A0-002)?" Of the chosen option: "A0 presses one PR at a time when the 4 roles pass", its description "each PR
+must pass C0, A1, Q0 and R0 on the final head and CI green on both jobs; if a security finding is left open it is not
+pressed".
+
+### 6.3 A0's reading against RFC-2026-025 §5 item 6
+
+1. **PR #283 (question 1).** The question stated the last bullet's default (the Owner presses a governance PR
+   himself, unless he directs A0) and showed both options, one in which the Owner presses; the Owner chose the one in
+   which A0 presses. A0 reads that as the further answer R0-283-1 and A1-283-1 name, and as the Owner-directed
+   exception to the last bullet for PR #283 only, in the form PR #211, PR #212, the lane-walk fix, PR #270, PR #279,
+   PR #280 and PR #281 received. The third bullet: the answer was given after PR #283 existed and names it by number.
+   The press waits for C0, A1, Q0 and R0 on the final head (R0 re-reading this commit, Q0 reading), green CI on
+   `bootstrap` and `application` there, the head containing current `main`, and no security finding of any grade
+   open. Whether this answer meets R0-283-1 and A1-283-1 is for R0 and A1 to judge on re-read.
+2. **The remaining governance PRs (question 2).** A0 reads it as directing A0 to press, one pull request at a time,
+   each governance pull request that carries one of the items the question names: the CI-test gaps A1-279-3 (`shell:`)
+   and Q0-279r2-2 (`$GITHUB_ENV`), and the `--omit=dev` wording in RFC-2026-029 §4.6 and WP-1A-A0-002; each only after
+   C0, A1, Q0 and R0 pass on its final head, CI is green on both jobs there and no security finding is left open, and
+   with current `main` in its head. The third bullet, in A0's reading, is met by naming those items by content before
+   their pull requests exist. It is bounded to those items, not a standing delegation, and reaches no other
+   governance pull request; none of those pull requests exists at this commit. Each records this answer again in its
+   own disposition and manifest entry, in the package that owns the change.
+3. **The answer in §2 is not withdrawn.** The press authority for PR #283 now cites question 1 of 2026-10-17T11:53:17Z;
+   §2's answer remains the authority for the change itself.
+
+### 6.4 Records
+
+`work-packages/WP-0A-A0-004.json` `required_human_authorities` gains one entry at the end, gov-a004f, citing this
+section; gov-a004e is kept byte for byte (the field is append-only under `scripts/db/classify-records-only.mjs`
+`appendedEntriesOnly`). No other change is made by this addendum besides the regenerated integrity manifest digests
+and the author handoff.
