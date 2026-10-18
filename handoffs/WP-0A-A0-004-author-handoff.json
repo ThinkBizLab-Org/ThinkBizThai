@@ -4,33 +4,14 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "ba3efcfdd2e9f9da7f79da25fe07fb0d903c031d",
-  "head_revision_or_patch_checksum": "ca57a8259e7498462fc5c09f9e05b9dbdb6bd995",
+  "base_revision": "67713e43bd9e8f7d9632448c75e001d3e0124086",
+  "head_revision_or_patch_checksum": "67713e43bd9e8f7d9632448c75e001d3e0124086",
   "task_ids": [
     "WP-0A-A0-004",
-    "gov-a004g-ci-shell-env-2026-10-17"
+    "gov-a004h-branch-scope-git-env-2026-10-18"
   ],
-  "files_added": [
-    "evidence/WP-0A-A0-004/a1-review-2026-10-17-pr287-r2.md",
-    "evidence/WP-0A-A0-004/a1-review-2026-10-17-pr287-r3.md",
-    "evidence/WP-0A-A0-004/a1-review-2026-10-17-pr287.md",
-    "evidence/WP-0A-A0-004/c0-review-2026-10-17-pr287-r2.md",
-    "evidence/WP-0A-A0-004/c0-review-2026-10-17-pr287-r3.md",
-    "evidence/WP-0A-A0-004/c0-review-2026-10-17-pr287.md",
-    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-ci-shell-env.md",
-    "evidence/WP-0A-A0-004/q0-review-2026-10-17-pr287-r2.md",
-    "evidence/WP-0A-A0-004/q0-review-2026-10-17-pr287-r3.md",
-    "evidence/WP-0A-A0-004/q0-review-2026-10-17-pr287.md",
-    "evidence/WP-0A-A0-004/r0-review-2026-10-17-pr287-r2.md",
-    "evidence/WP-0A-A0-004/r0-review-2026-10-17-pr287-r3.md",
-    "evidence/WP-0A-A0-004/r0-review-2026-10-17-pr287.md"
-  ],
-  "files_modified": [
-    "handoffs/WP-0A-A0-004-author-handoff.json",
-    "test-kits/app-stack.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "work-packages/WP-0A-A0-004.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-007",
@@ -40,86 +21,77 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT (gov-a004g) closes A1-279-3 (evidence/WP-0A-A0-004/a1-review-2026-10-16-pr279.md §4) and Q0-279r2-2 (evidence/WP-0A-A0-004/q0-reread-2026-10-16-pr279.md §2), recorded as owed in PR #279's known_limitations, under question 2 of the Product Owner's answer of 2026-10-17T11:53:17Z (transcript line 6137) and the message of 12:24:40Z (line 6355), transcribed verbatim by script in evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-ci-shell-env.md with A0's reading.",
-    "test-kits/app-stack.test.mjs is WP-1A-A0-002's file; this package changed it before (PR #279) and declares it in ownership.amends_without_owning with the reason. The checks sit inside two existing tests (A1-270-1's, which holds the A1-279-2 environment pin; A1-270-2's, which holds the soft-failure reading), so no test is added or renamed and scripts/test-suite-contract.mjs (count floor, name digest) does not move; the assertion count rises, which the assertion floor allows.",
-    "Each gap is closed as a class by token on every line of the application job (its own lines, its steps' keys and its run: | bodies), not by listing spellings (the lesson of #279's four rounds); the YAML forms that could spell a key without its letters are refused by the existing yamlFormProblems, which both readings run.",
-    "ROUND 2 (A1-287-1, A1-287-2, A1-287-3, from A1's changes_requested at 069a537d, evidence/WP-0A-A0-004/a1-review-2026-10-17-pr287.md on A1's role branch): closed as classes inside the same two tests. The token readings read applicationJobText (the application job's lines as ci.yml lays them out, `#`-led lines inside block-scalar bodies kept, YAML comments outside them left out); yamlFormProblems refuses a quoted scalar that spans lines; applicationKeys holds the job's keys, job env: keys, step keys and step env:/with: keys to allowlists the test pins exactly to main's ci.yml. ci.yml needs and gets no change.",
-    "ROUND 3 (A1-287r2-1, from A1's changes_requested at f38db9c9, evidence/WP-0A-A0-004/a1-review-2026-10-17-pr287-r2.md): residual only, A1's first option, no code change. One sentence names the class in the test's comment, the gov-a004g acceptance entry, the PR body and known_limitations; disposition §8 records the round."
+    "THIS INCREMENT (gov-a004h) fixes A1-292-2 (evidence/WP-0A-CON-008/a1-review-2026-10-18-pr292.md §4, §6) and Q0-292-2 (evidence/WP-0A-CON-008/q0-review-2026-10-18-pr292.md §6) for test-kits/branch-scope.test.mjs, this package's file, under the Product Owner's message of 2026-10-18T02:39:25.100Z (transcript line 8565) answering A0's recommendation at line 8561, both transcribed verbatim by script in evidence/WP-0A-A0-004/product-owner-disposition-2026-10-18-a1-292-2.md with A0's reading.",
+    "The other two files A1-292-2 names (test-kits/ci-guard-behaviour.test.mjs, test-kits/handoff-conformance.test.mjs) are not this package's and are not changed here; their fix is a separate pull request of their owning package.",
+    "scripts/test-suite-contract.mjs (WP-0A-A0-002's) and evidence/VERIFICATION.md (WP-0A-CON-008's) are changed only as mechanical consequences of the test change and are declared in ownership.amends_without_owning; test-kits/integrity-manifest.json is regenerated under authorized_cross_package_amendments."
   ],
   "acceptance_results": [
     {
-      "criterion": "Each check fails on crafted ci.yml variants and passes on main's ci.yml",
-      "result": "pass for author self-check at 6fc1bb2a: runnerEnvWriteProblems refuses 28 mutations (round one's 16; A1's Q1, Q2, P3, P4; a `#`-led body line; a folded `>-` body; job env BASH_ENV, PATH, ENV; step env BASH_ENV, NODE_OPTIONS; a step working-directory); shellProblems refuses 23 (round one's 18; container: as block, mapping and quoted key; services:; a `#`-led body line); a YAML comment naming the tokens outside a body is still not read (2 positive controls); every reading returns [] on main's ci.yml, and each allowlist equals the keys main uses. PyYAML 6.0.3 loads Q1, Q2, P3, P4 and the folded variant as valid workflows whose run text names the token."
+      "criterion": "Every child process of test-kits/branch-scope.test.mjs starts with no GIT_* variable of its caller's, removed as a class",
+      "result": "pass for author self-check: withoutCallerGit deletes every key starting GIT_, applied last at all three spawn sites (scratchRepo's git, runStep's bash, laneEnv's sh); grep finds no other spawn, exec or execFile in the file, and the imported functions it calls spawn nothing."
     },
     {
-      "criterion": "Each part bites",
-      "result": "pass for author self-check: with body comments dropped, spanning quotes allowed, the allowlist off, or either token regex replaced by /(?!)/, the corresponding test fails (A1-270-1's, A1-270-2's, or both)"
+      "criterion": "One test reruns the file's git-touching cases with GIT_INDEX_FILE / GIT_DIR pointed at a throwaway repository and requires it untouched byte for byte",
+      "result": "pass for author self-check: 'the caller's GIT_* reaches no git this file runs: a repository it names is left byte for byte' reruns the other 39 tests three times concurrently (GIT_INDEX_FILE; GIT_DIR + GIT_WORK_TREE; GIT_INDEX_FILE + GIT_OBJECT_DIRECTORY), each against its own victim repository with one commit and one staged file; each run passes and every file and directory of each victim, .git included, is byte-equal."
     },
     {
-      "criterion": "No ci.yml, classifier, other guard or other test changes",
-      "result": "pass for author self-check: git diff origin/main --name-only lists the test, the disposition, the manifest, the integrity manifest and this handoff only; app-stack still declares 21 tests with the same names"
+      "criterion": "The new test fails on main's code",
+      "result": "pass for author self-check: with the three spawn-site edits reverted and the test kept, it fails: \"GIT_INDEX_FILE: the victim repository changed (1 path(s)): .git/index\". Measured on main's file directly: GIT_INDEX_FILE passed 39/39 and rewrote the victim's index; the other two redirections failed 25 of 39."
     },
     {
-      "criterion": "The Owner's words are quoted byte for byte",
-      "result": "pass for author self-check (round one, unchanged in round two): the disposition's 7 fenced quotes (8 strings) and the 6 quotes in gov-a004g equal transcript lines 6128, 6137 and 6355"
+      "criterion": "Existing tests and names kept",
+      "result": "pass: no test removed or renamed; floors 39 to 40 tests, 236 to 243 assertions, name digest 946cbd265ad735ac to 4dfc0f00299c7f23, each with a dated comment in scripts/test-suite-contract.mjs."
     }
   ],
   "tests": [
     {
-      "command": "transcript check by script (python, lines 6128/6137/6355 against the disposition and the gov-a004g entry)",
+      "command": "node --test test-kits/branch-scope.test.mjs",
       "exit_code": 0,
-      "result": "disposition: 7 fenced quotes (8 strings) byte-equal; manifest gov-a004g: 6 quotes byte-equal (gov-a004g unchanged in round 2)"
+      "result": "tests 40, pass 40"
     },
     {
-      "command": "node --test test-kits/app-stack.test.mjs",
-      "exit_code": 0,
-      "result": "tests 21, pass 21 at 3610d86f; each of five parts disabled in turn fails its test (measured at 6fc1bb2a; round 3 changes no code)"
+      "command": "node --test --test-name-pattern=\"reaches no git\" test-kits/branch-scope.test.mjs, with the three spawn-site edits reverted (the test kept)",
+      "exit_code": 1,
+      "result": "fails as required: GIT_INDEX_FILE: the victim repository changed (1 path(s)): .git/index"
     },
     {
-      "command": "python3 (PyYAML 6.0.3 safe_load of the Q1, Q2, P3, P4 and folded mutations)",
-      "exit_code": 0,
-      "result": "each is a valid workflow whose application step run text names GITHUB_ENV or GITHUB_PATH"
+      "command": "node --test on main's test-kits/branch-scope.test.mjs under each redirection, against a scratch victim repository",
+      "exit_code": 1,
+      "result": "GIT_INDEX_FILE: pass 39, fail 0, the victim index rewritten; GIT_DIR+GIT_WORK_TREE and GIT_INDEX_FILE+GIT_OBJECT_DIRECTORY: pass 14, fail 25, victim unchanged"
     },
     {
-      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
+      "command": "transcript check by script (lines 8561 and 8565 against the disposition)",
       "exit_code": 0,
-      "result": "tier: H (9 path(s), ba3efcf..3610d86), lane: governance"
+      "result": "4 fenced quotes byte-present in their source messages; stamps and roles of both lines checked"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004",
-      "exit_code": 0,
-      "result": "all 9 changed path(s) are declared, and every amendment explains one; origin/main ba3efcfd is an ancestor of the head"
-    },
-    {
-      "command": "node scripts/commit-when-clean.mjs (npm run verify under the suite lock)",
-      "exit_code": 0,
-      "result": "clean: tests 843, pass 843 at 3610d86f (round 3, a comment and records change only), as at 6fc1bb2a (round 2) and 3fd658bc, a60412c1 (round 1)"
+      "command": "node scripts/run-test-suite.mjs (full suite, before record:verification)",
+      "exit_code": 89,
+      "result": "tests 852, pass 852, fail 0; exit 89 only because evidence/VERIFICATION.md still held the old count; npm run record:verification then rewrote it (see evidence/VERIFICATION.md), and the commit gate re-ran the suite clean"
     }
   ],
-  "security_privacy_cost_impact": "Raises the bar on CI: the application job's test now refuses a custom shell or defaults (a soft or empty run:) and any write to the job's environment or PATH file that the job's text names. No credential, secret, personal data, provider call or dependency change; ci.yml is unchanged.",
+  "security_privacy_cost_impact": "Closes an integrity gap in the test suite: run with a caller's GIT_* (as from a pre-commit hook), test-kits/branch-scope.test.mjs could rewrite the caller's index or write into another repository. No credential, secret, personal data, provider call or dependency change; ci.yml and every script CI runs are unchanged.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes; ci.yml as on main passes both new readings.",
+  "compatibility_impact": "No contract changes. The file's run time grows by about 20 s (three nested reruns, concurrently).",
   "known_limitations": [
-    "THE RESIDUAL (stated in the test's comments): the reader sees the application job's text, not what runs or what is evaluated. Not seen: a token assembled at run time by the shell (${!name}, concatenation, eval, decoding) or by the runner from a `${{ }}` expression (e.g. ${{ format('GITHUB_{0}', 'ENV') }}, A1-287-3); a glob reaching the runner's file-command files without naming them; `set +e` or `bash +e`/`sh -c` in a run body; and writes or swallowed failures inside programs a step runs (repository scripts, npm scripts, package code, the pinned actions; actions/setup-node writes $GITHUB_PATH by design). Held by the review of every ci.yml and script change, A1-257-4's step-list pin and A1-AUD1015-1's order. Also not refused: a `run:` body line that writes a file later steps or tools read without naming either token (npm's user or project configuration by `npm config set` or a write to `~/.npmrc`, including `node-options=`, which undoes the job's `NODE_OPTIONS: ''`; a project `.npmrc` created at run time; an executable that shadows a command in a directory already on PATH) reaches the same effects, is read and not refused, and is held by the review of every ci.yml change and A1-257-4's step-list pin (A1-287r2-1).",
-    "The bootstrap job is not read for shell: or $GITHUB_ENV; a job's environment file reaches only that job's later steps, and the two findings named the application job.",
-    "The token readings fail closed: a future run body that merely mentions the word shell, defaults, GITHUB_ENV or GITHUB_PATH fails the test and needs a governance change.",
-    "WP-1A-A0-002's acknowledgement of this amendment to its test file, RFC-2026-029 §4.6's --omit=dev wording, and the R0 acknowledgements owed for #270, #255, #260 and #279 stay owed.",
-    "The key allowlists are pinned to main's ci.yml as of f0715913: a later ci.yml change that adds a key to the application job (a new step env:, a with: input) must widen the list in the same governance pull request."
+    "Only this package's file is fixed. test-kits/ci-guard-behaviour.test.mjs and test-kits/handoff-conformance.test.mjs, which A1-292-2 also names, are not changed here; A1's \"better still\" (one shared helper and a guard over every spawnSync('git' in test-kits/) is not done.",
+    "The pin is behavioural: it reruns the file under three redirections. A new spawn site added later without withoutCallerGit is caught only if it touches git in a way those three redirections reach; no static check over spawn calls is added.",
+    "Git configuration outside the environment (the user's global or system config) still reaches the scratch repositories, as before; the scratch repositories set their own user and commit.gpgsign."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (A1-279-3 shell:/defaults and Q0-279r2-2 runner env/path writes in the application-job test). PR #287 round 3 (3610d86f, a residual sentence for A1-287r2-1, no code change). Role files of rounds one (069a537d), two (f38db9c9) and three (2c50e9a8) are carried with -x; the round-three files are the verdicts for the press (C0 review_approved, A1 security_approved, Q0 test_verified, R0 ready). A0 presses under gov-a004g, the Owner's AskUserQuestion answer of 2026-10-17T11:53:17.372Z, question 2 (transcript line 6137: 'A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)'), once C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs and no security finding is open, with --match-head-commit."
+    "GOVERNANCE (A1-292-2 and Q0-292-2 for test-kits/branch-scope.test.mjs). No role has read this pull request; no role verdict is claimed. A0 presses under gov-a004h (required_human_authorities; evidence/WP-0A-A0-004/product-owner-disposition-2026-10-18-a1-292-2.md), the Owner's message of 2026-10-18T02:39:25.100Z (transcript line 8565, 'ลุยเลย ไม่ต้องรอถาม') answering A0's recommendation at line 8561 that A0 press once the four roles pass, only after C0, A1, Q0 and R0 pass on the final head, CI is green on bootstrap and application, no security finding of any grade is open, and the head contains current main. Whether the answer covers the press is for the roles to judge.",
+    "Acknowledgements owed from the Integration Owner (/claude/r0_steward) of WP-0A-A0-002 (scripts/test-suite-contract.mjs, test-kits/integrity-manifest.json) and WP-0A-CON-008 (evidence/VERIFICATION.md)."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR removes the two readings and their controls from test-kits/app-stack.test.mjs, the gov-a004g records and the disposition, and regenerates the integrity manifest. No data, provider or credential effect.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR restores the three spawn sites, removes the test, the gov-a004h records and the disposition, puts back the floors and digest in scripts/test-suite-contract.mjs, and regenerates the integrity manifest and the verification record. No data, provider or credential effect.",
   "recommended_next_work_packages": [
-    "WP-1A-A0-002: R0's acknowledgement of this amendment to test-kits/app-stack.test.mjs.",
-    "RFC-2026-029 §4.6 and WP-1A-A0-002's audit command text, to match ci.yml (the other item of question 2).",
-    "WP-1A-A0-002, WP-0A-A0-002, WP-0A-CON-008: R0's acknowledgement records for #279's amendments."
+    "The owning package of test-kits/ci-guard-behaviour.test.mjs and test-kits/handoff-conformance.test.mjs: the same fix for A1-292-2 there.",
+    "WP-0A-A0-002 and WP-0A-CON-008: R0's acknowledgement records for this increment's amendments."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-004/product-owner-disposition-2026-10-17-ci-shell-env.md (§7 round 2, §8 round 3), then git diff origin/main and git diff f38db9c9.",
-    "In test-kits/app-stack.test.mjs read applicationJobText, quotedScalarSpansLines, applicationKeys/APPLICATION_KEYS, runnerEnvWriteProblems and shellProblems with their comments (the class, what is read, the residual), then the controls at the end of the A1-270-1 and A1-270-2 tests; try a spelling or key not listed.",
-    "Re-run A1's Q1, Q2, P3, P4, P7, R1 and R3 against the head.",
-    "Run node --test test-kits/app-stack.test.mjs, node scripts/db/classify-review-tier.mjs origin/main HEAD --lane, node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004 and npm run check:handoff on the branch name."
+    "Read evidence/WP-0A-A0-004/product-owner-disposition-2026-10-18-a1-292-2.md, then git diff origin/main.",
+    "In test-kits/branch-scope.test.mjs read withoutCallerGit and its comment, the three spawn sites, and the last test; grep the file for spawn, exec and execFile to confirm no other child.",
+    "Revert the three spawn-site edits locally, keep the test, and run node --test --test-name-pattern=\"reaches no git\" test-kits/branch-scope.test.mjs: it must fail.",
+    "Run node --test test-kits/branch-scope.test.mjs, node scripts/verify-test-coverage-floor.mjs, node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004 and npm run check:handoff on the branch name, not detached."
   ],
   "superseded_by": null
 }

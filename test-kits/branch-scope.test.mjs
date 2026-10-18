@@ -291,6 +291,23 @@ function envValue(block, key) {
   return raw.startsWith("'") ? raw.slice(1, -1).replaceAll("''", "'") : raw;
 }
 
+// EVERY CHILD OF THIS FILE RUNS WITH NO `GIT_*` VARIABLE OF ITS CALLER'S, AS A CLASS (A1-292-2, Q0-292-2;
+// WP-0A-A0-004, 2026-10-18). Git exports GIT_INDEX_FILE to a pre-commit hook, and GIT_DIR, GIT_WORK_TREE,
+// GIT_OBJECT_DIRECTORY, GIT_COMMON_DIR, GIT_CONFIG_* and the rest each redirect a `git` that inherits them. The
+// throwaway repositories below inherited them: run with GIT_INDEX_FILE naming another repository's index, this file
+// passed 39/39 and replaced that index with a scratch repository's entries (A1's reading of PR #292, §4), and with
+// GIT_INDEX_FILE and GIT_OBJECT_DIRECTORY it wrote 80 files under that repository's `.git` (Q0's). A list of the
+// variables named would be the next variable short, as in test-kits/ratchets-bite.test.mjs's CHILD_ENV: every child
+// here -- git, bash, sh, and the bash steps' own git and node -- works in a repository of its own, or in none, and
+// needs no `GIT_*` from its caller. The strip is applied last, so not even a test's own extra variables can carry one.
+// Pinned by the last test in this file, which runs every other test here with its caller's GIT_* pointed at a
+// throwaway repository and requires that repository unchanged byte for byte.
+function withoutCallerGit(env) {
+  const clean = { ...env };
+  for (const key of Object.keys(clean)) if (key.startsWith('GIT_')) delete clean[key];
+  return clean;
+}
+
 async function runStep(body, env, cwd) {
   const { spawnSync } = await import('node:child_process');
   const { mkdtemp, writeFile, readFile } = await import('node:fs/promises');
@@ -302,7 +319,7 @@ async function runStep(body, env, cwd) {
   await writeFile(script, body);
   await writeFile(output, '');
   const result = spawnSync('bash', ['--noprofile', '--norc', '-e', script], {
-    cwd, encoding: 'utf8', env: { PATH: process.env.PATH, HOME: process.env.HOME, GITHUB_OUTPUT: output, ...env },
+    cwd, encoding: 'utf8', env: withoutCallerGit({ PATH: process.env.PATH, HOME: process.env.HOME, GITHUB_OUTPUT: output, ...env }),
   });
   return { code: result.status, out: `${result.stdout}${result.stderr}`, output: await readFile(output, 'utf8') };
 }
@@ -314,7 +331,7 @@ async function scratchRepo() {
   const { join, dirname } = await import('node:path');
   const repo = await mkdtemp(join(tmpdir(), 'ci-skip-'));
   const git = (...args) => {
-    const r = spawnSync('git', args, { cwd: repo, encoding: 'utf8' });
+    const r = spawnSync('git', args, { cwd: repo, encoding: 'utf8', env: withoutCallerGit(process.env) });
     assert.equal(r.status, 0, `git ${args.join(' ')}: ${r.stderr}`);
     return r.stdout.trim();
   };
@@ -992,7 +1009,7 @@ async function laneEnv(env) {
   const { spawnSync } = await import('node:child_process');
   if (timeoutShim === undefined) {
     timeoutShim = null;
-    if (spawnSync('sh', ['-c', 'command -v timeout'], { env: { PATH: process.env.PATH } }).status !== 0) {
+    if (spawnSync('sh', ['-c', 'command -v timeout'], { env: withoutCallerGit({ PATH: process.env.PATH }) }).status !== 0) {
       const { mkdtemp, writeFile, chmod } = await import('node:fs/promises');
       const { tmpdir } = await import('node:os');
       const { join } = await import('node:path');
@@ -1312,4 +1329,101 @@ test('the tier and lane summary carries at most 64 KiB of classifier output, esc
   assertLane(small, 'tier: H, lane: risk', 'a short output');
   assert.match(small.summary, /<pre>\ntier: H \(1 path\(s\), a\.\.b\)\nlane: risk\n<\/pre>/);
   assert.doesNotMatch(small.summary, /cut at 64 KiB/);
+});
+
+// A1-292-2 and Q0-292-2: the pin for withoutCallerGit. Every other test in this file is run again in a nested
+// `node --test`, three times at once, each with its caller's environment redirecting git at a throwaway "victim"
+// repository that holds one commit and one staged file: GIT_INDEX_FILE alone (a pre-commit hook's own variable; before
+// the fix the file passed 39/39 and rewrote the victim's index), GIT_DIR with GIT_WORK_TREE, and GIT_INDEX_FILE with
+// GIT_OBJECT_DIRECTORY (before the fix each failed 25 of 39 here; Q0 measured 80 files written under its own victim's
+// `.git` with the second). Each nested run must pass, and the victim must be unchanged byte for byte: the same files
+// and directories, each file's bytes equal. A run that fails is caught as surely as a victim that changed. The nested runs skip
+// this test by its own name, and drop NODE_TEST_CONTEXT and NODE_OPTIONS, without which a nested `node --test` reports
+// as a subtest and exits 0 whatever happens inside.
+test('the caller\'s GIT_* reaches no git this file runs: a repository it names is left byte for byte', async (t) => {
+  const { spawn, spawnSync } = await import('node:child_process');
+  const { mkdtemp, readdir, readFile, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+
+  const victimRepository = async () => {
+    const root = await mkdtemp(join(tmpdir(), 'git-env-victim-'));
+    const git = (...args) => {
+      const r = spawnSync('git', args, { cwd: root, encoding: 'utf8', env: withoutCallerGit(process.env) });
+      assert.equal(r.status, 0, `victim: git ${args.join(' ')}: ${r.stderr}`);
+    };
+    git('init', '-q', '-b', 'main');
+    git('config', 'user.email', ['git-env-victim', 'example.invalid'].join('@'));
+    git('config', 'user.name', 'git env victim');
+    git('config', 'commit.gpgsign', 'false');
+    await writeFile(join(root, 'committed.txt'), 'the victim\'s commit\n');
+    git('add', 'committed.txt');
+    git('commit', '-q', '-m', 'the victim\'s own commit');
+    await writeFile(join(root, 'staged.txt'), 'staged by the victim, not committed\n');
+    git('add', 'staged.txt');
+    return root;
+  };
+  // Every directory and file under the victim, `.git` included, as path -> bytes (null for a directory).
+  const snapshot = async (root) => {
+    const entries = new Map();
+    const walk = async (dir, prefix) => {
+      for (const entry of await readdir(dir, { withFileTypes: true })) {
+        const path = `${prefix}${entry.name}`;
+        if (entry.isDirectory()) {
+          entries.set(`${path}/`, null);
+          await walk(join(dir, entry.name), `${path}/`);
+        } else {
+          entries.set(path, await readFile(join(dir, entry.name)));
+        }
+      }
+    };
+    await walk(root, '');
+    return entries;
+  };
+  const changes = (before, after) => {
+    const paths = [...new Set([...before.keys(), ...after.keys()])].sort();
+    return paths.filter((path) => {
+      if (!before.has(path) || !after.has(path)) return true;
+      const [a, b] = [before.get(path), after.get(path)];
+      return a === null ? b !== null : b === null || !a.equals(b);
+    });
+  };
+
+  const skipSelf = `^${t.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`;
+  const redirections = [
+    ['GIT_INDEX_FILE', (victim) => ({ GIT_INDEX_FILE: join(victim, '.git', 'index') })],
+    ['GIT_DIR and GIT_WORK_TREE', (victim) => ({ GIT_DIR: join(victim, '.git'), GIT_WORK_TREE: victim })],
+    ['GIT_INDEX_FILE and GIT_OBJECT_DIRECTORY',
+      (victim) => ({ GIT_INDEX_FILE: join(victim, '.git', 'index'), GIT_OBJECT_DIRECTORY: join(victim, '.git', 'objects') })],
+  ];
+  const runs = await Promise.all(redirections.map(async ([what, redirect]) => {
+    const victim = await victimRepository();
+    const before = await snapshot(victim);
+    const env = { ...withoutCallerGit(process.env), ...redirect(victim) };
+    delete env.NODE_TEST_CONTEXT;
+    delete env.NODE_OPTIONS;
+    const child = spawn(process.execPath, ['--test', '--test-reporter=tap', `--test-skip-pattern=${skipSelf}`, fileURLToPath(import.meta.url)],
+      { cwd: process.cwd(), env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 300_000 });
+    let out = '';
+    child.stdout.on('data', (chunk) => { out += chunk; });
+    child.stderr.on('data', (chunk) => { out += chunk; });
+    const code = await new Promise((done) => { child.on('close', (status) => done(status)); });
+    const after = await snapshot(victim);
+    await rm(victim, { recursive: true, force: true });
+    return { what, code, out, changed: changes(before, after) };
+  }));
+
+  let ran = 0;
+  for (const { what, code, out, changed } of runs) {
+    const count = (key) => Number(new RegExp(`^# ${key} (\\d+)$`, 'm').exec(out)?.[1] ?? NaN);
+    assert.deepEqual(changed, [], `${what}: the victim repository changed (${changed.length} path(s)): ${changed.slice(0, 12).join(', ')}`);
+    assert.equal(code, 0, `${what}: the nested run must pass:\n${out.slice(-4000)}`);
+    assert.equal(count('fail'), 0, `${what}: no test may fail:\n${out.slice(-4000)}`);
+    // A test left out by --test-skip-pattern is not reported at all, so every test reported must have passed.
+    assert.equal(count('tests'), count('pass'), `${what}: every test the nested run reports must pass:\n${out.slice(-4000)}`);
+    assert.ok(count('pass') >= 39, `${what}: every other test must run, and ${count('pass')} passed:\n${out.slice(-4000)}`);
+    ran += 1;
+  }
+  assert.equal(ran, redirections.length, `${ran} of ${redirections.length} redirections executed`);
 });
