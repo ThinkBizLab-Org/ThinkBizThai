@@ -28,8 +28,18 @@ const run = promisify(execFile);
 // `driftBetween`, `handoffDrift`) start `git` with this process's own environment, which no option
 // passed from here reaches, so this process drops the variables from its own environment too,
 // before any case runs. Pinned by 'no case here reaches the repository its caller's GIT_* names'.
+//
+// NOR THE GIT CONFIGURATION OF THE MACHINE IT RUNS ON (A1-293-2, A1-294-3). Configuration reaches
+// git without a `GIT_` name too: HOME's `.gitconfig`, XDG_CONFIG_HOME's `git/config` and the system
+// gitconfig. A `core.hooksPath` there runs its hooks in every scenario repository below, and any
+// other setting there changes what a case measures. So after the strip both halves get
+// GIT_CONFIG_NOSYSTEM=1 and GIT_CONFIG_GLOBAL=/dev/null, set last so nothing of the caller's
+// replaces them; each scenario repository sets what it needs in its own `.git/config`. Pinned by
+// 'no case here reads the git configuration its caller's HOME or XDG_CONFIG_HOME holds'.
 const withoutGit = (env) => {
   for (const key of Object.keys(env)) if (key.startsWith('GIT_')) delete env[key];
+  env.GIT_CONFIG_NOSYSTEM = '1';
+  env.GIT_CONFIG_GLOBAL = '/dev/null';
   return env;
 };
 withoutGit(process.env);
@@ -1171,6 +1181,9 @@ async function filesUnder(dir) {
 }
 
 const THIS_CASE = 'no case here reaches the repository its caller\'s GIT_* names';
+const CONFIG_CASE = 'no case here reads the git configuration its caller\'s HOME or XDG_CONFIG_HOME holds';
+// Each of the two cases that rerun this file skips both, so neither starts the other in its child.
+const SKIP_RERUNS = `--test-skip-pattern=^(?:${[THIS_CASE, CONFIG_CASE].map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`;
 
 test('no case here reaches the repository its caller\'s GIT_* names', async (t) => {
   // The child skips this case by THIS_CASE. Were the two to differ, the child would run this case too and start
@@ -1200,8 +1213,8 @@ test('no case here reaches the repository its caller\'s GIT_* names', async (t) 
     let ran = 0;
     for (const redirection of redirections) {
       const env = { ...CHILD_ENV, ...redirection };
-      const result = spawnSync(process.execPath, ['--test', `--test-skip-pattern=^${THIS_CASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`,
-        'test-kits/handoff-conformance.test.mjs'], { cwd: process.cwd(), encoding: 'utf8', env });
+      const result = spawnSync(process.execPath, ['--test', SKIP_RERUNS, 'test-kits/handoff-conformance.test.mjs'],
+        { cwd: process.cwd(), encoding: 'utf8', env });
       const output = `${result.stdout}${result.stderr}`;
       const names = Object.keys(redirection).join(', ');
       const count = (key) => Number(output.match(new RegExp(`^ℹ ${key} (\\d+)$`, 'm'))?.[1] ?? -1);
@@ -1216,5 +1229,89 @@ test('no case here reaches the repository its caller\'s GIT_* names', async (t) 
     assert.equal(ran, redirections.length, `${ran} of ${redirections.length} redirections executed`);
   } finally {
     await rm(victim, { recursive: true, force: true });
+  }
+});
+
+// A1-293-2, A1-294-3. CHILD_ENV sets GIT_CONFIG_NOSYSTEM=1 and GIT_CONFIG_GLOBAL=/dev/null after its
+// strip, so no child here reads the machine's git configuration. This makes a home whose
+// `.gitconfig`, and an XDG_CONFIG_HOME whose `git/config`, each set `core.hooksPath` to hooks that
+// append to a marker file, and first shows the probe is live: a plain `git commit` with either one
+// runs the hooks, and the same commit with CHILD_ENV does not. Then it runs every other case of this file again in a
+// child whose HOME and XDG_CONFIG_HOME are those two, with no GIT_* of its own, as a caller's
+// machine would be, and requires the cases to pass and the marker never to appear. The system
+// gitconfig cannot be planted without writing outside the test's own directories; GIT_CONFIG_NOSYSTEM
+// is set beside GIT_CONFIG_GLOBAL in the same lines, and git reads the system file only without it.
+const CALLER_HOOKS = ['pre-commit', 'prepare-commit-msg', 'commit-msg', 'post-commit', 'pre-merge-commit', 'post-merge',
+  'post-checkout', 'post-rewrite', 'reference-transaction', 'post-index-change', 'pre-rebase', 'pre-auto-gc'];
+
+async function hookingConfiguration(root) {
+  const marker = join(root, 'hooks-ran.log');
+  const hooks = join(root, 'hooks');
+  await mkdir(hooks);
+  for (const hook of CALLER_HOOKS) {
+    await writeFile(join(hooks, hook), `#!/bin/sh\nprintf '%s %s\\n' '${hook}' "$PWD" >> '${marker}'\nexit 0\n`, { mode: 0o755 });
+  }
+  const config = `[core]\n\thooksPath = ${hooks}\n`;
+  const home = join(root, 'home');
+  const xdg = join(root, 'xdg');
+  const empty = join(root, 'empty');
+  await mkdir(home);
+  await mkdir(join(xdg, 'git'), { recursive: true });
+  await mkdir(empty);
+  await writeFile(join(home, '.gitconfig'), config);
+  await writeFile(join(xdg, 'git', 'config'), config);
+  const ran = async () => (await readFile(marker, 'utf8').catch(() => ''));
+  return {
+    marker,
+    ran,
+    each: [['HOME', { HOME: home, XDG_CONFIG_HOME: empty }], ['XDG_CONFIG_HOME', { HOME: empty, XDG_CONFIG_HOME: xdg }]],
+    both: { HOME: home, XDG_CONFIG_HOME: xdg },
+  };
+}
+
+function probeCommit(dir, env) {
+  for (const args of [['init', '-q', '-b', 'main'],
+    ['-c', 'user.name=probe', '-c', `user.email=${['probe', 'example.invalid'].join('@')}`, '-c', 'commit.gpgsign=false',
+      'commit', '-q', '--allow-empty', '-m', 'probe']]) {
+    const result = spawnSync('git', args, { cwd: dir, encoding: 'utf8', env });
+    assert.equal(result.status, 0, `git ${args.join(' ')} in the probe repository: ${result.stderr}`);
+  }
+}
+
+test('no case here reads the git configuration its caller\'s HOME or XDG_CONFIG_HOME holds', async (t) => {
+  assert.equal(t.name, CONFIG_CASE, 'the name the children skip must be this case\'s own');
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'handoff-config-')));
+  try {
+    const { marker, ran, each, both } = await hookingConfiguration(root);
+    // The caller's environment as a child here saw it before CHILD_ENV set the two: no GIT_* at all.
+    const caller = { ...CHILD_ENV };
+    delete caller.GIT_CONFIG_NOSYSTEM;
+    delete caller.GIT_CONFIG_GLOBAL;
+
+    let probes = 0;
+    for (const [where, home] of each) {
+      const live = join(root, `live-${probes}`);
+      await mkdir(live);
+      probeCommit(live, { ...caller, ...home });
+      assert.notEqual(await ran(), '', `a git that reads ${where}'s configuration must run its hook, or this case observes nothing`);
+      await rm(marker, { force: true });
+      const isolated = join(root, `isolated-${probes}`);
+      await mkdir(isolated);
+      probeCommit(isolated, { ...caller, ...home, GIT_CONFIG_NOSYSTEM: CHILD_ENV.GIT_CONFIG_NOSYSTEM, GIT_CONFIG_GLOBAL: CHILD_ENV.GIT_CONFIG_GLOBAL });
+      assert.equal(await ran(), '', `with CHILD_ENV's two settings, git must not run the hook ${where}'s configuration installs`);
+      probes += 1;
+    }
+    assert.equal(probes, each.length, `${probes} of ${each.length} probes executed`);
+
+    const result = spawnSync(process.execPath, ['--test', SKIP_RERUNS, 'test-kits/handoff-conformance.test.mjs'],
+      { cwd: process.cwd(), encoding: 'utf8', env: { ...caller, ...both } });
+    const output = `${result.stdout}${result.stderr}`;
+    const count = (key) => Number(output.match(new RegExp(`^ℹ ${key} (\\d+)$`, 'm'))?.[1] ?? -1);
+    assert.equal(result.status, 0, `every case here must pass with the caller's HOME and XDG_CONFIG_HOME installing hooks:\n${output}`);
+    assert.ok(count('pass') >= 25 && count('fail') === 0 && count('tests') === count('pass'),
+      `and every case but the two that rerun this file must run (tests ${count('tests')}, pass ${count('pass')}, fail ${count('fail')}):\n${output}`);
+    assert.equal(await ran(), '', `no hook the caller's git configuration installs may run in a repository a case makes:\n${await ran()}`);
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
