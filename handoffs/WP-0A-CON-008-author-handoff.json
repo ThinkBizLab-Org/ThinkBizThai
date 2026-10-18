@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "67713e43bd9e8f7d9632448c75e001d3e0124086",
-  "head_revision_or_patch_checksum": "72b20df859ffbe03d548975b2a625969cfbe9935",
+  "base_revision": "3288e6183d82d5717d67a5f5f63b0c9e95942b72",
+  "head_revision_or_patch_checksum": "98b138a2f058ac9735f95f70847ca537d3664ece",
   "task_ids": [
     "WP-0A-CON-008",
     "a1-278r2-1-index-flags-2026-10-18",
