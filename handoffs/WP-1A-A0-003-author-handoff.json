@@ -4,101 +4,91 @@
   "work_package_id": "WP-1A-A0-003",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "411dc065b74570ab03a787b83ca3ed4840770da2",
-  "head_revision_or_patch_checksum": "c15ef7fa3674050710c4fca3c258cbcf52cdd5a8",
+  "base_revision": "f9f1aad76aa1d9471801ab33eddfb705bb3c4563",
+  "head_revision_or_patch_checksum": "f9f1aad76aa1d9471801ab33eddfb705bb3c4563",
   "task_ids": [
     "WP-1A-A0-003",
-    "pr259-275-records-2026-10-17"
+    "provider-split-in-review-2026-10-18"
   ],
-  "files_added": [
-    "evidence/WP-1A-A0-003/a1-review-2026-10-17-pr282.md",
-    "evidence/WP-1A-A0-003/c0-review-2026-10-17-pr282.md",
-    "evidence/WP-1A-A0-003/q0-review-2026-10-17-pr282.md",
-    "evidence/WP-1A-A0-003/r0-review-2026-10-17-pr282.md",
-    "evidence/WP-1A-A0-003/records-transcription-2026-10-17.md"
-  ],
-  "files_modified": [
-    "handoffs/WP-1A-A0-003-author-handoff.json",
-    "work-packages/WP-1A-A0-003.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
-    "RFC-2026-025",
     "RFC-2026-034",
-    "RFC-2026-007"
+    "RFC-2026-025",
+    "RFC-2026-029"
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT records, after their merges, what main did not carry about PR #259 (2026-10-14T09:20:11Z, e69fc87b; final head f723662b; CI run 38539239403 green, lane governance), PR #261 (2026-10-14T12:55:51Z, 2aef8182; final head 1c34880d; CI run 38564806352 green, lane risk), PR #265 (2026-10-15T10:36:19Z, 14716adf; final head 38f5dd82; CI run 38681569474 green, lane governance) and PR #275 (2026-10-15T19:19:55Z, e7840468; final head 960207d8; CI run 38789797692 green, lane risk): merge facts from gh and git, the role verdicts quoted from their files on main, who pressed under which Owner answer or lane rule, and the roles' words for after the merges (R0-265-1..4, R0-275-2/-3, C0-275-1/-2, Q0-AUD1015-7). They are open_blockers[21] (#259, #261), [22] (#265) and [23] (#275), appended.",
-    "open_blockers[24], appended: R0-281-2 option (ii), the duty of the pull request that creates src/modules/platform-kernel/adapters/job-store.ts to add it to PLATFORM_KERNEL_CREATED in test-kits/db/foundation-contract.test.mjs §C test 2, with the self-enforcing assertion C0-281-1, A1-281-1 and Q0-281-1 offered as the alternative.",
-    "Status stays in_progress: R0's #265 and #275 files keep the manifest there, and the last acceptance criterion (the provider-bound increment, C0-259-3) holds the package short of integration_verified. open_blockers[0]-[20], required_human_authorities and every other field are byte-equal."
+    "THIS INCREMENT records the Owner's answer of 2026-10-18 (asked 15:29:17Z, answered 15:36:54Z UTC, header `A0-003`): `แยกส่วน provider ออกเป็น WP ใหม่ (Recommended)`, quoted byte-exact by script in evidence/WP-1A-A0-003/product-owner-disposition-2026-10-18-provider-split.md. It edits only work-packages/WP-1A-A0-003.json and adds that disposition (plus this handoff).",
+    "acceptance_criteria[7] and the provider-bound increment (open_blockers[13]) move to a future package proposed as WP-1A-A0-006 (\"Supabase session and tenant adapters\", A0), not created here. The brief's example id WP-1A-A1-001 is already the 2026-10-08 plan's row for A1's migrations on hosted Supabase (.claude/g1-g2-plan-2026-10-08.md line 124), so A0's subagent proposed a non-colliding id; the future package depends on WP-1A-A1-001.",
+    "ownership.writable_paths: src/modules/platform-kernel/** becomes src/modules/platform-kernel/*.ts, domain/*.ts and application/*.ts. scripts/validate-work-package-ownership.mjs compiles a single * to [^/]*, so {domain,application}/{jobs,outbox}/** fall outside and WP-1A-A0-004 can list them in outputs without exit 70; all 20 files under the module on main f9f1aad7 still match (checked by script).",
+    "Status in_progress -> in_review is the Author's move (CONTRIBUTING_AGENTS.md); acceptance_criteria[0]-[6] are met by merged PRs #259, #261, #265, #275 on A0's reading. No role verdict is claimed."
   ],
   "acceptance_results": [
     {
-      "criterion": "Recorded words match their sources on main; old open_blockers unchanged; no status, scope, test, guard, CI, RFC, disposition or contract change",
-      "result": "pass for author self-check: 37 quotes extracted by script (whitespace folded) from the role files, the two dispositions, the fast-lane disposition, PR #280's and PR #281's role files, the Q0 audit of 2026-10-15 and the test file; open_blockers[0]-[20] byte-equal"
+      "criterion": "Owner words quoted byte-exact from transcript records 9933/9946",
+      "result": "pass for author self-check: 17 strings (question texts, all option labels and descriptions, both answers, stamps, tool use id) found in the disposition and in the raw records"
     },
     {
-      "criterion": "8 (the plan row end to end)",
-      "result": "not met; unchanged by a records increment (C0-259-3)"
+      "criterion": "Old open_blockers and required_human_authorities entries kept whole",
+      "result": "pass for author self-check: open_blockers 25 -> 26, [0], [9], [11], [13], [24] extended after their unchanged old text; required_human_authorities 4 -> 5, [0]-[3] unchanged"
+    },
+    {
+      "criterion": "acceptance_criteria[7] moved out with old text kept",
+      "result": "pass for author self-check: prefixed MOVED OUT 2026-10-18 ..., old text kept verbatim after \"kept for the record:\""
     }
   ],
   "tests": [
     {
-      "command": "python3 -I (scratchpad quote check: every quoted span searched, whitespace folded, in its source file on origin/main 01b49187)",
-      "exit_code": 0,
-      "result": "37 of 37 quotes found verbatim; open_blockers 21 -> 25 entries, [0]-[20] unchanged"
-    },
-    {
-      "command": "node scripts/commit-when-clean.mjs (records commit 4cf7ddac, under the suite lock; npm run regenerate:manifest before it left no diff)",
-      "exit_code": 0,
-      "result": "clean: tests 843, pass 843, fail 0"
-    },
-    {
-      "command": "node scripts/db/classify-records-only.mjs origin/main HEAD (records commit)",
-      "exit_code": 0,
-      "result": "records-only: all 3 changed path(s) are records (01b4918..4cf7dda); no status move printed"
-    },
-    {
-      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane (records commit)",
-      "exit_code": 0,
-      "result": "tier: records; lane: records (the records-only classifier says records-only, RFC-2026-025 §6.1); classifier copy: the base's"
-    },
-    {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-003",
       "exit_code": 0,
-      "result": "all 3 changed path(s) are declared"
+      "result": "every changed path declared"
     },
     {
-      "command": "node scripts/db/classify-records-only.mjs --sync e86463f8 e1bce345 94c858f0; --sync 1ee0c826 cd8fcaa5 20f92350; --sync cc52fefd 7f34adb5 047385f8",
+      "command": "npm run validate:protocol",
       "exit_code": 0,
-      "result": "mechanical sync, each (the main merges inside #265 and #275)"
+      "result": "manifests, profiles and ownership valid"
+    },
+    {
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
+      "exit_code": 0,
+      "result": "lane: risk (tier H; work-package scope and status move in_progress -> in_review)"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (npm run verify under the suite lock)",
+      "exit_code": 0,
+      "result": "pending"
+    },
+    {
+      "command": "npm run check:handoff",
+      "exit_code": 0,
+      "result": "no drift after refresh"
     }
   ],
-  "security_privacy_cost_impact": "Records only. No authority is granted or widened; no code, credential, personal data, customer data, provider call or cost.",
+  "security_privacy_cost_impact": "Manifest scope and status only. No code, credential, personal data, provider call or cost; the writable_paths narrowing only removes paths.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "None: records only; no contract-catalog or source file.",
+  "compatibility_impact": "None: no source, contract or guard file changes.",
   "known_limitations": [
-    "R0-265-2 is not done: adding FailureReportPort to scope.include (and CTR-OBS-001 to the consumed-later list) changes scope, which RFC-2026-025 §6.1 item 4 does not admit on the records path; it is owed by the next increment that amends this manifest outside the records path. The port stays named in open_blockers[18] (2).",
-    "R0-265-4's amended_by entries on WP-0A-DB-00 and WP-0A-A0-002 for #265 (and #259) are not made: both manifests are outside this package's writable_paths, and an added amended_by entry is not a record under §6.1 item 4. The commit-when-clean half is on WP-0A-CON-008 and fixed by PR #278.",
-    "That A0 pressed #259, #261, #265 and #275 is A0's own statement as scribe; gh records only the account workstationgroup. Whether --match-head-commit was used is not recorded on main; each merge's second parent is the final head.",
-    "The --sync checks name the generated files each main merge involved and leave their regeneration to the reader; this increment did not re-run record:verification on the old heads.",
-    "Carried from the code increments: Q1 (no CTR-API-001 wire form for a refusal before a context exists, or for `uncorrelated`); the runner reads no clock; a stored CTR-IDM-001 error must be re-minted before replay; the failure report port has no real adapter until CTR-OBS-001's logger (WP-1A-A6-002); vitest tests are not under the integrity manifest or the test-suite floor (R7)."
+    "The future package (proposed WP-1A-A0-006) is not created; until its manifest records them, open_blockers[13], [11] and [24] stay here as the record of what moved.",
+    "R0-265-2 (Info) is still not done: FailureReportPort is not added to scope.include; under the Owner direction of 2026-10-18 (lighter process; Info goes to backlog) it is left to the backlog. The port stays named in open_blockers[18] (2).",
+    "R0-265-4 amended_by records on WP-0A-DB-00 and WP-0A-A0-002 remain outside this package's writable_paths.",
+    "Carried: Q1 (no CTR-API-001 wire form for a refusal before a context exists); the failure report port has no real adapter until WP-1A-A6-002; vitest tests are not under the integrity manifest or the test-suite floor (R7)."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (governance bundle). PR #282: C0, A1, Q0 and R0 passed round one; their files are carried with -x; main merged mechanically where it moved. A0 presses under the Owner's answer of 2026-10-15T02:13:35Z (question 2) once CI is green on both jobs on the final head, with --match-head-commit. Advisories only, listed in the four role files."
+    "RISK LANE (work-package scope and status move, RFC-2026-034 §2.2): A1 and Q0 read the final head; A0 presses once both pass and CI is green, under required_human_authorities[4] (the Owner's answer of 2026-10-18T15:36:54Z UTC, header `A0-003`, whose option description reads `risk lane, A0 กดหลัง A1+Q0`). No role verdict is claimed here; C0's review_approved, Q0's test_verified and R0's integration_verified for the package come from the round audit (RFC-2026-034 §2.3)."
   ],
-  "rollback_or_forward_fix": "Before merge: close the pull request. After merge: a reviewed revert removes open_blockers[21]-[24] and records-transcription-2026-10-17.md (pr259-275-records-2026-10-17); nothing depends on them. For the code increments (R0-265-3): a revert of PR #265 drops both authorities it added, required_human_authorities[2] and [3], deletes two files a guard names and edits a guard test, so it is governance that neither Owner answer reaches (they never reach a later pull request that only edits either file); the Owner presses it or is asked. A revert of PR #275 (tests only) is risk lane under [1].",
+  "rollback_or_forward_fix": "Before merge: close the pull request. After merge: a reviewed revert restores the manifest (status in_progress, writable_paths src/modules/platform-kernel/**, acceptance_criteria[7] in force) and removes the disposition; nothing depends on them until WP-1A-A0-004 declares jobs/outbox outputs.",
   "recommended_next_work_packages": [
-    "WP-0A-DB-00 and WP-0A-A0-002: the amended_by records R0-265-4 asks for #265 (and #259), outside the records path.",
-    "WP-1A-A0-003: the next non-records manifest amendment adds FailureReportPort to scope.include (R0-265-2); the provider-bound increment by manifest amendment (C0-259-3), carrying open_blockers[24] when it creates adapters/job-store.ts."
+    "WP-1A-A0-004 (job worker + outbox): open its manifest owning src/modules/platform-kernel/{domain,application}/{jobs,outbox}/** (the Owner's answer header `A0-004 open`).",
+    "The future provider-bound package (proposed WP-1A-A0-006), after RFC-2026-034 §2.1's later decision opens provider sandboxes and WP-1A-A1-001 exists; it takes acceptance_criteria[7], R4 and the job-store duty if it creates that file."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-1A-A0-003/records-transcription-2026-10-17.md, then git diff origin/main.",
-    "open_blockers[21]-[23] against gh pr view 259/261/265/275 --json mergedAt,mergeCommit,headRefOid,mergedBy, gh run view 38539239403/38564806352/38681569474/38789797692 and the role files cited; the Owner's words against the two dispositions under evidence/WP-1A-A0-003/ and the fast-lane disposition under evidence/WP-0A-A0-001/.",
-    "open_blockers[24] against evidence/WP-0A-DB-00/{r0,c0,a1,q0}-review-2026-10-17-pr281.md and PLATFORM_KERNEL_CREATED in test-kits/db/foundation-contract.test.mjs at origin/main.",
-    "Run node scripts/db/classify-records-only.mjs origin/main <head> and node scripts/db/classify-review-tier.mjs origin/main <head> --lane; expect records-only and lane records, with no status move printed."
+    "Read evidence/WP-1A-A0-003/product-owner-disposition-2026-10-18-provider-split.md, then git diff origin/main -- work-packages/WP-1A-A0-003.json.",
+    "Check the quotes: node -e against the transcript records 9933 and 9946 of session 325454ab, or rerun .claude/ntf-session/disp-a003-split.mjs in a scratch copy (it rewrites and re-checks the file).",
+    "Check the narrowing: every git ls-files src/modules/platform-kernel path matches one of the three new globs under globToRegExp, and src/modules/platform-kernel/domain/jobs/x.ts matches none; npm run validate:protocol and node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-003 exit 0.",
+    "Confirm the lane prints risk on the final head on the branch name: node scripts/db/classify-review-tier.mjs origin/main HEAD --lane."
   ],
   "superseded_by": null,
   "outputs": null
