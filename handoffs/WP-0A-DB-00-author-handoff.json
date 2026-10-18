@@ -5,13 +5,27 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "f3353301c5857ebb9fcd24af8c1629c07a25500a",
-  "head_revision_or_patch_checksum": "f3353301c5857ebb9fcd24af8c1629c07a25500a",
+  "head_revision_or_patch_checksum": "8ccc1786a4173883296bc5f51cf2611762bba50c",
   "task_ids": [
     "WP-0A-DB-00",
     "gov-kguard-2026-10-19"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-19-kernel-guard-names.md"
+  ],
+  "files_modified": [
+    "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
+    "db/foundation/lint/audit-coverage-map.json",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "scripts/db/classify-review-tier.mjs",
+    "scripts/verify-app-boundaries.mjs",
+    "scripts/verify-app-build-graph.mjs",
+    "test-kits/app-boundaries.test.mjs",
+    "test-kits/app-stack.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-007",
@@ -42,24 +56,39 @@
   ],
   "tests": [
     {
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 8ccc1786, under the suite lock, after npm run regenerate:manifest)",
+      "exit_code": 0,
+      "result": "clean: exit 0 — tests 857, pass 857, fail 0, skipped 0, todo 0"
+    },
+    {
       "command": "node --test --test-name-pattern 'RFC-2026-007 Amendment 2026-10-13' test-kits/db/foundation-contract.test.mjs",
       "exit_code": 0,
       "result": "6 tests, 6 pass"
     },
     {
-      "command": "node --test test-kits/app-boundaries.test.mjs",
+      "command": "node --test test-kits/app-boundaries.test.mjs; node --test test-kits/app-stack.test.mjs",
       "exit_code": 0,
-      "result": "29 tests, 29 pass"
+      "result": "29/29 and 21/21 pass"
     },
     {
-      "command": "node --test test-kits/app-stack.test.mjs",
-      "exit_code": 0,
-      "result": "21 tests, 21 pass"
-    },
-    {
-      "command": "node scripts/verify-app-boundaries.mjs --require-parser (after npm ci --ignore-scripts, node_modules removed after)",
+      "command": "node scripts/verify-app-boundaries.mjs --require-parser (after npm ci --ignore-scripts; node_modules removed after)",
       "exit_code": 0,
       "result": "28 source files; 54 negative and positive controls held first"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
+      "exit_code": 0,
+      "result": "all 12 changed paths declared, every amendment explains one"
+    },
+    {
+      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
+      "exit_code": 0,
+      "result": "tier H, lane governance (classifier, guards, their tests, guard data, integrity manifest)"
+    },
+    {
+      "command": "node scripts/db/classify-review-tier.mjs 8ccc1786 <throwaway commit editing index.ts and application/run.ts and adding adapters/job-store.ts> --lane",
+      "exit_code": 0,
+      "result": "tier H, lane risk (throwaway worktree removed)"
     }
   ],
   "security_privacy_cost_impact": "None: test fixtures, an exception list and their tests; no credential, personal data, customer content or provider call. The lane change it causes (kernel files from governance to risk) keeps the Security/Privacy reviewer and the Tester on every such pull request (RFC-2026-034 §2.2).",
