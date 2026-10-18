@@ -4,18 +4,14 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "67713e43bd9e8f7d9632448c75e001d3e0124086",
-  "head_revision_or_patch_checksum": "f7f1c047aa3439ccdf5990c5afbbfb2d481f1c91",
+  "base_revision": "27ff99706a9bc6098deaa0a1277724c63d442120",
+  "head_revision_or_patch_checksum": "381d3c46e9b9a6c3f4e7442370fc32d0b2ebbc01",
   "task_ids": [
     "WP-0A-A0-004",
-    "gov-a004h-branch-scope-git-env-2026-10-18"
+    "gov-a004i-branch-scope-git-config-2026-10-18"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-004/a1-review-2026-10-18-pr293.md",
-    "evidence/WP-0A-A0-004/c0-review-2026-10-18-pr293.md",
-    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-18-a1-292-2.md",
-    "evidence/WP-0A-A0-004/q0-review-2026-10-18-pr293.md",
-    "evidence/WP-0A-A0-004/r0-review-2026-10-18-pr293.md"
+    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-18-git-config-isolation.md"
   ],
   "files_modified": [
     "evidence/VERIFICATION.md",
@@ -34,76 +30,78 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT (gov-a004h) fixes A1-292-2 (evidence/WP-0A-CON-008/a1-review-2026-10-18-pr292.md §4, §6) and Q0-292-2 (evidence/WP-0A-CON-008/q0-review-2026-10-18-pr292.md §6) for test-kits/branch-scope.test.mjs, this package's file, under the Product Owner's message of 2026-10-18T02:39:25.100Z (transcript line 8565) answering A0's recommendation at line 8561, both transcribed verbatim by script in evidence/WP-0A-A0-004/product-owner-disposition-2026-10-18-a1-292-2.md with A0's reading.",
-    "The other two files A1-292-2 names (test-kits/ci-guard-behaviour.test.mjs, test-kits/handoff-conformance.test.mjs) are not this package's and are not changed here; their fix is a separate pull request of their owning package.",
-    "scripts/test-suite-contract.mjs (WP-0A-A0-002's) and evidence/VERIFICATION.md (WP-0A-CON-008's) are changed only as mechanical consequences of the test change and are declared in ownership.amends_without_owning; test-kits/integrity-manifest.json is regenerated under authorized_cross_package_amendments."
+    "THIS INCREMENT (gov-a004i) fixes A1-293-2 (evidence/WP-0A-A0-004/a1-review-2026-10-18-pr293.md §5) and A1-294-3 (evidence/WP-0A-CON-008/a1-review-2026-10-18-pr294.md §3), both Info, for test-kits/branch-scope.test.mjs, this package's file, under the Product Owner's answer of 2026-10-18T12:07:58.209Z (transcript line 9379) to A0's question at line 9353 (header HOME/XDG), both transcribed verbatim by script in evidence/WP-0A-A0-004/product-owner-disposition-2026-10-18-git-config-isolation.md with A0's reading.",
+    "The other three files the question names (test-kits/ratchets-bite.test.mjs, test-kits/ci-guard-behaviour.test.mjs, test-kits/handoff-conformance.test.mjs) are WP-0A-CON-008's and are not changed here; their fix is that package's separate pull request, authored in parallel, which also touches scripts/test-suite-contract.mjs and evidence/VERIFICATION.md (different lines; whichever merges second takes a mechanical merge of main).",
+    "scripts/test-suite-contract.mjs (WP-0A-A0-002's) and evidence/VERIFICATION.md (WP-0A-CON-008's) are changed only as mechanical consequences of the test change and are declared in ownership.amends_without_owning, whose paths are unchanged and whose rationale is prefixed with this increment, the earlier text kept; test-kits/integrity-manifest.json is regenerated under authorized_cross_package_amendments."
   ],
   "acceptance_results": [
     {
-      "criterion": "Every child process of test-kits/branch-scope.test.mjs starts with no GIT_* variable of its caller's, removed as a class",
-      "result": "pass for author self-check: withoutCallerGit deletes every key starting GIT_, applied last at all three spawn sites (scratchRepo's git, runStep's bash, laneEnv's sh); grep finds no other spawn, exec or execFile in the file, and the imported functions it calls spawn nothing."
+      "criterion": "After the existing GIT_* strip, every child process of test-kits/branch-scope.test.mjs gets GIT_CONFIG_NOSYSTEM=1 and GIT_CONFIG_GLOBAL=/dev/null, applied last",
+      "result": "pass for author self-check: childEnv(env) returns { ...withoutCallerGit(env), GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' } and is used at all four spawn sites that start git or a shell (scratchRepo's git, runStep's bash, laneEnv's sh, the GIT_* pin's victim git); the new test asserts that childEnv overrides a caller's or test's own values of both. withoutCallerGit is unchanged; the GIT_* pin's nested node runs still start from it."
     },
     {
-      "criterion": "One test reruns the file's git-touching cases with GIT_INDEX_FILE / GIT_DIR pointed at a throwaway repository and requires it untouched byte for byte",
-      "result": "pass for author self-check: 'the caller's GIT_* reaches no git this file runs: a repository it names is left byte for byte' reruns the other 39 tests three times concurrently (GIT_INDEX_FILE; GIT_DIR + GIT_WORK_TREE; GIT_INDEX_FILE + GIT_OBJECT_DIRECTORY), each against its own victim repository with one commit and one staged file; each run passes and every file and directory of each victim, .git included, is byte-equal."
+      "criterion": "One test plants a core.hooksPath hook in HOME/.gitconfig and in XDG_CONFIG_HOME/git/config, reruns the file's git-touching cases, and asserts the marker never appears",
+      "result": "pass for author self-check: 'no git configuration of the machine's reaches a git this file runs: hooks set in HOME or XDG_CONFIG_HOME never run' first proves with a control commit (GIT_* stripped only) that each configuration runs its hooks, and that a commit under childEnv runs none; then reruns the other 39 tests in two concurrent nested node --test runs (HOME; XDG_CONFIG_HOME with an empty HOME), each required to pass with no hook line in the marker file. Ten hooks are installed (pre-commit, prepare-commit-msg, commit-msg, post-commit, post-checkout, post-merge, reference-transaction, post-index-change, pre-auto-gc, post-rewrite)."
     },
     {
       "criterion": "The new test fails on main's code",
-      "result": "pass for author self-check: with the three spawn-site edits reverted and the test kept, it fails: \"GIT_INDEX_FILE: the victim repository changed (1 path(s)): .git/index\". Measured on main's file directly: GIT_INDEX_FILE passed 39/39 and rewrote the victim's index; the other two redirections failed 25 of 39. (correction, C0-293-1: C0 measured main's file changing the victim under both other redirections too — index replaced and objects written — with 24 of 39 failing under GIT_INDEX_FILE+GIT_OBJECT_DIRECTORY and 25 of 39 under GIT_DIR+GIT_WORK_TREE; Q0-292-2 measured 80 files changed)"
+      "result": "pass for author self-check: main's test-kits/branch-scope.test.mjs with childEnv, the constants and the new test appended (main's spawn sites kept), run with --test-name-pattern='^no git configuration', fails: \"HOME: 2718 hook(s) from the machine's configuration ran: reference-transaction .../ci-skip-...; post-index-change ...; pre-commit ...; prepare-commit-msg ...; commit-msg ...\"."
     },
     {
       "criterion": "Existing tests and names kept",
-      "result": "pass: no test removed or renamed; floors 39 to 40 tests, 236 to 243 assertions, name digest 946cbd265ad735ac to 4dfc0f00299c7f23, each with a dated comment in scripts/test-suite-contract.mjs."
+      "result": "pass: no test removed or renamed. The GIT_* pin keeps its literal name; its nested runs now skip both rerun tests by name (NESTED_RERUN_SKIP), so neither recurses into the other, and it asserts its name equals its constant. Floors 40 to 41 tests, 243 to 256 assertions, name digest 4dfc0f00299c7f23 to 7b5e0e9a1e2d9161, each with a dated comment in scripts/test-suite-contract.mjs, earlier comments kept."
     }
   ],
   "tests": [
     {
       "command": "node --test test-kits/branch-scope.test.mjs",
       "exit_code": 0,
-      "result": "tests 40, pass 40"
+      "result": "tests 41, pass 41, fail 0; 178 s wall (main: 40 tests, 125 s): the new test adds about 61 s, two nested reruns run concurrently"
     },
     {
-      "command": "node --test --test-name-pattern=\"reaches no git\" test-kits/branch-scope.test.mjs, with the three spawn-site edits reverted (the test kept)",
-      "exit_code": 1,
-      "result": "fails as required: GIT_INDEX_FILE: the victim repository changed (1 path(s)): .git/index"
-    },
-    {
-      "command": "node --test on main's test-kits/branch-scope.test.mjs under each redirection, against a scratch victim repository",
-      "exit_code": 1,
-      "result": "GIT_INDEX_FILE: pass 39, fail 0, the victim index rewritten; GIT_DIR+GIT_WORK_TREE and GIT_INDEX_FILE+GIT_OBJECT_DIRECTORY: most cases fail and the victim repository changes (correction, C0-293-1: C0 measured main's file changing the victim under both other redirections too — index replaced and objects written — with 24 of 39 failing under GIT_INDEX_FILE+GIT_OBJECT_DIRECTORY and 25 of 39 under GIT_DIR+GIT_WORK_TREE; Q0-292-2 measured 80 files changed)"
-    },
-    {
-      "command": "transcript check by script (lines 8561 and 8565 against the disposition)",
+      "command": "node --test --test-name-pattern='^no git configuration' test-kits/branch-scope.test.mjs",
       "exit_code": 0,
-      "result": "4 fenced quotes byte-present in their source messages; stamps and roles of both lines checked"
+      "result": "tests 1, pass 1 (both nested reruns pass, no hook ran)"
     },
     {
-      "command": "node scripts/run-test-suite.mjs (full suite, before record:verification)",
-      "exit_code": 89,
-      "result": "tests 852, pass 852, fail 0; exit 89 only because evidence/VERIFICATION.md still held the old count; npm run record:verification then rewrote it (see evidence/VERIFICATION.md), and the commit gate re-ran the suite clean"
+      "command": "node --test --test-name-pattern='^no git configuration' on main's file with the new test appended (main's spawn sites)",
+      "exit_code": 1,
+      "result": "fails as required: HOME: 2718 hook(s) from the machine's configuration ran"
+    },
+    {
+      "command": "transcript check by script (lines 9353 and 9379 against the disposition)",
+      "exit_code": 0,
+      "result": "7 fenced quotes (header, question, three option labels, chosen label, its description) byte-equal to the transcript strings and present in the raw lines; stamps checked; the answer keyed to the question"
+    },
+    {
+      "command": "node scripts/run-test-suite.mjs via npm run record:verification, then npm run verify in node scripts/commit-when-clean.mjs",
+      "exit_code": 0,
+      "result": "recorded 855 passing, 0 skipped, 0 todo; commit gate re-ran the suite clean (see commit log)"
     }
   ],
-  "security_privacy_cost_impact": "Closes an integrity gap in the test suite: run with a caller's GIT_* (as from a pre-commit hook), test-kits/branch-scope.test.mjs could rewrite the caller's index or write into another repository. No credential, secret, personal data, provider call or dependency change; ci.yml and every script CI runs are unchanged.",
+  "security_privacy_cost_impact": "Closes an integrity gap in the test suite (A1-293-2, A1-294-3, Info): a git configuration of the machine running the suite (a core.hooksPath, core.fsmonitor or init.templateDir in the global or system file) no longer reaches the throwaway repositories test-kits/branch-scope.test.mjs creates, so it cannot run code there or change what the tests measure. No credential, secret, personal data, provider call or dependency change; ci.yml and every script CI runs are unchanged.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes. The file's run time grows by about 20 s (three nested reruns, concurrently).",
+  "compatibility_impact": "No contract changes. The scratch repositories already set their own user.name, user.email and commit.gpgsign and init with -b main, so they need nothing from the global file. The file's run time grows by the two concurrent nested reruns of the new test (see tests).",
   "known_limitations": [
-    "Only this package's file is fixed. test-kits/ci-guard-behaviour.test.mjs and test-kits/handoff-conformance.test.mjs, which A1-292-2 also names, are not changed here; A1's \"better still\" (one shared helper and a guard over every spawnSync('git' in test-kits/) is not done.",
-    "The pin is behavioural: it reruns the file under three redirections. A new spawn site added later without withoutCallerGit is caught only if it touches git in a way those three redirections reach; no static check over spawn calls is added.",
-    "Git configuration outside the environment (the user's global or system config) still reaches the scratch repositories, as before; the scratch repositories set their own user and commit.gpgsign."
+    "Only this package's file is fixed. WP-0A-CON-008's three files are its own pull request.",
+    "The system gitconfig is not exercised by a running hook: a test cannot plant it inside a temporary directory without GIT_CONFIG_SYSTEM, which childEnv strips with every GIT_*. GIT_CONFIG_NOSYSTEM=1 is pinned by childEnv's own output only.",
+    "The pin is behavioural: a new spawn site added later without childEnv is caught only if it runs git in a way that fires one of the ten hooks; no static check over spawn calls is added.",
+    "The GIT_* pin's nested node processes and the new test's nested node processes themselves start from withoutCallerGit (no GIT_CONFIG_* set), so that each nested run measures the file's own isolation rather than an isolation inherited from the outer run."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (A1-292-2 and Q0-292-2 for test-kits/branch-scope.test.mjs). No role has read this pull request; no role verdict is claimed. A0 presses under gov-a004h (required_human_authorities; evidence/WP-0A-A0-004/product-owner-disposition-2026-10-18-a1-292-2.md), the Owner's message of 2026-10-18T02:39:25.100Z (transcript line 8565, 'ลุยเลย ไม่ต้องรอถาม') answering A0's recommendation at line 8561 that A0 press once the four roles pass, only after C0, A1, Q0 and R0 pass on the final head, CI is green on bootstrap and application, no security finding of any grade is open, and the head contains current main. Whether the answer covers the press is for the roles to judge.",
-    "Acknowledgements owed from the Integration Owner (/claude/r0_steward) of WP-0A-A0-002 (scripts/test-suite-contract.mjs, test-kits/integrity-manifest.json) and WP-0A-CON-008 (evidence/VERIFICATION.md)."
+    "GOVERNANCE (A1-293-2 and A1-294-3 for test-kits/branch-scope.test.mjs). No role has read this pull request; no role verdict is claimed. A0 presses under gov-a004i (required_human_authorities; evidence/WP-0A-A0-004/product-owner-disposition-2026-10-18-git-config-isolation.md), the Owner's answer of 2026-10-18T12:07:58.209Z (transcript line 9379, 'ทำ + A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)') to A0's question at line 9353, only after C0, A1, Q0 and R0 pass on the final head, CI is green on bootstrap and application, no security finding of any grade is open, and the head contains current main. Whether the answer covers the press is for the roles to judge.",
+    "Acknowledgements owed from the Integration Owner (/claude/r0_steward) of WP-0A-A0-002 (scripts/test-suite-contract.mjs, test-kits/integrity-manifest.json) and WP-0A-CON-008 (evidence/VERIFICATION.md).",
+    "WP-0A-CON-008's parallel pull request touches scripts/test-suite-contract.mjs and evidence/VERIFICATION.md too; the second to merge needs a merge of main and a fresh record:verification."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR restores the three spawn sites, removes the test, the gov-a004h records and the disposition, puts back the floors and digest in scripts/test-suite-contract.mjs, and regenerates the integrity manifest and the verification record. No data, provider or credential effect.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed governance revert PR restores the four spawn sites to withoutCallerGit, removes childEnv, the new test and the shared skip pattern, the gov-a004i records and the disposition, puts back the floors and digest in scripts/test-suite-contract.mjs, and regenerates the integrity manifest and the verification record. No data, provider or credential effect.",
   "recommended_next_work_packages": [
-    "The owning package of test-kits/ci-guard-behaviour.test.mjs and test-kits/handoff-conformance.test.mjs: the same fix for A1-292-2 there.",
+    "WP-0A-CON-008: the same fix (A1-294-3) for ratchets-bite, ci-guard-behaviour and handoff-conformance, in its own pull request.",
     "WP-0A-A0-002 and WP-0A-CON-008: R0's acknowledgement records for this increment's amendments."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-004/product-owner-disposition-2026-10-18-a1-292-2.md, then git diff origin/main.",
-    "In test-kits/branch-scope.test.mjs read withoutCallerGit and its comment, the three spawn sites, and the last test; grep the file for spawn, exec and execFile to confirm no other child.",
-    "Revert the three spawn-site edits locally, keep the test, and run node --test --test-name-pattern=\"reaches no git\" test-kits/branch-scope.test.mjs: it must fail.",
+    "Read evidence/WP-0A-A0-004/product-owner-disposition-2026-10-18-git-config-isolation.md, then git diff origin/main.",
+    "In test-kits/branch-scope.test.mjs read childEnv and its comment, the four spawn sites, the shared NESTED_RERUN_SKIP, and the last test; grep the file for spawn, exec and execFile to confirm no other child.",
+    "Take main's test-kits/branch-scope.test.mjs, append childEnv, the three constants and the last test, put it in test-kits/ and run node --test --test-name-pattern='^no git configuration' on it: it must fail with hook lines.",
     "Run node --test test-kits/branch-scope.test.mjs, node scripts/verify-test-coverage-floor.mjs, node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-004 and npm run check:handoff on the branch name, not detached."
   ],
   "superseded_by": null

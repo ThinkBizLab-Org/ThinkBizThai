@@ -308,6 +308,19 @@ function withoutCallerGit(env) {
   return clean;
 }
 
+// EVERY CHILD OF THIS FILE ALSO READS NO GIT CONFIGURATION OF THE MACHINE'S (A1-293-2, A1-294-3; WP-0A-A0-004,
+// 2026-10-18). Stripping GIT_* leaves the configuration git finds without one: the global file, `~/.gitconfig` under
+// HOME and `git/config` under XDG_CONFIG_HOME, and the system file. A `core.hooksPath` there ran its hooks in the
+// throwaway repositories below, and any other setting there (`core.fsmonitor`, `init.templateDir`, an alias, a
+// `diff` driver) reached them the same way. After the strip, every child gets GIT_CONFIG_NOSYSTEM=1 and
+// GIT_CONFIG_GLOBAL=/dev/null, so git reads neither file and only each repository's own `.git/config`, which the
+// tests write themselves. They are set last, after the strip and after a test's own variables, so no caller and no
+// test can lift them. Pinned by the test after the GIT_* pin, which reruns this file with HOME and XDG_CONFIG_HOME
+// naming a configuration that installs hooks and requires that no hook ever runs.
+function childEnv(env) {
+  return { ...withoutCallerGit(env), GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' };
+}
+
 async function runStep(body, env, cwd) {
   const { spawnSync } = await import('node:child_process');
   const { mkdtemp, writeFile, readFile } = await import('node:fs/promises');
@@ -319,7 +332,7 @@ async function runStep(body, env, cwd) {
   await writeFile(script, body);
   await writeFile(output, '');
   const result = spawnSync('bash', ['--noprofile', '--norc', '-e', script], {
-    cwd, encoding: 'utf8', env: withoutCallerGit({ PATH: process.env.PATH, HOME: process.env.HOME, GITHUB_OUTPUT: output, ...env }),
+    cwd, encoding: 'utf8', env: childEnv({ PATH: process.env.PATH, HOME: process.env.HOME, GITHUB_OUTPUT: output, ...env }),
   });
   return { code: result.status, out: `${result.stdout}${result.stderr}`, output: await readFile(output, 'utf8') };
 }
@@ -331,7 +344,7 @@ async function scratchRepo() {
   const { join, dirname } = await import('node:path');
   const repo = await mkdtemp(join(tmpdir(), 'ci-skip-'));
   const git = (...args) => {
-    const r = spawnSync('git', args, { cwd: repo, encoding: 'utf8', env: withoutCallerGit(process.env) });
+    const r = spawnSync('git', args, { cwd: repo, encoding: 'utf8', env: childEnv(process.env) });
     assert.equal(r.status, 0, `git ${args.join(' ')}: ${r.stderr}`);
     return r.stdout.trim();
   };
@@ -1009,7 +1022,7 @@ async function laneEnv(env) {
   const { spawnSync } = await import('node:child_process');
   if (timeoutShim === undefined) {
     timeoutShim = null;
-    if (spawnSync('sh', ['-c', 'command -v timeout'], { env: withoutCallerGit({ PATH: process.env.PATH }) }).status !== 0) {
+    if (spawnSync('sh', ['-c', 'command -v timeout'], { env: childEnv({ PATH: process.env.PATH }) }).status !== 0) {
       const { mkdtemp, writeFile, chmod } = await import('node:fs/promises');
       const { tmpdir } = await import('node:os');
       const { join } = await import('node:path');
@@ -1338,8 +1351,13 @@ test('the tier and lane summary carries at most 64 KiB of classifier output, esc
 // GIT_OBJECT_DIRECTORY (before the fix each failed 25 of 39 here; Q0 measured 80 files written under its own victim's
 // `.git` with the second). Each nested run must pass, and the victim must be unchanged byte for byte: the same files
 // and directories, each file's bytes equal. A run that fails is caught as surely as a victim that changed. The nested runs skip
-// this test by its own name, and drop NODE_TEST_CONTEXT and NODE_OPTIONS, without which a nested `node --test` reports
-// as a subtest and exits 0 whatever happens inside.
+// this test and the configuration pin after it by name (NESTED_RERUN_SKIP; each reruns the file, so neither may run the
+// other inside a rerun), and drop NODE_TEST_CONTEXT and NODE_OPTIONS, without which a nested `node --test` reports
+// as a subtest and exits 0 whatever happens inside. The two names are written out again here because the suite contract
+// reads each test's name from its literal `test('...'` line; each test asserts its own name equals its constant.
+const GIT_ENV_PIN = 'the caller\'s GIT_* reaches no git this file runs: a repository it names is left byte for byte';
+const GIT_CONFIG_PIN = 'no git configuration of the machine\'s reaches a git this file runs: hooks set in HOME or XDG_CONFIG_HOME never run';
+const NESTED_RERUN_SKIP = `^(?:${[GIT_ENV_PIN, GIT_CONFIG_PIN].map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`;
 test('the caller\'s GIT_* reaches no git this file runs: a repository it names is left byte for byte', async (t) => {
   const { spawn, spawnSync } = await import('node:child_process');
   const { mkdtemp, readdir, readFile, writeFile, rm } = await import('node:fs/promises');
@@ -1350,7 +1368,7 @@ test('the caller\'s GIT_* reaches no git this file runs: a repository it names i
   const victimRepository = async () => {
     const root = await mkdtemp(join(tmpdir(), 'git-env-victim-'));
     const git = (...args) => {
-      const r = spawnSync('git', args, { cwd: root, encoding: 'utf8', env: withoutCallerGit(process.env) });
+      const r = spawnSync('git', args, { cwd: root, encoding: 'utf8', env: childEnv(process.env) });
       assert.equal(r.status, 0, `victim: git ${args.join(' ')}: ${r.stderr}`);
     };
     git('init', '-q', '-b', 'main');
@@ -1390,7 +1408,8 @@ test('the caller\'s GIT_* reaches no git this file runs: a repository it names i
     });
   };
 
-  const skipSelf = `^${t.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`;
+  assert.equal(t.name, GIT_ENV_PIN);
+  const skipSelf = NESTED_RERUN_SKIP;
   const redirections = [
     ['GIT_INDEX_FILE', (victim) => ({ GIT_INDEX_FILE: join(victim, '.git', 'index') })],
     ['GIT_DIR and GIT_WORK_TREE', (victim) => ({ GIT_DIR: join(victim, '.git'), GIT_WORK_TREE: victim })],
@@ -1426,4 +1445,102 @@ test('the caller\'s GIT_* reaches no git this file runs: a repository it names i
     ran += 1;
   }
   assert.equal(ran, redirections.length, `${ran} of ${redirections.length} redirections executed`);
+});
+
+// A1-293-2 and A1-294-3: the pin for childEnv's GIT_CONFIG_NOSYSTEM and GIT_CONFIG_GLOBAL. Every other test in this file is
+// run again in a nested `node --test`, twice at once, each with a HOME and XDG_CONFIG_HOME of its own whose global git
+// configuration sets `core.hooksPath` to a directory of hooks that each append a line to a marker file: once from
+// `$HOME/.gitconfig`, once from `$XDG_CONFIG_HOME/git/config` with an empty HOME. Before either rerun, a positive control
+// commits in a throwaway repository under that same environment with only GIT_* stripped (what this file's children got
+// before childEnv) and requires the marker to appear, so a git that ignored the configuration could not make the pin pass
+// by default; the marker is then removed. Each nested run must pass, and must leave no marker: no hook ran in any
+// repository this file made. Before childEnv each rerun passed and left a marker. The system file cannot be planted
+// without writing outside a temporary directory, so GIT_CONFIG_NOSYSTEM is held by childEnv's own text, which the line
+// after the controls checks.
+test('no git configuration of the machine\'s reaches a git this file runs: hooks set in HOME or XDG_CONFIG_HOME never run', async (t) => {
+  assert.equal(t.name, GIT_CONFIG_PIN);
+  const { spawn, spawnSync } = await import('node:child_process');
+  const { mkdtemp, mkdir, writeFile, chmod, readFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+
+  const HOOKS = ['pre-commit', 'prepare-commit-msg', 'commit-msg', 'post-commit', 'post-checkout', 'post-merge',
+    'reference-transaction', 'post-index-change', 'pre-auto-gc', 'post-rewrite'];
+  // A machine whose global configuration installs hooks: `where` is 'HOME' or 'XDG_CONFIG_HOME'.
+  const hostileMachine = async (where) => {
+    const root = await mkdtemp(join(tmpdir(), 'git-config-hostile-'));
+    const marker = join(root, 'hook-ran');
+    const hooks = join(root, 'hooks');
+    await mkdir(hooks);
+    for (const hook of HOOKS) {
+      await writeFile(join(hooks, hook), `#!/bin/sh\nprintf '%s %s\\n' "${hook}" "$PWD" >> '${marker}'\nexit 0\n`);
+      await chmod(join(hooks, hook), 0o755);
+    }
+    const home = join(root, 'home');
+    const xdg = join(root, 'xdg');
+    await mkdir(home);
+    await mkdir(join(xdg, 'git'), { recursive: true });
+    const config = `[core]\n\thooksPath = ${hooks}\n`;
+    await writeFile(where === 'HOME' ? join(home, '.gitconfig') : join(xdg, 'git', 'config'), config);
+    return { root, marker, env: { HOME: home, XDG_CONFIG_HOME: xdg } };
+  };
+  const markerLines = async (marker) => {
+    try { return (await readFile(marker, 'utf8')).split('\n').filter(Boolean); } catch (error) {
+      if (error.code === 'ENOENT') return [];
+      throw error;
+    }
+  };
+
+  const machines = await Promise.all(['HOME', 'XDG_CONFIG_HOME'].map(async (where) => [where, await hostileMachine(where)]));
+  for (const [where, { root, marker, env }] of machines) {
+    // The positive control: with only GIT_* stripped, this configuration's hooks run.
+    const control = join(root, 'control');
+    await mkdir(control);
+    const exposed = { ...withoutCallerGit(process.env), ...env };
+    const git = (...args) => spawnSync('git', args, { cwd: control, encoding: 'utf8', env: exposed });
+    for (const args of [['init', '-q', '-b', 'main'], ['config', 'user.email', ['git-config-control', 'example.invalid'].join('@')],
+      ['config', 'user.name', 'git config control'], ['config', 'commit.gpgsign', 'false'], ['commit', '-q', '--allow-empty', '-m', 'control']]) {
+      const r = git(...args);
+      assert.equal(r.status, 0, `${where} control: git ${args.join(' ')}: ${r.stderr}`);
+    }
+    assert.ok((await markerLines(marker)).length > 0, `${where}: the control commit ran no hook, so this configuration proves nothing`);
+    // And childEnv, given the same environment, runs none.
+    await rm(marker, { force: true });
+    const isolated = spawnSync('git', ['commit', '-q', '--allow-empty', '-m', 'isolated'], { cwd: control, encoding: 'utf8', env: childEnv(exposed) });
+    assert.equal(isolated.status, 0, `${where} isolated commit: ${isolated.stderr}`);
+    assert.deepEqual(await markerLines(marker), [], `${where}: a commit under childEnv ran a hook`);
+    await rm(control, { recursive: true, force: true });
+  }
+  assert.deepEqual(
+    childEnv({ GIT_CONFIG_NOSYSTEM: '0', GIT_CONFIG_GLOBAL: '/elsewhere', HOME: '/h' }),
+    { HOME: '/h', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' },
+    'childEnv sets both variables last, over any value its caller or a test gives');
+
+  const runs = await Promise.all(machines.map(async ([where, { root, marker, env: machine }]) => {
+    const env = { ...withoutCallerGit(process.env), ...machine };
+    delete env.NODE_TEST_CONTEXT;
+    delete env.NODE_OPTIONS;
+    const child = spawn(process.execPath, ['--test', '--test-reporter=tap', `--test-skip-pattern=${NESTED_RERUN_SKIP}`, fileURLToPath(import.meta.url)],
+      { cwd: process.cwd(), env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 300_000 });
+    let out = '';
+    child.stdout.on('data', (chunk) => { out += chunk; });
+    child.stderr.on('data', (chunk) => { out += chunk; });
+    const code = await new Promise((done) => { child.on('close', (status) => done(status)); });
+    const ran = await markerLines(marker);
+    await rm(root, { recursive: true, force: true });
+    return { where, code, out, ran };
+  }));
+
+  let checked = 0;
+  for (const { where, code, out, ran } of runs) {
+    const count = (key) => Number(new RegExp(`^# ${key} (\\d+)$`, 'm').exec(out)?.[1] ?? NaN);
+    assert.deepEqual(ran, [], `${where}: ${ran.length} hook(s) from the machine's configuration ran: ${ran.slice(0, 12).join('; ')}`);
+    assert.equal(code, 0, `${where}: the nested run must pass:\n${out.slice(-4000)}`);
+    assert.equal(count('fail'), 0, `${where}: no test may fail:\n${out.slice(-4000)}`);
+    assert.equal(count('tests'), count('pass'), `${where}: every test the nested run reports must pass:\n${out.slice(-4000)}`);
+    assert.ok(count('pass') >= 39, `${where}: every other test must run, and ${count('pass')} passed:\n${out.slice(-4000)}`);
+    checked += 1;
+  }
+  assert.equal(checked, machines.length, `${checked} of ${machines.length} configurations executed`);
 });

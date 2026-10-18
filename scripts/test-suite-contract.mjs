@@ -73,8 +73,9 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   // RFC-2026-034 §8 item 2 (WP-0A-A0-004, 2026-10-11): seven tests of the tier and lane step, 30 to 37; the first
   // review round on PR #255 adds two (the repositories and the fork, the time limit), 37 to 39. WP-0A-A0-004 (2026-10-18,
   // A1-292-2, Q0-292-2): every child runs with no caller GIT_*, pinned by one test that reruns the file with GIT_* aimed at
-  // a throwaway repository, 39 to 40.
-  'test-kits/branch-scope.test.mjs': 40,
+  // a throwaway repository, 39 to 40. WP-0A-A0-004 (2026-10-18, A1-293-2, A1-294-3): every child also reads no global or
+  // system git configuration, pinned by one test that reruns the file with HOME and XDG_CONFIG_HOME installing hooks, 40 to 41.
+  'test-kits/branch-scope.test.mjs': 41,
   'test-kits/capability-profile.test.mjs': 4,
   // WP-0A-CON-008 (2026-10-18, A1-292-2, Q0-292-2): a caller's GIT_* reaches no repository but the cases' own, 17 to 18.
   'test-kits/ci-guard-behaviour.test.mjs': 18,
@@ -222,7 +223,9 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   // RFC-2026-034 §8 item 2 (2026-10-11): 166 to 225, the tier and lane step's seven tests; the guard's own count.
   // 225 to 236 with the first review round on PR #255: two tests added, three adjusted; the guard's own count.
   // WP-0A-A0-004 (2026-10-18, A1-292-2, Q0-292-2): the caller-GIT_* test, 236 to 243, the guard's own count.
-  'test-kits/branch-scope.test.mjs': 243,
+  // WP-0A-A0-004 (2026-10-18, A1-293-2, A1-294-3): the git-configuration test and one name check in the GIT_* test, 243 to
+  // 256, the guard's own count.
+  'test-kits/branch-scope.test.mjs': 256,
   'test-kits/capability-profile.test.mjs': 4,
   // WP-0A-CON-008 (2026-10-18, A1-292-2, Q0-292-2): the caller's-GIT_* case, 33 to 40, the guard's own count.
   'test-kits/ci-guard-behaviour.test.mjs': 40,
@@ -445,7 +448,8 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'tests/db/identity/identity-isolation.test.mjs': '25aa50b576c0925b',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
   // WP-0A-A0-004 (2026-10-18, A1-292-2, Q0-292-2): branch-scope gains one test, none removed or renamed.
-  'test-kits/branch-scope.test.mjs': '4dfc0f00299c7f23',
+  // WP-0A-A0-004 (2026-10-18, A1-293-2, A1-294-3): branch-scope gains one more, none removed or renamed.
+  'test-kits/branch-scope.test.mjs': '7b5e0e9a1e2d9161',
   'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',
   // WP-0A-CON-008 (2026-10-18, A1-292-2, Q0-292-2): one name added, none removed or renamed.
   'test-kits/ci-guard-behaviour.test.mjs': 'ddf6d45565721cbf',
