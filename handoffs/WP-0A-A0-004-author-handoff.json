@@ -5,13 +5,17 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "67713e43bd9e8f7d9632448c75e001d3e0124086",
-  "head_revision_or_patch_checksum": "49c6fc4816f9dfe4cb0293a6f16e459234a7f1e7",
+  "head_revision_or_patch_checksum": "f7f1c047aa3439ccdf5990c5afbbfb2d481f1c91",
   "task_ids": [
     "WP-0A-A0-004",
     "gov-a004h-branch-scope-git-env-2026-10-18"
   ],
   "files_added": [
-    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-18-a1-292-2.md"
+    "evidence/WP-0A-A0-004/a1-review-2026-10-18-pr293.md",
+    "evidence/WP-0A-A0-004/c0-review-2026-10-18-pr293.md",
+    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-18-a1-292-2.md",
+    "evidence/WP-0A-A0-004/q0-review-2026-10-18-pr293.md",
+    "evidence/WP-0A-A0-004/r0-review-2026-10-18-pr293.md"
   ],
   "files_modified": [
     "evidence/VERIFICATION.md",
@@ -45,7 +49,7 @@
     },
     {
       "criterion": "The new test fails on main's code",
-      "result": "pass for author self-check: with the three spawn-site edits reverted and the test kept, it fails: \"GIT_INDEX_FILE: the victim repository changed (1 path(s)): .git/index\". Measured on main's file directly: GIT_INDEX_FILE passed 39/39 and rewrote the victim's index; the other two redirections failed 25 of 39."
+      "result": "pass for author self-check: with the three spawn-site edits reverted and the test kept, it fails: \"GIT_INDEX_FILE: the victim repository changed (1 path(s)): .git/index\". Measured on main's file directly: GIT_INDEX_FILE passed 39/39 and rewrote the victim's index; the other two redirections failed 25 of 39. (correction, C0-293-1: C0 measured main's file changing the victim under both other redirections too — index replaced and objects written — with 24 of 39 failing under GIT_INDEX_FILE+GIT_OBJECT_DIRECTORY and 25 of 39 under GIT_DIR+GIT_WORK_TREE; Q0-292-2 measured 80 files changed)"
     },
     {
       "criterion": "Existing tests and names kept",
@@ -66,7 +70,7 @@
     {
       "command": "node --test on main's test-kits/branch-scope.test.mjs under each redirection, against a scratch victim repository",
       "exit_code": 1,
-      "result": "GIT_INDEX_FILE: pass 39, fail 0, the victim index rewritten; GIT_DIR+GIT_WORK_TREE and GIT_INDEX_FILE+GIT_OBJECT_DIRECTORY: pass 14, fail 25, victim unchanged"
+      "result": "GIT_INDEX_FILE: pass 39, fail 0, the victim index rewritten; GIT_DIR+GIT_WORK_TREE and GIT_INDEX_FILE+GIT_OBJECT_DIRECTORY: most cases fail and the victim repository changes (correction, C0-293-1: C0 measured main's file changing the victim under both other redirections too — index replaced and objects written — with 24 of 39 failing under GIT_INDEX_FILE+GIT_OBJECT_DIRECTORY and 25 of 39 under GIT_DIR+GIT_WORK_TREE; Q0-292-2 measured 80 files changed)"
     },
     {
       "command": "transcript check by script (lines 8561 and 8565 against the disposition)",
