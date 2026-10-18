@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "f3353301c5857ebb9fcd24af8c1629c07a25500a",
-  "head_revision_or_patch_checksum": "8ccc1786a4173883296bc5f51cf2611762bba50c",
+  "base_revision": "94f8e5e501a8adfb69c25b2ff603cdac6c84f091",
+  "head_revision_or_patch_checksum": "d29c145eaef8aac02850914cd85b30f2d82c6112",
   "task_ids": [
     "WP-0A-DB-00",
     "gov-kguard-2026-10-19"
