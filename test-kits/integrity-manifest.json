@@ -91,7 +91,7 @@
     "test-kits/app-dependencies.test.mjs": "8fef74ed4ebe96b8defe6976928d965e473acf2f6fc25039585d345bf765a1ca",
     "test-kits/app-stack.test.mjs": "0509787840150bfe6cd727bd1627f00b1e0435ab5bc067ff7fb8a973cff93f60",
     "test-kits/authority-dispositions.test.mjs": "1113110b0ce469f041104f13ce68178ae9b66877361ee0ba2bd01fcad10d269c",
-    "test-kits/branch-identity.test.mjs": "a4cc578b3542ba65681769a89952b9311aca603178cd2cce99e3aa77e276571c",
+    "test-kits/branch-identity.test.mjs": "4cfe45f25820d1bc33a83614f1920660d1b9586a80fad6303cba3f6801675776",
     "test-kits/branch-scope.test.mjs": "9efecc7314012e3fb28cfc966c90d67eb78aace154fc72a66aee9f53a7194de7",
     "test-kits/capability-profile.test.mjs": "f1b5204abebcc3558c5f6eac23a968a814eed135d6ea5f11bfa4e827ebb5421e",
     "test-kits/ci-guard-behaviour.test.mjs": "bf78049980c98cddfcb63321261bc2f4fd04de7f89fc04633f126abb3c5607e2",
