@@ -71,8 +71,10 @@ export const INTEGRITY_MANIFEST = 'test-kits/integrity-manifest.json';
 export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/branch-identity.test.mjs': 8,
   // RFC-2026-034 §8 item 2 (WP-0A-A0-004, 2026-10-11): seven tests of the tier and lane step, 30 to 37; the first
-  // review round on PR #255 adds two (the repositories and the fork, the time limit), 37 to 39.
-  'test-kits/branch-scope.test.mjs': 39,
+  // review round on PR #255 adds two (the repositories and the fork, the time limit), 37 to 39. WP-0A-A0-004 (2026-10-18,
+  // A1-292-2, Q0-292-2): every child runs with no caller GIT_*, pinned by one test that reruns the file with GIT_* aimed at
+  // a throwaway repository, 39 to 40.
+  'test-kits/branch-scope.test.mjs': 40,
   'test-kits/capability-profile.test.mjs': 4,
   'test-kits/ci-guard-behaviour.test.mjs': 17,
   'test-kits/contracts/catalog-groups.test.mjs': 7,
@@ -217,7 +219,8 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/branch-identity.test.mjs': 15,
   // RFC-2026-034 §8 item 2 (2026-10-11): 166 to 225, the tier and lane step's seven tests; the guard's own count.
   // 225 to 236 with the first review round on PR #255: two tests added, three adjusted; the guard's own count.
-  'test-kits/branch-scope.test.mjs': 236,
+  // WP-0A-A0-004 (2026-10-18, A1-292-2, Q0-292-2): the caller-GIT_* test, 236 to 243, the guard's own count.
+  'test-kits/branch-scope.test.mjs': 243,
   'test-kits/capability-profile.test.mjs': 4,
   'test-kits/ci-guard-behaviour.test.mjs': 33,
   'test-kits/contracts/catalog-groups.test.mjs': 9,
@@ -437,7 +440,8 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
   'tests/db/identity/identity-isolation.test.mjs': '25aa50b576c0925b',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
-  'test-kits/branch-scope.test.mjs': '946cbd265ad735ac',
+  // WP-0A-A0-004 (2026-10-18, A1-292-2, Q0-292-2): branch-scope gains one test, none removed or renamed.
+  'test-kits/branch-scope.test.mjs': '4dfc0f00299c7f23',
   'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',
   'test-kits/ci-guard-behaviour.test.mjs': 'cc42f80046d803e9',
   'test-kits/contracts/catalog-groups.test.mjs': '401597be61929abb',
