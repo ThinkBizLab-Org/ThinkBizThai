@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "3288e6183d82d5717d67a5f5f63b0c9e95942b72",
-  "head_revision_or_patch_checksum": "f3c5ffa985d7918ad5d33d032d0f59d58fed6437",
+  "base_revision": "27ff99706a9bc6098deaa0a1277724c63d442120",
+  "head_revision_or_patch_checksum": "27ff99706a9bc6098deaa0a1277724c63d442120",
   "task_ids": [
     "WP-0A-CON-008",
     "a1-278r2-1-index-flags-2026-10-18",
@@ -14,22 +14,8 @@
     "pr292-round-3-2026-10-18",
     "a1-292-2-test-children-git-env-2026-10-18"
   ],
-  "files_added": [
-    "evidence/WP-0A-CON-008/a1-review-2026-10-18-pr294.md",
-    "evidence/WP-0A-CON-008/c0-review-2026-10-18-pr294.md",
-    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-a1-292-2.md",
-    "evidence/WP-0A-CON-008/q0-review-2026-10-18-pr294.md",
-    "evidence/WP-0A-CON-008/r0-review-2026-10-18-pr294.md"
-  ],
-  "files_modified": [
-    "evidence/VERIFICATION.md",
-    "handoffs/WP-0A-CON-008-author-handoff.json",
-    "scripts/test-suite-contract.mjs",
-    "test-kits/ci-guard-behaviour.test.mjs",
-    "test-kits/handoff-conformance.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "work-packages/WP-0A-CON-008.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
