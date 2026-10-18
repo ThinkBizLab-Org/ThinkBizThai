@@ -707,6 +707,11 @@ test('the commit gate verifies the tree it commits: a new file a guard refuses i
       'const env = { ...process.env };',
       'delete env.NODE_TEST_CONTEXT;',
       'delete env.NODE_OPTIONS;',
+      // A1-296-1. The gate runs this verifier with every GIT_* removed, the two configuration settings
+      // among them, and the guard it runs reads the index with git: so it sets them again here, as
+      // CHILD_ENV does, or that git reads the caller's global configuration.
+      "env.GIT_CONFIG_NOSYSTEM = '1';",
+      "env.GIT_CONFIG_GLOBAL = '/dev/null';",
       "const run = spawnSync(process.execPath, ['--test', '--test-name-pattern=^A1-257-9: a tracked', 'test-kits/app-boundaries.test.mjs'], { encoding: 'utf8', env });",
       "const output = `${run.stdout ?? ''}${run.stderr ?? ''}`;",
       "const count = (key) => Number(output.match(new RegExp(`^ℹ ${key} (\\\\d+)$`, 'm'))?.[1] ?? 0);",
@@ -1190,11 +1195,17 @@ test('a caller\'s GIT_* environment reaches no repository but the cases\' own', 
 // strip, so no child here reads the machine's git configuration. This makes a home whose
 // `.gitconfig`, and an XDG_CONFIG_HOME whose `git/config`, each set `core.hooksPath` to hooks that
 // append to a marker file, and first shows the probe is live: a plain `git commit` with either one
-// runs the hooks, and the same commit with CHILD_ENV does not. Then it runs the commit-gate cases the case above runs, for the reason it gives, again in a
+// runs the hooks, and the same commit with CHILD_ENV does not. Then it runs every commit-gate case again in a
 // child whose HOME and XDG_CONFIG_HOME are those two, with no GIT_* of its own, as a caller's
 // machine would be, and requires the cases to pass and the marker never to appear. The system
 // gitconfig cannot be planted without writing outside the test's own directories; GIT_CONFIG_NOSYSTEM
 // is set beside GIT_CONFIG_GLOBAL in the same lines, and git reads the system file only without it.
+//
+// A1-296-1. Hooks run only for git commands that write, so a git that only reads (the `git ls-files`
+// of the guard the `.config/` case's stub verifier runs) read the caller's configuration unseen, and
+// that case was not rerun here. The planted configuration also sets `core.fsmonitor` to a program
+// that appends to the same marker, which git starts for reads of the index too, and the rerun now
+// takes every commit-gate case, the `.config/` one included.
 const CONFIG_CASE = 'no case here reads the git configuration its caller\'s HOME or XDG_CONFIG_HOME holds';
 const CALLER_HOOKS = ['pre-commit', 'prepare-commit-msg', 'commit-msg', 'post-commit', 'pre-merge-commit', 'post-merge',
   'post-checkout', 'post-rewrite', 'reference-transaction', 'post-index-change', 'pre-rebase', 'pre-auto-gc'];
@@ -1206,7 +1217,9 @@ async function hookingConfiguration(root) {
   for (const hook of CALLER_HOOKS) {
     await writeFile(join(hooks, hook), `#!/bin/sh\nprintf '%s %s\\n' '${hook}' "$PWD" >> '${marker}'\nexit 0\n`, { mode: 0o755 });
   }
-  const config = `[core]\n\thooksPath = ${hooks}\n`;
+  const fsmonitor = join(root, 'fsmonitor-probe');
+  await writeFile(fsmonitor, `#!/bin/sh\nprintf '%s %s\\n' 'fsmonitor' "$PWD" >> '${marker}'\nexit 1\n`, { mode: 0o755 });
+  const config = `[core]\n\thooksPath = ${hooks}\n\tfsmonitor = ${fsmonitor}\n`;
   const home = join(root, 'home');
   const xdg = join(root, 'xdg');
   const empty = join(root, 'empty');
@@ -1258,12 +1271,12 @@ test('no case here reads the git configuration its caller\'s HOME or XDG_CONFIG_
     }
     assert.equal(probes, each.length, `${probes} of ${each.length} probes executed`);
 
-    const result = spawnSync(process.execPath, ['--test', '--test-name-pattern=^the commit gate(?! verifies)', 'test-kits/ratchets-bite.test.mjs'],
+    const result = spawnSync(process.execPath, ['--test', '--test-name-pattern=^the commit gate', 'test-kits/ratchets-bite.test.mjs'],
       { cwd: REPOSITORY, encoding: 'utf8', env: { ...caller, ...both } });
     const output = `${result.stdout}${result.stderr}`;
     const count = (key) => Number(output.match(new RegExp(`^ℹ ${key} (\\d+)$`, 'm'))?.[1] ?? -1);
     assert.equal(result.status, 0, `the commit-gate cases must pass with the caller's HOME and XDG_CONFIG_HOME installing hooks:\n${output}`);
-    assert.ok(count('pass') >= 10 && count('fail') === 0,
+    assert.ok(count('pass') >= 11 && count('fail') === 0,
       `and run every commit-gate case (tests ${count('tests')}, pass ${count('pass')}, fail ${count('fail')}):\n${output}`);
     assert.equal(await ran(), '', `no hook the caller's git configuration installs may run in a repository a case makes:\n${await ran()}`);
   } finally {

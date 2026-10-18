@@ -203,3 +203,24 @@ after on the branch's), the figure `open_blockers[18]`, the question above and t
 `work-packages/WP-0A-CON-008.json` `required_human_authorities` gains one more entry at the end citing this section
 (the ten earlier entries byte for byte), and `open_blockers` one more at the end attributing the figures (the
 nineteen earlier entries byte for byte).
+
+## 8. Addendum (round 3 on PR #296): the stub verifier is covered now (A1-296-1)
+
+A1 (A1-296-1, Info, `evidence/WP-0A-CON-008/a1-review-2026-10-18-pr296.md`, measured) found one grandchild of
+`test-kits/ratchets-bite.test.mjs` that still read the caller's global git configuration: the stub `gate-verifier.mjs`
+that the case "the commit gate verifies the tree it commits: …" writes runs under the commit gate's verifier
+environment, which strips every `GIT_*`, the two settings included, and then runs `test-kits/app-boundaries.test.mjs`,
+whose git reads the index. The new case did not see it: its rerun excluded that case (`(?! verifies)`), and hooks run
+only for git commands that write. Fixed in the test only; `scripts/commit-when-clean.mjs` is unchanged:
+
+- the stub sets `GIT_CONFIG_NOSYSTEM=1` and `GIT_CONFIG_GLOBAL=/dev/null` in the environment it builds, as `CHILD_ENV`
+  does;
+- the planted configuration also sets `core.fsmonitor` to a program that appends to the same marker (git starts it
+  for reads of the index too), and the rerun takes every commit-gate case, the `.config/` one included (at least 11
+  must pass).
+
+With the stub's two lines taken out, the case fails with 21 `fsmonitor` lines from the guard's own temporary
+repositories; with them, it passes and the marker stays empty. So where §3, §5 and `open_blockers[18]` say the
+commit-gate cases are rerun "as its caller-GIT_* case does" (that is, without the `.config/` one), read from round 3 on:
+every commit-gate case, the stub verifier's git included. This adds no authority: it is the same item the answer of §2
+covers. No test or assertion is added or removed; the registry does not move.
