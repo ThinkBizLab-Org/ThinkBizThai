@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -14,6 +14,31 @@ import { branchTipBefore, changedIn, classify, driftBetween, handoffDrift } from
 import { claimantsOf, reportFor } from '../scripts/verify-branch-identity.mjs';
 
 const run = promisify(execFile);
+
+// No child of this file inherits a `GIT_*` variable from its caller, AS A CLASS (A1-292-2,
+// Q0-292-2; the rule A1-278r2-2 set for ratchets-bite.test.mjs). Git exports GIT_INDEX_FILE to a
+// pre-commit hook, and GIT_DIR, GIT_WORK_TREE, GIT_OBJECT_DIRECTORY, GIT_COMMON_DIR, GIT_CONFIG_*
+// and the rest each redirect a `git` that inherits them. Inheriting them, the scenario repositories
+// below were built in the caller's: with GIT_INDEX_FILE and GIT_OBJECT_DIRECTORY set, 149 files
+// under the caller's `.git` changed. The cases that read this repository run in it and find it
+// from their working directory; the scenario cases each work in a repository of their own.
+//
+// Two halves, because two kinds of child start here. Every `git` and `node` this file starts itself
+// is given CHILD_ENV. The helpers imported from refresh-author-handoff.mjs (`branchTipBefore`,
+// `driftBetween`, `handoffDrift`) start `git` with this process's own environment, which no option
+// passed from here reaches, so this process drops the variables from its own environment too,
+// before any case runs. Pinned by 'no case here reaches the repository its caller's GIT_* names'.
+const withoutGit = (env) => {
+  for (const key of Object.keys(env)) if (key.startsWith('GIT_')) delete env[key];
+  return env;
+};
+withoutGit(process.env);
+const CHILD_ENV = (() => {
+  const env = withoutGit({ ...process.env });
+  delete env.NODE_TEST_CONTEXT;
+  delete env.NODE_OPTIONS;
+  return env;
+})();
 
 // Ten handoffs were written and nothing validated them. `.agents/handoff.schema.json` was
 // loaded by one test only to assert a single `const`, and no script or test ever loaded a
@@ -153,7 +178,7 @@ test('a handoff describes its own package, not a template', async () => {
 // So the range is resolved against the repository and the file lists are compared to it.
 async function revisionExists(sha) {
   try {
-    const { stdout } = await run('git', ['cat-file', '-t', sha]);
+    const { stdout } = await run('git', ['cat-file', '-t', sha], { env: CHILD_ENV });
     return stdout.trim() === 'commit';
   } catch { return false; }
 }
@@ -180,7 +205,7 @@ test('a handoff file list matches the range it cites', async () => {
     if (!/^[0-9a-f]{40}$/.test(base ?? '') || !/^[0-9a-f]{40}$/.test(head ?? '')) continue;
     if (!(await revisionExists(base)) || !(await revisionExists(head))) continue;
     let stdout;
-    try { ({ stdout } = await run('git', ['diff', '--no-renames', '--name-status', `${base}..${head}`])); }
+    try { ({ stdout } = await run('git', ['diff', '--no-renames', '--name-status', `${base}..${head}`], { env: CHILD_ENV })); }
     catch { wrong.push(`${name} cites a range git cannot diff`); continue; }
     const actual = { A: [], M: [], D: [] };
     for (const line of stdout.trim().split('\n').filter(Boolean)) {
@@ -230,7 +255,7 @@ test('a handoff records a revision range that can be checked, or says it cannot'
 // The range is regenerated from history by `npm run refresh:handoff`, for the same reason the
 // test count is: nobody should maintain by hand a fact the repository already knows.
 test('the handoff for this branch describes this branch', async () => {
-  const branch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf8' }).trim();
+  const branch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf8', env: CHILD_ENV }).trim();
   const resolved = reportFor(branch, await claimantsOf(branch));
   if (resolved.code !== 0) {
     // A detached HEAD or a branch no package claims is the branch-identity guard's business,
@@ -261,7 +286,7 @@ test('a range is never compared backwards', async () => {
   // the comparison point. `git diff a..b` on a reversed range reports the REVERSE diff, so the
   // first version of this guard failed with a list of paths that had not drifted at all. A guard
   // that reports a wrong reason is how a real finding gets dismissed as noise.
-  const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8', env: CHILD_ENV }).trim();
   const tipBefore = branchTipBefore();
   assert.ok(tipBefore.ok, `${tipBefore.message ?? ''}`);
   const parent = tipBefore.tip;
@@ -511,7 +536,7 @@ test('no file under handoffs records an approval its author cannot give', async 
 // discards the ones every handoff on that branch cites. `--merge` keeps them reachable from `main`
 // and this test stays green without anything being regenerated.
 test('a handoff cites revisions reachable from main, not just from this clone', async () => {
-  const mainRef = await run('git', ['rev-parse', '--verify', 'origin/main'])
+  const mainRef = await run('git', ['rev-parse', '--verify', 'origin/main'], { env: CHILD_ENV })
     .then(() => 'origin/main', () => 'main');
   const unreachable = [];
   for (const [name, body] of await authorHandoffs()) {
@@ -523,13 +548,13 @@ test('a handoff cites revisions reachable from main, not just from this clone', 
       // commit was made, then rewritten away.
       let reachable = false;
       try {
-        await run('git', ['merge-base', '--is-ancestor', value, mainRef]);
+        await run('git', ['merge-base', '--is-ancestor', value, mainRef], { env: CHILD_ENV });
         reachable = true;
       } catch { reachable = false; }
       if (reachable) continue;
       let onThisBranch = false;
       try {
-        await run('git', ['merge-base', '--is-ancestor', value, 'HEAD']);
+        await run('git', ['merge-base', '--is-ancestor', value, 'HEAD'], { env: CHILD_ENV });
         onThisBranch = true;
       } catch { onThisBranch = false; }
       if (!onThisBranch) {
@@ -562,13 +587,8 @@ const REFRESHER = join(process.cwd(), 'scripts/refresh-author-handoff.mjs');
 
 // The child must not inherit the test runner's environment: NODE_TEST_CONTEXT makes a nested node
 // process report as a subtest and exit 0 whatever happened inside, and a probe that silently fails
-// to observe looks exactly like a guard that does not fire.
-const refresherEnv = () => {
-  const env = { ...process.env };
-  delete env.NODE_TEST_CONTEXT;
-  delete env.NODE_OPTIONS;
-  return env;
-};
+// to observe looks exactly like a guard that does not fire. Nor any `GIT_*` (CHILD_ENV, above).
+const refresherEnv = () => ({ ...CHILD_ENV });
 
 // A real repository, not a mock: the script shells out to git for every fact it uses, so a mock
 // would be testing the mock. Nothing here touches this repository -- each case builds its own and
@@ -576,7 +596,7 @@ const refresherEnv = () => {
 async function scenarioRepository() {
   const root = await mkdtemp(join(tmpdir(), 'handoff-base-'));
   const git = (...args) => {
-    const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+    const result = spawnSync('git', args, { cwd: root, encoding: 'utf8', env: CHILD_ENV });
     assert.equal(result.status, 0, `git ${args.join(' ')} failed: ${result.stderr}`);
     return result.stdout.trim();
   };
@@ -1129,5 +1149,72 @@ test('an empty branch on the audit package\'s branch name is not audit-lane, and
     assert.doesNotMatch(checked.stdout, /audit-lane/);
   } finally {
     await rm(scenario.root, { recursive: true, force: true });
+  }
+});
+
+// A1-292-2, Q0-292-2. Every case above runs with no `GIT_*` from its caller (CHILD_ENV, and this
+// process's own environment for the imported helpers). This runs them all again in a child whose
+// environment points GIT_DIR and GIT_WORK_TREE, and then GIT_INDEX_FILE and GIT_OBJECT_DIRECTORY,
+// at another repository -- as a pre-commit hook points GIT_INDEX_FILE at the index being committed
+// -- and requires that repository to be untouched, file for file, `.git` included, and the cases
+// to pass. Under the inherited environment both runs failed, and the second had first written 149
+// files under that repository's `.git`, its index among them. The other repository is read only
+// through the file system, never through git, so reading it cannot change it.
+async function filesUnder(dir) {
+  const files = new Map();
+  for (const entry of await readdir(dir, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    const path = join(entry.parentPath, entry.name);
+    files.set(path.slice(dir.length), (await readFile(path)).toString('base64'));
+  }
+  return files;
+}
+
+const THIS_CASE = 'no case here reaches the repository its caller\'s GIT_* names';
+
+test('no case here reaches the repository its caller\'s GIT_* names', async (t) => {
+  // The child skips this case by THIS_CASE. Were the two to differ, the child would run this case too and start
+  // another child; this assertion stops it at the first.
+  assert.equal(t.name, THIS_CASE, 'the name the child skips must be this case\'s own');
+  const victim = await realpath(await mkdtemp(join(tmpdir(), 'handoff-caller-')));
+  try {
+    const git = (...args) => {
+      const result = spawnSync('git', args, { cwd: victim, encoding: 'utf8', env: CHILD_ENV });
+      assert.equal(result.status, 0, `git ${args.join(' ')} in the caller's repository: ${result.stderr}`);
+    };
+    git('-c', 'init.defaultBranch=main', 'init', '-q');
+    for (const [key, value] of [['user.name', 'caller'], ['user.email', ['caller', 'example.invalid'].join('@')],
+      ['commit.gpgsign', 'false'], ['gc.auto', '0'], ['maintenance.auto', 'false'], ['core.fsmonitor', 'false']]) git('config', key, value);
+    await writeFile(join(victim, 'caller.txt'), 'the caller\'s own file\n');
+    git('add', 'caller.txt');
+    git('commit', '-qm', 'the caller');
+    await writeFile(join(victim, 'caller-staged.txt'), 'staged by the caller\n');
+    git('add', 'caller-staged.txt');
+    const before = await filesUnder(victim);
+    assert.ok(before.has('/.git/index'), 'the caller\'s repository must have an index for this case to mean anything');
+
+    const redirections = [
+      { GIT_DIR: join(victim, '.git'), GIT_WORK_TREE: victim },
+      { GIT_INDEX_FILE: join(victim, '.git', 'index'), GIT_OBJECT_DIRECTORY: join(victim, '.git', 'objects') },
+    ];
+    let ran = 0;
+    for (const redirection of redirections) {
+      const env = { ...CHILD_ENV, ...redirection };
+      const result = spawnSync(process.execPath, ['--test', `--test-skip-pattern=^${THIS_CASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`,
+        'test-kits/handoff-conformance.test.mjs'], { cwd: process.cwd(), encoding: 'utf8', env });
+      const output = `${result.stdout}${result.stderr}`;
+      const names = Object.keys(redirection).join(', ');
+      const count = (key) => Number(output.match(new RegExp(`^ℹ ${key} (\\d+)$`, 'm'))?.[1] ?? -1);
+      assert.equal(result.status, 0, `every case here must pass with ${names} pointed at another repository:\n${output}`);
+      assert.ok(count('pass') >= 25 && count('fail') === 0 && count('tests') === count('pass'),
+        `and every case but this one must run (tests ${count('tests')}, pass ${count('pass')}, fail ${count('fail')}):\n${output}`);
+      const after = await filesUnder(victim);
+      const changed = [...new Set([...before.keys(), ...after.keys()])].filter((path) => before.get(path) !== after.get(path));
+      assert.deepEqual(changed, [], `with ${names} set, the caller's repository must be untouched`);
+      ran += 1;
+    }
+    assert.equal(ran, redirections.length, `${ran} of ${redirections.length} redirections executed`);
+  } finally {
+    await rm(victim, { recursive: true, force: true });
   }
 });

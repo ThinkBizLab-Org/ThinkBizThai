@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "93390b180c2e13b2a3c59970fc5d47120b32cec9",
-  "head_revision_or_patch_checksum": "41a3105a801666e016ad2ce0dd2ab6854efeb833",
+  "base_revision": "67713e43bd9e8f7d9632448c75e001d3e0124086",
+  "head_revision_or_patch_checksum": "67713e43bd9e8f7d9632448c75e001d3e0124086",
   "task_ids": [
     "WP-0A-CON-008",
     "a1-278r2-1-index-flags-2026-10-18",
@@ -13,30 +13,8 @@
     "pr292-round-2-2026-10-18",
     "pr292-round-3-2026-10-18"
   ],
-  "files_added": [
-    "evidence/WP-0A-CON-008/a1-review-2026-10-18-pr292-r2.md",
-    "evidence/WP-0A-CON-008/a1-review-2026-10-18-pr292-r3.md",
-    "evidence/WP-0A-CON-008/a1-review-2026-10-18-pr292.md",
-    "evidence/WP-0A-CON-008/c0-review-2026-10-18-pr292-r2.md",
-    "evidence/WP-0A-CON-008/c0-review-2026-10-18-pr292-r3.md",
-    "evidence/WP-0A-CON-008/c0-review-2026-10-18-pr292.md",
-    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-a1-278r2-fix.md",
-    "evidence/WP-0A-CON-008/q0-review-2026-10-18-pr292-r2.md",
-    "evidence/WP-0A-CON-008/q0-review-2026-10-18-pr292-r3.md",
-    "evidence/WP-0A-CON-008/q0-review-2026-10-18-pr292.md",
-    "evidence/WP-0A-CON-008/r0-review-2026-10-18-pr292-r2.md",
-    "evidence/WP-0A-CON-008/r0-review-2026-10-18-pr292-r3.md",
-    "evidence/WP-0A-CON-008/r0-review-2026-10-18-pr292.md"
-  ],
-  "files_modified": [
-    "evidence/VERIFICATION.md",
-    "handoffs/WP-0A-CON-008-author-handoff.json",
-    "scripts/commit-when-clean.mjs",
-    "scripts/test-suite-contract.mjs",
-    "test-kits/integrity-manifest.json",
-    "test-kits/ratchets-bite.test.mjs",
-    "work-packages/WP-0A-CON-008.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
