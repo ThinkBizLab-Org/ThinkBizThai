@@ -5,16 +5,27 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "67713e43bd9e8f7d9632448c75e001d3e0124086",
-  "head_revision_or_patch_checksum": "67713e43bd9e8f7d9632448c75e001d3e0124086",
+  "head_revision_or_patch_checksum": "72b20df859ffbe03d548975b2a625969cfbe9935",
   "task_ids": [
     "WP-0A-CON-008",
     "a1-278r2-1-index-flags-2026-10-18",
     "a1-278r2-2-git-env-2026-10-18",
     "pr292-round-2-2026-10-18",
-    "pr292-round-3-2026-10-18"
+    "pr292-round-3-2026-10-18",
+    "a1-292-2-test-children-git-env-2026-10-18"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-a1-292-2.md"
+  ],
+  "files_modified": [
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-CON-008-author-handoff.json",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/ci-guard-behaviour.test.mjs",
+    "test-kits/handoff-conformance.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-CON-008.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
@@ -46,6 +57,11 @@
     }
   ],
   "tests": [
+    {
+      "command": "node scripts/commit-when-clean.mjs <message-file> (substantive commit 72b20df8, A1-292-2 for this package's two test files, under the suite lock, on the branch name)",
+      "exit_code": 0,
+      "result": "clean: exit 0 — tests 853, pass 853, fail 0, skipped 0, todo 0"
+    },
     {
       "command": "node scripts/commit-when-clean.mjs <message-file> (substantive commit f8595c01, 2971e0da for round 2 and ec9654b0 for round 3, under the suite lock, on the branch name)",
       "exit_code": 0,
@@ -99,13 +115,13 @@
     "SIGKILL, or a crash of the gate itself, still leaves the index staged; a failing git commit leaves it staged, as on main (R0-278-1, C0-278-3).",
     "The gate's own git calls honour only a GIT_INDEX_FILE that names the repository's own index; every other GIT_* that points git elsewhere is refused with 95 (A1-292-7), and the verifier runs with no GIT_* (Q0-292-2).",
     "The GIT_* case runs the commit-gate cases but the .config/ one in its child (that one's git calls are isolateGit and the gate, as the red-tree case's are); runSuite's suites get CHILD_ENV by construction and are not run under a redirected GIT_* by any case.",
-    "A1-292-2 (Low, pre-existing on main, not this PR's): test-kits/ci-guard-behaviour.test.mjs and test-kits/handoff-conformance.test.mjs (this package's) and test-kits/branch-scope.test.mjs (WP-0A-A0-004's) start git with the caller's GIT_* inherited; recorded in open_blockers[16], owed before the next press of any of them.",
+    "A1-292-2 (Low, pre-existing on main): fixed in this increment for test-kits/ci-guard-behaviour.test.mjs and test-kits/handoff-conformance.test.mjs (open_blockers[17]); test-kits/branch-scope.test.mjs is WP-0A-A0-004's and stays open here until that package's own fix lands. Whether A1-292-2 is closed for these two files is A1's to say.",
     "A1-292-6 (Info, not measured): the restored index file has a new mtime, so a racily clean entry is no longer re-checked by content; it can hide a same-size edit made in the same timestamp tick from git status, and commits nothing.",
     "A1-278-3 (Info: a write between the first sample and git add -A that is reverted before the second sample is committed unverified) is unchanged.",
     "Whether A1-278r2-1, A1-278r2-2 and A1-AUD1017-1 are closed is A1's to say on its re-read."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE LANE. Press authority: the Owner's reply of 2026-10-17T20:36:01.360Z (transcript 325454ab line 7906), evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-a1-278r2-fix.md (required_human_authorities[7]), read by A0 as accepting its recommendation that A0 presses after four roles: A0 presses only after C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs, no security finding of any grade is open against it and the head contains current main, with --match-head-commit. The role files will hold the verdicts; this handoff claims none.",
+    "GOVERNANCE LANE. Press authority for this increment (A1-292-2): the Owner's reply of 2026-10-18T02:39:25.100Z (transcript 325454ab line 8565, to A0's message at line 8561), evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-a1-292-2.md (required_human_authorities[8]), read by A0 as accepting its recommendation to fix it as #292 did and that A0 presses after four roles: A0 presses only after C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs, no security finding of any grade is open against it and the head contains current main, with --match-head-commit. Not a standing delegation. The role files will hold the verdicts; this handoff claims none.",
     "Status stays in_review: R0-AUD1017-2 holds the move R0's files for #266 and #278 direct until A1 says A1-AUD1017-1 is closed."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores scripts/commit-when-clean.mjs (read-tree restore, spawnSync verifier) and test-kits/ratchets-bite.test.mjs, the three scripts/test-suite-contract.mjs lines, regenerates the integrity manifest and keeps the records (append-only), A1-278r2-1 and A1-278r2-2 then open again.",
