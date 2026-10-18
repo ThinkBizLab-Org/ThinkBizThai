@@ -5,12 +5,13 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "f9f1aad76aa1d9471801ab33eddfb705bb3c4563",
-  "head_revision_or_patch_checksum": "a06506cefebc3a9ba137653f999a11a104f1d9c2",
+  "head_revision_or_patch_checksum": "2eb27ffb56bfadf04275c7324562f8971e8a642c",
   "task_ids": [
     "WP-0A-CON-008",
     "a1-293-2-a1-294-3-git-config-isolation-2026-10-18",
     "q0-aud1018-1-interrupt-case-2026-10-18",
-    "pr296-round-2-2026-10-18"
+    "pr296-round-2-2026-10-18",
+    "pr296-round-3-a1-296-1-2026-10-18"
   ],
   "files_added": [
     "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-git-config-isolation.md"
@@ -38,7 +39,8 @@
     "One case added to each file, none removed or renamed: 'no case here reads the git configuration its caller's HOME or XDG_CONFIG_HOME holds'. It plants a .gitconfig (HOME) and a git/config (XDG_CONFIG_HOME) whose core.hooksPath hooks append to a marker; proves the probe live (a plain git commit under either runs the hooks; with the two settings it does not); reruns the file's git-touching cases (ci-guard-behaviour and handoff-conformance: every other case; ratchets-bite: the commit-gate cases its caller-GIT_* case runs) with that HOME and XDG_CONFIG_HOME, and requires them to pass and the marker never to appear. The two caller-GIT_* rerun cases now skip both rerun cases in their child.",
     "Q0-AUD1018-1 (Low, evidence/audits/2026-10-18/q0-audit.md §5, branch q0/audit-2026-10-18), a separate item A0 directed into this branch as test hardening (the disposition records it apart): ratchets-bite's interrupt case polls up to 2 s for the verifier to be gone before its existing assertion; scripts/commit-when-clean.mjs unchanged.",
     "Amended without owning, mechanically: scripts/test-suite-contract.mjs (WP-0A-A0-002): ci-guard-behaviour 18 to 19 tests, 40 to 48 assertions, name digest 20f8b69718306f8a; handoff-conformance 26 to 27, 87 to 95, 1335b9c3daf5a207; ratchets-bite 31 to 32, 103 to 111, 5172b1cd805ee9f8; test-kits/integrity-manifest.json regenerated. status stays in_review.",
-    "ROUND 2 ON PR #296 (commit a06506ce, after A0's mechanical sync 939041ea with main f9f1aad7 and handoff 83d4b256), records only: C0-296-1 and R0-296-1 (the Q0-AUD1018-1 deflake outside the Owner's answer of 12:07:58.209Z) are answered by the Owner's answer of 14:00:38.374Z (header '#296 deflake'), appended by script as evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-git-config-isolation.md §7 and cited as required_human_authorities[10]; C0-296-3 (whose run each flake figure is) is recorded in open_blockers[19]; no test, script or registry line changes."
+    "ROUND 2 ON PR #296 (commit a06506ce, after A0's mechanical sync 939041ea with main f9f1aad7 and handoff 83d4b256), records only: C0-296-1 and R0-296-1 (the Q0-AUD1018-1 deflake outside the Owner's answer of 12:07:58.209Z) are answered by the Owner's answer of 14:00:38.374Z (header '#296 deflake'), appended by script as evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-git-config-isolation.md §7 and cited as required_human_authorities[10]; C0-296-3 (whose run each flake figure is) is recorded in open_blockers[19]; no test, script or registry line changes.",
+    "ROUND 3 ON PR #296 (commit 2eb27ffb): A1-296-1 (Info) fixed in test-kits/ratchets-bite.test.mjs only: the stub gate-verifier.mjs of 'the commit gate verifies the tree it commits: ...' sets GIT_CONFIG_NOSYSTEM=1 and GIT_CONFIG_GLOBAL=/dev/null in the environment it builds; the git-configuration case also plants core.fsmonitor (started for index reads too) and reruns every commit-gate case, that one included (pass >= 11). scripts/commit-when-clean.mjs unchanged; no test or assertion added or removed, so scripts/test-suite-contract.mjs does not move. Records appended: open_blockers[20], the disposition's §8."
   ],
   "acceptance_results": [
     {
@@ -56,6 +58,10 @@
     {
       "criterion": "Round 2: required_human_authorities[10] and open_blockers[19] appended, earlier entries byte-equal; the disposition gains §7 by appending only, its quotes byte-exact from transcript 325454ab lines 9610 and 9630",
       "result": "pass for author self-check"
+    },
+    {
+      "criterion": "A1-296-1: no git under the stub verifier reads the caller's global configuration, and the git-configuration case would see it",
+      "result": "pass for author self-check: with the stub's two lines removed the case fails (21 fsmonitor marker lines from app-boundaries' temporary repositories); with them it passes and the marker stays empty"
     }
   ],
   "tests": [
@@ -98,6 +104,11 @@
       "command": "node scripts/commit-when-clean.mjs <message-file> (round-2 records commit a06506ce under the suite lock, on the branch name)",
       "exit_code": 0,
       "result": "clean: exit 0 — tests 857, pass 857"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs <message-file> (round-3 commit 2eb27ffb under the suite lock, on the branch name; npm run record:verification first)",
+      "exit_code": 0,
+      "result": "clean: exit 0 — tests 857, pass 857"
     }
   ],
   "security_privacy_cost_impact": "Test isolation only: the three test files no longer let the operator's global or system git configuration (a core.hooksPath, init.templateDir or any other setting) act in the repositories they make. No credential, personal data, customer data, provider call, CI file, RFC, script or contract.",
@@ -106,7 +117,7 @@
   "known_limitations": [
     "The system gitconfig is not planted by the new cases (that would write outside the test's own directories); GIT_CONFIG_NOSYSTEM=1 is set in the same lines as GIT_CONFIG_GLOBAL.",
     "handoff-conformance's process.env half is not separately pinned: the imported helpers run read-only git (rev-list, merge-base), which no hook observes.",
-    "scripts/commit-when-clean.mjs's verifier runs with every GIT_* stripped, these two included; the verifier is the suite, whose three files set them again for their children. Not changed here (A1 did not ask).",
+    "scripts/commit-when-clean.mjs's verifier runs with every GIT_* stripped, these two included; the verifier is the suite, whose three files set them again for their children. Not changed here (A1 did not ask). Its one stub verifier in ratchets-bite that runs git (the .config/ case) sets the two settings itself (A1-296-1).",
     "test-kits/branch-scope.test.mjs (WP-0A-A0-004) is not in this increment; A1-293-2 stays open for it there.",
     "Whether A1-293-2, A1-294-3 and Q0-AUD1018-1 are closed is A1's and Q0's to say."
   ],
@@ -125,7 +136,8 @@
     "Reproduce the negative controls: remove the two settings from CHILD_ENV (and, for the rerun alone, give the probe the two settings by hand); each new case must fail.",
     "Reproduce Q0-AUD1018-1: the interrupt case 24 times at 8 concurrent.",
     "Run node scripts/db/classify-review-tier.mjs origin/main <head> --lane (expect governance) and node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008 (expect 0).",
-    "Round 2: check evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-git-config-isolation.md §7's quotes against transcript 325454ab lines 9610 and 9630; required_human_authorities[0..9] and open_blockers[0..18] unchanged; git diff 83d4b256 -- touches only the disposition (appended), work-packages/WP-0A-CON-008.json, test-kits/integrity-manifest.json and this handoff."
+    "Round 2: check evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-git-config-isolation.md §7's quotes against transcript 325454ab lines 9610 and 9630; required_human_authorities[0..9] and open_blockers[0..18] unchanged; git diff 83d4b256 -- touches only the disposition (appended), work-packages/WP-0A-CON-008.json, test-kits/integrity-manifest.json and this handoff.",
+    "Round 3: git diff a848c182 -- test-kits/ratchets-bite.test.mjs (stub env, core.fsmonitor, rerun pattern); reproduce A1-296-1's negative control by removing the stub's two lines: the git-configuration case must fail."
   ],
   "superseded_by": null
 }
