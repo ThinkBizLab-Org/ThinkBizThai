@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "f9f1aad76aa1d9471801ab33eddfb705bb3c4563",
-  "head_revision_or_patch_checksum": "2eb27ffb56bfadf04275c7324562f8971e8a642c",
+  "head_revision_or_patch_checksum": "25c22fc0141013b46763663c4df9d588f91c667a",
   "task_ids": [
     "WP-0A-CON-008",
     "a1-293-2-a1-294-3-git-config-isolation-2026-10-18",
@@ -14,7 +14,15 @@
     "pr296-round-3-a1-296-1-2026-10-18"
   ],
   "files_added": [
-    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-git-config-isolation.md"
+    "evidence/WP-0A-CON-008/a1-review-2026-10-18-pr296-r2.md",
+    "evidence/WP-0A-CON-008/a1-review-2026-10-18-pr296.md",
+    "evidence/WP-0A-CON-008/c0-review-2026-10-18-pr296-r2.md",
+    "evidence/WP-0A-CON-008/c0-review-2026-10-18-pr296.md",
+    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-git-config-isolation.md",
+    "evidence/WP-0A-CON-008/q0-review-2026-10-18-pr296-r2.md",
+    "evidence/WP-0A-CON-008/q0-review-2026-10-18-pr296.md",
+    "evidence/WP-0A-CON-008/r0-review-2026-10-18-pr296-r2.md",
+    "evidence/WP-0A-CON-008/r0-review-2026-10-18-pr296.md"
   ],
   "files_modified": [
     "evidence/VERIFICATION.md",
