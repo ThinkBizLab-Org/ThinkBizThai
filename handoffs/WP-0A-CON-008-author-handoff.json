@@ -5,17 +5,25 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "27ff99706a9bc6098deaa0a1277724c63d442120",
-  "head_revision_or_patch_checksum": "27ff99706a9bc6098deaa0a1277724c63d442120",
+  "head_revision_or_patch_checksum": "f9241768199203b1d0850c8877984b52654fa276",
   "task_ids": [
     "WP-0A-CON-008",
-    "a1-278r2-1-index-flags-2026-10-18",
-    "a1-278r2-2-git-env-2026-10-18",
-    "pr292-round-2-2026-10-18",
-    "pr292-round-3-2026-10-18",
-    "a1-292-2-test-children-git-env-2026-10-18"
+    "a1-293-2-a1-294-3-git-config-isolation-2026-10-18",
+    "q0-aud1018-1-interrupt-case-2026-10-18"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-git-config-isolation.md"
+  ],
+  "files_modified": [
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-CON-008-author-handoff.json",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/ci-guard-behaviour.test.mjs",
+    "test-kits/handoff-conformance.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/ratchets-bite.test.mjs",
+    "work-packages/WP-0A-CON-008.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-025",
@@ -24,44 +32,46 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT fixes A1-278r2-1 and A1-278r2-2 (evidence/WP-0A-CON-008/a1-reread-2026-10-16-pr278.md §3; A1-AUD1017-1 (2), evidence/audits/2026-10-17/a1-audit.md), recorded open in open_blockers[16] by PR #289. Governance lane: scripts/commit-when-clean.mjs is a script CI's suite executes and test-kits/ratchets-bite.test.mjs's cases have it as their subject (RFC-2026-034 §2.2).",
-    "A1-278r2-1: scripts/commit-when-clean.mjs reads the index file (git rev-parse --git-path index) byte for byte before it runs anything, samples the tree with git --no-optional-locks status, and on every refusal of its own (a failed git add -A, a verifier not clean, 90, 92, 95) writes those bytes back through index.lock and a rename, instead of git read-tree <tree>; per-entry flags (intent-to-add, assume-unchanged, skip-worktree, sparse and other extended bits) come back with the tree and the staged set. The verifier runs asynchronously in its own process group; SIGINT, SIGTERM or SIGHUP between staging and the commit stops it, puts the index back and exits 128 + the signal number (new codes 129, 130, 143), which also answers A1-278-2 (Info).",
-    "A1-278r2-2: CHILD_ENV in test-kits/ratchets-bite.test.mjs removes every GIT_* variable as a class (beside NODE_TEST_CONTEXT and NODE_OPTIONS) and is now the environment of every child the file starts: runSuite's suites, isolateGit's and throwawayRepository's git, the commit gate, the sweep case's node.",
-    "Three cases added, none removed or renamed: 'the commit gate's refusals put the index file back byte for byte, its per-entry flags included', 'the commit gate puts the index back and stops its verifier when it is interrupted', 'a caller's GIT_* environment reaches no repository but the cases' own'. Measured to fail on the old code: the first two with origin/main's scripts/commit-when-clean.mjs (flags dropped; the gate dies of SIGTERM), the third with the GIT_* line removed from CHILD_ENV (with GIT_DIR and GIT_WORK_TREE set the cases fail on the other repository; with only GIT_INDEX_FILE and GIT_OBJECT_DIRECTORY set the cases fail too).",
-    "Amended without owning, mechanically: scripts/test-suite-contract.mjs (WP-0A-A0-002) for ratchets-bite.test.mjs: test floor 23 to 26, assertion floor 55 to 74 (the guard's own counts), name digest 088ea5adcc8ee194 to 24e6ae248357857b; test-kits/integrity-manifest.json regenerated. Press authority: the Owner's reply of 2026-10-17T20:36:01.360Z, transcribed by script in evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-a1-278r2-fix.md (required_human_authorities[7]). status stays in_review.",
-    "ROUND 2 ON PR #292 (commit 2971e0da, after the role readings at 2cc53986): A1-292-1 (Low) the gate also keeps and restores the shared index file a split index names (git rev-parse --shared-index-path) and checks every restore with git ls-files -s; A1-292-5/C0-292-3 the not-clean path restores before releasing the handlers; A1-292-4 an interrupt that also kills git add -A exits 128 + n; A1-292-3 SIGQUIT handled (131); C0-292-1 the test comment's attribution corrected; Q0-292-1 the interrupt case requires the gate to exit within 5 s of the signal; Q0-292-2 the verifier is spawned with every GIT_* removed (VERIFIER_ENV); Q0-292-4 a leftover index.lock is named in the 95 message. Three cases added and the interrupt case also sends SIGQUIT; each fails with 2cc53986's gate. scripts/test-suite-contract.mjs: ratchets-bite 26 to 29 tests, 74 to 91 assertions, name digest f897e940d39a8264. A1-292-2 recorded open in open_blockers[16] for its owners; A1-292-6 recorded as an Info residual.",
-    "ROUND 3 ON PR #292 (after the role readings at 7f2943c2, which carries A0's mechanical sync with main 27e0ee39): A1-292-7 (Low, A1's option (a)) the gate refuses with 95 before anything runs, naming the variable, when GIT_DIR, GIT_WORK_TREE, GIT_COMMON_DIR, GIT_OBJECT_DIRECTORY or GIT_ALTERNATE_OBJECT_DIRECTORIES is set or GIT_INDEX_FILE names another file than the repository's own index (a plain git commit's hook allowed; git commit -a and git commit <paths> hooks refused); C0-292r2-1 (Low) the rebuild fallback never runs on an index git could not read before the gate ran, nor without a recorded tree, and never from HEAD; A1-292-8 (Info) the shared index file is rewritten when missing or different, and found bytes are kept under a name of the run's own; C0-292r2-4 the lock check is an existence check. Two cases added: 'the commit gate refuses a caller whose GIT_* points git away from what its verifier checks', 'the commit gate leaves an index git could not read before it ran as it found it'; each fails with 7f2943c2's gate. scripts/test-suite-contract.mjs: ratchets-bite 29 to 31 tests, 91 to 103 assertions, name digest 26f1fa6d9e402703. open_blockers[16] corrects the round-2 hook sentence (plain commit vs -a vs <paths>, R0-292-6)."
+    "THIS INCREMENT (base main 27ff9970, after PR #294) fixes A1-293-2 (Info, evidence/WP-0A-A0-004/a1-review-2026-10-18-pr293.md) and A1-294-3 (Info, evidence/WP-0A-CON-008/a1-review-2026-10-18-pr294.md) for this package's three test files, recorded in open_blockers[18]. Governance lane: top-level test-kits/*.test.mjs guard tests and scripts/test-suite-contract.mjs (RFC-2026-034 §2.2).",
+    "test-kits/ratchets-bite.test.mjs and test-kits/ci-guard-behaviour.test.mjs: CHILD_ENV, after its GIT_* strip, sets GIT_CONFIG_NOSYSTEM=1 and GIT_CONFIG_GLOBAL=/dev/null, last. test-kits/handoff-conformance.test.mjs: the same in both halves (CHILD_ENV and the process's own environment, which the imported refresh-author-handoff helpers use).",
+    "One case added to each file, none removed or renamed: 'no case here reads the git configuration its caller's HOME or XDG_CONFIG_HOME holds'. It plants a .gitconfig (HOME) and a git/config (XDG_CONFIG_HOME) whose core.hooksPath hooks append to a marker; proves the probe live (a plain git commit under either runs the hooks; with the two settings it does not); reruns the file's git-touching cases (ci-guard-behaviour and handoff-conformance: every other case; ratchets-bite: the commit-gate cases its caller-GIT_* case runs) with that HOME and XDG_CONFIG_HOME, and requires them to pass and the marker never to appear. The two caller-GIT_* rerun cases now skip both rerun cases in their child.",
+    "Q0-AUD1018-1 (Low, evidence/audits/2026-10-18/q0-audit.md §5, branch q0/audit-2026-10-18), a separate item A0 directed into this branch as test hardening (the disposition records it apart): ratchets-bite's interrupt case polls up to 2 s for the verifier to be gone before its existing assertion; scripts/commit-when-clean.mjs unchanged.",
+    "Amended without owning, mechanically: scripts/test-suite-contract.mjs (WP-0A-A0-002): ci-guard-behaviour 18 to 19 tests, 40 to 48 assertions, name digest 20f8b69718306f8a; handoff-conformance 26 to 27, 87 to 95, 1335b9c3daf5a207; ratchets-bite 31 to 32, 103 to 111, 5172b1cd805ee9f8; test-kits/integrity-manifest.json regenerated. status stays in_review."
   ],
   "acceptance_results": [
     {
-      "criterion": "No child of test-kits/ci-guard-behaviour.test.mjs or test-kits/handoff-conformance.test.mjs inherits a caller's GIT_*; handoff-conformance also strips GIT_* from its own process.env because the refresh-author-handoff helpers it imports spawn git with it",
-      "result": "pass for author self-check: CHILD_ENV (every GIT_* removed as a class) on every git, node and mkdir both files start; one new case per file reruns the file's other cases with GIT_DIR+GIT_WORK_TREE, then GIT_INDEX_FILE+GIT_OBJECT_DIRECTORY, pointed at a throwaway repository, which stays untouched file for file; each new case fails on main's code (C0 and the author measured)"
+      "criterion": "No child of test-kits/ratchets-bite.test.mjs, test-kits/ci-guard-behaviour.test.mjs or test-kits/handoff-conformance.test.mjs reads the git configuration of HOME, XDG_CONFIG_HOME or the system; the two settings are applied after the GIT_* strip",
+      "result": "pass for author self-check: each new case passes on the branch and fails on main's code two ways (the two settings removed: the probe's isolated commit runs the hook; the two settings removed but given to the probe by hand: the rerun's cases run the caller's hooks, 174, 1455 and 459 hook lines); logs in the author's scratch, cited in the PR body"
     },
     {
-      "criterion": "Records: open_blockers[17] and required_human_authorities[8] appended, earlier entries byte-equal; the disposition quotes transcript lines 8561 and 8565 byte-exact; scripts/test-suite-contract.mjs moves only the two files' entries (ci-guard-behaviour 17->18 tests, 33->40 assertions; handoff-conformance 25->26, 80->87)",
+      "criterion": "Q0-AUD1018-1: the interrupt case no longer races its verifier's exit under load",
+      "result": "pass for author self-check: 24 runs at 8 concurrent, before 1 of 24 failed on \"SIGQUIT: and leave no verifier running\", after 0 of 24"
+    },
+    {
+      "criterion": "Records: open_blockers[18] and required_human_authorities[9] appended, earlier entries byte-equal; evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-git-config-isolation.md quotes transcript 325454ab lines 9353 and 9379 byte-exact; scripts/test-suite-contract.mjs moves only the three files' entries",
       "result": "pass for author self-check"
     }
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (substantive commit 72b20df8 under the suite lock, on the branch name)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (substantive commit f9241768 under the suite lock, on the branch name)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 853, pass 853"
+      "result": "clean: exit 0 — tests 857, pass 857"
     },
     {
-      "command": "merge of origin/main 3288e618 (PR #293) into this branch (98b138a2): not a mechanical sync under RFC-2026-025 §6.3 in the strict sense, because PR #293 also changed scripts/test-suite-contract.mjs (R0-294-1); git merged that file cleanly; conflicts only in evidence/VERIFICATION.md and test-kits/integrity-manifest.json, resolved by npm run record:verification and regenerate:manifest",
+      "command": "npm run record:verification",
       "exit_code": 0,
-      "result": "recorded 854 passing; rebuilt 128 digests (an earlier record run failed 1 of 854 with no detail; the next two full runs passed 854/854)"
+      "result": "recorded 857 passing"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (handoff commit after the merge)",
+      "command": "node --test --test-name-pattern='^the commit gate puts the index back' test-kits/ratchets-bite.test.mjs, 24 runs, 8 concurrent",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 854, pass 854"
+      "result": "24 of 24 pass (before the fix 23 of 24)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008",
       "exit_code": 0,
-      "result": "all 8 changed path(s) are declared, and every amendment explains one"
+      "result": "every changed path declared"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
@@ -74,31 +84,30 @@
       "result": "the handoff cites this branch"
     }
   ],
-  "security_privacy_cost_impact": "Local commit tooling and its tests. The commit gate now writes the caller's own index bytes back on a refusal instead of a tree-derived index, so a skip-worktree or assume-unchanged local edit (a common way to keep a private configuration out of commits) stays hidden after a refusal; the test children can no longer act on a repository named by an inherited GIT_* variable. No credential, personal data, customer data, provider call, CI file, RFC or contract.",
+  "security_privacy_cost_impact": "Test isolation only: the three test files no longer let the operator's global or system git configuration (a core.hooksPath, init.templateDir or any other setting) act in the repositories they make. No credential, personal data, customer data, provider call, CI file, RFC, script or contract.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes. scripts/commit-when-clean.mjs keeps its usage and every exit code, and adds 129, 130, 131 and 143 for SIGHUP, SIGINT, SIGQUIT and SIGTERM between staging and the commit (previously the gate died of the signal); 95 now also refuses, before anything runs, a caller whose GIT_DIR, GIT_WORK_TREE, GIT_COMMON_DIR, GIT_OBJECT_DIRECTORY or GIT_ALTERNATE_OBJECT_DIRECTORIES is set or whose GIT_INDEX_FILE is not the repository's own index; the verifier runs with no GIT_*. The verifier runs in a process group of its own, so a terminal's Ctrl-C reaches it through the gate.",
+  "compatibility_impact": "No contract or script changes. The three test files' cases no longer see settings from the operator's HOME, XDG_CONFIG_HOME or system gitconfig; every repository they make sets what it needs in its own .git/config.",
   "known_limitations": [
-    "SIGKILL, or a crash of the gate itself, still leaves the index staged; a failing git commit leaves it staged, as on main (R0-278-1, C0-278-3).",
-    "The gate's own git calls honour only a GIT_INDEX_FILE that names the repository's own index; every other GIT_* that points git elsewhere is refused with 95 (A1-292-7), and the verifier runs with no GIT_* (Q0-292-2).",
-    "The GIT_* case runs the commit-gate cases but the .config/ one in its child (that one's git calls are isolateGit and the gate, as the red-tree case's are); runSuite's suites get CHILD_ENV by construction and are not run under a redirected GIT_* by any case.",
-    "A1-292-6 (Info, not measured): the restored index file has a new mtime, so a racily clean entry is no longer re-checked by content; it can hide a same-size edit made in the same timestamp tick from git status, and commits nothing.",
-    "A1-278-3 (Info: a write between the first sample and git add -A that is reverted before the second sample is committed unverified) is unchanged.",
-    "Whether A1-278r2-1, A1-278r2-2 and A1-AUD1017-1 are closed is A1's to say on its re-read.",
-    "A1-292-2 (Low): fixed for test-kits/ci-guard-behaviour.test.mjs and test-kits/handoff-conformance.test.mjs by this increment (open_blockers[17]) and for test-kits/branch-scope.test.mjs by WP-0A-A0-004's PR #293 (merged 2026-10-18T06:32:41Z, 3288e618), which this branch contains."
+    "The system gitconfig is not planted by the new cases (that would write outside the test's own directories); GIT_CONFIG_NOSYSTEM=1 is set in the same lines as GIT_CONFIG_GLOBAL.",
+    "handoff-conformance's process.env half is not separately pinned: the imported helpers run read-only git (rev-list, merge-base), which no hook observes.",
+    "scripts/commit-when-clean.mjs's verifier runs with every GIT_* stripped, these two included; the verifier is the suite, whose three files set them again for their children. Not changed here (A1 did not ask).",
+    "test-kits/branch-scope.test.mjs (WP-0A-A0-004) is not in this increment; A1-293-2 stays open for it there.",
+    "Whether A1-293-2, A1-294-3 and Q0-AUD1018-1 are closed is A1's and Q0's to say."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE LANE. Press authority for this increment (A1-292-2): the Owner's reply of 2026-10-18T02:39:25.100Z (transcript 325454ab line 8565, to A0's message at line 8561), evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-a1-292-2.md (required_human_authorities[8]), read by A0 as accepting its recommendation to fix it as #292 did and that A0 presses after four roles: A0 presses only after C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs, no security finding of any grade is open against it and the head contains current main, with --match-head-commit. Not a standing delegation. The role files will hold the verdicts; this handoff claims none.",
-    "Status stays in_review: R0-AUD1017-2 holds the move R0's files for #266 and #278 direct until A1 says A1-AUD1017-1 is closed."
+    "GOVERNANCE LANE. Press authority for this increment: the Owner's answer of 2026-10-18T12:07:58.209Z (transcript 325454ab line 9379, to A0's question at line 9353, header 'HOME/XDG', chosen 'ทำ + A0 กดทีละ PR เมื่อ 4 role ผ่าน (Recommended)'), evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-git-config-isolation.md (required_human_authorities[9]): A0 presses only after C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs, no security finding of any grade is open against it and the head contains current main, with --match-head-commit. Not a standing delegation. Q0-AUD1018-1 is carried as a separate item on A0's reading (the disposition says so). The role files will hold the verdicts; this handoff claims none.",
+    "Status stays in_review."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores test-kits/ci-guard-behaviour.test.mjs and test-kits/handoff-conformance.test.mjs and their two scripts/test-suite-contract.mjs entries, re-records evidence/VERIFICATION.md, regenerates the integrity manifest and keeps the records (append-only).",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores the three test files and their scripts/test-suite-contract.mjs entries, re-records evidence/VERIFICATION.md, regenerates the integrity manifest and keeps the records (append-only).",
   "recommended_next_work_packages": [
-    "WP-0A-CON-008: with A1's word that A1-AUD1017-1 is closed, the status move R0's files for #266 and #278 direct (R0-AUD1017-2), and the records of this pull request after its merge.",
-    "WP-0A-CON-008 or RFC-2026-007's owner: RFC-2026-007's wording after #265, on the Owner's own words."
+    "WP-0A-A0-004: the same isolation for test-kits/branch-scope.test.mjs (A1-293-2), on its own branch under the same Owner answer.",
+    "WP-0A-CON-008: the records of this pull request after its merge."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-a1-292-2.md, then git diff origin/main -- test-kits/ci-guard-behaviour.test.mjs test-kits/handoff-conformance.test.mjs scripts/test-suite-contract.mjs work-packages/WP-0A-CON-008.json.",
-    "Check the disposition's quotes against transcript 325454ab lines 8561 and 8565; required_human_authorities[0..7] and open_blockers[0..16] unchanged.",
-    "Reproduce the negative controls: each new case with the GIT_* removal taken out (and, for handoff-conformance, with only the process.env strip taken out) must fail.",
+    "Read evidence/WP-0A-CON-008/product-owner-disposition-2026-10-18-git-config-isolation.md, then git diff origin/main -- test-kits/ratchets-bite.test.mjs test-kits/ci-guard-behaviour.test.mjs test-kits/handoff-conformance.test.mjs scripts/test-suite-contract.mjs work-packages/WP-0A-CON-008.json.",
+    "Check the disposition's quotes against transcript 325454ab lines 9353 and 9379; required_human_authorities[0..8] and open_blockers[0..17] unchanged.",
+    "Reproduce the negative controls: remove the two settings from CHILD_ENV (and, for the rerun alone, give the probe the two settings by hand); each new case must fail.",
+    "Reproduce Q0-AUD1018-1: the interrupt case 24 times at 8 concurrent.",
     "Run node scripts/db/classify-review-tier.mjs origin/main <head> --lane (expect governance) and node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008 (expect 0)."
   ],
   "superseded_by": null
