@@ -131,3 +131,75 @@ nine existing entries are kept byte for byte (the field is strictly append-only,
 `scripts/db/classify-records-only.mjs` `appendedEntriesOnly`). `open_blockers` gains one entry at the end; the
 eighteen existing entries are kept byte for byte. `ownership.amends_without_owning.rationale` is extended, its old
 text kept whole in front; its `paths` are unchanged.
+
+## 7. Addendum (round 2 on PR #296): the Owner's answer on the Q0-AUD1018-1 item
+
+C0 (C0-296-1, `evidence/WP-0A-CON-008/c0-review-2026-10-18-pr296.md`) and R0 (R0-296-1,
+`evidence/WP-0A-CON-008/r0-review-2026-10-18-pr296.md`) read §3's separate item, the Q0-AUD1018-1 deflake, as outside
+the answer of §2, and asked for the Owner's own word before A0 presses, or for the hunk to be dropped, or for the Owner
+to press. A0 asked. The question, its header, the three option labels, the chosen label and its description below are
+copied by script from the same transcript: line 9610 (A0's question-tool call, uuid `7871a2b6-664e-4f84-ae1e-67ae0cde1df8`, stamped
+`2026-10-18T13:46:38.016Z`) and line 9630 (the tool result carrying the Owner's answer, uuid `4ac4e227-5e98-400a-a832-4518a2813e03`, stamped
+`2026-10-18T14:00:38.374Z`, whose parent is line 9610's record and whose `tool_use_id` is that call's `toolu_014jmQ9GBAxa1FoppXEdr9tY`), and
+checked byte for byte against them by script. Lines 9611 to 9629 hold no message: 11 `queue-operation`, 1 `last-prompt`, 1 `custom-title`, 1 `agent-name`, 1 `mode`, 1 `atis-latch`, 1 `pr-link`, 1 `history-suppression`, 1 `bridge-session` records (the queue
+records are background-task notifications). PR #296 existed when the question was asked (it names it).
+
+**Header:** "#296 deflake"
+
+**Q:**
+
+```text
+PR #296 (CON-008) นอกจากแยกเทสต์จาก git config ของเครื่อง (ที่คุณสั่งแล้ว) ผมใส่การแก้เทสต์ SIGQUIT ที่ล้มแบบสุ่ม (Q0-AUD1018-1) ไว้ด้วย — ให้เทสต์รอ verifier ปิดตัวได้สูงสุด 2 วินาที (เดิมล้ม 1/24 ตอนนี้ 0/24) ไม่แตะ commit gate · R0 บอกว่าคำตอบเดิมไม่ได้พูดถึงเรื่องนี้ จะให้ทำอย่างไร?
+```
+
+**Option labels shown, in order:**
+
+```text
+รวมใน #296 + A0 กดเมื่อ 4 role ผ่าน (Recommended)
+```
+
+```text
+เอาออกจาก #296
+```
+
+```text
+ผมกด #296 เอง
+```
+
+**A (the chosen label):**
+
+```text
+รวมใน #296 + A0 กดเมื่อ 4 role ผ่าน (Recommended)
+```
+
+**The chosen option's description:**
+
+```text
+บันทึกคำตอบนี้ใน disposition แล้วกดตามเงื่อนไขเดิม (4 role ผ่าน, CI เขียว, ไม่มี security finding ค้าง)
+```
+
+A0's translation of the question: "PR #296 (CON-008), besides isolating the tests from the machine's git configuration
+(which you directed), also carries a fix for the SIGQUIT test that fails at random (Q0-AUD1018-1) — the test waits up
+to 2 seconds for the verifier to close (before: failed 1/24, now 0/24), the commit gate untouched · R0 says the earlier
+answer did not mention it; what do you want?" Of the options: "Include in #296 + A0 presses when the 4 roles pass
+(Recommended)"; "Take it out of #296"; "I press #296 myself". Of the chosen description: "Record this answer in the
+disposition, then press on the earlier conditions (4 roles pass, CI green, no security finding open)".
+
+**A0's reading.** The Owner directs that the Q0-AUD1018-1 deflake stays in PR #296 and that A0 presses #296, deflake
+included, on §3's conditions: C0, A1, Q0 and R0 pass on its final head, CI is green on both jobs there, no security
+finding of any grade is open against it, and the head contains current `main`; with `--match-head-commit`. This
+answer was given after PR #296 existed and names it, so RFC-2026-025 §5 item 6's third bullet is met directly for that
+item. It is an exception to that item's last bullet for PR #296 only, not a standing delegation; the Owner may press it
+himself. §3's paragraph "A separate item carried in the same pull request" stands as written above (append-only); from
+this answer on, the item rests on the Owner's word, not on A0's reading. Whether Q0-AUD1018-1 is closed stays Q0's to
+say. A0's reading.
+
+**Whose run each flake figure is (C0-296-3).** "4 of 24" (and 3 of 24 SIGQUIT runs with the verifier present at the
+gate's exit, gone 82 to 128 ms later) is Q0's audit run on `27ff9970` (`evidence/audits/2026-10-18/q0-audit.md` §5);
+it is the figure §3 above and the comment in `test-kits/ratchets-bite.test.mjs` give. "1 of 24 before, 0 of 24 after"
+is the author subagent's own run of 2026-10-18 (24 runs of that case at 8 concurrent, before on `27ff9970`'s case and
+after on the branch's), the figure `open_blockers[18]`, the question above and the PR body give.
+
+`work-packages/WP-0A-CON-008.json` `required_human_authorities` gains one more entry at the end citing this section
+(the ten earlier entries byte for byte), and `open_blockers` one more at the end attributing the figures (the
+nineteen earlier entries byte for byte).
