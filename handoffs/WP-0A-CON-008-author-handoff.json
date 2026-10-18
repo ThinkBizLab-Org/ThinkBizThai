@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "27e0ee394d9a0a851eaed03215d2421bd9d07ca7",
-  "head_revision_or_patch_checksum": "3d49ca45819815c41eeaec4556b0594d98e2cfcf",
+  "head_revision_or_patch_checksum": "ec9654b06e513259a1dc72725aba692e9dce9521",
   "task_ids": [
     "WP-0A-CON-008",
     "a1-278r2-1-index-flags-2026-10-18",
@@ -61,9 +61,9 @@
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (substantive commit (this round-3 commit), under the suite lock, on the branch name)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (substantive commit f8595c01, 2971e0da for round 2 and ec9654b0 for round 3, under the suite lock, on the branch name)",
       "exit_code": 0,
-      "result": "clean: exit 0 (see the commit log)"
+      "result": "clean: exit 0 — tests 851, pass 851, fail 0, skipped 0, todo 0"
     },
     {
       "command": "node --test --test-name-pattern='^the commit gate' test-kits/ratchets-bite.test.mjs",
@@ -93,12 +93,12 @@
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-008",
       "exit_code": 0,
-      "result": "every changed path declared"
+      "result": "against the merge-base 27e0ee39: all 12 changed path(s) declared, every amendment explains one (main has since moved to 93390b18, PR #291, whose seven WP-0A-A0-002 paths the script then lists until main is merged in)"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "lane: governance"
+      "result": "tier: H (12 path(s), 27e0ee3..ec9654b); lane: governance"
     },
     {
       "command": "npm run check:handoff",
