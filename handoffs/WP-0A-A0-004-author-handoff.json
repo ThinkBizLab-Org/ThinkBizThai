@@ -5,13 +5,22 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "27ff99706a9bc6098deaa0a1277724c63d442120",
-  "head_revision_or_patch_checksum": "27ff99706a9bc6098deaa0a1277724c63d442120",
+  "head_revision_or_patch_checksum": "381d3c46e9b9a6c3f4e7442370fc32d0b2ebbc01",
   "task_ids": [
     "WP-0A-A0-004",
     "gov-a004i-branch-scope-git-config-2026-10-18"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-A0-004/product-owner-disposition-2026-10-18-git-config-isolation.md"
+  ],
+  "files_modified": [
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-A0-004-author-handoff.json",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/branch-scope.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-A0-004.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-007",
