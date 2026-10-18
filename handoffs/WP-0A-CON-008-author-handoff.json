@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "27ff99706a9bc6098deaa0a1277724c63d442120",
-  "head_revision_or_patch_checksum": "f9241768199203b1d0850c8877984b52654fa276",
+  "base_revision": "f9f1aad76aa1d9471801ab33eddfb705bb3c4563",
+  "head_revision_or_patch_checksum": "939041ea1636d4d737a7e395d0707b9bac7f20a2",
   "task_ids": [
     "WP-0A-CON-008",
     "a1-293-2-a1-294-3-git-config-isolation-2026-10-18",
