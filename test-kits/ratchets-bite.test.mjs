@@ -275,11 +275,22 @@ async function mustNotice(suite, reversals) {
 // the next variable short; every child here works in a repository of its own, or in none, and needs
 // no `GIT_*` from its caller. Pinned by 'a caller's GIT_* environment reaches no repository but the
 // cases' own'.
+//
+// NOR THE GIT CONFIGURATION OF THE MACHINE IT RUNS ON (A1-293-2, A1-294-3). Configuration reaches
+// git without a `GIT_` name too: HOME's `.gitconfig`, XDG_CONFIG_HOME's `git/config` and the system
+// gitconfig. A `core.hooksPath` there runs its hooks in every repository a case makes, the commit
+// gate's commits among them, and any other setting there changes what a case measures. So after the
+// strip every child gets GIT_CONFIG_NOSYSTEM=1 and GIT_CONFIG_GLOBAL=/dev/null, set last so nothing
+// of the caller's replaces them; `isolateGit` and `throwawayRepository` set what their repositories
+// need in their own `.git/config`. Pinned by 'no case here reads the git configuration its caller's
+// HOME or XDG_CONFIG_HOME holds'.
 const CHILD_ENV = (() => {
   const env = { ...process.env };
   delete env.NODE_TEST_CONTEXT;
   delete env.NODE_OPTIONS;
   for (const key of Object.keys(env)) if (key.startsWith('GIT_')) delete env[key];
+  env.GIT_CONFIG_NOSYSTEM = '1';
+  env.GIT_CONFIG_GLOBAL = '/dev/null';
   return env;
 })();
 
@@ -696,6 +707,11 @@ test('the commit gate verifies the tree it commits: a new file a guard refuses i
       'const env = { ...process.env };',
       'delete env.NODE_TEST_CONTEXT;',
       'delete env.NODE_OPTIONS;',
+      // A1-296-1. The gate runs this verifier with every GIT_* removed, the two configuration settings
+      // among them, and the guard it runs reads the index with git: so it sets them again here, as
+      // CHILD_ENV does, or that git reads the caller's global configuration.
+      "env.GIT_CONFIG_NOSYSTEM = '1';",
+      "env.GIT_CONFIG_GLOBAL = '/dev/null';",
       "const run = spawnSync(process.execPath, ['--test', '--test-name-pattern=^A1-257-9: a tracked', 'test-kits/app-boundaries.test.mjs'], { encoding: 'utf8', env });",
       "const output = `${run.stdout ?? ''}${run.stderr ?? ''}`;",
       "const count = (key) => Number(output.match(new RegExp(`^ℹ ${key} (\\\\d+)$`, 'm'))?.[1] ?? 0);",
@@ -930,6 +946,13 @@ test('the commit gate puts the index back and stops its verifier when it is inte
       assert.equal(ok('rev-parse', 'HEAD'), head, `${sent}: and make no commit`);
       assert.equal(ok('ls-files', '-v'), flags, `${sent}: and keep every per-entry flag`);
       assert.ok((await readFile(indexFile)).equals(bytes), `${sent}: and put the index file back byte for byte`);
+      // Q0-AUD1018-1. The gate waits for npm's `close`, and the verifier is npm's grandchild in the
+      // same group: it has been sent the signal, but can still be exiting when the gate is. Measured
+      // under eight concurrent runs: present at the gate's exit in 3 of 24 SIGQUIT runs and gone 82 to
+      // 128 ms later, so the assertion raced (4 of 24 failed). It is given 2 s to be gone, far under
+      // the verifier's own 60 s timer, so a verifier the gate left running still fails here.
+      const gone = Date.now() + 2_000;
+      while (stillRunning(verifierPid) && Date.now() < gone) await new Promise((next) => { setTimeout(next, 20); });
       assert.equal(stillRunning(verifierPid), false, `${sent}: and leave no verifier running`);
       ran += 1;
     } finally {
@@ -1165,6 +1188,99 @@ test('a caller\'s GIT_* environment reaches no repository but the cases\' own', 
     assert.equal(ran, redirections.length, `${ran} of ${redirections.length} redirections executed`);
   } finally {
     await rm(victim, { recursive: true, force: true });
+  }
+});
+
+// A1-293-2, A1-294-3. CHILD_ENV sets GIT_CONFIG_NOSYSTEM=1 and GIT_CONFIG_GLOBAL=/dev/null after its
+// strip, so no child here reads the machine's git configuration. This makes a home whose
+// `.gitconfig`, and an XDG_CONFIG_HOME whose `git/config`, each set `core.hooksPath` to hooks that
+// append to a marker file, and first shows the probe is live: a plain `git commit` with either one
+// runs the hooks, and the same commit with CHILD_ENV does not. Then it runs every commit-gate case again in a
+// child whose HOME and XDG_CONFIG_HOME are those two, with no GIT_* of its own, as a caller's
+// machine would be, and requires the cases to pass and the marker never to appear. The system
+// gitconfig cannot be planted without writing outside the test's own directories; GIT_CONFIG_NOSYSTEM
+// is set beside GIT_CONFIG_GLOBAL in the same lines, and git reads the system file only without it.
+//
+// A1-296-1. Hooks run only for git commands that write, so a git that only reads (the `git ls-files`
+// of the guard the `.config/` case's stub verifier runs) read the caller's configuration unseen, and
+// that case was not rerun here. The planted configuration also sets `core.fsmonitor` to a program
+// that appends to the same marker, which git starts for reads of the index too, and the rerun now
+// takes every commit-gate case, the `.config/` one included.
+const CONFIG_CASE = 'no case here reads the git configuration its caller\'s HOME or XDG_CONFIG_HOME holds';
+const CALLER_HOOKS = ['pre-commit', 'prepare-commit-msg', 'commit-msg', 'post-commit', 'pre-merge-commit', 'post-merge',
+  'post-checkout', 'post-rewrite', 'reference-transaction', 'post-index-change', 'pre-rebase', 'pre-auto-gc'];
+
+async function hookingConfiguration(root) {
+  const marker = join(root, 'hooks-ran.log');
+  const hooks = join(root, 'hooks');
+  await mkdir(hooks);
+  for (const hook of CALLER_HOOKS) {
+    await writeFile(join(hooks, hook), `#!/bin/sh\nprintf '%s %s\\n' '${hook}' "$PWD" >> '${marker}'\nexit 0\n`, { mode: 0o755 });
+  }
+  const fsmonitor = join(root, 'fsmonitor-probe');
+  await writeFile(fsmonitor, `#!/bin/sh\nprintf '%s %s\\n' 'fsmonitor' "$PWD" >> '${marker}'\nexit 1\n`, { mode: 0o755 });
+  const config = `[core]\n\thooksPath = ${hooks}\n\tfsmonitor = ${fsmonitor}\n`;
+  const home = join(root, 'home');
+  const xdg = join(root, 'xdg');
+  const empty = join(root, 'empty');
+  await mkdir(home);
+  await mkdir(join(xdg, 'git'), { recursive: true });
+  await mkdir(empty);
+  await writeFile(join(home, '.gitconfig'), config);
+  await writeFile(join(xdg, 'git', 'config'), config);
+  const ran = async () => (await readFile(marker, 'utf8').catch(() => ''));
+  return {
+    marker,
+    ran,
+    each: [['HOME', { HOME: home, XDG_CONFIG_HOME: empty }], ['XDG_CONFIG_HOME', { HOME: empty, XDG_CONFIG_HOME: xdg }]],
+    both: { HOME: home, XDG_CONFIG_HOME: xdg },
+  };
+}
+
+function probeCommit(dir, env) {
+  for (const args of [['init', '-q', '-b', 'main'],
+    ['-c', 'user.name=probe', '-c', `user.email=${['probe', 'example.invalid'].join('@')}`, '-c', 'commit.gpgsign=false',
+      'commit', '-q', '--allow-empty', '-m', 'probe']]) {
+    const result = spawnSync('git', args, { cwd: dir, encoding: 'utf8', env });
+    assert.equal(result.status, 0, `git ${args.join(' ')} in the probe repository: ${result.stderr}`);
+  }
+}
+
+test('no case here reads the git configuration its caller\'s HOME or XDG_CONFIG_HOME holds', async (t) => {
+  assert.equal(t.name, CONFIG_CASE, 'the name this case is pinned by must be its own');
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'commit-gate-config-')));
+  try {
+    const { marker, ran, each, both } = await hookingConfiguration(root);
+    // The caller's environment as a child here saw it before CHILD_ENV set the two: no GIT_* at all.
+    const caller = { ...CHILD_ENV };
+    delete caller.GIT_CONFIG_NOSYSTEM;
+    delete caller.GIT_CONFIG_GLOBAL;
+
+    let probes = 0;
+    for (const [where, home] of each) {
+      const live = join(root, `live-${probes}`);
+      await mkdir(live);
+      probeCommit(live, { ...caller, ...home });
+      assert.notEqual(await ran(), '', `a git that reads ${where}'s configuration must run its hook, or this case observes nothing`);
+      await rm(marker, { force: true });
+      const isolated = join(root, `isolated-${probes}`);
+      await mkdir(isolated);
+      probeCommit(isolated, { ...caller, ...home, GIT_CONFIG_NOSYSTEM: CHILD_ENV.GIT_CONFIG_NOSYSTEM, GIT_CONFIG_GLOBAL: CHILD_ENV.GIT_CONFIG_GLOBAL });
+      assert.equal(await ran(), '', `with CHILD_ENV's two settings, git must not run the hook ${where}'s configuration installs`);
+      probes += 1;
+    }
+    assert.equal(probes, each.length, `${probes} of ${each.length} probes executed`);
+
+    const result = spawnSync(process.execPath, ['--test', '--test-name-pattern=^the commit gate', 'test-kits/ratchets-bite.test.mjs'],
+      { cwd: REPOSITORY, encoding: 'utf8', env: { ...caller, ...both } });
+    const output = `${result.stdout}${result.stderr}`;
+    const count = (key) => Number(output.match(new RegExp(`^ℹ ${key} (\\d+)$`, 'm'))?.[1] ?? -1);
+    assert.equal(result.status, 0, `the commit-gate cases must pass with the caller's HOME and XDG_CONFIG_HOME installing hooks:\n${output}`);
+    assert.ok(count('pass') >= 11 && count('fail') === 0,
+      `and run every commit-gate case (tests ${count('tests')}, pass ${count('pass')}, fail ${count('fail')}):\n${output}`);
+    assert.equal(await ran(), '', `no hook the caller's git configuration installs may run in a repository a case makes:\n${await ran()}`);
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
 
