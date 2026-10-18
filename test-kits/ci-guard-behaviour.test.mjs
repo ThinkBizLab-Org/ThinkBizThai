@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -24,8 +24,26 @@ import test from 'node:test';
 // only running the thing pins behaviour.
 const NODE = process.execPath;
 
-const run = (script, args, options = {}) => {
-  const result = spawnSync(NODE, [script, ...args], { encoding: 'utf8', ...options });
+// Every child this file starts -- git, mkdir and each guard -- runs with no `GIT_*` variable from
+// its caller, AS A CLASS (A1-292-2, Q0-292-2; the rule A1-278r2-2 set for ratchets-bite.test.mjs).
+// Git exports GIT_INDEX_FILE to a pre-commit hook, and GIT_DIR, GIT_WORK_TREE,
+// GIT_OBJECT_DIRECTORY, GIT_COMMON_DIR, GIT_CONFIG_* and the rest each redirect a `git` that
+// inherits them. Inheriting them, the scope and disposition cases built their throwaway
+// repositories in the caller's: with GIT_INDEX_FILE and GIT_OBJECT_DIRECTORY set, this file passed
+// 17/17 having changed 36 files under the caller's `.git`. Each child here works in a repository
+// of its own, or in none, and needs no `GIT_*` from its caller. NODE_TEST_CONTEXT and NODE_OPTIONS
+// go too, as in the other files that start node. Pinned by 'no case here reaches the repository
+// its caller's GIT_* names'.
+const CHILD_ENV = (() => {
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT;
+  delete env.NODE_OPTIONS;
+  for (const key of Object.keys(env)) if (key.startsWith('GIT_')) delete env[key];
+  return env;
+})();
+
+const run =(script, args, options = {}) => {
+  const result = spawnSync(NODE, [script, ...args], { encoding: 'utf8', env: CHILD_ENV, ...options });
   return { code: result.status, out: `${result.stdout ?? ''}${result.stderr ?? ''}` };
 };
 
@@ -52,7 +70,7 @@ test('verify-branch-scope exits 73 on a path the package neither owns nor amends
   // Built as a real repository rather than mocked: the guard shells out to git, so a mock would
   // be testing the mock. A stubbed main() cannot pass this.
   const repo = await mkdtemp(join(tmpdir(), 'scope-guard-'));
-  const git = (...args) => spawnSync('git', args, { cwd: repo, encoding: 'utf8' });
+  const git = (...args) => spawnSync('git', args, { cwd: repo, encoding: 'utf8', env: CHILD_ENV });
   git('init', '-q', '-b', 'main');
   // Assembled rather than written out: the repository's own secret scanner reports a literal
   // address anywhere in the tree, and it reported this file the first time it ran.
@@ -64,7 +82,7 @@ test('verify-branch-scope exits 73 on a path the package neither owns nor amends
   const base = git('rev-parse', 'HEAD').stdout.trim();
 
   const packages = join(repo, 'work-packages');
-  spawnSync('mkdir', ['-p', packages]);
+  spawnSync('mkdir', ['-p', packages], { env: CHILD_ENV });
   await writeFile(join(packages, 'WP-TEST-001.json'), JSON.stringify({
     work_package_id: 'WP-TEST-001',
     ownership: { branch: 'x', writable_paths: ['owned.txt'], read_only_paths: [], amends_without_owning: { paths: [], rationale: 'none' } },
@@ -85,7 +103,7 @@ test('verify-branch-scope accepts a branch whose every path is declared', async 
   // The other direction: a guard that always exits 73 would pass the test above and block
   // every pull request. Both directions, or neither is evidence.
   const repo = await mkdtemp(join(tmpdir(), 'scope-guard-ok-'));
-  const git = (...args) => spawnSync('git', args, { cwd: repo, encoding: 'utf8' });
+  const git = (...args) => spawnSync('git', args, { cwd: repo, encoding: 'utf8', env: CHILD_ENV });
   git('init', '-q', '-b', 'main');
   // Assembled rather than written out: the repository's own secret scanner reports a literal
   // address anywhere in the tree, and it reported this file the first time it ran.
@@ -95,7 +113,7 @@ test('verify-branch-scope accepts a branch whose every path is declared', async 
   git('add', '-A');
   git('commit', '-qm', 'base');
   const base = git('rev-parse', 'HEAD').stdout.trim();
-  spawnSync('mkdir', ['-p', join(repo, 'work-packages')]);
+  spawnSync('mkdir', ['-p', join(repo, 'work-packages')], { env: CHILD_ENV });
   await writeFile(join(repo, 'work-packages/WP-TEST-001.json'), JSON.stringify({
     work_package_id: 'WP-TEST-001',
     ownership: {
@@ -126,7 +144,7 @@ test('verify-branch-scope accepts a branch whose every path is declared', async 
 const withPackages = async (files) => {
   const root = await mkdtemp(join(tmpdir(), 'identity-guard-'));
   const packages = join(root, 'work-packages');
-  spawnSync('mkdir', ['-p', packages]);
+  spawnSync('mkdir', ['-p', packages], { env: CHILD_ENV });
   for (const [name, body] of Object.entries(files)) {
     await writeFile(join(packages, name), typeof body === 'string' ? body : JSON.stringify(body));
   }
@@ -161,7 +179,7 @@ test('verify-branch-scope reports a stray path inside the contract catalog', asy
   // The predicate, not just the exit code: a filter excluding `contract-catalog/` passed all five
   // of the earlier rows. The catalog is the one place where an undeclared change matters most.
   const repo = await mkdtemp(join(tmpdir(), 'scope-catalog-'));
-  const git = (...args) => spawnSync('git', args, { cwd: repo, encoding: 'utf8' });
+  const git = (...args) => spawnSync('git', args, { cwd: repo, encoding: 'utf8', env: CHILD_ENV });
   git('init', '-q', '-b', 'main');
   git('config', 'user.email', ['guard-test', 'example.invalid'].join('@'));
   git('config', 'user.name', 'guard test');
@@ -169,8 +187,8 @@ test('verify-branch-scope reports a stray path inside the contract catalog', asy
   git('add', '-A');
   git('commit', '-qm', 'base');
   const base = git('rev-parse', 'HEAD').stdout.trim();
-  spawnSync('mkdir', ['-p', join(repo, 'work-packages')]);
-  spawnSync('mkdir', ['-p', join(repo, 'contract-catalog/shared-kernel/ctr-api-001')]);
+  spawnSync('mkdir', ['-p', join(repo, 'work-packages')], { env: CHILD_ENV });
+  spawnSync('mkdir', ['-p', join(repo, 'contract-catalog/shared-kernel/ctr-api-001')], { env: CHILD_ENV });
   await writeFile(join(repo, 'work-packages/WP-TEST-001.json'), JSON.stringify({
     work_package_id: 'WP-TEST-001',
     ownership: { branch: 'x', writable_paths: ['owned.txt', 'work-packages/WP-TEST-001.json'], read_only_paths: [], amends_without_owning: { paths: [], rationale: 'none' } },
@@ -195,7 +213,7 @@ test('verify-branch-scope reports a stray path inside the contract catalog', asy
 test('validate-work-package-ownership rejects a blanket amendment when run over a real directory', async () => {
   const root = await mkdtemp(join(tmpdir(), 'ownership-cli-'));
   const packages = join(root, 'work-packages');
-  spawnSync('mkdir', ['-p', packages]);
+  spawnSync('mkdir', ['-p', packages], { env: CHILD_ENV });
   await writeFile(join(packages, 'WP-T-001.json'), JSON.stringify({
     work_package_id: 'WP-T-001',
     ownership: {
@@ -225,7 +243,7 @@ test('validate-work-package-ownership accepts a manifest that declares only what
   // package in the repository.
   const root = await mkdtemp(join(tmpdir(), 'ownership-cli-ok-'));
   const packages = join(root, 'work-packages');
-  spawnSync('mkdir', ['-p', packages]);
+  spawnSync('mkdir', ['-p', packages], { env: CHILD_ENV });
   await writeFile(join(packages, 'WP-T-001.json'), JSON.stringify({
     work_package_id: 'WP-T-001',
     ownership: {
@@ -244,7 +262,7 @@ test('validate-work-package-ownership rejects an output outside its writable pat
   // The other rule this validator carries, and the one review fifteen used to show the stub was
   // still live: an output a package does not own.
   const root = await mkdtemp(join(tmpdir(), 'ownership-cli-outside-'));
-  spawnSync('mkdir', ['-p', join(root, 'work-packages')]);
+  spawnSync('mkdir', ['-p', join(root, 'work-packages')], { env: CHILD_ENV });
   await writeFile(join(root, 'work-packages/WP-T-001.json'), JSON.stringify({
     work_package_id: 'WP-T-001',
     ownership: {
@@ -281,8 +299,8 @@ const capabilityFixture = async (profile, manifest) => {
   const root = await mkdtemp(join(tmpdir(), 'capability-cli-'));
   const profiles = join(root, 'profiles');
   const packages = join(root, 'work-packages');
-  spawnSync('mkdir', ['-p', profiles]);
-  spawnSync('mkdir', ['-p', packages]);
+  spawnSync('mkdir', ['-p', profiles], { env: CHILD_ENV });
+  spawnSync('mkdir', ['-p', packages], { env: CHILD_ENV });
   if (profile) await writeFile(join(profiles, 'a0_atlas.json'), JSON.stringify(profile));
   await writeFile(join(packages, 'WP-T-001.json'), JSON.stringify(manifest));
   return { root, profiles, packages };
@@ -344,11 +362,11 @@ test('scan-repository-secrets exits non-zero on a planted credential and zero on
 // status lines and nothing else. These rows are what keep it narrow.
 const dispositionRepo = async (edits) => {
   const root = await mkdtemp(join(tmpdir(), 'disposition-'));
-  const git = (...args) => spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+  const git = (...args) => spawnSync('git', args, { cwd: root, encoding: 'utf8', env: CHILD_ENV });
   git('init', '-q', '-b', 'main');
   git('config', 'user.email', ['guard-test', 'example.invalid'].join('@'));
   git('config', 'user.name', 'guard test');
-  spawnSync('mkdir', ['-p', join(root, 'architecture/decisions')]);
+  spawnSync('mkdir', ['-p', join(root, 'architecture/decisions')], { env: CHILD_ENV });
   await writeFile(join(root, 'architecture/decisions/RFC-2026-001-x.md'),
     '# RFC-2026-001 — x\n\nStatus: Proposed — awaiting disposition\n\nBody text that must not move.\n');
   await writeFile(join(root, 'owned.txt'), 'base\n');
@@ -392,4 +410,71 @@ test('a branch that touches anything outside the decision records is not a dispo
   const { code, out } = run(dispositionGuard, [base], { cwd: root });
   assert.equal(code, 78, `expected NOT_A_DISPOSITION, got ${code}: ${out}`);
   assert.match(out, /owned\.txt is not a decision record/);
+});
+
+// A1-292-2, Q0-292-2. Every case above starts its children with CHILD_ENV. This runs them all
+// again in a child whose environment points GIT_DIR and GIT_WORK_TREE, and then GIT_INDEX_FILE and
+// GIT_OBJECT_DIRECTORY, at another repository -- as a pre-commit hook points GIT_INDEX_FILE at the
+// index being committed -- and requires that repository to be untouched, file for file, `.git`
+// included, and the cases to pass. Under the inherited environment the first run failed loudly
+// and the second passed 17/17 having replaced that repository's index and written 36 files under
+// its `.git`. The other repository is read only through the file system, never through git, so
+// reading it cannot change it.
+async function filesUnder(dir) {
+  const files = new Map();
+  for (const entry of await readdir(dir, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    const path = join(entry.parentPath, entry.name);
+    files.set(path.slice(dir.length), (await readFile(path)).toString('base64'));
+  }
+  return files;
+}
+
+const THIS_CASE = 'no case here reaches the repository its caller\'s GIT_* names';
+
+test('no case here reaches the repository its caller\'s GIT_* names', async (t) => {
+  // The child skips this case by THIS_CASE. Were the two to differ, the child would run this case too and start
+  // another child; this assertion stops it at the first.
+  assert.equal(t.name, THIS_CASE, 'the name the child skips must be this case\'s own');
+  const victim = await realpath(await mkdtemp(join(tmpdir(), 'ci-guard-caller-')));
+  try {
+    const git = (...args) => {
+      const result = spawnSync('git', args, { cwd: victim, encoding: 'utf8', env: CHILD_ENV });
+      assert.equal(result.status, 0, `git ${args.join(' ')} in the caller's repository: ${result.stderr}`);
+    };
+    git('-c', 'init.defaultBranch=main', 'init', '-q');
+    for (const [key, value] of [['user.name', 'caller'], ['user.email', ['caller', 'example.invalid'].join('@')],
+      ['commit.gpgsign', 'false'], ['gc.auto', '0'], ['maintenance.auto', 'false'], ['core.fsmonitor', 'false']]) git('config', key, value);
+    await writeFile(join(victim, 'caller.txt'), 'the caller\'s own file\n');
+    git('add', 'caller.txt');
+    git('commit', '-qm', 'the caller');
+    await writeFile(join(victim, 'caller-staged.txt'), 'staged by the caller\n');
+    git('add', 'caller-staged.txt');
+    const before = await filesUnder(victim);
+    assert.ok(before.has('/.git/index'), 'the caller\'s repository must have an index for this case to mean anything');
+
+    const redirections = [
+      { GIT_DIR: join(victim, '.git'), GIT_WORK_TREE: victim },
+      { GIT_INDEX_FILE: join(victim, '.git', 'index'), GIT_OBJECT_DIRECTORY: join(victim, '.git', 'objects') },
+    ];
+    let ran = 0;
+    for (const redirection of redirections) {
+      const env = { ...CHILD_ENV, ...redirection };
+      const result = spawnSync(NODE, ['--test', `--test-skip-pattern=^${THIS_CASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`,
+        'test-kits/ci-guard-behaviour.test.mjs'], { cwd: process.cwd(), encoding: 'utf8', env });
+      const output = `${result.stdout}${result.stderr}`;
+      const names = Object.keys(redirection).join(', ');
+      const count = (key) => Number(output.match(new RegExp(`^ℹ ${key} (\\d+)$`, 'm'))?.[1] ?? -1);
+      assert.equal(result.status, 0, `every case here must pass with ${names} pointed at another repository:\n${output}`);
+      assert.ok(count('pass') >= 17 && count('fail') === 0 && count('tests') === count('pass'),
+        `and every case but this one must run (tests ${count('tests')}, pass ${count('pass')}, fail ${count('fail')}):\n${output}`);
+      const after = await filesUnder(victim);
+      const changed = [...new Set([...before.keys(), ...after.keys()])].filter((path) => before.get(path) !== after.get(path));
+      assert.deepEqual(changed, [], `with ${names} set, the caller's repository must be untouched`);
+      ran += 1;
+    }
+    assert.equal(ran, redirections.length, `${ran} of ${redirections.length} redirections executed`);
+  } finally {
+    await rm(victim, { recursive: true, force: true });
+  }
 });

@@ -76,7 +76,8 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   // a throwaway repository, 39 to 40.
   'test-kits/branch-scope.test.mjs': 40,
   'test-kits/capability-profile.test.mjs': 4,
-  'test-kits/ci-guard-behaviour.test.mjs': 17,
+  // WP-0A-CON-008 (2026-10-18, A1-292-2, Q0-292-2): a caller's GIT_* reaches no repository but the cases' own, 17 to 18.
+  'test-kits/ci-guard-behaviour.test.mjs': 18,
   'test-kits/contracts/catalog-groups.test.mjs': 7,
   'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
   // RFC-2026-031 §7.1 (WP-0A-CON-008, 2026-10-09): four tests, the three declared-gap rules over the
@@ -137,7 +138,8 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': 6,
   // WP-0A-CON-008 (2026-10-15, C0-262-2, A1-262-2, Q0-262-1, R0-262-2): the audit lane's four handoff-drift cases, 19 to 23;
   // (2026-10-16, Q0-266-1): a citation on no path and an empty branch on the audit branch, 23 to 25.
-  'test-kits/handoff-conformance.test.mjs': 25,
+  // (2026-10-18, A1-292-2, Q0-292-2): a caller's GIT_* reaches no repository but the cases' own, 25 to 26.
+  'test-kits/handoff-conformance.test.mjs': 26,
   'test-kits/integrity-manifest-rebuild.test.mjs': 3,
   'test-kits/protocol-schema-conformance.test.mjs': 4,
   // RFC-2026-031 §7.1: the declared-gap rules reversed in their source, 19 to 20. WP-0A-CON-008 (2026-10-16,
@@ -222,7 +224,8 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   // WP-0A-A0-004 (2026-10-18, A1-292-2, Q0-292-2): the caller-GIT_* test, 236 to 243, the guard's own count.
   'test-kits/branch-scope.test.mjs': 243,
   'test-kits/capability-profile.test.mjs': 4,
-  'test-kits/ci-guard-behaviour.test.mjs': 33,
+  // WP-0A-CON-008 (2026-10-18, A1-292-2, Q0-292-2): the caller's-GIT_* case, 33 to 40, the guard's own count.
+  'test-kits/ci-guard-behaviour.test.mjs': 40,
   'test-kits/contracts/catalog-groups.test.mjs': 9,
   'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
   // RFC-2026-031 §7.1 (WP-0A-CON-008, 2026-10-09): 19 to 28 with the declared-gap tests, the guard's own count.
@@ -377,7 +380,8 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': 11,
   // WP-0A-CON-008 (2026-10-15, C0-262-2, A1-262-2, Q0-262-1, R0-262-2): the audit lane's four handoff-drift cases, 63 to 74 assertions;
   // (2026-10-16, Q0-266-1): 74 to 80.
-  'test-kits/handoff-conformance.test.mjs': 80,
+  // (2026-10-18, A1-292-2, Q0-292-2): the caller's-GIT_* case, 80 to 87, the guard's own count.
+  'test-kits/handoff-conformance.test.mjs': 87,
   'test-kits/integrity-manifest-rebuild.test.mjs': 10,
   'test-kits/protocol-schema-conformance.test.mjs': 6,
   // WP-0A-CON-008 (2026-10-16, Q0-265-4, A1-278-1, A1-278-4): the commit gate's three cases, 36 to 55, the guard's own count.
@@ -443,7 +447,8 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   // WP-0A-A0-004 (2026-10-18, A1-292-2, Q0-292-2): branch-scope gains one test, none removed or renamed.
   'test-kits/branch-scope.test.mjs': '4dfc0f00299c7f23',
   'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',
-  'test-kits/ci-guard-behaviour.test.mjs': 'cc42f80046d803e9',
+  // WP-0A-CON-008 (2026-10-18, A1-292-2, Q0-292-2): one name added, none removed or renamed.
+  'test-kits/ci-guard-behaviour.test.mjs': 'ddf6d45565721cbf',
   'test-kits/contracts/catalog-groups.test.mjs': '401597be61929abb',
   'test-kits/contracts/catalog-reference-integrity.test.mjs': '9753730c2bab68ba',
   // RFC-2026-031 §7.1 (WP-0A-CON-008, 2026-10-09): catalog-registry gains the three declared-gap rules and
@@ -456,8 +461,8 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': 'b56843602dd83c11',
   'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': '99724af4706e30ad',
   // WP-0A-CON-008 (2026-10-15): four names added, none removed or renamed; (2026-10-16, Q0-266-1): two more added, none
-  // removed or renamed.
-  'test-kits/handoff-conformance.test.mjs': '6ea42ca277d4828a',
+  // removed or renamed; (2026-10-18, A1-292-2, Q0-292-2): one more added, none removed or renamed.
+  'test-kits/handoff-conformance.test.mjs': '802884f5e53de7dc',
   'test-kits/integrity-manifest-rebuild.test.mjs': '91b24d70c4ac8fcb',
   'test-kits/protocol-schema-conformance.test.mjs': 'dc9a77399529cead',
   // WP-0A-CON-008 (2026-10-16): three commit-gate names added, none removed or renamed. (2026-10-18, A1-278r2-1,
