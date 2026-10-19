@@ -43,3 +43,17 @@ export const checkJobLimits = (limits: JobLimits): boolean =>
   && isPositiveInteger(limits.retryBackoffFactor)
   && isPositiveInteger(limits.retryMaxDelaySeconds)
   && limits.retryMaxDelaySeconds >= limits.retryBaseDelaySeconds;
+
+// A1-301-I3: the most a producer may ask for. D6 PROVISIONAL (A0's inference; test values only).
+// These are KERNEL POLICY, NOT A CONTRACT RULE: CTR-JOB-001's schema gives `max_attempts` and
+// `timeout_seconds` `minimum: 1` and no maximum, so a record above them still satisfies the contract
+// (checkJobRecord accepts it, and so does 050's app.jobs); only the kernel's enqueue refuses to create
+// one (JOB_ENQUEUE_OVER_CAP), so a crashed worker's job is never unreclaimable for longer than the
+// cap plus the grace. Set with the other D6 limits before the dispatcher increment (manifest
+// open_blockers).
+export const D6_PROVISIONAL_MAX_ATTEMPTS_CAP = 20;
+export const D6_PROVISIONAL_TIMEOUT_SECONDS_CAP = 900;
+
+// The request stays within the kernel's provisional caps.
+export const withinEnqueueCaps = (maxAttempts: number, timeoutSeconds: number): boolean =>
+  maxAttempts <= D6_PROVISIONAL_MAX_ATTEMPTS_CAP && timeoutSeconds <= D6_PROVISIONAL_TIMEOUT_SECONDS_CAP;

@@ -1,6 +1,8 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
+
 import { readEnvelope, type EventEnvelope } from '../../domain/outbox/event-envelope';
-import { isConsumerName, ledgerKeyOf } from '../../domain/outbox/outbox-entry';
-import { EVENT_CONSUMER_FAILED, EVENT_ENVELOPE_INVALID, EVENT_LEDGER_UNAVAILABLE } from '../../domain/outbox/outbox-errors';
+import { isConsumerName, ledgerKeyOf, type LedgerKey } from '../../domain/outbox/outbox-entry';
+import { EVENT_CONSUMER_FAILED, EVENT_CONSUMER_REENTRANT, EVENT_ENVELOPE_INVALID, EVENT_LEDGER_UNAVAILABLE } from '../../domain/outbox/outbox-errors';
 import { isObject } from '../../domain/json-shape';
 import { mintedDefinitionOf, type StableError, type StableErrorDefinition } from '../../domain/stable-error';
 import type { ConsumerLedgerPort, ConsumerTransaction } from './outbox-port';
@@ -69,6 +71,25 @@ function failureOf(value: unknown): StableErrorDefinition | null {
   }
 }
 
+// A1-302-I6: the units of work this async call chain is inside, by (ledger, key). A handler that
+// calls consumeEvent for the same ledger and key from inside its own unit would wait on itself
+// forever (the key is held until that very unit settles), so the inner call is refused at once with
+// EVENT_CONSUMER_REENTRANT. A concurrent delivery from another call chain is not inside the unit and
+// still waits, as before. A frame is open only while its unit runs: a continuation the handler left
+// behind that calls after the unit settled is an ordinary later delivery.
+interface OpenUnit {
+  readonly ledger: object;
+  readonly key: string;
+  open: boolean;
+}
+
+const UNITS = new AsyncLocalStorage<readonly OpenUnit[]>();
+
+const unitKey = (key: LedgerKey): string => JSON.stringify([key.workspace_id, key.consumer, key.event_id]);
+
+const insideOwnUnit = (ledger: object, key: string): boolean =>
+  (UNITS.getStore() ?? []).some((unit) => unit.open && unit.ledger === ledger && unit.key === key);
+
 export async function consumeEvent<Tx extends ConsumerTransaction>(dependencies: ConsumerDependencies<Tx>, delivered: unknown): Promise<ConsumeReport> {
   const { consumer } = dependencies;
   if (!isConsumerName(consumer)) throw new TypeError('consumer: a consumer name is 1 to 64 characters');
@@ -76,13 +97,19 @@ export async function consumeEvent<Tx extends ConsumerTransaction>(dependencies:
   const event = readEnvelope(delivered);
   if (event === null) return { kind: 'rejected', consumer, code: EVENT_ENVELOPE_INVALID.code };
   const key = ledgerKeyOf(consumer, event);
+  const { ledger } = dependencies;
+  const id = unitKey(key);
+  if (insideOwnUnit(ledger, id)) return { kind: 'failed', consumer, event_id: key.event_id, code: EVENT_CONSUMER_REENTRANT.code };
   try {
-    const result = await dependencies.ledger.recordOnce(key, async (tx) => {
+    const result = await ledger.recordOnce(key, async (tx) => {
+      const unit: OpenUnit = { ledger, key: id, open: true };
       let settled: unknown;
       try {
-        settled = await dependencies.handler(event, tx);
+        settled = await UNITS.run([...(UNITS.getStore() ?? []), unit], () => dependencies.handler(event, tx));
       } catch {
         throw rollback(EVENT_CONSUMER_FAILED);
+      } finally {
+        unit.open = false;
       }
       const failure = failureOf(settled);
       if (failure !== null) throw rollback(failure);

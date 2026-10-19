@@ -56,11 +56,22 @@ function entryOnce(entry: unknown): { readonly ref: OutboxEntryRef; readonly env
 }
 
 export async function relayOnce(dependencies: RelayDependencies): Promise<RelayReport> {
-  if (!checkOutboxLimits(dependencies.limits)) throw new TypeError('outbox relay: the batch size is a positive whole number');
+  // A1-302-I8: the limits are read ONCE, inside a guard, into a frozen copy; a read that throws stops
+  // the step (OUTBOX_UNAVAILABLE) and keeps nothing of what was thrown. A batch size read, but outside
+  // the D6 shape, is a programming fault (TypeError, constant message), as before. The fetch uses
+  // the copy only.
+  let limits: OutboxLimits;
+  try {
+    limits = Object.freeze({ relayBatchSize: dependencies.limits.relayBatchSize });
+  } catch {
+    return stopped([], OUTBOX_UNAVAILABLE);
+  }
+  if (!checkOutboxLimits(limits)) throw new TypeError('outbox relay: the batch size is a positive whole number');
   let entries: readonly unknown[];
   try {
-    // The adapter's batch is copied once; a value that is not a list stops the step.
-    const fetched: unknown = await dependencies.outbox.fetchUnpublished(dependencies.limits.relayBatchSize);
+    // The adapter's batch is copied once; a value that is not a list (an iterable Set or generator
+    // among them, Q0-302-4) stops the step.
+    const fetched: unknown = await dependencies.outbox.fetchUnpublished(limits.relayBatchSize);
     if (!Array.isArray(fetched)) return stopped([], OUTBOX_UNAVAILABLE);
     entries = [...(fetched as readonly unknown[])];
   } catch {

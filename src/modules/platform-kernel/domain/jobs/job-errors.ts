@@ -31,3 +31,13 @@ export const JOB_TYPE_UNKNOWN = defineStableError({
   category: 'internal',
   retryable: true,
 });
+
+// A1-301-I3: an enqueue asked for more attempts or a longer timeout than the kernel's D6-provisional
+// caps (job-limits.ts). Kernel policy, not a CTR-JOB-001 rule. Nothing is created; enqueue rejects
+// with a stable error minted from this definition, carrying the request's correlation id only.
+export const JOB_ENQUEUE_OVER_CAP = defineStableError({
+  code: 'job.enqueue.over_cap',
+  messageKey: 'errors.job.enqueue.over_cap',
+  category: 'validation',
+  retryable: false,
+});

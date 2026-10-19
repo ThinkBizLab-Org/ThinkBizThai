@@ -5,9 +5,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { addSeconds, instantOf } from '../../domain/jobs/job-decisions';
-import { JOB_TIMEOUT } from '../../domain/jobs/job-errors';
+import { JOB_ENQUEUE_OVER_CAP, JOB_TIMEOUT } from '../../domain/jobs/job-errors';
+import { D6_PROVISIONAL_MAX_ATTEMPTS_CAP, D6_PROVISIONAL_TIMEOUT_SECONDS_CAP } from '../../domain/jobs/job-limits';
 import { checkJobRecord } from '../../domain/jobs/job-record';
-import { stableError } from '../../domain/stable-error';
+import { mintedDefinitionOf, stableError } from '../../domain/stable-error';
 import { tenantContextRecordOf } from '../tenant-context';
 import { inMemoryJobStore } from './fakes';
 import { T0, WORKSPACE_A, WORKSPACE_B, harness, request } from './test-support';
@@ -211,5 +212,38 @@ describe('the job store reads a caller\'s object once', () => {
     const beat = await store.heartbeat(claimed.lease, progress);
     expect(beat.ok && beat.record.progress_percent).toBe(40);
     expect(reads).toBe(1);
+  });
+});
+
+describe('enqueue caps and dedupe scope (A1-301-I3, A1-301-I5)', () => {
+  it('A1-301-I3: above the D6-provisional caps nothing is created and enqueue rejects with a minted stable error', async () => {
+    const { store, contextA } = await harness();
+    for (const over of [{ max_attempts: D6_PROVISIONAL_MAX_ATTEMPTS_CAP + 1 }, { timeout_seconds: D6_PROVISIONAL_TIMEOUT_SECONDS_CAP + 1 }]) {
+      let rejected: unknown;
+      await store.enqueue(request(contextA, over)).catch((error: unknown) => { rejected = error; });
+      expect(mintedDefinitionOf(rejected)).toBe(JOB_ENQUEUE_OVER_CAP);
+      expect(rejected).toMatchObject({ code: 'job.enqueue.over_cap', correlation_id: tenantContextRecordOf(contextA).correlation_id, details: {} });
+    }
+    expect(store.records()).toHaveLength(0);
+    // At the caps, a job is created.
+    const at = await store.enqueue(request(contextA, { max_attempts: D6_PROVISIONAL_MAX_ATTEMPTS_CAP, timeout_seconds: D6_PROVISIONAL_TIMEOUT_SECONDS_CAP }));
+    expect(at.created).toBe(true);
+  });
+
+  it('A1-301-I3: the caps are kernel policy, not a contract rule; CTR-JOB-001 accepts a record above them', async () => {
+    const { store, contextA } = await harness();
+    const { job } = await store.enqueue(request(contextA));
+    expect(checkJobRecord({ ...job, max_attempts: D6_PROVISIONAL_MAX_ATTEMPTS_CAP * 100, timeout_seconds: D6_PROVISIONAL_TIMEOUT_SECONDS_CAP * 100 })).toBe(true);
+  });
+
+  it('A1-301-I5: dedupe is per (workspace, dedupe_key); a hit with another job_type returns the existing job unchanged', async () => {
+    const { store, contextA, contextB } = await harness();
+    const first = await store.enqueue(request(contextA, { job_type: 'research.run', dedupe_key: 'shared-key' }));
+    const otherType = await store.enqueue(request(contextA, { job_type: 'report.render', dedupe_key: 'shared-key' }));
+    expect(otherType).toEqual({ created: false, job: first.job });
+    expect(otherType.job.job_type).toBe('research.run');
+    expect(store.records()).toHaveLength(1);
+    // Another workspace is another key.
+    expect((await store.enqueue(request(contextB, { job_type: 'report.render', dedupe_key: 'shared-key' }))).created).toBe(true);
   });
 });

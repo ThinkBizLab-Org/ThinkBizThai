@@ -1,6 +1,6 @@
 import { instantFromMilliseconds, timestampOf, type Instant } from '../jobs/job-decisions';
 import { isDateTime, isInteger, isStringWithin } from '../json-shape';
-import { checkEventEnvelope, freezeEnvelope, type EventEnvelope } from './event-envelope';
+import { checkEventEnvelope, readEnvelope, type EventEnvelope } from './event-envelope';
 
 // The outbox row and the consumer-ledger key, as pure values and decisions over them. Both follow
 // db/foundation/migrations/050_async_kernel.sql, which the adapter (scope.exclude) will read and
@@ -49,11 +49,14 @@ function requireEntry(entry: OutboxEntry): void {
   if (!checkOutboxEntry(entry)) throw new TypeError('outbox: the entry is not a positioned CTR-EVT-001 envelope');
 }
 
-// A new, unpublished entry at `position`, holding a frozen copy of the envelope.
+// A new, unpublished entry at `position`, holding a frozen copy of the envelope. A1-302-I9: the
+// envelope is read once (readEnvelope), checked on that copy, and that copy is what is stored, so a
+// caller's getter cannot answer the check and the stored row differently.
 export function newOutboxEntry(position: number, envelope: EventEnvelope): OutboxEntry {
   if (!isPosition(position)) throw new TypeError('outbox: a position is a positive whole number');
-  if (!checkEventEnvelope(envelope)) throw new TypeError('outbox: the event does not satisfy CTR-EVT-001');
-  return Object.freeze({ position, envelope: freezeEnvelope(envelope) });
+  const copy = readEnvelope(envelope);
+  if (copy === null) throw new TypeError('outbox: the event does not satisfy CTR-EVT-001');
+  return Object.freeze({ position, envelope: copy });
 }
 
 export function isUnpublished(entry: OutboxEntry): boolean {
@@ -61,9 +64,24 @@ export function isUnpublished(entry: OutboxEntry): boolean {
   return entry.dispatched_at === undefined;
 }
 
+// A1-302-I9: the entry's position and envelope are each read once, the envelope through
+// readEnvelope, and the reference is built from those copies only; an entry whose read throws, or
+// that is not a positioned CTR-EVT-001 envelope, is the same TypeError (constant message).
 export function refOf(entry: OutboxEntry): OutboxEntryRef {
-  requireEntry(entry);
-  return Object.freeze({ position: entry.position, event_id: entry.envelope.event_id, workspace_id: entry.envelope.tenant_context.workspace_id });
+  let position: unknown;
+  let envelope: EventEnvelope | null;
+  let dispatchedOk: boolean;
+  try {
+    if (typeof entry !== 'object' || entry === null) throw new TypeError();
+    position = entry.position;
+    envelope = readEnvelope(entry.envelope);
+    dispatchedOk = !Object.hasOwn(entry, 'dispatched_at') || isDateTime(entry.dispatched_at);
+  } catch {
+    envelope = null;
+    dispatchedOk = false;
+  }
+  if (!isPosition(position) || envelope === null || !dispatchedOk) throw new TypeError('outbox: the entry is not a positioned CTR-EVT-001 envelope');
+  return Object.freeze({ position, event_id: envelope.event_id, workspace_id: envelope.tenant_context.workspace_id });
 }
 
 // The reference names this entry: same position, same event, same workspace.
@@ -99,8 +117,10 @@ export function checkLedgerKey(key: LedgerKey): boolean {
 }
 
 // The key a consumer records for an event: the event's OWN workspace, never one the consumer names.
+// A1-302-I9: the envelope is read once (readEnvelope) and the key is built from that checked copy.
 export function ledgerKeyOf(consumer: string, envelope: EventEnvelope): LedgerKey {
   if (!isConsumerName(consumer)) throw new TypeError('consumer ledger: a consumer name is 1 to 64 characters');
-  if (!checkEventEnvelope(envelope)) throw new TypeError('consumer ledger: the event does not satisfy CTR-EVT-001');
-  return Object.freeze({ workspace_id: envelope.tenant_context.workspace_id, consumer, event_id: envelope.event_id });
+  const copy = readEnvelope(envelope);
+  if (copy === null) throw new TypeError('consumer ledger: the event does not satisfy CTR-EVT-001');
+  return Object.freeze({ workspace_id: copy.tenant_context.workspace_id, consumer, event_id: copy.event_id });
 }

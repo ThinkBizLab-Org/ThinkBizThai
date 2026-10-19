@@ -95,3 +95,45 @@ describe('the D6 provisional outbox limits', () => {
     for (const relayBatchSize of [0, -1, 1.5, Number.POSITIVE_INFINITY]) expect(checkOutboxLimits({ relayBatchSize })).toBe(false);
   });
 });
+
+// A1-302-I9: each helper reads a caller's value once and decides on that copy, so a getter that
+// answers the first read one way and later reads another cannot split the check from the result.
+describe('the outbox helpers read their input once (A1-302-I9)', () => {
+  const other: EventEnvelope = { ...valid, event_id: 'evt_synthetic_other', tenant_context: { ...valid.tenant_context, workspace_id: 'ws_synthetic_other' } };
+
+  function flipping<T extends object>(base: T, key: keyof T, first: unknown, later: unknown): { value: T; reads: () => number } {
+    let reads = 0;
+    const value = { ...base };
+    Object.defineProperty(value, key, { enumerable: true, configurable: true, get() { reads += 1; return reads === 1 ? first : later; } });
+    return { value, reads: () => reads };
+  }
+
+  it('newOutboxEntry stores the event_id it checked', () => {
+    const flip = flipping(valid, 'event_id', valid.event_id, other.event_id);
+    const entry = newOutboxEntry(1, flip.value);
+    expect(entry.envelope.event_id).toBe(valid.event_id);
+    expect(flip.reads()).toBe(1);
+  });
+
+  it('ledgerKeyOf keys the workspace it checked', () => {
+    const flip = flipping(valid, 'tenant_context', valid.tenant_context, other.tenant_context);
+    const key = ledgerKeyOf('search-index', flip.value);
+    expect(key.workspace_id).toBe(valid.tenant_context.workspace_id);
+    expect(flip.reads()).toBe(1);
+  });
+
+  it('refOf refers to the envelope it checked', () => {
+    const entry = newOutboxEntry(1, valid);
+    const flip = flipping(entry, 'envelope', valid, other);
+    const ref = refOf(flip.value);
+    expect(ref).toEqual({ position: 1, event_id: valid.event_id, workspace_id: valid.tenant_context.workspace_id });
+    expect(flip.reads()).toBe(1);
+  });
+
+  it('refOf refuses an entry whose read throws, with the constant message only', () => {
+    const entry = { ...newOutboxEntry(1, valid) };
+    Object.defineProperty(entry, 'envelope', { enumerable: true, get() { throw new Error('zz-text-from-a-thrown-value'); } });
+    expect(() => refOf(entry)).toThrow('outbox: the entry is not a positioned CTR-EVT-001 envelope');
+    expect(() => refOf({ ...newOutboxEntry(1, valid), dispatched_at: 'not a date' })).toThrow('outbox: the entry is not a positioned CTR-EVT-001 envelope');
+  });
+});

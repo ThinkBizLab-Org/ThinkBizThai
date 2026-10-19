@@ -178,3 +178,32 @@ describe('failures carry only a stable error code', () => {
     expect((await run(undefined, 'toString')).report).toMatchObject({ code: JOB_TYPE_UNKNOWN.code });
   });
 });
+
+describe('the abort signal (A1-301-I2)', () => {
+  it('is aborted when the worker gives up at the job timeout, and not before', async () => {
+    const { store, clock, contextA } = await harness();
+    await store.enqueue(request(contextA, { timeout_seconds: 60 }));
+    let signal: AbortSignal | undefined;
+    let abortedWhileRunning: boolean | undefined;
+    const slow: JobHandler = (_job, received) => {
+      signal = received;
+      abortedWhileRunning = received.aborted;
+      clock.advance(60_000);
+      return never();
+    };
+    expect(await workOnce({ store, clock, leaseOwner: 'worker-1', handlers: { 'research.run': slow } })).toMatchObject({ kind: 'retry', code: JOB_TIMEOUT.code });
+    expect(abortedWhileRunning).toBe(false);
+    expect(signal?.aborted).toBe(true);
+    // The reason is the platform's own AbortError; nothing of the job rides on it.
+    expect(JSON.stringify(String(signal?.reason))).not.toContain('research');
+  });
+
+  it('is not aborted when the handler finishes in time', async () => {
+    const { store, clock, contextA } = await harness();
+    await store.enqueue(request(contextA));
+    let signal: AbortSignal | undefined;
+    const quick: JobHandler = (_job, received) => { signal = received; return Promise.resolve({ ok: true, result_ref: 'result:research/1' }); };
+    expect(await workOnce({ store, clock, leaseOwner: 'worker-1', handlers: { 'research.run': quick } })).toMatchObject({ kind: 'completed' });
+    expect(signal?.aborted).toBe(false);
+  });
+});

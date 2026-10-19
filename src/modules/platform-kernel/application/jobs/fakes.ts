@@ -14,7 +14,9 @@ import {
   type JobProgress,
   type LeasedDecision,
 } from '../../domain/jobs/job-decisions';
-import type { JobLimits } from '../../domain/jobs/job-limits';
+import { JOB_ENQUEUE_OVER_CAP } from '../../domain/jobs/job-errors';
+import { withinEnqueueCaps, type JobLimits } from '../../domain/jobs/job-limits';
+import { stableError } from '../../domain/stable-error';
 import type { JobRecord } from '../../domain/jobs/job-record';
 import type { TenantScope } from '../../domain/tenant-context';
 import { isMintedTenantContext, tenantContextRecordOf } from '../tenant-context';
@@ -150,6 +152,16 @@ export function inMemoryJobStore(dependencies: { readonly clock: JobClock; reado
     // Only a context the resolver minted: a copy, a JSON round trip or a hand-built record is refused.
     if (!isMintedTenantContext(request.context)) throw new TypeError('job store: the tenant context was not minted by the resolver');
     const context = tenantContextRecordOf(request.context);
+    // A1-301-I3: above the kernel's D6-provisional caps (kernel policy; CTR-JOB-001 states no
+    // maximum) nothing is created and enqueue rejects with a minted stable error. Values that are not
+    // whole numbers fall through to newJob's contract check, as before.
+    if (typeof request.max_attempts === 'number' && typeof request.timeout_seconds === 'number'
+      && !withinEnqueueCaps(request.max_attempts, request.timeout_seconds)) {
+      throw stableError(JOB_ENQUEUE_OVER_CAP, context.correlation_id);
+    }
+    // A1-301-I5: dedupe is per (workspace, dedupe_key), whatever the job_type or the enqueuing actor
+    // (050's jobs_dedupe_key_unique; CTR-JOB-001 states no uniqueness). A hit returns the existing
+    // job; producers namespace their keys by job type (`<job_type>:<id>`).
     for (const existing of jobs.values()) {
       if (existing.tenant_context.workspace_id === context.workspace_id && existing.dedupe_key === request.dedupe_key) {
         return { created: false, job: existing };

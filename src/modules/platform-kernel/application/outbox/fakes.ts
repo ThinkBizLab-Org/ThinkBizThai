@@ -11,6 +11,7 @@ import {
   type OutboxEntry,
   type OutboxEntryRef,
 } from '../../domain/outbox/outbox-entry';
+import { TENANT_CONTEXT_KEYS, type TenantContextRecord } from '../../domain/tenant-context';
 import { isMintedTenantContext, tenantContextRecordOf } from '../tenant-context';
 import type {
   ConsumerLedgerPort,
@@ -50,6 +51,16 @@ function commitWrites(writes: Writes, workspaceId: string, staged: ReadonlyMap<s
 }
 
 const SETTLED = 'outbox: the unit of work has settled';
+
+// Two CTR-TEN-001 records name the same context: every key of the contract, the optional ones
+// present in both or in neither, and the actor's kind and id.
+function sameTenantContext(a: TenantContextRecord, b: TenantContextRecord): boolean {
+  return TENANT_CONTEXT_KEYS.every((key) => {
+    if (Object.hasOwn(a, key) !== Object.hasOwn(b, key)) return false;
+    if (key === 'actor') return a.actor.kind === b.actor.kind && a.actor.id === b.actor.id;
+    return a[key] === b[key];
+  });
+}
 
 // A caller's reference or key, each named property read once into a frozen copy (A1-302-1); null
 // when it is not an object or a read throws (nothing of what was thrown is kept).
@@ -109,7 +120,8 @@ export function inMemoryOutbox(dependencies: { readonly clock: OutboxClock }): I
     async transaction(context, work) {
       // Only a context the resolver minted: a copy, a JSON round trip or a hand-built record is refused.
       if (!isMintedTenantContext(context)) throw new TypeError('outbox: the tenant context was not minted by the resolver');
-      const workspaceId = tenantContextRecordOf(context).workspace_id;
+      const unitContext = tenantContextRecordOf(context);
+      const workspaceId = unitContext.workspace_id;
       const staged: EventEnvelope[] = [];
       const stagedWrites = new Map<string, string>();
       let open = true;
@@ -123,6 +135,9 @@ export function inMemoryOutbox(dependencies: { readonly clock: OutboxClock }): I
           const event = readEnvelope(received);
           if (event === null) throw new TypeError('outbox: the event does not satisfy CTR-EVT-001');
           if (event.tenant_context.workspace_id !== workspaceId) throw new TypeError("outbox: an event is appended only in its own workspace's unit of work");
+          // A1-302-I1: the event carries the unit's own minted context, every field of it (actor,
+          // request, profiles, correlation, locale), never one built by hand in the right workspace.
+          if (!sameTenantContext(event.tenant_context, unitContext)) throw new TypeError("outbox: an event carries its unit of work's own tenant context");
           if (eventIdTaken(event.event_id) || staged.some((other) => other.event_id === event.event_id)) {
             throw new TypeError('outbox: an event with this event_id already exists');
           }

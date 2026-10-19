@@ -49,3 +49,13 @@ export const EVENT_LEDGER_UNAVAILABLE = defineStableError({
   category: 'temporary',
   retryable: true,
 });
+
+// A1-302-I6: a handler asked to consume the same (workspace, consumer, event) inside its own unit of
+// work. Waiting would wait on itself forever (as two connections on one unique key would), so the
+// inner call is refused at once; the outer unit is unaffected and records the key when it commits.
+export const EVENT_CONSUMER_REENTRANT = defineStableError({
+  code: 'event.consumer.reentrant',
+  messageKey: 'errors.event.consumer.reentrant',
+  category: 'internal',
+  retryable: false,
+});
