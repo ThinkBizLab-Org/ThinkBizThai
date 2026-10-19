@@ -11,6 +11,7 @@ import {
   type FailureDecision,
   type Instant,
   type JobLease,
+  type JobProgress,
   type LeasedDecision,
 } from '../../domain/jobs/job-decisions';
 import type { JobLimits } from '../../domain/jobs/job-limits';
@@ -81,6 +82,44 @@ export interface InMemoryJobStore extends JobStorePort {
 
 const LEASE_LOST = Object.freeze({ ok: false, reason: 'lease_lost' } as const);
 
+// A1-302-1: a caller's object is read once, each named property into a frozen copy, before any
+// decision reads it. A request that is not an object, or whose read throws, is a programming fault
+// (TypeError, constant message, nothing of what was thrown kept).
+const ENQUEUE_KEYS = ['context', 'job_type', 'job_version', 'priority', 'available_at', 'max_attempts', 'timeout_seconds', 'dedupe_key', 'input_ref', 'progress_stage'] as const;
+
+function requestOnce(request: EnqueueRequest): EnqueueRequest {
+  let copy: Record<string, unknown>;
+  try {
+    if (typeof request !== 'object' || request === null) throw new TypeError();
+    const source: Readonly<Record<string, unknown>> = request as never;
+    copy = {};
+    for (const key of ENQUEUE_KEYS) copy[key] = source[key];
+  } catch {
+    throw new TypeError('job store: the enqueue request is not a readable object');
+  }
+  return Object.freeze(copy) as unknown as EnqueueRequest;
+}
+
+// A lease that is not an object, or whose read throws, holds no job (lease_lost).
+function leaseOnce(lease: JobLease): JobLease | null {
+  try {
+    if (typeof lease !== 'object' || lease === null) return null;
+    return Object.freeze({ job_id: lease.job_id, workspace_id: lease.workspace_id, lease_owner: lease.lease_owner, attempt: lease.attempt });
+  } catch {
+    return null;
+  }
+}
+
+// Progress is read once; the decision checks the copy and records the copy.
+function progressOnce(progress: JobProgress | undefined): JobProgress | undefined {
+  if (progress === undefined) return undefined;
+  try {
+    return Object.freeze({ percent: progress.percent, stage: progress.stage });
+  } catch {
+    throw new TypeError('job decisions: progress is a percent from 0 to 100 and a non-empty stage');
+  }
+}
+
 // A0's inference, D6: the claim order. CTR-JOB-001 names `priority` as an integer and says nothing
 // of its direction or of ties, so the fake takes the higher priority first, then the earlier
 // available_at, then the earlier enqueue. Nothing in the tests depends on more than "one claim, one
@@ -103,7 +142,11 @@ export function inMemoryJobStore(dependencies: { readonly clock: JobClock; reado
     return inScope(record, lease.workspace_id) ? record : undefined;
   };
 
-  const enqueueNow = (request: EnqueueRequest): EnqueueResult => {
+  const enqueueNow = (received: EnqueueRequest): EnqueueResult => {
+    // A1-302-1 (applied here too): the request is read once, into a frozen copy, and every decision
+    // (the minted context, the dedupe lookup, the new record) reads that copy only, so a getter
+    // cannot pass the dedupe lookup with one key and store another.
+    const request = requestOnce(received);
     // Only a context the resolver minted: a copy, a JSON round trip or a hand-built record is refused.
     if (!isMintedTenantContext(request.context)) throw new TypeError('job store: the tenant context was not minted by the resolver');
     const context = tenantContextRecordOf(request.context);
@@ -112,8 +155,12 @@ export function inMemoryJobStore(dependencies: { readonly clock: JobClock; reado
         return { created: false, job: existing };
       }
     }
+    const jobId = ids.mint();
+    // A1-301-I1: app.jobs.id is the primary key, so an id already stored (from any workspace) is
+    // refused, as the adapter's insert would be, and the stored job is left as it was.
+    if (jobs.has(jobId)) throw new TypeError('job store: a job with this job_id already exists');
     const record = newJob({
-      job_id: ids.mint(),
+      job_id: jobId,
       job_type: request.job_type,
       job_version: request.job_version,
       tenant_context: context,
@@ -139,10 +186,13 @@ export function inMemoryJobStore(dependencies: { readonly clock: JobClock; reado
     return { record: decision.record, lease: decision.lease, claimed_at: now };
   };
 
-  const leasedAct = <D extends LeasedDecision | FailureDecision>(lease: JobLease, act: (record: JobRecord) => D): D | typeof LEASE_LOST => {
+  const leasedAct = <D extends LeasedDecision | FailureDecision>(received: JobLease, act: (lease: JobLease, record: JobRecord) => D): D | typeof LEASE_LOST => {
+    // The lease is read once (A1-302-1); the lookup and the decision's fence read that copy only.
+    const lease = leaseOnce(received);
+    if (lease === null) return LEASE_LOST;
     const record = leased(lease);
     if (record === undefined) return LEASE_LOST;
-    const decision = act(record);
+    const decision = act(lease, record);
     if (decision.ok) jobs.set(decision.record.job_id, decision.record);
     return decision;
   };
@@ -161,9 +211,9 @@ export function inMemoryJobStore(dependencies: { readonly clock: JobClock; reado
     records: () => [...jobs.values()],
     enqueue: (request) => settle(() => enqueueNow(request)),
     claim: (leaseOwner) => settle(() => claimNow(leaseOwner)),
-    heartbeat: (lease, progress) => settle(() => leasedAct(lease, (record) => heartbeat(record, lease, clock.now(), limits, progress))),
-    complete: (lease, resultRef) => settle(() => leasedAct(lease, (record) => complete(record, lease, clock.now(), resultRef))),
-    fail: (lease, error) => settle(() => leasedAct(lease, (record) => fail(record, lease, clock.now(), error, limits))),
+    heartbeat: (received, progress) => settle(() => leasedAct(received, (lease, record) => heartbeat(record, lease, clock.now(), limits, progressOnce(progress)))),
+    complete: (received, resultRef) => settle(() => leasedAct(received, (lease, record) => complete(record, lease, clock.now(), resultRef))),
+    fail: (received, error) => settle(() => leasedAct(received, (lease, record) => fail(record, lease, clock.now(), error, limits))),
     requestCancel: (scope: TenantScope, jobId: string) => settle(() => {
       const record = jobs.get(jobId);
       if (!inScope(record, scope.workspace_id)) return null;
