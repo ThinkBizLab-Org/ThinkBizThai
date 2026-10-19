@@ -168,6 +168,21 @@ describe('tenant scope is carried and never crossed', () => {
     expect(h.outbox.state(WORKSPACE_B).size).toBe(0);
   });
 
+  // Q0-302-1: the event id is unique across the whole table (050's outbox_events_event_id_unique),
+  // not per workspace.
+  it('an event id committed in workspace A is refused in workspace B\'s unit, and A\'s entry is unchanged', async () => {
+    const h = await outboxHarness();
+    const a = h.event(h.contextA);
+    await h.outbox.transaction(h.contextA, (tx) => { tx.append(a); return Promise.resolve(); });
+    const before = h.outbox.entries();
+    const b = { ...h.event(h.contextB), event_id: a.event_id };
+    await expect(h.outbox.transaction(h.contextB, (tx) => { tx.put('k', 'v'); tx.append(b); return Promise.resolve(); }))
+      .rejects.toThrow('outbox: an event with this event_id already exists');
+    expect(h.outbox.entries()).toEqual(before);
+    expect(h.outbox.entries()[0]?.envelope).toBe(before[0]?.envelope);
+    expect(h.outbox.state(WORKSPACE_B).size).toBe(0);
+  });
+
   it('a unit of work, or an event, for a context the resolver did not mint is refused', async () => {
     const h = await outboxHarness();
     const copy = { ...h.contextA };

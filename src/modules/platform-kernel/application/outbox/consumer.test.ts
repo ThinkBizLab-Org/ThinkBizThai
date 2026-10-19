@@ -237,6 +237,9 @@ describe('nothing thrown or returned is kept', () => {
     ['rejects with a string', (): Promise<ConsumerOutcome> => Promise.reject(LEAK_MARKER), EVENT_CONSUMER_FAILED.code],
     ['returns a failure it built itself', (): Promise<ConsumerOutcome> => Promise.resolve({ ok: false, error: { code: LEAK_MARKER } } as unknown as ConsumerOutcome), EVENT_CONSUMER_FAILED.code],
     ['returns a non-outcome', (): Promise<ConsumerOutcome> => Promise.resolve({ message: LEAK_MARKER } as unknown as ConsumerOutcome), EVENT_CONSUMER_FAILED.code],
+    // Q0-302-2: success is `ok === true` only; a truthy non-boolean `ok` is a failed handler.
+    ['returns { ok: 1 }', (): Promise<ConsumerOutcome> => Promise.resolve({ ok: 1 } as unknown as ConsumerOutcome), EVENT_CONSUMER_FAILED.code],
+    ['returns { ok: \'yes\' }', (): Promise<ConsumerOutcome> => Promise.resolve({ ok: 'yes' } as unknown as ConsumerOutcome), EVENT_CONSUMER_FAILED.code],
     ['returns an outcome whose getter throws', (): Promise<ConsumerOutcome> => Promise.resolve(Object.defineProperty({}, 'ok', { enumerable: true, get() { throw new LeakingError(); } }) as ConsumerOutcome), EVENT_CONSUMER_FAILED.code],
   ])('a handler that %s', async (_label, handler, code) => {
     const h = await outboxHarness();

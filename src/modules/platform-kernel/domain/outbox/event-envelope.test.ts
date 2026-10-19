@@ -26,6 +26,7 @@ import {
   EVENT_TYPE_PATTERN_SOURCE,
   checkEventEnvelope,
   freezeEnvelope,
+  readEnvelope,
   newEvent,
   type EventEnvelope,
 } from './event-envelope';
@@ -204,5 +205,16 @@ describe('newEvent and freezeEnvelope', () => {
     expect(copy).not.toBe(smuggled);
     expect(freezeEnvelope({ ...valid, extra: 'x' } as EventEnvelope)).toEqual(valid);
     expect(() => freezeEnvelope({ ...valid, event_id: '' })).toThrow('event envelope: the envelope does not satisfy CTR-EVT-001');
+  });
+
+  // Q0-302-3: the stored payload is a fresh frozen object, never the caller's (which could later gain a key).
+  it('writes a fresh frozen payload, not the caller\'s object', () => {
+    const delivered = { ...valid, payload: {} };
+    const copy = freezeEnvelope(delivered);
+    expect(Object.isFrozen(copy.payload)).toBe(true);
+    expect(copy.payload).not.toBe(delivered.payload);
+    const read = readEnvelope(delivered);
+    expect(read !== null && Object.isFrozen(read.payload)).toBe(true);
+    expect(read?.payload).not.toBe(delivered.payload);
   });
 });
