@@ -1,4 +1,4 @@
-import { checkEventEnvelope, freezeEnvelope, type EventEnvelope } from '../../domain/outbox/event-envelope';
+import { readEnvelope, type EventEnvelope } from '../../domain/outbox/event-envelope';
 import { isConsumerName, ledgerKeyOf } from '../../domain/outbox/outbox-entry';
 import { EVENT_CONSUMER_FAILED, EVENT_ENVELOPE_INVALID, EVENT_LEDGER_UNAVAILABLE } from '../../domain/outbox/outbox-errors';
 import { isObject } from '../../domain/json-shape';
@@ -69,19 +69,11 @@ function failureOf(value: unknown): StableErrorDefinition | null {
   }
 }
 
-function envelopeOf(delivered: unknown): EventEnvelope | null {
-  try {
-    return checkEventEnvelope(delivered) ? freezeEnvelope(delivered) : null;
-  } catch {
-    // A value that changes between reads (a proxy) fails freezeEnvelope's own check.
-    return null;
-  }
-}
-
 export async function consumeEvent<Tx extends ConsumerTransaction>(dependencies: ConsumerDependencies<Tx>, delivered: unknown): Promise<ConsumeReport> {
   const { consumer } = dependencies;
   if (!isConsumerName(consumer)) throw new TypeError('consumer: a consumer name is 1 to 64 characters');
-  const event = envelopeOf(delivered);
+  // A1-302-1: the delivered value is read once, checked on that copy, and only the copy is used.
+  const event = readEnvelope(delivered);
   if (event === null) return { kind: 'rejected', consumer, code: EVENT_ENVELOPE_INVALID.code };
   const key = ledgerKeyOf(consumer, event);
   try {

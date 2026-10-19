@@ -1,4 +1,6 @@
-import { refOf } from '../../domain/outbox/outbox-entry';
+import { readEnvelope, type EventEnvelope } from '../../domain/outbox/event-envelope';
+import { refOf, type OutboxEntryRef } from '../../domain/outbox/outbox-entry';
+import { isObject } from '../../domain/json-shape';
 import { OUTBOX_PUBLISH_FAILED, OUTBOX_UNAVAILABLE } from '../../domain/outbox/outbox-errors';
 import { checkOutboxLimits, type OutboxLimits } from '../../domain/outbox/outbox-limits';
 import type { StableErrorDefinition } from '../../domain/stable-error';
@@ -41,20 +43,41 @@ const stopped = (published: readonly string[], definition: StableErrorDefinition
   code: definition.code,
 });
 
+function entryOnce(entry: unknown): { readonly ref: OutboxEntryRef; readonly envelope: EventEnvelope } | null {
+  try {
+    if (!isObject(entry)) return null;
+    const position = entry.position;
+    const envelope = readEnvelope(entry.envelope);
+    if (envelope === null) return null;
+    return { ref: refOf({ position: position as number, envelope }), envelope };
+  } catch {
+    return null;
+  }
+}
+
 export async function relayOnce(dependencies: RelayDependencies): Promise<RelayReport> {
   if (!checkOutboxLimits(dependencies.limits)) throw new TypeError('outbox relay: the batch size is a positive whole number');
-  let entries;
+  let entries: readonly unknown[];
   try {
-    entries = await dependencies.outbox.fetchUnpublished(dependencies.limits.relayBatchSize);
+    // The adapter's batch is copied once; a value that is not a list stops the step.
+    const fetched: unknown = await dependencies.outbox.fetchUnpublished(dependencies.limits.relayBatchSize);
+    if (!Array.isArray(fetched)) return stopped([], OUTBOX_UNAVAILABLE);
+    entries = [...(fetched as readonly unknown[])];
   } catch {
     return stopped([], OUTBOX_UNAVAILABLE);
   }
   if (entries.length === 0) return { kind: 'idle' };
   const published: string[] = [];
   for (const entry of entries) {
-    const ref = refOf(entry);
+    // A1-302-I3: the entry is read once, inside the step's own guard; an entry that is not a
+    // positioned CTR-EVT-001 envelope, or whose read throws, stops the step (OUTBOX_UNAVAILABLE)
+    // instead of rejecting with what it threw. The ref and the published envelope come from that
+    // one read.
+    const read = entryOnce(entry);
+    if (read === null) return stopped(published, OUTBOX_UNAVAILABLE);
+    const { ref, envelope } = read;
     try {
-      await dependencies.publisher.publish(entry.envelope);
+      await dependencies.publisher.publish(envelope);
     } catch {
       return stopped(published, OUTBOX_PUBLISH_FAILED, ref.event_id);
     }

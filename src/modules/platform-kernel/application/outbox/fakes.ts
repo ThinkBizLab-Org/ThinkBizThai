@@ -1,5 +1,6 @@
 import { timestampOf } from '../../domain/jobs/job-decisions';
-import { checkEventEnvelope, freezeEnvelope, type EventEnvelope } from '../../domain/outbox/event-envelope';
+import { readEnvelope, type EventEnvelope } from '../../domain/outbox/event-envelope';
+import { isObject } from '../../domain/json-shape';
 import {
   checkLedgerKey,
   isUnpublished,
@@ -8,6 +9,7 @@ import {
   refersTo,
   type LedgerKey,
   type OutboxEntry,
+  type OutboxEntryRef,
 } from '../../domain/outbox/outbox-entry';
 import { isMintedTenantContext, tenantContextRecordOf } from '../tenant-context';
 import type {
@@ -48,6 +50,22 @@ function commitWrites(writes: Writes, workspaceId: string, staged: ReadonlyMap<s
 }
 
 const SETTLED = 'outbox: the unit of work has settled';
+
+// A caller's reference or key, each named property read once into a frozen copy (A1-302-1); null
+// when it is not an object or a read throws (nothing of what was thrown is kept).
+function readOnce<K extends string>(value: unknown, keys: readonly K[]): Readonly<Record<K, unknown>> | null {
+  try {
+    if (!isObject(value)) return null;
+    const copy = {} as Record<K, unknown>;
+    for (const key of keys) copy[key] = value[key];
+    return Object.freeze(copy);
+  } catch {
+    return null;
+  }
+}
+
+const refOnce = (value: unknown): OutboxEntryRef | null =>
+  readOnce(value, ['position', 'event_id', 'workspace_id'] as const) as OutboxEntryRef | null;
 
 // Each method does its whole read-decide-write before it returns, so no other call interleaves
 // inside it (as in application/jobs/fakes.ts).
@@ -96,14 +114,19 @@ export function inMemoryOutbox(dependencies: { readonly clock: OutboxClock }): I
       const stagedWrites = new Map<string, string>();
       let open = true;
       const tx: InMemoryOutboxTransaction = Object.freeze({
-        append(event: EventEnvelope) {
+        append(received: EventEnvelope) {
           if (!open) throw new TypeError(SETTLED);
-          if (!checkEventEnvelope(event)) throw new TypeError('outbox: the event does not satisfy CTR-EVT-001');
+          // A1-302-1: the caller's value is read once, into a deep-frozen copy, FIRST; the check, the
+          // workspace comparison and the event-id uniqueness are decided on that copy, and that copy
+          // is what is staged. A getter or proxy cannot answer the checks and the stored row
+          // differently.
+          const event = readEnvelope(received);
+          if (event === null) throw new TypeError('outbox: the event does not satisfy CTR-EVT-001');
           if (event.tenant_context.workspace_id !== workspaceId) throw new TypeError("outbox: an event is appended only in its own workspace's unit of work");
           if (eventIdTaken(event.event_id) || staged.some((other) => other.event_id === event.event_id)) {
             throw new TypeError('outbox: an event with this event_id already exists');
           }
-          staged.push(freezeEnvelope(event));
+          staged.push(event);
         },
         put(key: string, value: string) {
           if (!open) throw new TypeError(SETTLED);
@@ -131,7 +154,10 @@ export function inMemoryOutbox(dependencies: { readonly clock: OutboxClock }): I
       return Object.freeze([...entries.values()].filter(isUnpublished).slice(0, limit));
     }),
 
-    markPublished: (ref) => settle(() => {
+    markPublished: (received) => settle(() => {
+      // Read once (A1-302-1), then decided on the copy only.
+      const ref = refOnce(received);
+      if (ref === null) return false;
       const entry = entries.get(ref.position);
       if (entry === undefined || !refersTo(entry, ref)) return false;
       entries.set(entry.position, markDispatched(entry, clock.now()));
@@ -188,9 +214,11 @@ export function inMemoryConsumerLedger(dependencies: { readonly clock: OutboxClo
   // as an insert waits on the unique constraint (050's consumer_ledger_one_per_consumer_per_event).
   const inFlight = new Map<string, Promise<void>>();
 
-  const requireKey = (key: LedgerKey): LedgerKey => {
-    if (!checkLedgerKey(key)) throw new TypeError('consumer ledger: the key is not a workspace, a consumer and an event id');
-    return Object.freeze({ workspace_id: key.workspace_id, consumer: key.consumer, event_id: key.event_id });
+  // A1-302-1: the caller's key is read once, into a frozen copy, and checked on that copy only.
+  const requireKey = (requested: LedgerKey): LedgerKey => {
+    const key = readOnce(requested, ['workspace_id', 'consumer', 'event_id'] as const) as LedgerKey | null;
+    if (key === null || !checkLedgerKey(key)) throw new TypeError('consumer ledger: the key is not a workspace, a consumer and an event id');
+    return key;
   };
 
   return {

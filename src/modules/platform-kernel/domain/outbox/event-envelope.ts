@@ -162,27 +162,32 @@ export interface NewEvent {
 }
 
 // A deep-frozen copy built field by field from the named properties only, so nothing but the
-// contract's fields can ride along on an envelope the outbox stores.
+// contract's fields can ride along on an envelope the outbox stores. Each nested object is read once
+// here; for a value a caller hands in, use readEnvelope, which reads every property once BEFORE the
+// check (A1-302-1).
 export function freezeEnvelope(event: EventEnvelope): EventEnvelope {
   const context = event.tenant_context;
+  const actor = context.actor;
+  const producer = event.producer;
+  const subject = event.subject;
   const copy: EventEnvelope = {
     event_id: event.event_id,
     event_type: event.event_type,
     event_version: event.event_version,
     occurred_at: event.occurred_at,
-    producer: Object.freeze({ module_key: event.producer.module_key, implementation_version: event.producer.implementation_version }),
+    producer: Object.freeze({ module_key: producer.module_key, implementation_version: producer.implementation_version }),
     tenant_context: Object.freeze({
       workspace_id: context.workspace_id,
       ...(Object.hasOwn(context, 'business_profile_id') ? { business_profile_id: context.business_profile_id } : {}),
       ...(Object.hasOwn(context, 'page_context_profile_id') ? { page_context_profile_id: context.page_context_profile_id } : {}),
-      actor: Object.freeze({ kind: context.actor.kind, id: context.actor.id }),
+      actor: Object.freeze({ kind: actor.kind, id: actor.id }),
       request_id: context.request_id,
       correlation_id: context.correlation_id,
       ...(Object.hasOwn(context, 'causation_id') ? { causation_id: context.causation_id } : {}),
       locale: context.locale,
       timezone: context.timezone,
     }),
-    subject: Object.freeze({ type: event.subject.type, id: event.subject.id, version: event.subject.version }),
+    subject: Object.freeze({ type: subject.type, id: subject.id, version: subject.version }),
     correlation_id: event.correlation_id,
     ...(Object.hasOwn(event, 'causation_id') ? { causation_id: event.causation_id } : {}),
     ...(Object.hasOwn(event, 'idempotency_key') ? { idempotency_key: event.idempotency_key } : {}),
@@ -193,24 +198,73 @@ export function freezeEnvelope(event: EventEnvelope): EventEnvelope {
   return Object.freeze(copy);
 }
 
+// The deepest object level an envelope has (envelope, tenant_context, actor) and some room: a
+// deeper or cyclic value is not an envelope.
+const SNAPSHOT_DEPTH = 8;
+
+// One read of a caller's value: every own string-keyed property is read exactly once (a getter is
+// called once, a proxy's ownKeys and getOwnPropertyDescriptor traps run once per key), into frozen
+// plain data that keeps each property's enumerability, so the checker reads the copy exactly as it
+// would have read the value. An array is replaced by an empty frozen array (no envelope level is an
+// array, so the checker refuses it either way) and is not read.
+function snapshotOnce(value: unknown, depth: number): unknown {
+  if (typeof value !== 'object' || value === null) return value;
+  if (Array.isArray(value)) return Object.freeze([]);
+  if (depth === 0) throw new TypeError('event envelope: the value nests deeper than an envelope');
+  const copy: Record<string, unknown> = {};
+  for (const key of Reflect.ownKeys(value)) {
+    if (typeof key !== 'string') continue;
+    const descriptor = Reflect.getOwnPropertyDescriptor(value, key);
+    if (descriptor === undefined) continue;
+    const read = 'value' in descriptor ? descriptor.value : descriptor.get === undefined ? undefined : Reflect.apply(descriptor.get, value, []);
+    Object.defineProperty(copy, key, { value: snapshotOnce(read, depth - 1), enumerable: descriptor.enumerable === true, writable: false, configurable: false });
+  }
+  return Object.freeze(copy);
+}
+
+// A1-302-1: the envelope a port, fake, relay or consumer may decide on, from a value a caller hands
+// in. Every property is read once, the check runs on that copy, and the deep-frozen contract copy is
+// returned; null when the value is not a CTR-EVT-001 envelope, including a value whose getter or
+// proxy trap throws (nothing of what was thrown is kept). Every later decision reads the returned
+// copy only, so a getter cannot answer the check and the decision differently.
+export function readEnvelope(value: unknown): EventEnvelope | null {
+  try {
+    const data = snapshotOnce(value, SNAPSHOT_DEPTH);
+    return checkEventEnvelope(data) ? freezeEnvelope(data) : null;
+  } catch {
+    return null;
+  }
+}
+
 // The envelope a new event starts as, checked against CTR-EVT-001. A field outside the contract is a
 // programming fault (TypeError, constant message, carrying nothing from the input).
 export function newEvent(event: NewEvent, now: Instant): EventEnvelope {
   const occurredAt = timestampOf(instantFromMilliseconds(now));
+  const invalid = (): TypeError => new TypeError('event envelope: the new event does not satisfy CTR-EVT-001');
+  // The producer's spec, its producer, subject and context objects are the caller's: each property
+  // is read once, and the envelope is built and checked from that copy only (A1-302-1).
+  let spec: unknown;
+  try {
+    spec = snapshotOnce(event, SNAPSHOT_DEPTH);
+  } catch {
+    throw invalid();
+  }
+  if (!isObject(spec)) throw invalid();
+  const context = spec.tenant_context;
   const envelope = {
-    event_id: event.event_id,
-    event_type: event.event_type,
-    event_version: event.event_version,
+    event_id: spec.event_id,
+    event_type: spec.event_type,
+    event_version: spec.event_version,
     occurred_at: occurredAt,
-    producer: event.producer,
-    tenant_context: event.tenant_context,
-    subject: event.subject,
-    correlation_id: event.tenant_context.correlation_id,
-    ...(event.causation_id === undefined ? {} : { causation_id: event.causation_id }),
-    ...(event.idempotency_key === undefined ? {} : { idempotency_key: event.idempotency_key }),
+    producer: spec.producer,
+    tenant_context: context,
+    subject: spec.subject,
+    correlation_id: isObject(context) ? context.correlation_id : undefined,
+    ...(spec.causation_id === undefined ? {} : { causation_id: spec.causation_id }),
+    ...(spec.idempotency_key === undefined ? {} : { idempotency_key: spec.idempotency_key }),
     payload: {},
-    metadata: { schema_ref: event.schema_ref },
+    metadata: { schema_ref: spec.schema_ref },
   };
-  if (!checkEventEnvelope(envelope)) throw new TypeError('event envelope: the new event does not satisfy CTR-EVT-001');
+  if (!checkEventEnvelope(envelope)) throw invalid();
   return freezeEnvelope(envelope);
 }

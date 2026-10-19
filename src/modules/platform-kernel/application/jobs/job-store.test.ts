@@ -151,3 +151,65 @@ describe('tenant scope is carried and never crossed', () => {
     expect(retried?.record.tenant_context).toEqual(first.record.tenant_context);
   });
 });
+
+// A1-302-1, applied to the job fake: a caller's request, lease or progress is read once, and every
+// decision reads that copy only.
+describe('the job store reads a caller\'s object once', () => {
+  it('a dedupe_key answering a fresh key and then a held one never stores two jobs with one key', async () => {
+    const { store, contextA } = await harness();
+    await store.enqueue(request(contextA));
+    let reads = 0;
+    const flipping = { ...request(contextA) } as Record<string, unknown>;
+    Object.defineProperty(flipping, 'dedupe_key', { enumerable: true, get() { reads += 1; return reads === 1 ? 'research:synthetic-0002' : 'research:synthetic-0001'; } });
+    const second = await store.enqueue(flipping as never);
+    expect(second.created).toBe(true);
+    expect(second.job.dedupe_key).toBe('research:synthetic-0002');
+    const keys = store.records().map((job) => job.dedupe_key);
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(reads).toBe(1);
+  });
+
+  it('a request whose read throws is refused with a constant error, and nothing is stored', async () => {
+    const { store, contextA } = await harness();
+    const throwing = { ...request(contextA) } as Record<string, unknown>;
+    Object.defineProperty(throwing, 'context', { enumerable: true, get() { throw new Error('zz-text-from-a-thrown-value'); } });
+    await expect(store.enqueue(throwing as never)).rejects.toThrow('job store: the enqueue request is not a readable object');
+    expect(store.records()).toHaveLength(0);
+  });
+
+  it('a lease whose workspace answers A and then B is decided on the first read only', async () => {
+    const { store, contextA } = await harness();
+    await store.enqueue(request(contextA));
+    const claimed = await store.claim('worker-1');
+    expect(claimed).not.toBeNull();
+    if (claimed === null) return;
+    let reads = 0;
+    const lease = { ...claimed.lease } as Record<string, unknown>;
+    Object.defineProperty(lease, 'workspace_id', { enumerable: true, get() { reads += 1; return reads === 1 ? WORKSPACE_A : WORKSPACE_B; } });
+    expect((await store.complete(lease as never, 'asset:result/synthetic-0001')).ok).toBe(true);
+    expect(reads).toBe(1);
+  });
+
+  it('a lease whose read throws holds no job', async () => {
+    const { store, contextA } = await harness();
+    await store.enqueue(request(contextA));
+    const claimed = await store.claim('worker-1');
+    if (claimed === null) throw new TypeError('no claim');
+    const lease = { ...claimed.lease } as Record<string, unknown>;
+    Object.defineProperty(lease, 'attempt', { enumerable: true, get() { throw new Error('zz-text-from-a-thrown-value'); } });
+    expect(await store.complete(lease as never, 'asset:result/synthetic-0001')).toEqual({ ok: false, reason: 'lease_lost' });
+    expect(store.records()[0]?.result_ref).toBeUndefined();
+  });
+
+  it('progress answering a valid percent and then another records the one checked', async () => {
+    const { store, contextA } = await harness();
+    await store.enqueue(request(contextA));
+    const claimed = await store.claim('worker-1');
+    if (claimed === null) throw new TypeError('no claim');
+    let reads = 0;
+    const progress = { get percent(): number { reads += 1; return reads === 1 ? 40 : 400; }, stage: 'jobs.research.running' };
+    const beat = await store.heartbeat(claimed.lease, progress);
+    expect(beat.ok && beat.record.progress_percent).toBe(40);
+    expect(reads).toBe(1);
+  });
+});
