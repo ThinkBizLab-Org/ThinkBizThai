@@ -7535,7 +7535,17 @@ const repository = async () => {
   return repositoryHead;
 };
 const RECORDS_PROBE = 'evidence/WP-1A-A0-002/records-transcription-probe.md';
-const PLATFORM_KERNEL = ['src/modules/platform-kernel/adapters/job-store.ts', 'src/modules/platform-kernel/application/run.ts', 'src/modules/platform-kernel/index.ts'];
+// The platform-kernel module (WP-1A-A0-003). RFC-2026-007 Amendment 2026-10-13 §G: no guard names one of its real files
+// by a string, so no file of it joins the walk's closure and a pull request that edits or creates one is not governance
+// through it. This test names them only by the module's directory and paths inside it, joined at run time: the check
+// below depends on whether a file exists, never on what it holds, so an edit of one cannot change what this test does.
+const KERNEL_DIR = 'src/modules/platform-kernel';
+const kernelPath = (inside) => `${KERNEL_DIR}/${inside}`;
+// The files the module has created, by their paths inside it: each must stay (A1-280-1, Q0-280-1; §C test 2). The pull
+// request that creates the job store adapter (adapters/job-store.ts) adds it here, which is an edit of this test.
+const KERNEL_CREATED = ['application/run.ts', 'index.ts'];
+// Every file a guard's fixture gives the module, by a fictitious name no pull request creates (§G).
+const KERNEL_FICTITIOUS = ['adapters/probe-store.ts', 'application/probe-run.ts', 'index.tsx'];
 const MENTION = /^governance: ("(?:[^"\\]|\\.)*") names ("(?:[^"\\]|\\.)*"), which resolves to ("(?:[^"\\]|\\.)*"), code node can run and the walk cannot read \(fail closed\)$/;
 
 test('the string-name exceptions are a frozen list of exact [namer, named] pairs, pinned here entry for entry (RFC-2026-007 Amendment 2026-10-13)', () => {
@@ -7548,17 +7558,12 @@ test('the string-name exceptions are a frozen list of exact [namer, named] pairs
     ['scripts/db/classify-review-tier.mjs', 'apps/web/app/page.test.tsx'],
     ['scripts/db/classify-review-tier.mjs', 'apps/web/app/page.tsx'],
     ['scripts/db/classify-review-tier.mjs', 'apps/web/next.config.ts'],
-    ['scripts/db/classify-review-tier.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'],
-    ['scripts/db/classify-review-tier.mjs', 'src/modules/platform-kernel/application/run.ts'],
-    ['scripts/db/classify-review-tier.mjs', 'src/modules/platform-kernel/index.ts'],
     ['scripts/db/classify-review-tier.mjs', 'test-kits/typecheck-control/mistyped.ts'],
     ['scripts/db/classify-review-tier.mjs', 'test-kits/typecheck-control/shape.ts'],
     ['scripts/db/classify-review-tier.mjs', 'vitest.config.ts'],
     ['scripts/verify-app-boundaries.mjs', 'apps/web/app/page.test.tsx'],
     ['scripts/verify-app-boundaries.mjs', 'apps/web/app/page.tsx'],
     ['scripts/verify-app-boundaries.mjs', 'apps/web/next.config.ts'],
-    ['scripts/verify-app-boundaries.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'],
-    ['scripts/verify-app-boundaries.mjs', 'src/modules/platform-kernel/index.ts'],
     ['scripts/verify-app-boundaries.mjs', 'vitest.config.ts'],
     ['scripts/verify-test-coverage-floor.mjs', 'test-kits/typecheck-control/mistyped.ts'],
     ['scripts/verify-test-coverage-floor.mjs', 'test-kits/typecheck-control/shape.ts'],
@@ -7567,24 +7572,17 @@ test('the string-name exceptions are a frozen list of exact [namer, named] pairs
     ['test-kits/app-boundaries.test.mjs', 'apps/web/app/page.test.tsx'],
     ['test-kits/app-boundaries.test.mjs', 'apps/web/app/page.tsx'],
     ['test-kits/app-boundaries.test.mjs', 'apps/web/next.config.ts'],
-    ['test-kits/app-boundaries.test.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'],
-    ['test-kits/app-boundaries.test.mjs', 'src/modules/platform-kernel/application/run.ts'],
-    ['test-kits/app-boundaries.test.mjs', 'src/modules/platform-kernel/index.ts'],
     ['test-kits/app-boundaries.test.mjs', 'vitest.config.ts'],
     ['test-kits/app-dependencies.test.mjs', 'vitest.config.ts'],
     ['test-kits/app-stack.test.mjs', 'apps/web/app/layout.tsx'],
     ['test-kits/app-stack.test.mjs', 'apps/web/app/page.tsx'],
     ['test-kits/app-stack.test.mjs', 'apps/web/next.config.ts'],
-    ['test-kits/app-stack.test.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'],
     ['test-kits/app-stack.test.mjs', 'test-kits/typecheck-control/mistyped.ts'],
     ['test-kits/app-stack.test.mjs', 'vitest.config.ts'],
     ['test-kits/db/foundation-contract.test.mjs', 'apps/web/app/layout.tsx'],
     ['test-kits/db/foundation-contract.test.mjs', 'apps/web/app/page.test.tsx'],
     ['test-kits/db/foundation-contract.test.mjs', 'apps/web/app/page.tsx'],
     ['test-kits/db/foundation-contract.test.mjs', 'apps/web/next.config.ts'],
-    ['test-kits/db/foundation-contract.test.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'],
-    ['test-kits/db/foundation-contract.test.mjs', 'src/modules/platform-kernel/application/run.ts'],
-    ['test-kits/db/foundation-contract.test.mjs', 'src/modules/platform-kernel/index.ts'],
     ['test-kits/db/foundation-contract.test.mjs', 'test-kits/typecheck-control/mistyped.ts'],
     ['test-kits/db/foundation-contract.test.mjs', 'test-kits/typecheck-control/shape.ts'],
     ['test-kits/db/foundation-contract.test.mjs', 'vitest.config.ts'],
@@ -7617,43 +7615,64 @@ test('a records-only diff on the repository as it stands prints the records lane
   const atHead = STRING_NAME_EXCEPTIONS.filter(([, named]) => files.has(named));
   assert.ok(none.reasons.length >= atHead.length, `${none.reasons.length} mentions`);
   assert.deepEqual([...found].sort(), atHead.map(([namer, named]) => JSON.stringify([namer, named])).sort());
-  // The rest name files no pull request has created yet (R0-259-1): only platform-kernel files WP-1A-A0-003 creates
-  // (index.ts and application/run.ts by its PR-2; adapters/job-store.ts later). Every absent named file is one of them.
-  // A platform-kernel file once created must stay (A1-280-1, Q0-280-1): the two PR-2 created are pinned present here,
-  // so a pull request that deletes either, with or without its test, fails as deleting any other named file does;
-  // adapters/job-store.ts alone may still be absent, and the pull request that creates it adds it to this list. The
-  // run-time check does not reach the absent ones; here, every entry's namer still spells its file.
-  const PLATFORM_KERNEL_CREATED = ['src/modules/platform-kernel/application/run.ts', 'src/modules/platform-kernel/index.ts'];
+  // Every named file is at the head: no pair is listed ahead of its file (§G: a guard's fixture names a fictitious file
+  // instead of one a pull request will create), so a listed file that leaves the repository fails here. The walk
+  // records a mention for every entry.
   const absent = [...new Set(STRING_NAME_EXCEPTIONS.filter(([, named]) => !files.has(named)).map(([, named]) => named))].sort();
-  assert.ok(absent.every((named) => PLATFORM_KERNEL.includes(named)), `absent named files outside the platform-kernel three: ${JSON.stringify(absent)}`);
-  assert.deepEqual(PLATFORM_KERNEL_CREATED.filter((p) => !files.has(p)), [], 'a platform-kernel file once created left the repository');
-  assert.ok(PLATFORM_KERNEL_CREATED.every((p) => PLATFORM_KERNEL.includes(p)));
-  const { mentioned } = governanceClosure({ files, readHead });
+  assert.deepEqual(absent, [], 'a named file is not at the head');
+  const { mentioned, modules } = governanceClosure({ files, readHead });
   assert.deepEqual([...mentioned].sort(), STRING_NAME_EXCEPTIONS.map(([namer, named]) => JSON.stringify([namer, named])).sort());
+  // A platform-kernel file once created must stay (A1-280-1, Q0-280-1): deleting one, with or without its test, fails
+  // here. No file of the module is in the walk's closure (§G), so a change to each is the risk lane, not governance.
+  assert.deepEqual(KERNEL_CREATED.map(kernelPath).filter((p) => !files.has(p)), [], 'a platform-kernel file once created left the repository');
+  assert.ok(KERNEL_CREATED.every((p) => !KERNEL_FICTITIOUS.includes(p)) && KERNEL_FICTITIOUS.every((p) => !files.has(kernelPath(p))), 'a fictitious name is a real file');
+  assert.deepEqual([...modules.keys()].filter((p) => p.startsWith(`${KERNEL_DIR}/`)), [], 'a platform-kernel file is in the closure');
+  assert.ok(![...mentioned].some((key) => JSON.parse(key)[1].startsWith(`${KERNEL_DIR}/`)));
+  const kernelAtHead = [...files].filter((p) => p.startsWith(`${KERNEL_DIR}/`)).sort();
+  assert.ok(KERNEL_CREATED.every((p) => kernelAtHead.includes(kernelPath(p))), JSON.stringify(kernelAtHead));
+  assert.deepEqual(laneOf({ paths: kernelAtHead, tier: 'H', recordsOnly: false, files, readHead }),
+    { lane: 'risk', reasons: ['risk: tier H outside governance, records and audit (RFC-2026-034 §2.2)'], additiveEligible: false });
 });
 
 test('a pair listed for a file a guard fixture names before it exists keeps the records lane once a pull request creates the file (RFC-2026-007 Amendment 2026-10-13; R0-259-1)', async () => {
-  const { files, readHead } = await repository();
-  // WP-1A-A0-003 creates the platform-kernel module; the guards' fixtures name three of its files. Here all three are
-  // put at the head of the repository as it stands (a stub stands in for any that already exists, so the test holds
-  // before and after a pull request creates one), with a records-only diff beside them. Each of the three is listed
-  // ahead in the exceptions, so creating it never makes later pull requests governance.
-  const created = new Map(PLATFORM_KERNEL.map((p) => [p, 'export const kernel = 1;\n']));
-  assert.ok(PLATFORM_KERNEL.every((p) => STRING_NAME_EXCEPTIONS.some(([, named]) => named === p)), 'each platform-kernel file is listed ahead');
-  const head = new Set([...files, ...created.keys()]);
-  const read = (p) => (created.has(p) ? created.get(p) : readHead(p));
-  const of = (extra = {}) => laneOf({ paths: [RECORDS_PROBE], tier: 'records', recordsOnly: true, files: head, readHead: read, ...extra });
-  assert.deepEqual(of(), { lane: 'records', reasons: ['records: the records-only classifier says records-only (RFC-2026-025 §6.1)'], additiveEligible: false });
-  // The control: without the platform-kernel pairs the same head is governance, by exactly those mentions.
-  const without = of({ excused: STRING_NAME_EXCEPTIONS.filter(([, named]) => !created.has(named)) });
+  const RECORDS = { lane: 'records', reasons: ['records: the records-only classifier says records-only (RFC-2026-025 §6.1)'], additiveEligible: false };
+  // On synthetic heads (§G: the repository lists no pair ahead today). A guard names a file no pull request has created,
+  // and the pair is listed ahead: with the file absent the entry excuses nothing, is not checked, and the mention
+  // resolves to nothing, so the records-only diff is records, with or without the pair.
+  const ahead = { [TS_NAMER]: TS_HEAD[TS_NAMER] };
+  assert.deepEqual(tsLane(ahead), RECORDS);
+  assert.deepEqual(tsLane(ahead, []), RECORDS);
+  // Not checked at run time while the file is absent: a namer at the head that does not spell it (a stub, as the
+  // throwaway repositories hold) is records too; once the file exists, that entry is stale and governance.
+  const stub = { [TS_NAMER]: 'export const probe = 1;\n' };
+  assert.deepEqual(tsLane(stub), RECORDS);
+  r3Gov(tsLane({ ...stub, [TS_NAMED]: TS_HEAD[TS_NAMED] }), /is stale: the walk read no string in "scripts\/verify-ts-probe\.mjs" that names "apps\/probe\/page\.tsx"/, 'the stub namer once the file exists');
+  // A pull request creates the file: the pair listed ahead keeps the records lane.
+  assert.deepEqual(tsLane(TS_HEAD), RECORDS);
+  // The control: without the pair the same head is governance, by exactly that one mention.
+  const without = tsLane(TS_HEAD, []);
   assert.equal(without.lane, 'governance');
-  const found = new Set(without.reasons.map((why) => { const m = MENTION.exec(why); assert.ok(m, why); return JSON.stringify([JSON.parse(m[1]), JSON.parse(m[3])]); }));
-  assert.deepEqual([...found].sort(), STRING_NAME_EXCEPTIONS.filter(([, named]) => created.has(named)).map((e) => JSON.stringify([...e])).sort());
-  // And a module of the new package that no module the walk reads names stays outside the walk: it adds nothing. (Its
-  // path is built here, not written as a literal, so that this test does not itself name it.)
-  const fresh = `${'src/modules/platform-kernel'}/domain/tenant.ts`;
-  const more = new Set([...head, fresh]);
-  assert.equal(laneOf({ paths: [RECORDS_PROBE], tier: 'records', recordsOnly: true, files: more, readHead: (p) => (p === fresh ? 'x\n' : read(p)) }).lane, 'records');
+  assert.deepEqual(without.reasons.map((why) => { const m = MENTION.exec(why); assert.ok(m, why); return [JSON.parse(m[1]), JSON.parse(m[3])]; }), [[TS_NAMER, TS_NAMED]]);
+  // A further file of that tree that no walked module names adds nothing.
+  assert.deepEqual(tsLane({ ...TS_HEAD, 'apps/probe/other.tsx': 'x\n' }), RECORDS);
+  // On the repository as it stands: the platform-kernel module's files, with the job store adapter not yet created and a
+  // further module file put at the head (a stub for each not there), beside the records-only diff. No guard names one
+  // (§G), so no pair is needed for any and the diff stays records with the list as it is.
+  const { files, readHead } = await repository();
+  const stubs = new Map(['adapters/job-store.ts', 'domain/tenant.ts'].map(kernelPath).filter((p) => !files.has(p)).map((p) => [p, 'export const kernel = 1;\n']));
+  const head = new Set([...files, ...stubs.keys()]);
+  const read = (p) => (stubs.has(p) ? stubs.get(p) : readHead(p));
+  assert.deepEqual(laneOf({ paths: [RECORDS_PROBE], tier: 'records', recordsOnly: true, files: head, readHead: read }), RECORDS);
+  // The control: a guard test that gains a string naming one of them is governance again, by that one mention. (The
+  // string is joined at run time, so this test does not itself name the file.)
+  const namer = 'test-kits/app-boundaries.test.mjs';
+  for (const inside of [...KERNEL_CREATED, 'adapters/job-store.ts']) {
+    const p = kernelPath(inside);
+    const gained = (q) => (q === namer ? `${read(q)}\nconst gained = '${p}';\n` : read(q));
+    const l = laneOf({ paths: [RECORDS_PROBE], tier: 'records', recordsOnly: true, files: head, readHead: gained });
+    assert.equal(l.lane, 'governance', p);
+    assert.deepEqual(l.reasons, [`governance: ${JSON.stringify(namer)} names ${JSON.stringify(p)}, which resolves to ${JSON.stringify(p)}, code node can run and the walk cannot read (fail closed)`]);
+  }
 });
 
 test('a string mention of TypeScript the string-name exceptions do not name is still governance, and the file an excused mention names stays in the walk (RFC-2026-007 Amendment 2026-10-13)', async () => {

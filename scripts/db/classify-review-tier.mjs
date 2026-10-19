@@ -856,8 +856,10 @@ const CODE_NOT_READ = /\.(?:[cm]?ts|tsx|jsx|node|wasm)$/i;
 // is an entry whose namer is not, and one whose namer is but the walk read no string in it that spells the file (as
 // written, or with an extension the walk's resolution adds). An entry whose named file is NOT at the head excuses
 // nothing there and is not checked at run time, so a pair may be listed for a file a guard's fixture names before a
-// pull request creates it (R0-259-1: the platform-kernel files below, which WP-1A-A0-003 will create); once the file
-// exists, the run-time check applies. The throwaway repositories the tests and CI build hold this classifier and none
+// pull request creates it (R0-259-1); once the file exists, the run-time check applies. No entry is listed ahead today:
+// since RFC-2026-007 Amendment 2026-10-13 §G (2026-10-19, the Product Owner's answer of 2026-10-18T15:36:54Z) the guards'
+// fixtures give the platform-kernel module's files fictitious names that no pull request creates, and no guard names one
+// of its real files, so a pull request that edits or creates one is not governance through this walk. The throwaway repositories the tests and CI build hold this classifier and none
 // of the named files. The foundation contract test pins the list exactly and, on the repository as it stands, that every
 // entry's namer spells its file (`governanceClosure(...).mentioned`, whether or not the file exists) and that the
 // entries whose file is at the head are exactly the pairs the string rule finds with no exception; so a mention the list
@@ -866,17 +868,17 @@ const CODE_NOT_READ = /\.(?:[cm]?ts|tsx|jsx|node|wasm)$/i;
 // The uses, by namer (measured at main 40267ae9, the merge of PR #257):
 //   scripts/app-boundaries.mjs lists vitest.config.ts among the root configs it reads as text for the boundary check,
 //     and names the kind vitest.config;
-//   scripts/verify-app-boundaries.mjs uses the four, and two platform-kernel files not yet in the repository, as keys
-//     of synthetic trees its negative controls build in memory, and lists the page among the clean tracked paths;
+//   scripts/verify-app-boundaries.mjs uses the four as keys of synthetic trees its negative controls build in memory,
+//     and lists the page among the clean tracked paths;
 //   scripts/verify-test-coverage-floor.mjs lists the two fixtures among the files the integrity manifest must digest;
 //   scripts/verify-typecheck-control.mjs reads the fixture as text for its expected errors, and compares the paths in
 //     the output of tsc (run on a project file, --noEmit) with it;
-//   test-kits/app-boundaries.test.mjs uses the five, and three platform-kernel files not yet in the repository, as keys
+//   test-kits/app-boundaries.test.mjs uses the five as keys
 //     of synthetic trees (in memory, or written to a scratch directory), expects them in what the walks collect, and
 //     reads two as text to check their shapes;
 //   test-kits/app-dependencies.test.mjs expects vitest.config.ts as a glob in a parsed allowlist cell;
 //   test-kits/app-stack.test.mjs reads the five as text and matches them, writes synthetic compiler output that names
-//     two of them, and passes a platform-kernel adapter path not yet in the repository to the build-graph judge;
+//     two of them;
 //   test-kits/db/foundation-contract.test.mjs uses the page as a changed path of a synthetic diff, and pins this list
 //     (and so names every file in it);
 //   test-kits/repository-json.test.mjs lists three as the TypeScript files the tooling tier admits;
@@ -888,17 +890,12 @@ export const STRING_NAME_EXCEPTIONS = Object.freeze([
   EXCEPTION('scripts/db/classify-review-tier.mjs', 'apps/web/app/page.test.tsx'),
   EXCEPTION('scripts/db/classify-review-tier.mjs', 'apps/web/app/page.tsx'),
   EXCEPTION('scripts/db/classify-review-tier.mjs', 'apps/web/next.config.ts'),
-  EXCEPTION('scripts/db/classify-review-tier.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'),
-  EXCEPTION('scripts/db/classify-review-tier.mjs', 'src/modules/platform-kernel/application/run.ts'),
-  EXCEPTION('scripts/db/classify-review-tier.mjs', 'src/modules/platform-kernel/index.ts'),
   EXCEPTION('scripts/db/classify-review-tier.mjs', 'test-kits/typecheck-control/mistyped.ts'),
   EXCEPTION('scripts/db/classify-review-tier.mjs', 'test-kits/typecheck-control/shape.ts'),
   EXCEPTION('scripts/db/classify-review-tier.mjs', 'vitest.config.ts'),
   EXCEPTION('scripts/verify-app-boundaries.mjs', 'apps/web/app/page.test.tsx'),
   EXCEPTION('scripts/verify-app-boundaries.mjs', 'apps/web/app/page.tsx'),
   EXCEPTION('scripts/verify-app-boundaries.mjs', 'apps/web/next.config.ts'),
-  EXCEPTION('scripts/verify-app-boundaries.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'),
-  EXCEPTION('scripts/verify-app-boundaries.mjs', 'src/modules/platform-kernel/index.ts'),
   EXCEPTION('scripts/verify-app-boundaries.mjs', 'vitest.config.ts'),
   EXCEPTION('scripts/verify-test-coverage-floor.mjs', 'test-kits/typecheck-control/mistyped.ts'),
   EXCEPTION('scripts/verify-test-coverage-floor.mjs', 'test-kits/typecheck-control/shape.ts'),
@@ -907,24 +904,17 @@ export const STRING_NAME_EXCEPTIONS = Object.freeze([
   EXCEPTION('test-kits/app-boundaries.test.mjs', 'apps/web/app/page.test.tsx'),
   EXCEPTION('test-kits/app-boundaries.test.mjs', 'apps/web/app/page.tsx'),
   EXCEPTION('test-kits/app-boundaries.test.mjs', 'apps/web/next.config.ts'),
-  EXCEPTION('test-kits/app-boundaries.test.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'),
-  EXCEPTION('test-kits/app-boundaries.test.mjs', 'src/modules/platform-kernel/application/run.ts'),
-  EXCEPTION('test-kits/app-boundaries.test.mjs', 'src/modules/platform-kernel/index.ts'),
   EXCEPTION('test-kits/app-boundaries.test.mjs', 'vitest.config.ts'),
   EXCEPTION('test-kits/app-dependencies.test.mjs', 'vitest.config.ts'),
   EXCEPTION('test-kits/app-stack.test.mjs', 'apps/web/app/layout.tsx'),
   EXCEPTION('test-kits/app-stack.test.mjs', 'apps/web/app/page.tsx'),
   EXCEPTION('test-kits/app-stack.test.mjs', 'apps/web/next.config.ts'),
-  EXCEPTION('test-kits/app-stack.test.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'),
   EXCEPTION('test-kits/app-stack.test.mjs', 'test-kits/typecheck-control/mistyped.ts'),
   EXCEPTION('test-kits/app-stack.test.mjs', 'vitest.config.ts'),
   EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'apps/web/app/layout.tsx'),
   EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'apps/web/app/page.test.tsx'),
   EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'apps/web/app/page.tsx'),
   EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'apps/web/next.config.ts'),
-  EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'src/modules/platform-kernel/adapters/job-store.ts'),
-  EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'src/modules/platform-kernel/application/run.ts'),
-  EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'src/modules/platform-kernel/index.ts'),
   EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'test-kits/typecheck-control/mistyped.ts'),
   EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'test-kits/typecheck-control/shape.ts'),
   EXCEPTION('test-kits/db/foundation-contract.test.mjs', 'vitest.config.ts'),

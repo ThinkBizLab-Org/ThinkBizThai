@@ -46,17 +46,22 @@ import { ALLOWLIST_PATH, loadAllowlist } from './verify-app-dependencies.mjs';
 // code (RFC-2026-029 §2.1/4). CI runs this command with --require-parser in its application job.
 
 const tree = (entries) => new Map(Object.entries(entries));
+// The platform-kernel files in these trees carry fictitious names (an index.tsx and an adapters/probe-store.ts) that
+// no pull request creates, so this guard names none of the module's real files and a pull request that edits one is
+// not governance through the lane's walk (RFC-2026-007 Amendment 2026-10-13 §G, the Product Owner's answer of
+// 2026-10-18T15:36:54Z). The rules they exercise read only a path's shape: a module's index.ts or index.tsx, and the
+// platform-kernel adapters/ directory.
 const CLEAN = {
   'src/modules/identity-workspace/index.ts': "export { createWorkspace } from './application/create';\n",
   'src/modules/identity-workspace/application/create.ts': "import type { Workspace } from '../domain/workspace';\nexport const createWorkspace = (w: Workspace): Workspace => w;\n",
   'src/modules/identity-workspace/domain/workspace.ts': "export type Workspace = { readonly id: string };\n",
-  'src/modules/platform-kernel/index.ts': 'export const kernel = 1;\n',
-  'src/modules/platform-kernel/adapters/job-store.ts': "import { Pool } from 'pg';\nexport const jobs = (): unknown => Pool;\n",
+  'src/modules/platform-kernel/index.tsx': 'export const kernel = 1;\n',
+  'src/modules/platform-kernel/adapters/probe-store.ts': "import { Pool } from 'pg';\nexport const jobs = (): unknown => Pool;\n",
   'apps/web/app/page.tsx': "import { createWorkspace } from '../../../src/modules/identity-workspace/index';\n"
     + 'export default function Page() { return <main>{String(createWorkspace)}</main>; }\n',
   'apps/web/app/page.test.tsx': "import { it } from 'vitest';\n// @ts-expect-error -- the reason is written on the line\nit('x', () => undefined);\n",
   'apps/web/next.config.ts': "import type { NextConfig } from 'next';\nconst config: NextConfig = {};\nexport default config;\n",
-  'apps/worker/composition/jobs.ts': "import { jobs } from '../../../src/modules/platform-kernel/adapters/job-store';\nexport const run = jobs;\n",
+  'apps/worker/composition/jobs.ts': "import { jobs } from '../../../src/modules/platform-kernel/adapters/probe-store';\nexport const run = jobs;\n",
   // RFC-2026-029 Amendment 2026-10-12: the one file `typescript`'s §3.2 cell admits.
   'scripts/app-boundaries-parser.mjs': "import typescript from 'typescript';\nimport { SyntaxKind } from 'typescript/unstable/ast';\nexport const t = [typescript, SyntaxKind];\n",
 };
@@ -69,7 +74,7 @@ export const CONTROLS = [
     /apps\/web\/app\/page\.tsx (?:imports pg|reaches pg)/],
   ['MOD-900: a page importing @supabase/ssr', { 'apps/web/app/page.tsx': "import { createServerClient } from '@supabase/ssr';\nexport default createServerClient;\n" },
     /RFC-2026-029 allows @supabase\/ssr only/],
-  ['§6.3/5: apps/web reaching the platform-kernel adapters', { 'apps/web/composition/jobs.ts': "import { jobs } from '../../../src/modules/platform-kernel/adapters/job-store';\nexport const j = jobs;\n" },
+  ['§6.3/5: apps/web reaching the platform-kernel adapters', { 'apps/web/composition/jobs.ts': "import { jobs } from '../../../src/modules/platform-kernel/adapters/probe-store';\nexport const j = jobs;\n" },
     /nothing under apps\/web reaches pg or src\/modules\/platform-kernel\/adapters/],
   ['§2.1/3: // @ts-ignore', { 'apps/web/app/x.ts': '// @ts-ignore\nexport const n: number = 1;\n' }, /uses `@ts-ignore`/],
   ['§2.1/3: an `any` annotation', { 'apps/web/app/x.ts': 'export const loose: any = 1;\n' }, /x\.ts:1 uses the type `any`/],

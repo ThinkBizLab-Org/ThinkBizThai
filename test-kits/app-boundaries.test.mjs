@@ -42,14 +42,19 @@ import { loadAllowlist } from '../scripts/verify-app-dependencies.mjs';
 // it plugs into is driven here with a stand-in.
 
 const tree = (entries) => new Map(Object.entries(entries));
+// The platform-kernel files in these trees carry fictitious names (an index.tsx, an adapters/probe-store.ts, an
+// application/probe-run.ts) that no pull request creates, so this guard names none of the module's real files and a
+// pull request that edits one is not governance through the lane's walk (RFC-2026-007 Amendment 2026-10-13 §G, the
+// Product Owner's answer of 2026-10-18T15:36:54Z). The rules they exercise read only a path's shape: a module's
+// index.ts or index.tsx, and the platform-kernel adapters/ directory.
 const KEY = 'identity-workspace';
 const base = {
   [`src/modules/${KEY}/index.ts`]: "export { createWorkspace } from './application/create';\n",
   [`src/modules/${KEY}/application/create.ts`]: "import { Workspace } from '../domain/workspace';\nexport const createWorkspace = (w: Workspace) => w;\n",
   [`src/modules/${KEY}/domain/workspace.ts`]: "import { z } from 'zod';\nexport type Workspace = { id: string };\nexport const schema = z.object({});\n",
   [`src/modules/${KEY}/adapters/store.ts`]: "import { createClient } from '@supabase/supabase-js';\nimport { schema } from '../domain/workspace';\nexport const store = () => [createClient, schema];\n",
-  'src/modules/platform-kernel/index.ts': "export const kernel = 1;\n",
-  'src/modules/platform-kernel/adapters/job-store.ts': "import { Pool } from 'pg';\nexport const jobs = () => Pool;\n",
+  'src/modules/platform-kernel/index.tsx': "export const kernel = 1;\n",
+  'src/modules/platform-kernel/adapters/probe-store.ts': "import { Pool } from 'pg';\nexport const jobs = () => Pool;\n",
   'apps/web/composition/modules.ts': "import { store } from '../../../src/modules/identity-workspace/adapters/store';\n"
     + "import { createWorkspace } from '../../../src/modules/identity-workspace/index';\nexport const wired = [store, createWorkspace];\n",
   'apps/web/app/page.tsx': "import { wired } from '../composition/modules';\nexport default function Page() { return <main>{String(wired.length)}</main>; }\n",
@@ -57,7 +62,7 @@ const base = {
   'apps/web/components/button.tsx': "import { clsx } from 'clsx';\nimport { cva } from 'class-variance-authority';\nexport const b = [clsx, cva];\n",
   'apps/web/postcss.config.mjs': "export default { plugins: { '@tailwindcss/postcss': {} } };\n",
   'apps/web/next.config.ts': "import type { NextConfig } from 'next';\nimport * as Sentry from '@sentry/nextjs';\nexport default { Sentry } as unknown as NextConfig;\n",
-  'apps/worker/composition/jobs.ts': "import { jobs } from '../../../src/modules/platform-kernel/adapters/job-store';\nexport const run = jobs;\n",
+  'apps/worker/composition/jobs.ts': "import { jobs } from '../../../src/modules/platform-kernel/adapters/probe-store';\nexport const run = jobs;\n",
   'apps/web/app/page.test.tsx': "import { describe, it } from 'vitest';\nimport { renderToStaticMarkup } from 'react-dom/server';\ndescribe('x', () => { it('y', () => renderToStaticMarkup); });\n",
   'vitest.config.ts': "import { defineConfig } from 'vitest/config';\nexport default defineConfig({});\n",
 };
@@ -104,7 +109,7 @@ test('a well-formed synthetic tree with modules, adapters and composition roots 
 test('§6.3/1: a module is entered only through its index.ts, and only a composition root imports adapters/', async () => {
   await mustFail({ 'apps/web/app/page.tsx': `import { createWorkspace } from '../../../src/modules/${KEY}/application/create';\nexport default createWorkspace;\n` },
     /another module is imported only through its index\.ts \(RFC-2026-029 §6\.3\/1\)/, 'apps reaching into a module past its index');
-  await mustFail({ 'src/modules/platform-kernel/index.ts': `import { createWorkspace } from '../${KEY}/application/create';\nexport const k = createWorkspace;\n` },
+  await mustFail({ 'src/modules/platform-kernel/index.tsx': `import { createWorkspace } from '../${KEY}/application/create';\nexport const k = createWorkspace;\n` },
     /another module is imported only through its index\.ts/, 'one module reaching into another past its index');
   await mustFail({ 'apps/web/app/page.tsx': `import { store } from '../../../src/modules/${KEY}/adapters/store';\nexport default store;\n` },
     /only a composition root imports a module's adapters\/ directly/, 'a page importing an adapter');
@@ -138,7 +143,7 @@ test('§6.3/4: only allowlisted packages, only from the places RFC-2026-029 §3 
   await mustFail({ 'apps/web/app/layout.tsx': "import { it } from 'vitest';\nexport default it;\n" }, /allows vitest only/, 'a test runner in shipped code');
   await mustFail({ 'apps/web/app/page.tsx': "import ts from 'typescript';\nexport default ts;\n" }, /allows typescript only nowhere/, 'a CLI imported by name');
   await mustFail({ 'apps/web/app/x.css': "@import 'tailwind-merge';\n" }, /allows tailwind-merge only/, 'a CSS import of the wrong package');
-  await mustFail({ 'src/modules/platform-kernel/application/run.ts': "import { Pool } from 'pg';\nexport const run = Pool;\n" }, /allows pg only `src\/modules\/platform-kernel\/adapters\/\*\*`/, 'pg outside the job store');
+  await mustFail({ 'src/modules/platform-kernel/application/probe-run.ts': "import { Pool } from 'pg';\nexport const run = Pool;\n" }, /allows pg only `src\/modules\/platform-kernel\/adapters\/\*\*`/, 'pg outside the job store');
   await mustFail({ 'apps/web/app/fonts.ts': "import { Inter } from 'next/font/google';\nexport const f = Inter;\n" }, /fetches fonts from Google at build time/, 'a font fetched at build');
   await mustFail({ 'apps/web/app/x.ts': "const m = require('next');\nexport default m;\n" }, /`require` at offset \d+: CommonJS loading/, 'a require');
   await mustFail({ 'apps/web/app/x.ts': "const name = 'next';\nexport const m = import(name);\n" }, /dynamic import\(\) at offset \d+ whose argument is not one string literal/, 'a computed dynamic import');
@@ -148,13 +153,13 @@ test('§6.3/4: only allowlisted packages, only from the places RFC-2026-029 §3 
 });
 
 test('§6.3/5: nothing under apps/web reaches pg or the platform-kernel adapters, its composition root included', async () => {
-  await mustFail({ 'apps/web/composition/jobs.ts': "import { jobs } from '../../../src/modules/platform-kernel/adapters/job-store';\nexport const j = jobs;\n" },
+  await mustFail({ 'apps/web/composition/jobs.ts': "import { jobs } from '../../../src/modules/platform-kernel/adapters/probe-store';\nexport const j = jobs;\n" },
     /nothing under apps\/web reaches pg or src\/modules\/platform-kernel\/adapters\/\*\* \(RFC-2026-029 §6\.3\/5\)/, 'the web composition root wiring the job store');
   const reexport = await mustFail({
-    'src/modules/platform-kernel/index.ts': "export { jobs } from './adapters/job-store';\n",
+    'src/modules/platform-kernel/index.tsx': "export { jobs } from './adapters/probe-store';\n",
     'apps/web/composition/modules.ts': "import { kernel } from '../../../src/modules/platform-kernel/index';\nexport const wired = [kernel];\n",
-  }, /reaches .*src\/modules\/platform-kernel\/adapters\/job-store\.ts/, 'platform-kernel index.ts re-exporting the job store, reached from apps/web');
-  assert.ok(reexport.some((p) => /src\/modules\/platform-kernel\/index\.ts imports .*only a composition root/.test(p)), 'the re-export itself is refused too');
+  }, /reaches .*src\/modules\/platform-kernel\/adapters\/probe-store\.ts/, 'platform-kernel index.ts re-exporting the job store, reached from apps/web');
+  assert.ok(reexport.some((p) => /src\/modules\/platform-kernel\/index\.tsx imports .*only a composition root/.test(p)), 'the re-export itself is refused too');
   await mustFail({ 'apps/web/composition/db.ts': "import { Pool } from 'pg';\nexport const p = Pool;\n" }, /reaches pg/, 'pg named directly under apps/web');
 });
 
@@ -199,7 +204,7 @@ test('§8/5: a supabase/migrations directory, the service role and the worker cr
   fails(check({ 'apps/web/app/x.ts': 'export const u = process.env.WORKER_DATABASE_URL;\n' }), /no file under apps\/web names the worker credential/, 'the worker credential under apps/web');
   fails(check({ 'apps/web/composition/x.ts': "export const r = 'app_worker_login';\n" }), /apps\/web\/composition\/x\.ts names app_worker_login/, "the worker's login role under the web composition root");
   fails(check({ 'apps/worker/app/route.ts': 'export const u = process.env.WORKER_DATABASE_URL;\n' }), /outside apps\/worker\/composition\/\*\* no file reads the worker credential/, 'the credential read by the dispatcher route itself');
-  fails(check({ 'src/modules/platform-kernel/adapters/job-store.ts': 'export const u = process.env.WORKER_DATABASE_URL;\n' }), /outside apps\/worker\/composition/, 'the credential read by the job store adapter');
+  fails(check({ 'src/modules/platform-kernel/adapters/probe-store.ts': 'export const u = process.env.WORKER_DATABASE_URL;\n' }), /outside apps\/worker\/composition/, 'the credential read by the job store adapter');
   assert.deepEqual(check({ 'apps/web/app/x.ts': 'export const u = process.env.NOT_WORKER_DATABASE_URL_SUFFIXED;\n' }), [], 'a longer identifier that merely contains the name is not the name');
 });
 
