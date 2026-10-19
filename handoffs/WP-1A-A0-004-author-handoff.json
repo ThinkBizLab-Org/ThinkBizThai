@@ -4,13 +4,15 @@
   "work_package_id": "WP-1A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "94f8e5e501a8adfb69c25b2ff603cdac6c84f091",
-  "head_revision_or_patch_checksum": "6e317069c1d2c57170f875e1cda1e1f9b90b5eb9",
+  "base_revision": "d36089f37e896702065475308f4041a9b40e79e3",
+  "head_revision_or_patch_checksum": "a42a10d2e73ed49e6d2ff389a07993b9c153eb87",
   "task_ids": [
     "WP-1A-A0-004",
     "job-increment-2026-10-19"
   ],
   "files_added": [
+    "evidence/WP-1A-A0-004/a1-review-2026-10-19-pr301.md",
+    "evidence/WP-1A-A0-004/q0-review-2026-10-19-pr301.md",
     "src/modules/platform-kernel/application/jobs/fakes.ts",
     "src/modules/platform-kernel/application/jobs/job-store-port.ts",
     "src/modules/platform-kernel/application/jobs/job-store.test.ts",
