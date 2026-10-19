@@ -15,6 +15,7 @@ import {
   complete,
   fail,
   heartbeat,
+  holdsLease,
   instantOf,
   isClaimable,
   isDeadLettered,
@@ -158,6 +159,19 @@ describe('a claim', () => {
     expect(second.record.attempt).toBe(2);
     expect(complete(second.record, first.lease, addSeconds(reclaimAt, 1), 'result:x')).toEqual({ ok: false, reason: 'lease_lost' });
     expect(complete(second.record, second.lease, addSeconds(reclaimAt, 1), 'result:x').ok).toBe(true);
+  });
+
+  // Q0-301-1: holdsLease's workspace comparison, decided here and not only through the fake's lookup
+  // (the adapter may look a job up by id alone).
+  it('a lease naming another workspace is lost for heartbeat, complete and fail, and the true one holds', () => {
+    const { record, lease } = claimed(job(), 'worker-1', T0);
+    const crossed: JobLease = { ...lease, workspace_id: 'ws_synthetic_0002' };
+    expect(holdsLease(record, crossed, at(1))).toBe(false);
+    expect(heartbeat(record, crossed, at(1), LIMITS)).toEqual({ ok: false, reason: 'lease_lost' });
+    expect(complete(record, crossed, at(1), 'result:x')).toEqual({ ok: false, reason: 'lease_lost' });
+    expect(fail(record, crossed, at(1), timeout(), LIMITS)).toEqual({ ok: false, reason: 'lease_lost' });
+    expect(holdsLease(record, lease, at(1))).toBe(true);
+    expect(complete(record, lease, at(1), 'result:x').ok).toBe(true);
   });
 });
 

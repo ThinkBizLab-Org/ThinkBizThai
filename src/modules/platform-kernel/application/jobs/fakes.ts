@@ -112,8 +112,12 @@ export function inMemoryJobStore(dependencies: { readonly clock: JobClock; reado
         return { created: false, job: existing };
       }
     }
+    const jobId = ids.mint();
+    // A1-301-I1: app.jobs.id is the primary key, so an id already stored (from any workspace) is
+    // refused, as the adapter's insert would be, and the stored job is left as it was.
+    if (jobs.has(jobId)) throw new TypeError('job store: a job with this job_id already exists');
     const record = newJob({
-      job_id: ids.mint(),
+      job_id: jobId,
       job_type: request.job_type,
       job_version: request.job_version,
       tenant_context: context,

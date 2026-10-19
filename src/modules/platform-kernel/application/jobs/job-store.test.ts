@@ -9,6 +9,7 @@ import { JOB_TIMEOUT } from '../../domain/jobs/job-errors';
 import { checkJobRecord } from '../../domain/jobs/job-record';
 import { stableError } from '../../domain/stable-error';
 import { tenantContextRecordOf } from '../tenant-context';
+import { inMemoryJobStore } from './fakes';
 import { T0, WORKSPACE_A, WORKSPACE_B, harness, request } from './test-support';
 
 describe('enqueue', () => {
@@ -46,6 +47,19 @@ describe('enqueue', () => {
     await expect(store.enqueue(request(copy))).rejects.toThrow('job store: the tenant context was not minted by the resolver');
     await expect(store.enqueue(request(json))).rejects.toThrow(TypeError);
     expect(store.records()).toHaveLength(0);
+  });
+});
+
+// A1-301-I1: the fake refuses a job id it already holds, as app.jobs' primary key would.
+describe('a repeated job id', () => {
+  it('is refused, and the stored job of the other workspace is left as it was', async () => {
+    const { clock, limits, contextA, contextB } = await harness();
+    const store = inMemoryJobStore({ clock, limits, ids: { mint: () => 'job_synthetic_repeat' } });
+    const a = await store.enqueue(request(contextA));
+    await expect(store.enqueue(request(contextB))).rejects.toThrow('job store: a job with this job_id already exists');
+    expect(store.records()).toEqual([a.job]);
+    expect(await store.get(contextA, 'job_synthetic_repeat')).toBe(a.job);
+    expect(await store.get(contextB, 'job_synthetic_repeat')).toBeNull();
   });
 });
 

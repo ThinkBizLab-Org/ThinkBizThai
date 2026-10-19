@@ -4,32 +4,14 @@
   "work_package_id": "WP-1A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "d36089f37e896702065475308f4041a9b40e79e3",
-  "head_revision_or_patch_checksum": "a42a10d2e73ed49e6d2ff389a07993b9c153eb87",
+  "base_revision": "a7c3ba987d2e4d491ce1232c28f14a7d4e7ccaf7",
+  "head_revision_or_patch_checksum": "a7c3ba987d2e4d491ce1232c28f14a7d4e7ccaf7",
   "task_ids": [
     "WP-1A-A0-004",
-    "job-increment-2026-10-19"
+    "outbox-increment-2026-10-19"
   ],
-  "files_added": [
-    "evidence/WP-1A-A0-004/a1-review-2026-10-19-pr301.md",
-    "evidence/WP-1A-A0-004/q0-review-2026-10-19-pr301.md",
-    "src/modules/platform-kernel/application/jobs/fakes.ts",
-    "src/modules/platform-kernel/application/jobs/job-store-port.ts",
-    "src/modules/platform-kernel/application/jobs/job-store.test.ts",
-    "src/modules/platform-kernel/application/jobs/test-support.ts",
-    "src/modules/platform-kernel/application/jobs/worker.test.ts",
-    "src/modules/platform-kernel/application/jobs/worker.ts",
-    "src/modules/platform-kernel/domain/jobs/job-decisions.test.ts",
-    "src/modules/platform-kernel/domain/jobs/job-decisions.ts",
-    "src/modules/platform-kernel/domain/jobs/job-errors.ts",
-    "src/modules/platform-kernel/domain/jobs/job-limits.ts",
-    "src/modules/platform-kernel/domain/jobs/job-record.test.ts",
-    "src/modules/platform-kernel/domain/jobs/job-record.ts"
-  ],
-  "files_modified": [
-    "handoffs/WP-1A-A0-004-author-handoff.json",
-    "work-packages/WP-1A-A0-004.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-029",
@@ -48,27 +30,27 @@
   ],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT (job half, 2026-10-19): src/modules/platform-kernel/domain/jobs/ (CTR-JOB-001 record and checker; the job decisions as pure functions of a record, a supplied instant and the limits; the D6 provisional limits in job-limits.ts; the job stable errors) and application/jobs/ (JobStorePort, its in-memory fake with a manual clock, the workOnce worker step), with their tests; the manifest's outputs.files and two appended open_blockers. The outbox half (domain/outbox/, application/outbox/) is not in it.",
-    "The decisions read only CTR-JOB-001's timestamps and counters (app.jobs has no status column; the contract's freeze_boundary reserves lifecycle state names). The refusal and outcome names in code ('leased', 'exhausted', 'retry', 'dead_letter', ...) are internal, A0's inference, and never written to a record; dead-lettered is a predicate (attempt >= max_attempts, no result, no cancellation, no live lease), as 050's header reads it.",
-    "Every number in D6_PROVISIONAL_JOB_LIMITS (lease grace 30 s, heartbeat 60 s, back-off base 30 s, factor 2, cap 3600 s) is a test value, A0's inference; the decisions take the limits as a parameter. The lease runs timeout_seconds plus the grace from the claim; the claim order (higher priority, then earlier available_at) and retrying every failure while budget remains are A0's inferences, marked in code.",
-    "A job's tenant context is the minted context of the request that enqueued it (isMintedTenantContext); lookups, cancellation and every leased act are matched on the workspace as well as the job id. Enqueue with an existing (workspace_id, dedupe_key) returns the existing job (050's jobs_dedupe_key_unique), whatever its job_type or input_ref."
+    "THIS INCREMENT (outbox half, 2026-10-19): src/modules/platform-kernel/domain/outbox/ (the CTR-EVT-001 envelope checker and builder; the outbox entry and consumer-ledger key decisions; the D6 provisional relay batch size in outbox-limits.ts; the outbox and consumer stable errors) and application/outbox/ (OutboxPort, PublisherPort and ConsumerLedgerPort; in-memory fakes that model the producing and consuming transactions; the relayOnce relay step; the consumeEvent replay-safe consumer), with their tests; plus Q0-301-1 (a direct holdsLease workspace test) and A1-301-I1 (the job fake refuses a repeated job_id); the manifest's outputs.files and one appended open_blockers entry.",
+    "The outbox follows 050_async_kernel.sql: an entry is a CTR-EVT-001 envelope at a position assigned at commit, and having been published is dispatched_at's nullability, never a status value; the consumer ledger's key is (workspace_id, consumer, event_id), the workspace being the event's own. The fakes model a transaction: what a unit of work stages (events, domain state, a ledger row, a consumer's effect) commits together when its work resolves and not at all when it rejects; a concurrent unit holding the same ledger key makes the second wait, as the unique constraint does.",
+    "Delivery is at-least-once: relayOnce marks an entry only after its publish resolved, and stops at the first entry it cannot publish or mark (A0's inference: order within a step; a permanently unpublishable entry holds the queue, a D6 question since CTR-EVT-001 names no event dead-letter). The relay batch size (50) is a D6 provisional test value, A0's inference.",
+    "An event carries only a minted tenant context (isMintedTenantContext) and its correlation_id; a unit of work refuses an event of another workspace; a mark must name the entry's position, event and workspace. Every outbox and consumer stable error code and message key is A0's inference; the consumer name is bounded at 64 as 050's consumer_ledger_consumer_bounded."
   ],
   "acceptance_results": [
     {
-      "criterion": "Criterion 2 (job half): the CTR-JOB-001 checker accepts every valid fixture and rejects every invalid fixture the manifest lists; the listed fixtures equal examples/; pinned bounds and key lists equal the schema",
-      "result": "pass for author self-check (domain/jobs/job-record.test.ts); the CTR-EVT-001 half is owed by the outbox increment; independent reading owed"
+      "criterion": "Criterion 2 (event half): the CTR-EVT-001 checker accepts every valid fixture and rejects every invalid fixture the manifest lists; the listed fixtures equal examples/; pinned bounds, patterns and key lists equal the schema at every closed level",
+      "result": "pass for author self-check (domain/outbox/event-envelope.test.ts, 1 valid and 52 invalid fixtures); independent reading owed"
     },
     {
-      "criterion": "Criterion 3: the job decisions are pure functions of a record and a supplied clock; claimable, claim, retry with back-off, dead-letter at max_attempts, reclaim after expiry, cancellation; no status value written",
-      "result": "pass for author self-check (domain/jobs/job-decisions.test.ts); independent reading owed"
+      "criterion": "Criterion 5: an event written in the producing transaction is relayed at least once; a consumer records (consumer, event_id) before its effect is visible, so a replayed or duplicated event has no second effect; a relay crash between publish and mark leads to a redelivery the consumer absorbs",
+      "result": "pass for author self-check on the fakes (application/outbox/relay.test.ts, consumer.test.ts: commit and rollback, duplicate event_id rollback, concurrent duplicate delivery, replay, crash between publish and mark, a refused mark, failed handler rolled back and redelivered, cross-tenant refusals); independent reading owed"
     },
     {
-      "criterion": "Criterion 4: JobStorePort and its fake: duplicate enqueue in a tenant returns the existing job; two claims grant at most one lease; crash mid-run, restart, duplicate enqueue and delivery, handler timeout",
-      "result": "pass for author self-check (application/jobs/job-store.test.ts, worker.test.ts); independent reading owed"
+      "criterion": "Criterion 6 (outbox half): no record, error or report carries a thrown value's message, name or stack; failures are CTR-ERR-001 codes; verify-app-boundaries --require-parser passes; nothing under domain/ imports node:, a provider SDK, Next.js or React",
+      "result": "pass for author self-check (consumer.test.ts leak cases over handler, ledger, publisher, mark, fetch and a hostile envelope; node scripts/verify-app-boundaries.mjs --require-parser exit 0); independent reading owed"
     },
     {
-      "criterion": "Criterion 6 (job half): no record or report carries a thrown value's text; failures are CTR-ERR-001 codes (last_error_code only); verify-app-boundaries --require-parser passes; nothing under domain/ imports node:, a provider SDK, Next.js or React",
-      "result": "pass for author self-check (worker.test.ts leak cases; node scripts/verify-app-boundaries.mjs --require-parser exit 0); independent reading owed"
+      "criterion": "Backlog Q0-301-1 and A1-301-I1 (Info)",
+      "result": "Q0-301-1: domain/jobs/job-decisions.test.ts decides holdsLease's workspace comparison directly; A1-301-I1: application/jobs/fakes.ts refuses a job_id it already holds (job-store.test.ts); author self-check"
     }
   ],
   "tests": [
@@ -85,17 +67,17 @@
     {
       "command": "npm run test:app",
       "exit_code": 0,
-      "result": "12 files, 398 tests passed (105 of them in domain/jobs and application/jobs)"
+      "result": "16 files, 517 tests passed (119 new: 117 in domain/outbox and application/outbox, 2 for the backlog items)"
     },
     {
       "command": "node scripts/verify-app-boundaries.mjs --require-parser",
       "exit_code": 0,
-      "result": "40 source files keep RFC-2026-029 §6.3, §2.1/3 and §8/5"
+      "result": "54 source files keep RFC-2026-029 §6.3, §2.1/3 and §8/5"
     },
     {
       "command": "node scripts/validate-work-packages.mjs && node scripts/validate-work-package-ownership.mjs && node scripts/validate-work-package-role-separation.mjs work-packages/WP-1A-A0-004.json",
       "exit_code": 0,
-      "result": "manifests valid; the jobs/ files in outputs.files overlap no other package's writable paths"
+      "result": "manifests valid; the outbox/ files in outputs.files overlap no other package's writable paths"
     },
     {
       "command": "node scripts/commit-when-clean.mjs (runs the repository verifier, npm run check)",
@@ -103,26 +85,26 @@
       "result": "the full suite through the gate on the branch name; the node --test count is unchanged (app tests are vitest), so record:verification was not needed"
     }
   ],
-  "security_privacy_cost_impact": "No provider, credential, network, data or cost. Security-relevant by design: a job carries only a minted tenant context and is never read, changed or leased across workspaces; a failure records a minted stable error's code only, never a thrown or returned value's text; a lease is fenced by attempt, so a reclaimed job cannot be overwritten by its earlier worker; handler lookup is by own property. A1 reads it (risk lane).",
-  "migration_and_data_impact": "None: no migration, no db/** change; the code is not wired to app.jobs (the adapter is scope.exclude).",
-  "compatibility_impact": "Additive: new files under domain/jobs/ and application/jobs/ only; nothing imports them yet (index.ts and run.ts unchanged). No contract-catalog, dependency or tool-configuration change.",
+  "security_privacy_cost_impact": "No provider, credential, network, data or cost. Security-relevant by design: an event carries only a minted tenant context and is appended only in its own workspace's unit of work; an entry is marked only by a reference naming its position, event and workspace; a consumer's ledger key is the event's own workspace, so one tenant's delivery neither suppresses nor reveals another's; a report or record carries ids and minted codes only, never a thrown or returned value's text; handler failures roll back both the ledger row and the effect. A1 reads it (risk lane).",
+  "migration_and_data_impact": "None: no migration, no db/** change; the code is not wired to app.outbox_events or app.consumer_ledger (the adapter is scope.exclude).",
+  "compatibility_impact": "Additive: new files under domain/outbox/ and application/outbox/, one test each added to job-decisions.test.ts and job-store.test.ts, and a refusal of a repeated job_id in the job fake (test-only code); nothing imports the outbox code yet (index.ts and run.ts unchanged). No contract-catalog, dependency or tool-configuration change.",
   "known_limitations": [
-    "The outbox half (CTR-EVT-001 checker, relay port, replay-safe consumer; criteria 2 (event half) and 5) is not written; it is the next increment on this branch.",
-    "The D6 limits are test values; the per-round budget and concurrency are not modelled (the dispatcher increment). The worker bounds a handler by the job clock's waitUntil; a real timer is the adapter's.",
-    "The fake's claim is atomic because each method completes synchronously; the database adapter's equivalent (a single-statement claim) is scope.exclude, so criterion 4's 'at most one lease' is shown on the fake only."
+    "The fakes model the transactions; the database adapter's equivalents (the outbox insert in the command's transaction, the ledger insert under its unique constraint, FOR UPDATE SKIP LOCKED for concurrent relays) are scope.exclude, so criterion 5 is shown on the fakes only and criterion 7 stays unmet.",
+    "Concurrent relays may each publish an entry before one marks it; delivery is at-least-once by design and the consumer ledger absorbs the repeat. A permanently unpublishable entry holds the queue (no event dead-letter in CTR-EVT-001; D6).",
+    "The relay batch size is a D6 test value; the per-round budget, concurrency and the Cron (Q-029-2) are the dispatcher increment's."
   ],
   "open_risks_or_blockers": [
-    "RISK LANE (RFC-2026-034 §2.2: jobs and module code under src/modules/platform-kernel; the lane classifier prints risk). Authority: the Owner's answer of 2026-10-18T15:36:54.968Z, header `A0-004 open` (evidence/WP-1A-A0-004/product-owner-disposition-2026-10-18-open.md), whose question names the next pull request, job/outbox code on fakes, as risk lane, with the manifest's required_human_authorities[2]: A1 and Q0 pass on the final head and A0 presses (Q-034-1). No role verdict is claimed here.",
-    "Owed by the package, not decided here: Q-029-2 (which Cron fires the dispatcher) and the D6 operational limits (lease, per-round budget, retry/back-off, concurrency)."
+    "RISK LANE (RFC-2026-034 §2.2: jobs/outbox and module code under src/modules/platform-kernel; the lane classifier prints risk). Authority: the Owner's answer of 2026-10-18T15:36:54.968Z, header `A0-004 open` (evidence/WP-1A-A0-004/product-owner-disposition-2026-10-18-open.md), whose question names the next pull request, job/outbox code on fakes, as risk lane, with the manifest's required_human_authorities[2]; and the Owner's chat words of 2026-10-19 `เริ่ม increment outbox (CTR-EVT-001) ของ WP-1A-A0-004 ต่อเลย risk lane แบบเดิม`: A1 and Q0 pass on the final head and A0 presses (Q-034-1). No role verdict is claimed here.",
+    "Owed by the package, not decided here: Q-029-2 (which Cron fires the dispatcher), the D6 operational limits (lease, per-round budget, retry/back-off, relay batch size, concurrency, whether the relay skips an unpublishable entry), and the provider/database increment that criterion 7 needs."
   ],
-  "rollback_or_forward_fix": "Before merge: drop the increment's commits from the branch. After merge: a reviewed revert removes src/modules/platform-kernel/domain/jobs/ and application/jobs/ and restores the manifest's outputs.files; nothing imports them and no data or schema depends on them.",
+  "rollback_or_forward_fix": "Before merge: drop the increment's commits from the branch. After merge: a reviewed revert removes src/modules/platform-kernel/domain/outbox/ and application/outbox/, the two backlog tests and the job fake's repeated-id refusal, and restores the manifest's outputs.files; nothing imports them and no data or schema depends on them.",
   "recommended_next_work_packages": [
-    "WP-1A-A0-004's outbox increment: the CTR-EVT-001 envelope checker, the outbox relay port and a replay-safe consumer with a ledger port, on fakes, risk lane.",
-    "D6: set the operational limits and measure the Vercel function duration before the dispatcher increment."
+    "D6: set the operational limits (job and outbox) and measure the Vercel function duration before the dispatcher increment; decide Q-029-2.",
+    "The provider/database increment of WP-1A-A0-004 (adapters over app.jobs, app.outbox_events and app.consumer_ledger), by a later manifest amendment, once Q-028-3's custody and Q-029-6 are answered."
   ],
   "reviewer_instructions": [
-    "Read domain/jobs/job-decisions.ts against CTR-JOB-001 and 050_async_kernel.sql's header: decisions over timestamps and counters only, no status value written, A0's inferences marked.",
-    "Read application/jobs/fakes.ts and worker.ts for tenant crossing (workspace checked on every lookup and leased act), lease fencing by attempt, and leakage (only minted codes reach last_error_code or a report).",
+    "Read domain/outbox/event-envelope.ts against CTR-EVT-001 (checker = schema, at every closed level) and outbox-entry.ts against 050_async_kernel.sql (dispatched_at only, no status value; the ledger's natural key).",
+    "Read application/outbox/fakes.ts, relay.ts and consumer.ts for transaction fidelity (commit/rollback, the ledger key held during the unit), at-least-once (mark only after publish), tenant crossing (append, mark and ledger key in the event's own workspace) and leakage (only minted codes reach a report).",
     "Run npm ci --ignore-scripts, npm run typecheck, npm run test:app, node scripts/verify-app-boundaries.mjs --require-parser, npm run check:handoff and node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-004 on the branch name (not detached)."
   ],
   "superseded_by": null,
