@@ -5,13 +5,17 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "94f8e5e501a8adfb69c25b2ff603cdac6c84f091",
-  "head_revision_or_patch_checksum": "d29c145eaef8aac02850914cd85b30f2d82c6112",
+  "head_revision_or_patch_checksum": "102aefea211562919d4aa2ba49605a362c24ed1c",
   "task_ids": [
     "WP-0A-DB-00",
     "gov-kguard-2026-10-19"
   ],
   "files_added": [
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-19-kernel-guard-names.md"
+    "evidence/WP-0A-DB-00/a1-review-2026-10-19-pr300.md",
+    "evidence/WP-0A-DB-00/c0-review-2026-10-19-pr300.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-19-kernel-guard-names.md",
+    "evidence/WP-0A-DB-00/q0-review-2026-10-19-pr300.md",
+    "evidence/WP-0A-DB-00/r0-review-2026-10-19-pr300.md"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
