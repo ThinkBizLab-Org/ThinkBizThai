@@ -820,3 +820,65 @@ Product Owner's answer of 2026-10-16T19:13:38Z to A0's list of open items, item 
    owed (R0-281-2 (ii)).
 
 This note changes no rule of §A to §F, and no classifier, list, guard or test changes with it.
+
+### G. Note 2026-10-19 — the guards stop naming the platform-kernel files
+
+Note 2026-10-19 (the text of §A to §F above, the Note 2026-10-17 included, is kept whole and is not changed by it).
+Directed by the Product Owner's answer of 2026-10-18T15:36:54Z to A0's question of 15:29:17Z (header `ลด gov`), which
+read, verbatim: `ทุกครั้งที่แตะไฟล์ platform-kernel 3 ไฟล์ (index.ts, run.ts, job-store.ts) จะกลายเป็น governance เพราะ guard
+test อ้างชื่อไฟล์จริง — จะแก้ครั้งเดียวให้จบไหม?`; the option chosen was `แก้ 1 PR governance + A0 กดเมื่อ 4 role ผ่าน
+(Recommended)`, described `เปลี่ยน guard fixture เป็นชื่อสมมติ จะได้ไม่ต้องส่ง governance ทุกครั้งที่แตะ kernel —
+ประหยัดเวลาระยะยาว` (copied by script from the transcript and line-wrapped here; byte for byte, with A0's reading, in
+`evidence/WP-0A-DB-00/product-owner-disposition-2026-10-19-kernel-guard-names.md`). Measured on `main` at `f3353301`.
+
+**The defect.** §B item 1 keeps every excused file in the walk's closure, so a pull request that edits or creates one
+is governance. `scripts/verify-app-boundaries.mjs`, `test-kits/app-boundaries.test.mjs`, `test-kits/app-stack.test.mjs`
+and `test-kits/db/foundation-contract.test.mjs` named the platform-kernel module's `index.ts`, `application/run.ts` and
+`adapters/job-store.ts` as keys of synthetic trees and as the foundation contract test's pins, and the classifier's list
+named them too; so any pull request touching one of them printed `lane: governance`, although no guard reads what any
+of them holds.
+
+**What changes.**
+
+1. **The guards' fixtures give the module fictitious names** that no pull request creates: `index.tsx` for the module's
+   index, `adapters/probe-store.ts` for the job store adapter, `application/probe-run.ts` for the runner. The boundary
+   rules those fixtures exercise read only a path's shape (`src/modules/<key>/index.ts` or `index.tsx`, RFC-2026-029
+   §6.3/1; the `src/modules/platform-kernel/adapters/` directory, §6.3/5 and the `pg` cell), so each control holds what
+   it held: in `scripts/verify-app-boundaries.mjs` the clean tree and one control (its 54 parsed controls held); in
+   `test-kits/app-boundaries.test.mjs` the base tree and five probes, one assertion's pattern following the new name; in
+   `test-kits/app-stack.test.mjs` one call of the build-graph judge. `scripts/verify-app-build-graph.mjs`'s control that
+   names the adapter inside a template string, which the walk never read as a mention, takes the fictitious name too,
+   so no guard names a real platform-kernel file in any form.
+2. **The twelve pairs that named a platform-kernel file leave `STRING_NAME_EXCEPTIONS`** (three each for the classifier,
+   `test-kits/app-boundaries.test.mjs` and the foundation contract test, two for `scripts/verify-app-boundaries.mjs`, one
+   for `test-kits/app-stack.test.mjs`): the list holds 36 pairs, every one naming a file at the head. The classifier's
+   code is unchanged: the R0-259-1 rule of §B item 5 (an entry whose file is absent is not checked at run time) stays,
+   with no entry using it today.
+3. **§C tests, names unchanged.** Test 1 pins the 36 pairs. Test 2 now requires every named file to be at the head (no
+   pair is listed ahead), and, on the repository as it stands, that no platform-kernel file is in the walk's closure or
+   among its recorded mentions, and that one lane call over every file of the module at the head prints `risk`.
+   Test 3 proves R0-259-1 on synthetic heads (a pair listed ahead keeps the records lane before and after the file is
+   created; without it, governance by that one mention; an absent file's entry is not checked at run time, and is stale
+   once the file exists) and, on the repository, that with the job store adapter and a further module file stubbed at
+   the head the records probe stays records with the list as it is, while a guard test that gains a string naming any
+   of the three is governance by that one mention.
+4. **The pin of the files the module has created (A1-280-1, the Note 2026-10-17 item 1) stays in test 2**, as
+   `KERNEL_CREATED`: `index.ts` and `application/run.ts`, written as paths inside the module and joined to its
+   directory at run time, so the test spells no repository path of a kernel file and the walk records no mention of
+   one. That is not a guard hiding what it loads: the check reads whether each file exists and never what it holds, so
+   an edit of a kernel file cannot change what the test does, which is what the closure exists to catch. Deleting
+   either file, with or without its tests, still fails test 2; changing the list is still an edit of the foundation
+   contract test, so governance. The duty of the Note 2026-10-17 item 3 moves with it: the pull request that creates
+   `adapters/job-store.ts` adds it to `KERNEL_CREATED`, or a later deletion of it passes test 2.
+
+**What it does not do.** It changes no lane rule, no rule of §A to §F, and no classifier code but the list and its
+comment. A pull request that creates or edits a platform-kernel file is now held by the tier rules: tier H (a module not
+on the reviewed module allowlist), so the risk lane, read by the Security/Privacy reviewer and the Tester
+(RFC-2026-034 §2.2). A guard that names a real platform-kernel file again by a string fails test 2 until the list names
+the pair, which is a classifier edit and governance, and the lane prints governance for it as before. Pinning
+`adapters/job-store.ts` once it exists is a governance edit of the foundation contract test; creating it is not. This
+pull request is governance (a classifier, guards and their tests), and A0 presses it once C0, A1, Q0 and R0 pass on its
+final head with CI green, as the chosen option says.
+
+**Rollback.** A reviewed revert restores the twelve pairs, the fixtures' real names and the tests' earlier bodies; every
+pull request touching a platform-kernel file is governance again. No data, provider or credential effect.

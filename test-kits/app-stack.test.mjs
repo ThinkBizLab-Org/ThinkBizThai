@@ -1022,7 +1022,7 @@ test('A1-257-7: after the build, what it included is held to §6.3, and the chec
   assert.deepEqual(included.map((i) => i.path).sort(), ['apps/web/app/[slug]/page.tsx', 'apps/web/components/b.tsx', 'apps/web/postcss.config.mjs', 'node_modules/next/package.json', 'src/modules/k/index.ts']);
   assert.deepEqual(unplaced, ['build/chunks/b.js.map names turbopack:///[other]/y.ts, a Turbopack source the check cannot place']);
   assert.equal(judgeIncluded('src/modules/identity-workspace/adapters/store.ts', reachable), null, 'another module\'s adapters, which a composition root may import');
-  assert.match(judgeIncluded('src/modules/platform-kernel/adapters/job-store.ts', reachable), /§6\.3\/5/);
+  assert.match(judgeIncluded('src/modules/platform-kernel/adapters/probe-store.ts', reachable), /§6\.3\/5/);
   assert.match(judgeIncluded('apps/worker/composition/jobs.ts', reachable), /outside apps\/web\/\*\* and src\/modules\/\*\*/);
   assert.match(judgeIncluded('package.json', reachable), /outside apps\/web/, 'not even the root package.json');
   assert.match(judgeIncluded('db/node_modules/zod/index.js', reachable), /outside apps\/web/, 'a node_modules directory the install did not make is a repository file');

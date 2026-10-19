@@ -201,7 +201,7 @@ export const BUILD_CONTROLS = [
   ['A1-257-7 route 3 (built): a .babelrc plugin rewrites the import into db/', { 'server/chunks/ssr/_1shicyx._.js.map': map([`${UP}db/probe-a1/target.ts`, `${UP}apps/web/app/page.tsx`]) }, DB],
   ['a Turbopack source URL naming db/', { 'build/chunks/x.js.map': map(['turbopack:///[project]/db/probe-a1/target.ts']) }, DB],
   ['a module id naming db/', { 'server/chunks/ssr/x.js': '"[project]/db/probe-a1/target.ts [app-ssr] (ecmascript)"' }, DB],
-  ['§6.3/5: a platform-kernel adapter in the bundle', { 'server/chunks/ssr/k.js.map': map([`${UP}src/modules/platform-kernel/adapters/job-store.ts`]) }, /is a platform-kernel adapter/],
+  ['§6.3/5: a platform-kernel adapter in the bundle', { 'server/chunks/ssr/k.js.map': map([`${UP}src/modules/platform-kernel/adapters/probe-store.ts`]) }, /is a platform-kernel adapter/],
   ['§6.3/5: pg in a trace', { 'server/app/x.js.nft.json': trace(['../../../../../node_modules/pg/lib/index.js']) }, /^node_modules\/pg\/lib\/index\.js is pg/],
   ['a package no allowlisted package depends on', { 'server/app/x.js.nft.json': trace(['../../../../../node_modules/left-pad/index.js']) }, /is in the package left-pad/],
   ['a file outside the repository', { 'server/app/x.js.nft.json': trace(['../../../../../../etc/x.js']) }, /is outside the repository/],
