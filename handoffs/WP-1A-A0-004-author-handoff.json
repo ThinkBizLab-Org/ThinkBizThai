@@ -5,13 +5,34 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "a7c3ba987d2e4d491ce1232c28f14a7d4e7ccaf7",
-  "head_revision_or_patch_checksum": "a7c3ba987d2e4d491ce1232c28f14a7d4e7ccaf7",
+  "head_revision_or_patch_checksum": "4e411e95204b053dec0be6af8bef47413635ff04",
   "task_ids": [
     "WP-1A-A0-004",
     "outbox-increment-2026-10-19"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "src/modules/platform-kernel/application/outbox/consumer.test.ts",
+    "src/modules/platform-kernel/application/outbox/consumer.ts",
+    "src/modules/platform-kernel/application/outbox/events.ts",
+    "src/modules/platform-kernel/application/outbox/fakes.ts",
+    "src/modules/platform-kernel/application/outbox/outbox-port.ts",
+    "src/modules/platform-kernel/application/outbox/relay.test.ts",
+    "src/modules/platform-kernel/application/outbox/relay.ts",
+    "src/modules/platform-kernel/application/outbox/test-support.ts",
+    "src/modules/platform-kernel/domain/outbox/event-envelope.test.ts",
+    "src/modules/platform-kernel/domain/outbox/event-envelope.ts",
+    "src/modules/platform-kernel/domain/outbox/outbox-entry.test.ts",
+    "src/modules/platform-kernel/domain/outbox/outbox-entry.ts",
+    "src/modules/platform-kernel/domain/outbox/outbox-errors.ts",
+    "src/modules/platform-kernel/domain/outbox/outbox-limits.ts"
+  ],
+  "files_modified": [
+    "handoffs/WP-1A-A0-004-author-handoff.json",
+    "src/modules/platform-kernel/application/jobs/fakes.ts",
+    "src/modules/platform-kernel/application/jobs/job-store.test.ts",
+    "src/modules/platform-kernel/domain/jobs/job-decisions.test.ts",
+    "work-packages/WP-1A-A0-004.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-029",
