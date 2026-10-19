@@ -5,13 +5,29 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "94f8e5e501a8adfb69c25b2ff603cdac6c84f091",
-  "head_revision_or_patch_checksum": "94f8e5e501a8adfb69c25b2ff603cdac6c84f091",
+  "head_revision_or_patch_checksum": "ed1f5999eaba03884bd8a53109ba831db7a6ca0a",
   "task_ids": [
     "WP-1A-A0-004",
     "job-increment-2026-10-19"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "src/modules/platform-kernel/application/jobs/fakes.ts",
+    "src/modules/platform-kernel/application/jobs/job-store-port.ts",
+    "src/modules/platform-kernel/application/jobs/job-store.test.ts",
+    "src/modules/platform-kernel/application/jobs/test-support.ts",
+    "src/modules/platform-kernel/application/jobs/worker.test.ts",
+    "src/modules/platform-kernel/application/jobs/worker.ts",
+    "src/modules/platform-kernel/domain/jobs/job-decisions.test.ts",
+    "src/modules/platform-kernel/domain/jobs/job-decisions.ts",
+    "src/modules/platform-kernel/domain/jobs/job-errors.ts",
+    "src/modules/platform-kernel/domain/jobs/job-limits.ts",
+    "src/modules/platform-kernel/domain/jobs/job-record.test.ts",
+    "src/modules/platform-kernel/domain/jobs/job-record.ts"
+  ],
+  "files_modified": [
+    "handoffs/WP-1A-A0-004-author-handoff.json",
+    "work-packages/WP-1A-A0-004.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-029",
