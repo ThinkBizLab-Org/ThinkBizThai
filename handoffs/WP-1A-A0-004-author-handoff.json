@@ -4,30 +4,22 @@
   "work_package_id": "WP-1A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "f3353301c5857ebb9fcd24af8c1629c07a25500a",
-  "head_revision_or_patch_checksum": "a0b3567236b62ef11cf2f86672659b2cdaea08aa",
+  "base_revision": "94f8e5e501a8adfb69c25b2ff603cdac6c84f091",
+  "head_revision_or_patch_checksum": "94f8e5e501a8adfb69c25b2ff603cdac6c84f091",
   "task_ids": [
     "WP-1A-A0-004",
-    "open-2026-10-18"
+    "job-increment-2026-10-19"
   ],
-  "files_added": [
-    "evidence/WP-1A-A0-004/a1-review-2026-10-18-pr299.md",
-    "evidence/WP-1A-A0-004/c0-review-2026-10-18-pr299.md",
-    "evidence/WP-1A-A0-004/product-owner-disposition-2026-10-18-open.md",
-    "evidence/WP-1A-A0-004/q0-review-2026-10-18-pr299.md",
-    "evidence/WP-1A-A0-004/r0-review-2026-10-18-pr299.md",
-    "handoffs/WP-1A-A0-004-author-handoff.json",
-    "work-packages/WP-1A-A0-004.json"
-  ],
-  "files_modified": [
-    "test-kits/branch-identity.test.mjs",
-    "test-kits/integrity-manifest.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
-    "RFC-2026-025",
     "RFC-2026-029",
-    "RFC-2026-034"
+    "RFC-2026-034",
+    "DEC-011",
+    "DEC-021",
+    "DEC-022",
+    "DEC-023"
   ],
   "contracts_consumed": [
     "CTR-JOB-001",
@@ -38,68 +30,82 @@
   ],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS PACKAGE'S OPENING PULL REQUEST: it writes no code. It creates work-packages/WP-1A-A0-004.json (status in_progress, owner A0, branch agent/claude/WP-1A-A0-004-job-worker-outbox), adds the package's row to BRANCH_OWNERSHIP in test-kits/branch-identity.test.mjs (that table only; the resolution test's ref list unchanged), regenerates test-kits/integrity-manifest.json (only branch-identity.test.mjs's digest changes), and records the Owner's answer in evidence/WP-1A-A0-004/product-owner-disposition-2026-10-18-open.md. The cited range is this branch's own commits on main f9f1aad7.",
-    "The Product Owner's answer of 2026-10-18 (asked 15:29:17.333Z, answered 15:36:54.968Z UTC, header `A0-004 open`): `เปิด + A0 กดเมื่อ 4 role ผ่าน (Recommended)`, quoted by script from the transcript; A0's reading is marked as such in the record's §3.",
-    "Writable paths are the jobs/ and outbox/ subtrees of src/modules/platform-kernel/domain and application only; index.ts, application/run.ts, adapters/** and apps/worker/** are forbidden. The code increments follow on the same branch name in the risk lane (RFC-2026-034 §2.2)."
+    "THIS INCREMENT (job half, 2026-10-19): src/modules/platform-kernel/domain/jobs/ (CTR-JOB-001 record and checker; the job decisions as pure functions of a record, a supplied instant and the limits; the D6 provisional limits in job-limits.ts; the job stable errors) and application/jobs/ (JobStorePort, its in-memory fake with a manual clock, the workOnce worker step), with their tests; the manifest's outputs.files and two appended open_blockers. The outbox half (domain/outbox/, application/outbox/) is not in it.",
+    "The decisions read only CTR-JOB-001's timestamps and counters (app.jobs has no status column; the contract's freeze_boundary reserves lifecycle state names). The refusal and outcome names in code ('leased', 'exhausted', 'retry', 'dead_letter', ...) are internal, A0's inference, and never written to a record; dead-lettered is a predicate (attempt >= max_attempts, no result, no cancellation, no live lease), as 050's header reads it.",
+    "Every number in D6_PROVISIONAL_JOB_LIMITS (lease grace 30 s, heartbeat 60 s, back-off base 30 s, factor 2, cap 3600 s) is a test value, A0's inference; the decisions take the limits as a parameter. The lease runs timeout_seconds plus the grace from the claim; the claim order (higher priority, then earlier available_at) and retrying every failure while budget remains are A0's inferences, marked in code.",
+    "A job's tenant context is the minted context of the request that enqueued it (isMintedTenantContext); lookups, cancellation and every leased act are matched on the workspace as well as the job id. Enqueue with an existing (workspace_id, dedupe_key) returns the existing job (050's jobs_dedupe_key_unique), whatever its job_type or input_ref."
   ],
   "acceptance_results": [
     {
-      "criterion": "OPENING PR: the branch resolves to WP-1A-A0-004 alone; BRANCH_OWNERSHIP gains one row; the integrity manifest changes only that file's digest; the manifest validates; no source file changes",
-      "result": "pass for author self-check (branch-identity.test.mjs, validate-work-packages, validate-work-package-ownership, validate-work-package-role-separation exit 0; full suite through commit-when-clean); independent reading owed"
+      "criterion": "Criterion 2 (job half): the CTR-JOB-001 checker accepts every valid fixture and rejects every invalid fixture the manifest lists; the listed fixtures equal examples/; pinned bounds and key lists equal the schema",
+      "result": "pass for author self-check (domain/jobs/job-record.test.ts); the CTR-EVT-001 half is owed by the outbox increment; independent reading owed"
+    },
+    {
+      "criterion": "Criterion 3: the job decisions are pure functions of a record and a supplied clock; claimable, claim, retry with back-off, dead-letter at max_attempts, reclaim after expiry, cancellation; no status value written",
+      "result": "pass for author self-check (domain/jobs/job-decisions.test.ts); independent reading owed"
+    },
+    {
+      "criterion": "Criterion 4: JobStorePort and its fake: duplicate enqueue in a tenant returns the existing job; two claims grant at most one lease; crash mid-run, restart, duplicate enqueue and delivery, handler timeout",
+      "result": "pass for author self-check (application/jobs/job-store.test.ts, worker.test.ts); independent reading owed"
+    },
+    {
+      "criterion": "Criterion 6 (job half): no record or report carries a thrown value's text; failures are CTR-ERR-001 codes (last_error_code only); verify-app-boundaries --require-parser passes; nothing under domain/ imports node:, a provider SDK, Next.js or React",
+      "result": "pass for author self-check (worker.test.ts leak cases; node scripts/verify-app-boundaries.mjs --require-parser exit 0); independent reading owed"
     }
   ],
   "tests": [
     {
-      "command": "node scripts/validate-work-packages.mjs",
+      "command": "npm ci --ignore-scripts",
       "exit_code": 0,
-      "result": "manifests valid"
+      "result": "installed in the worktree for typecheck and test:app; removed afterwards"
     },
     {
-      "command": "node scripts/validate-work-package-ownership.mjs",
+      "command": "npm run typecheck",
       "exit_code": 0,
-      "result": "two amended paths named with rationale; no writable/output overlap (outputs list no source file)"
+      "result": "tsc --noEmit clean"
     },
     {
-      "command": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-1A-A0-004.json",
+      "command": "npm run test:app",
       "exit_code": 0,
-      "result": "four distinct role runs"
+      "result": "12 files, 398 tests passed (105 of them in domain/jobs and application/jobs)"
     },
     {
-      "command": "node --test test-kits/branch-identity.test.mjs test-kits/authority-dispositions.test.mjs",
+      "command": "node scripts/verify-app-boundaries.mjs --require-parser",
       "exit_code": 0,
-      "result": "11/11"
+      "result": "40 source files keep RFC-2026-029 §6.3, §2.1/3 and §8/5"
     },
     {
-      "command": "npm run regenerate:manifest",
+      "command": "node scripts/validate-work-packages.mjs && node scripts/validate-work-package-ownership.mjs && node scripts/validate-work-package-role-separation.mjs work-packages/WP-1A-A0-004.json",
       "exit_code": 0,
-      "result": "rebuilt 128 digests; only test-kits/branch-identity.test.mjs's changed"
+      "result": "manifests valid; the jobs/ files in outputs.files overlap no other package's writable paths"
     },
     {
       "command": "node scripts/commit-when-clean.mjs (runs the repository verifier, npm run check)",
       "exit_code": 0,
-      "result": "clean: tests 854, pass 854, fail 0 (committed 0bf6316c); test count unchanged from main, so record:verification was not needed"
+      "result": "the full suite through the gate on the branch name; the node --test count is unchanged (app tests are vitest), so record:verification was not needed"
     }
   ],
-  "security_privacy_cost_impact": "None in this pull request: no code, no dependency, no provider, no credential, no data, no cost.",
-  "migration_and_data_impact": "None.",
-  "compatibility_impact": "None: no contract-catalog, source or tool-configuration change.",
+  "security_privacy_cost_impact": "No provider, credential, network, data or cost. Security-relevant by design: a job carries only a minted tenant context and is never read, changed or leased across workspaces; a failure records a minted stable error's code only, never a thrown or returned value's text; a lease is fenced by attempt, so a reclaimed job cannot be overwritten by its earlier worker; handler lookup is by own property. A1 reads it (risk lane).",
+  "migration_and_data_impact": "None: no migration, no db/** change; the code is not wired to app.jobs (the adapter is scope.exclude).",
+  "compatibility_impact": "Additive: new files under domain/jobs/ and application/jobs/ only; nothing imports them yet (index.ts and run.ts unchanged). No contract-catalog, dependency or tool-configuration change.",
   "known_limitations": [
-    "npm run typecheck and npm run test:app were not run locally (no source file changes; disk is limited); CI's application job runs them.",
-    "WP-1A-A0-003's writable_paths (src/modules/platform-kernel/**) cover this package's jobs/ and outbox/ subtrees; validate-work-package-ownership passes only because this manifest's outputs list no source file. The first code increment needs WP-1A-A0-003 narrowed first (manifest open_blockers, OWNERSHIP OVERLAP); not edited here."
+    "The outbox half (CTR-EVT-001 checker, relay port, replay-safe consumer; criteria 2 (event half) and 5) is not written; it is the next increment on this branch.",
+    "The D6 limits are test values; the per-round budget and concurrency are not modelled (the dispatcher increment). The worker bounds a handler by the job clock's waitUntil; a real timer is the adapter's.",
+    "The fake's claim is atomic because each method completes synchronously; the database adapter's equivalent (a single-statement claim) is scope.exclude, so criterion 4's 'at most one lease' is shown on the fake only."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE until A1 and Q0 each confirm in writing on the final head that the two guard hunks (the BRANCH_OWNERSHIP row in test-kits/branch-identity.test.mjs; the regenerated digest in test-kits/integrity-manifest.json) are additive under RFC-2026-034 §2.2; then risk lane. Authority: the Owner's answer of 2026-10-18T15:36:54.968Z (evidence/WP-1A-A0-004/product-owner-disposition-2026-10-18-open.md): A0 presses once C0, A1, Q0 and R0 pass and CI is green on both jobs, RFC-2026-025 §5 item 6's other conditions kept. No role verdict is claimed here.",
+    "RISK LANE (RFC-2026-034 §2.2: jobs and module code under src/modules/platform-kernel; the lane classifier prints risk). Authority: the Owner's answer of 2026-10-18T15:36:54.968Z, header `A0-004 open` (evidence/WP-1A-A0-004/product-owner-disposition-2026-10-18-open.md), whose question names the next pull request, job/outbox code on fakes, as risk lane, with the manifest's required_human_authorities[2]: A1 and Q0 pass on the final head and A0 presses (Q-034-1). No role verdict is claimed here.",
     "Owed by the package, not decided here: Q-029-2 (which Cron fires the dispatcher) and the D6 operational limits (lease, per-round budget, retry/back-off, concurrency)."
   ],
-  "rollback_or_forward_fix": "Before merge: close the pull request and delete the branch. After merge: a reviewed revert removes work-packages/WP-1A-A0-004.json, evidence/WP-1A-A0-004/, the agent/claude/WP-1A-A0-004-job-worker-outbox row from BRANCH_OWNERSHIP with its integrity digest restored; nothing yet depends on any of them.",
+  "rollback_or_forward_fix": "Before merge: drop the increment's commits from the branch. After merge: a reviewed revert removes src/modules/platform-kernel/domain/jobs/ and application/jobs/ and restores the manifest's outputs.files; nothing imports them and no data or schema depends on them.",
   "recommended_next_work_packages": [
-    "WP-1A-A0-003: narrow writable_paths so they no longer cover src/modules/platform-kernel/{domain,application}/{jobs,outbox}/** (separate pull request).",
-    "WP-1A-A0-004's first code increment: the CTR-JOB-001 record checker, lease/retry/dead-letter decisions, JobStorePort with an in-memory fake and crash/restart/duplicate/timeout tests, risk lane, once this pull request merges."
+    "WP-1A-A0-004's outbox increment: the CTR-EVT-001 envelope checker, the outbox relay port and a replay-safe consumer with a ledger port, on fakes, risk lane.",
+    "D6: set the operational limits and measure the Vercel function duration before the dispatcher increment."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-1A-A0-004/product-owner-disposition-2026-10-18-open.md against the session transcript (records 9933 and 9946; question 2026-10-18T15:29:17.333Z, answer 15:36:54.968Z), and its §3 readings as A0's.",
-    "Check the diff outside evidence/ and handoffs/ is exactly: one new manifest, one BRANCH_OWNERSHIP row, and one changed digest in test-kits/integrity-manifest.json; A1 and Q0 name each guard hunk if confirming it additive.",
-    "Run npm run check, node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-004 and npm run check:handoff on the branch name (not detached)."
+    "Read domain/jobs/job-decisions.ts against CTR-JOB-001 and 050_async_kernel.sql's header: decisions over timestamps and counters only, no status value written, A0's inferences marked.",
+    "Read application/jobs/fakes.ts and worker.ts for tenant crossing (workspace checked on every lookup and leased act), lease fencing by attempt, and leakage (only minted codes reach last_error_code or a report).",
+    "Run npm ci --ignore-scripts, npm run typecheck, npm run test:app, node scripts/verify-app-boundaries.mjs --require-parser, npm run check:handoff and node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-004 on the branch name (not detached)."
   ],
   "superseded_by": null,
   "outputs": null
