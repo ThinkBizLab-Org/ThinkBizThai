@@ -82,20 +82,26 @@ on conflict (workspace_id, dedupe_key) do nothing;
 --
 -- `dispatched_at` is null on both. It is the one mutable column on the table, so a fixture that
 -- pre-set it would remove the only state an outbox row can be in two of.
+--
+-- Batch 175 (A1-302-I2, WP-1A-A0-006): every event names its producing context's actor and request --
+-- NOT NULL with no default, so a writer that omits them is refused, never filled in. Both rows are a
+-- sweep's (system_actor), as the two jobs above are, with synthetic ids in 174's shape.
 insert into app.outbox_events
   (event_id, event_type, event_version, occurred_at, producer_module_key,
    producer_implementation_version, workspace_id, subject_type, subject_id, subject_version,
-   correlation_id, schema_ref) values
+   correlation_id, schema_ref, actor_kind, actor_id, request_id) values
   ('e664c1cc-011c-5e39-8c4c-9ed7f3643d4b', 'fixture.outbox.event', 1,
    timestamptz '2026-09-01 00:00:00+00', 'jobs.kernel', '0.0.0',
    'c4840acc-0323-5e13-b1d3-c18d7eb615cb',
    'business_profile', 'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a', 1,
-   'fixture-correlation-a', 'CTR-EVT-001@1.0.0'),
+   'fixture-correlation-a', 'CTR-EVT-001@1.0.0',
+   'system_actor', 'fixture.sweep', 'fixture-request-a'),
   ('cc957e57-507e-5eba-aba3-cb76860f1489', 'fixture.outbox.event', 1,
    timestamptz '2026-09-01 00:00:00+00', 'jobs.kernel', '0.0.0',
    '43fd5c24-ebea-528f-9ce9-eedf1f8f9765',
    'business_profile', '3fd4e154-ab6e-5d61-8d96-ff1d6a5c31d3', 1,
-   'fixture-correlation-b', 'CTR-EVT-001@1.0.0')
+   'fixture-correlation-b', 'CTR-EVT-001@1.0.0',
+   'system_actor', 'fixture.sweep', 'fixture-request-b')
 on conflict (event_id) do nothing;
 
 -- The two ledger rows. Each records that ONE consumer handled ONE event in ONE workspace, which is

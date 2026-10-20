@@ -865,12 +865,19 @@ export const PINNED_CHECKS = {
   'jobs.jobs_actor_id_bounded': "CHECK ((actor_id ~ '^[A-Za-z0-9._:-]{1,128}$'::text))",
   'jobs.jobs_request_id_bounded': "CHECK ((request_id ~ '^[A-Za-z0-9._:-]{1,128}$'::text))",
   'jobs.jobs_correlation_id_bounded': "CHECK ((correlation_id ~ '^[A-Za-z0-9._:-]{1,128}$'::text))",
+  // Batch 175 (migration 175; A1-302-I2, WP-1A-A0-006): an outbox event's tenant context, the same enum and shape as
+  // 174's, held here as well as by 175's own block for 174's reason.
+  'outbox_events.outbox_events_actor_kind_known': "CHECK ((actor_kind = ANY (ARRAY['user'::text, 'system_actor'::text])))",
+  'outbox_events.outbox_events_actor_id_bounded': "CHECK ((actor_id ~ '^[A-Za-z0-9._:-]{1,128}$'::text))",
+  'outbox_events.outbox_events_request_id_bounded': "CHECK ((request_id ~ '^[A-Za-z0-9._:-]{1,128}$'::text))",
 };
 // A CHECK is NULL, and so passes, when a column it reads is NULL. decided_at is NULL by design while a
 // request is pending (the pair CHECK says when); created_at must never be, or 126's order CHECK admits
 // anything (Q0 F8 on batch 126: `drop not null` on created_at passed every layer).
 // Batch 174: and the four tenant-context columns of app.jobs, whose CHECKs pass a NULL (RFC-2026-028 §3.4: not null).
-export const PINNED_NOT_NULL = ['app.approval_requests.created_at', 'app.jobs.actor_kind', 'app.jobs.actor_id', 'app.jobs.request_id', 'app.jobs.correlation_id'];
+// Batch 175: and the three of app.outbox_events, for the same reason.
+export const PINNED_NOT_NULL = ['app.approval_requests.created_at', 'app.jobs.actor_kind', 'app.jobs.actor_id', 'app.jobs.request_id', 'app.jobs.correlation_id',
+  'app.outbox_events.actor_kind', 'app.outbox_events.actor_id', 'app.outbox_events.request_id'];
 export const PINNED_CHECK_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -2332,14 +2339,15 @@ export const CATALOG_RULE_PROBES = [
         'function pg_catalog.pg_sleep(double precision) [renamed to pg_catalog.probe_renamed_sleep(double precision)]',
         'relation information_schema.sql_features [renamed to information_schema.probe_renamed_sql_features]'] }] },
   { label: 'pinned check probe', sql: PINNED_CHECK_PROBE_SQL,
-    claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule and a job's tenant context lean on, validated and in their pinned text, and the ${PINNED_NOT_NULL.length} NOT NULL column(s) they read`,
+    claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule, a job's and an outbox event's tenant context lean on, validated and in their pinned text, and the ${PINNED_NOT_NULL.length} NOT NULL column(s) they read`,
     selfTests: [
       // Batch 174: and a job's correlation id re-bounded under its own name (to {1,255}: a valid bound PostgreSQL can run, wider than the pin; Q0 F3 on batch 174, where {1,256} was a text no row could pass).
-      { drift: "alter table app.approval_requests drop constraint approval_requests_decision_has_a_decider; alter table app.jobs drop constraint jobs_correlation_id_bounded, add constraint jobs_correlation_id_bounded check (correlation_id ~ '^[A-Za-z0-9._:-]{1,255}$');",
-        raises: 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text', names: ['approval_requests.approval_requests_decision_has_a_decider', 'jobs.jobs_correlation_id_bounded'] },
-      // Q0 T3 on batch 126. Batch 174: and a job's actor made optional.
-      { drift: 'alter table app.approval_requests alter column created_at drop not null; alter table app.jobs alter column actor_id drop not null;',
-        raises: 'pinned NOT NULL column(s) a pinned CHECK reads are nullable or missing', names: ['app.approval_requests.created_at', 'app.jobs.actor_id'] },
+      // Batch 175: and an outbox event's request id re-bounded the same way, and its actor_kind CHECK dropped.
+      { drift: "alter table app.approval_requests drop constraint approval_requests_decision_has_a_decider; alter table app.jobs drop constraint jobs_correlation_id_bounded, add constraint jobs_correlation_id_bounded check (correlation_id ~ '^[A-Za-z0-9._:-]{1,255}$'); alter table app.outbox_events drop constraint outbox_events_request_id_bounded, add constraint outbox_events_request_id_bounded check (request_id ~ '^[A-Za-z0-9._:-]{1,255}$'); alter table app.outbox_events drop constraint outbox_events_actor_kind_known;",
+        raises: 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text', names: ['approval_requests.approval_requests_decision_has_a_decider', 'jobs.jobs_correlation_id_bounded', 'outbox_events.outbox_events_actor_kind_known', 'outbox_events.outbox_events_request_id_bounded'] },
+      // Q0 T3 on batch 126. Batch 174: and a job's actor made optional. Batch 175: and an outbox event's request id.
+      { drift: 'alter table app.approval_requests alter column created_at drop not null; alter table app.jobs alter column actor_id drop not null; alter table app.outbox_events alter column request_id drop not null;',
+        raises: 'pinned NOT NULL column(s) a pinned CHECK reads are nullable or missing', names: ['app.approval_requests.created_at', 'app.jobs.actor_id', 'app.outbox_events.request_id'] },
     ] },
   { label: 'pinned policy probe', sql: PINNED_POLICY_PROBE_SQL,
     claim: `the ${Object.keys(PINNED_POLICIES).length} restrictive policies that bound which rows a client may update or see, in their pinned text`,

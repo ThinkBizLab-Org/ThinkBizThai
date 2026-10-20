@@ -4,99 +4,74 @@
   "work_package_id": "WP-1A-A0-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "0fc0e2f1f18f2201d63e3751d3807b4c804b8297",
-  "head_revision_or_patch_checksum": "de71fe4b3ce931f60c1cb9c239246a1ec7e4a032",
+  "base_revision": "f20b731900e94e98a17f92bd0beb70babdfaa823",
+  "head_revision_or_patch_checksum": "cc318f17c2d7157b17edf273c5c2cd07deed862d",
   "task_ids": [
     "WP-1A-A0-006",
-    "deps-ci-2026-10-20",
-    "deps-ci-fix1-2026-10-20",
-    "deps-ci-fix2-2026-10-20",
-    "deps-ci-fix3-2026-10-20"
+    "mig175-2026-10-20"
   ],
   "files_added": [
-    "apps/worker/package.json",
-    "evidence/WP-1A-A0-006/a1-review-2026-10-20-pr305-r2.md",
-    "evidence/WP-1A-A0-006/a1-review-2026-10-20-pr305-r3.md",
-    "evidence/WP-1A-A0-006/a1-review-2026-10-20-pr305-r4.md",
-    "evidence/WP-1A-A0-006/a1-review-2026-10-20-pr305.md",
-    "evidence/WP-1A-A0-006/c0-review-2026-10-20-pr305-r2.md",
-    "evidence/WP-1A-A0-006/c0-review-2026-10-20-pr305-r3.md",
-    "evidence/WP-1A-A0-006/c0-review-2026-10-20-pr305-r4.md",
-    "evidence/WP-1A-A0-006/c0-review-2026-10-20-pr305.md",
-    "evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-deps-ci.md",
-    "evidence/WP-1A-A0-006/q0-review-2026-10-20-pr305-r3.md",
-    "evidence/WP-1A-A0-006/q0-review-2026-10-20-pr305-r4.md",
-    "evidence/WP-1A-A0-006/q0-review-2026-10-20-pr305.md",
-    "evidence/WP-1A-A0-006/r0-review-2026-10-20-pr305-r2.md",
-    "evidence/WP-1A-A0-006/r0-review-2026-10-20-pr305-r3.md",
-    "evidence/WP-1A-A0-006/r0-review-2026-10-20-pr305-r4.md",
-    "evidence/WP-1A-A0-006/r0-review-2026-10-20-pr305.md",
-    "src/modules/platform-kernel/adapters/job-store.ts",
-    "src/modules/platform-kernel/adapters/postgres-reachable.test.ts"
+    "db/foundation/migrations/175_outbox_tenant_context.sql",
+    "evidence/WP-1A-A0-006/a1-review-2026-10-20-pr307.md",
+    "evidence/WP-1A-A0-006/c0-review-2026-10-20-pr307.md",
+    "evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-mig175.md",
+    "evidence/WP-1A-A0-006/q0-review-2026-10-20-pr307.md",
+    "evidence/WP-1A-A0-006/r0-review-2026-10-20-pr307.md"
   ],
   "files_modified": [
-    ".github/workflows/ci.yml",
-    "apps/web/package.json",
+    "db/foundation/lint/catalog-snapshot.json",
+    "db/foundation/lint/pinned-grants.json",
+    "db/foundation/lint/read-allowlist-known-exceptions.json",
+    "db/foundation/lint/vocabulary-checks.json",
+    "evidence/VERIFICATION.md",
     "handoffs/WP-1A-A0-006-author-handoff.json",
-    "package-lock.json",
-    "package.json",
-    "test-kits/app-dependencies.test.mjs",
-    "test-kits/app-stack.test.mjs",
+    "scripts/db/authz-proofs.mjs",
+    "scripts/db/run.mjs",
+    "scripts/test-suite-contract.mjs",
     "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
-    "test-kits/test-coverage-floor.test.mjs",
+    "tests/db/identity/fixtures/050-async-kernel-fixture.sql",
+    "tests/db/identity/isolation-cases.mjs",
     "work-packages/WP-1A-A0-006.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "RFC-2026-001",
     "RFC-2026-007",
+    "RFC-2026-017",
+    "RFC-2026-022",
     "RFC-2026-025",
     "RFC-2026-028",
-    "RFC-2026-029",
     "RFC-2026-034"
   ],
   "contracts_consumed": [
-    "CTR-JOB-001",
     "CTR-EVT-001",
     "CTR-TEN-001",
-    "CTR-API-001",
-    "CTR-ERR-001",
-    "CTR-IDM-001"
+    "CTR-JOB-001"
   ],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS PACKAGE'S DEPENDENCIES-AND-CI PULL REQUEST (governance; manifest scope.include[6], required_human_authorities[4]), under the Product Owner's answers of 2026-10-20T03:00:37.969Z (headers `Deps + CI`, `Migration`, `Q-029-2`; evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-deps-ci.md). One pull request, as the `Deps + CI` answer names it: package.json, the lockfile, the apps/worker workspace, a Postgres service in CI and job-store.ts in KERNEL_CREATED.",
-    "Workspaces (A0's reading of RFC-2026-029 §2.7/3, §3.1, §6.1): pg 8.23.1 in apps/worker/package.json (the dispatcher's deployment, which wires the job store adapter); @supabase/supabase-js 2.117.3 and @supabase/ssr 0.12.7 in apps/web/package.json (the request path; @supabase/ssr is importable only from apps/web/composition/**); @types/pg 8.23.1 in the root devDependencies with the other @types. The root keeps no runtime dependency. Resolved with npm install --save-exact --ignore-scripts --engine-strict --before=2026-10-13; @supabase/supabase-js 2.118.0 (published 2026-10-15) was too young, so 2.117.3.",
-    "apps/worker is a private workspace with no script and no source yet; RFC-2026-029 §6.1 calls it a minimal Next.js application, and next/react/react-dom are added to it with its first route, not now.",
-    "CI: the application job's service block is the bootstrap job's, verbatim; the database step mirrors the bootstrap job's 'Database foundation' first two commands (shim, make db-migrate-clean) and runs no installed package code; DB_TEST_URL carries no password and PGPASSWORD is the throwaway container credential, the bootstrap job's pattern.",
-    "src/modules/platform-kernel/adapters/job-store.ts is type-only (export type PostgresJobStore = JobStorePort), A0's reading of 'the minimal honest file' for the KERNEL_CREATED pin: it names what the adapter will implement and holds no behaviour.",
-    "The A1-287-2 key-allowlist widening in test-kits/app-stack.test.mjs is read as directed by the Owner's `Deps + CI` answer ('Postgres service ใน CI'), since that service cannot land without it; it is not one of RFC-2026-034 §2.2's additive kinds."
+    "THIS PACKAGE'S MIGRATION PULL REQUEST (governance; manifest scope.include[7], required_human_authorities[5]), under the Product Owner's answers of 2026-10-20 (header `Migration`, records 913/914, 03:00:37.969Z; header `Mig 175 กด`, records 1341/1342, 07:20:50.664Z; evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-mig175.md). Resumed from an earlier author run's uncommitted patch (stopped by ENOSPC): every hunk was read against the brief and re-measured; every JSON file parses, every script passes node --check, and git fsck --no-dangling is clean with core.commitGraph=false.",
+    "WRITTEN: db/foundation/migrations/175_outbox_tenant_context.sql. app.outbox_events gains actor_kind, actor_id, request_id: text NOT NULL, no default; actor_kind CTR-TEN-001's enum; actor_id and request_id 174's ^[A-Za-z0-9._:-]{1,128}$ (the same narrowing of CTR-TEN-001 174 states, owed to the contract owner); SELECT and INSERT for app_worker, UPDATE for nobody; its apply-time block asserts the columns, the CHECK texts and the per-column ACL. correlation_id is 050's column (RFC-2026-028 §3.4), so none is added. No backfill (no outbox row exists where 175 applies; a populated table fails closed, 23502).",
+    "NOT WRITTEN, and the Author's reading for A0 to confirm: CARRIED policies TO app_worker on app.jobs, app.outbox_events and app.consumer_ledger. RFC-2026-022 §5/5 (approved 2026-09-08) decides app_worker holds no policy on those three tables 'permanently, not pending' (§7.1/5 a lint negative; RFC-2026-028 §3.2, §5/10 the same); the Owner's two answers name such policies only in an option's description, and neither question put §5/5 before the Owner. An approved RFC outranks chat (CONTRIBUTING_AGENTS.md), so 175 writes none (disposition §3 (c)).",
+    "NOT WRITTEN, owed: the app_queue broker (RFC-2026-022 §5/6). Missing term: CTR-JOB-001's lifecycle state names and transition policy (freeze_boundary 'remain subject to source-defined owner review'; RFC-2026-022 §9) (disposition §3 (d)).",
+    "175 is the next free number above 174 (the registry exception 172-174 took; R0's acceptance owed) and is not listed in outputs.files while WP-0A-DB-00's writable db/foundation/** overlaps it (validate-work-package-ownership exit 70); declared in ownership.writable_paths."
   ],
   "acceptance_results": [
     {
-      "criterion": "DEPENDENCIES-AND-CI PR (acceptance_criteria[9]): exact pins in the named workspaces; registry-only sha512 entries under accepted licences; no install script or bin; release age; audit",
-      "result": "pass for author self-check: verify-app-dependencies exit 0 (197 registry entries + 6 bundled, accepted licences); verify-release-age origin/main exit 0 (25 new entries, newest 2026-10-07T12:36:31.240Z); npm audit --include=dev --audit-level=high: 0 vulnerabilities; independent reading owed"
+      "criterion": "MIGRATION PR: fresh local PostgreSQL 17 with the shim; make db-migrate-clean, db-schema-lint, db-rls-smoke exit 0 with 175 applied",
+      "result": "pass for author self-check on PostgreSQL 17.11 (Homebrew), a throwaway cluster on 127.0.0.1:5522 re-initialised per round and deleted afterwards: migrate-clean ok (post-migrate 56 apply-time blocks, 40 re-run, 16 superseded); schema-lint ok; rls-smoke 1200 isolation cases passed, db-authz-proofs 15 claims discharged, 1 not run (worker-login-authentication: trust cluster). CI's bootstrap job on the pushed head is owed"
     },
     {
-      "criterion": "acceptance_criteria[9]: npm run check green; typecheck, test:app and the parsed boundary guard exit 0; CI's application job reaches the migrated container",
-      "result": "pass for author self-check locally (npm run check inside commit-when-clean: 857/857; typecheck 0; test:app 570 passed, 1 skipped (the DB test, no DB_TEST_URL); boundaries --require-parser 0; next build and verify-app-build-graph 0). Against a local postgres 17.11 with the shim and make db-migrate-clean applied, the reachability test passed 2/2; with CI=true and no DB_TEST_URL it failed (the negative control). CI's run on the pushed head is owed"
+      "criterion": "MIGRATION PR: 175's block refuses its drifts",
+      "result": "pass for author self-check: actor_id made nullable -> \"batch 175: ... not text, NOT NULL and default-free: actor_id nullable (P0001)\"; grant update (request_id) to app_worker -> \"... nobody's to update: app_worker UPDATE (request_id) (P0001)\"; the file restored byte for byte (sha256 equal)"
     },
     {
-      "criterion": "acceptance_criteria[9]: the service block is held line for line; KERNEL_CREATED holds adapters/job-store.ts; branch scope",
-      "result": "pass for author self-check: test-kits/app-stack.test.mjs 21/21 with five new negative controls (second service, image, entrypoint option, volume, quoted key) and the existing redis control reading the new refusal; foundation-contract's KERNEL_CREATED test passes with the file tracked; verify-branch-scope origin/main WP-1A-A0-006 exit 0 (15 paths)"
+      "criterion": "MIGRATION PR: the rls-smoke proof outbox-event-names-its-tenant-context",
+      "result": "pass for author self-check: 29 rolled-back attempts, each as expected (shape, NOT NULL, bound 128 admitted and 129 refused, CHECK control; app_worker's append refused by RLS, by the grant when a column is revoked; UPDATE refused by the grant, admitted by its control; with app.workspace_id = the fixture's workspace app_worker reads 0 rows of app.jobs, app.outbox_events, app.consumer_ledger, 1 with a permissive policy; authenticated 42501 grant, anon 42501). The batch-175 test drives it by a fake with three broken variants"
     },
     {
-      "criterion": "Fix round 1 (A1-305-1, A1-305-I1/C0-305-I1): the services block is read from ci.yml's raw lines and a blank or `#`-led line inside it breaks the byte-for-byte pin; DB_TEST_URL and PGPASSWORD only on their two steps, with the bootstrap job's values",
-      "result": "pass for author self-check: npm run check inside commit-when-clean 857/857 at a4905788; eleven new service controls (eight of which the guard of 8b54d83a passed) and six env controls; every existing control kept; independent reading owed (A1's re-read of the changed guard hunk)"
-    },
-    {
-      "criterion": "Fix round 2 (A1-305-2): ci.yml holds no lone CR (CRLF included), NEL, LS, PS, other C0 or C1 control character but \\n and \\t, DEL or BOM, refused on the raw text before any reading by runnerEnvWriteProblems and shellProblems",
-      "result": "pass for author self-check: npm run check inside commit-when-clean 857/857 at fe3e8f63; 25 new controls (A1's three insertions with CR, NEL, LS and PS, plus credentials and container variants, whole-file CRLF, BOM, VT, FF, NUL), each read by both readers; every existing control kept; independent reading owed (A1's re-read of the changed guard hunk)"
-    },
-    {
-      "criterion": "Fix round 3 (A1-305-3): ci.yml holds no character of the Unicode categories Cc, Cf, Zl, Zp or Zs but space, tab and \\n, refused on the raw text (rawCharacterProblems); and every comment, blank, header and value decision on ci.yml lines reads space and tab only (YAML_COMMENT_LINE, yamlBlank, yamlTrim)",
-      "result": "pass for author self-check: npm run check inside commit-when-clean 857/857 at 37cfbaf6; 45 new controls (A1's five insertions with NBSP, U+3000, U+2000, U+2007, U+200B, U+202F, U+205F, U+FEFF, U+180E), each asserted refused by fix (1) alone and by fix (2) alone; a positive control (Thai, em dash, section sign, ellipsis) passes every reader; every existing control kept; independent reading owed (A1's re-read of the changed guard hunk)"
+      "criterion": "acceptance_criteria[4] (tenant isolation through the broker and CARRIED statements)",
+      "result": "not met: neither the policies nor the broker is written (open_blockers[5]); only the zero-row state is proven"
     }
   ],
   "tests": [
@@ -108,7 +83,7 @@
     {
       "command": "node scripts/validate-work-package-ownership.mjs",
       "exit_code": 0,
-      "result": "nine amended paths named with rationale; outputs (apps/worker/package.json, the two adapter files, the disposition) overlap no other package's writable paths"
+      "result": "eleven amended paths named with rationale; 175 kept out of outputs.files (DB-00 overlap)"
     },
     {
       "command": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-1A-A0-006.json",
@@ -116,120 +91,66 @@
       "result": "four distinct role runs"
     },
     {
-      "command": "node scripts/verify-app-dependencies.mjs",
+      "command": "psql <shim> && make db-migrate-clean && make db-schema-lint && make db-rls-smoke (DB_TEST_URL=postgresql://postgres@127.0.0.1:5522/thinkbizthai_test, fresh PostgreSQL 17.11 cluster)",
       "exit_code": 0,
-      "result": "every package.json names only §3 packages at exact versions; 197 registry entries with sha512, 6 bundled; accepted licences"
+      "result": "migrate-clean ok; schema-lint ok; 1200 isolation cases; 15 proofs discharged, 1 not run (trust)"
     },
     {
-      "command": "node scripts/verify-release-age.mjs origin/main",
-      "exit_code": 0,
-      "result": "25 new lockfile entries, all at least 7 days old"
+      "command": "make db-migrate-clean with 175 drifted (actor_id nullable; UPDATE (request_id) granted)",
+      "exit_code": 2,
+      "result": "each refused by 175's block by name (negative controls)"
     },
     {
-      "command": "npm audit --include=dev --audit-level=high",
+      "command": "node --test --test-name-pattern=\"batch 17[45]\" test-kits/db/foundation-contract.test.mjs",
       "exit_code": 0,
-      "result": "found 0 vulnerabilities"
-    },
-    {
-      "command": "node scripts/verify-app-boundaries.mjs --require-parser",
-      "exit_code": 0,
-      "result": "57 source files keep §6.3, §2.1/3, §8/5 (54 controls held first)"
-    },
-    {
-      "command": "npm run typecheck",
-      "exit_code": 0,
-      "result": "tsc --noEmit clean"
-    },
-    {
-      "command": "node scripts/verify-typecheck-control.mjs",
-      "exit_code": 0,
-      "result": "the fixture fails with all 6 marked errors"
-    },
-    {
-      "command": "npm run test:app",
-      "exit_code": 0,
-      "result": "18 files; 570 passed, 1 skipped (the reachability test's DB half, no DB_TEST_URL locally)"
-    },
-    {
-      "command": "DB_TEST_URL=<local postgres 17.11> CI=true npx vitest run src/modules/platform-kernel/adapters (after the shim and make db-migrate-clean)",
-      "exit_code": 0,
-      "result": "2 passed; without DB_TEST_URL under CI=true: 1 failed, 1 skipped (negative control, exit 1)"
-    },
-    {
-      "command": "npm run build --workspace apps/web && node scripts/verify-app-build-graph.mjs",
-      "exit_code": 0,
-      "result": "build clean; 1251 included files under apps/web/** or src/modules/** or reachable packages; no pg"
+      "result": "2/2"
     },
     {
       "command": "npm run regenerate:manifest",
       "exit_code": 0,
-      "result": "rebuilt 128 digests; changed: ci.yml, package.json, package-lock.json, app-dependencies, app-stack, test-coverage-floor and foundation-contract tests"
+      "result": "rebuilt 128 digests"
     },
     {
       "command": "node scripts/commit-when-clean.mjs (runs npm run verify)",
       "exit_code": 0,
-      "result": "clean: tests 857, pass 857, fail 0 (committed 15d9bf55); count unchanged, so record:verification was not needed"
+      "result": "clean: tests 858, pass 858, fail 0 (committed 15e00a5a; evidence/VERIFICATION.md recorded 858 by record:verification first); then a mechanical sync merge of origin/main f20b7319 (a737fde3)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-006",
       "exit_code": 0,
-      "result": "all 15 changed paths declared; every amendment explains one"
+      "result": "every changed path declared; every amendment explains one"
     },
     {
       "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
       "exit_code": 0,
-      "result": "tier H; lane governance (ci.yml, the package files, the lockfile, four guard tests, the integrity manifest)"
-    },
-    {
-      "command": "node --test test-kits/app-stack.test.mjs",
-      "exit_code": 0,
-      "result": "21/21 at a4905788 (fix round 1). Mutation proof: with the services reader of 8b54d83a restored, A1's insertion and seven other new service controls pass the guard (the test fails at A1's insertion); with dbEnvProblems unwired, the test fails at the first env control"
-    },
-    {
-      "command": "node --test test-kits/app-stack.test.mjs",
-      "exit_code": 0,
-      "result": "21/21 at fe3e8f63 (fix round 2). Mutation proof: with rawLineBreakProblems returning [], 24 of the 25 new controls pass the rest of both readers with no problem at all and the test fails at the first (A1's service volume via CR); the whole-file CRLF control was already refused by the pins and is kept as a class control"
-    },
-    {
-      "command": "node --test test-kits/app-stack.test.mjs",
-      "exit_code": 0,
-      "result": "21/21 at 37cfbaf6 (fix round 3). Mutation proof on temporary copies: fix (1) reverted to the A1-305-2 set, 40 of 45 controls not named on the raw text (U+FEFF stays in that set) and the test fails; fix (2) reverted to \\s and trim, 35 of 45 not refused by the structure readers (U+200B and U+180E are not JavaScript white space) and the test fails; both reverted, 30 of 45 pass the whole guard (A1's finding reproduced)"
+      "result": "governance"
     }
   ],
-  "security_privacy_cost_impact": "Supply chain: 25 new registry packages (pg and 13 transitive, @types/pg, @supabase/supabase-js with 7, @supabase/ssr with cookie), all MIT or ISC, none with an install script or bin, none with telemetry of its own; installed with --ignore-scripts. No credential: DB_TEST_URL and PGPASSWORD name CI's throwaway container, as the bootstrap job does; no provider is bound and no secret is added. CI: the application job starts one more container and applies the migrations (about 15 seconds locally), and the bootstrap job's negative control runs on this pull request because ci.yml is on its surface. The A1-287-2 key allowlist admits one services block, held line for line (A1 reads it).",
-  "migration_and_data_impact": "None: no migration and no db/** file. The manifest declares db/foundation/migrations/175_*.sql writable for the later migration pull request the Owner assigned to this package; nothing is written there.",
-  "compatibility_impact": "No contract, catalog or API change. New workspace apps/worker; apps/web gains two runtime dependencies it does not import yet; the root gains one devDependency (types only).",
+  "security_privacy_cost_impact": "Schema only, on local and CI databases: three NOT NULL columns on app.outbox_events that no client role can read or write (050's empty client allowlist kept; the block asserts it) and app_worker may SELECT and INSERT but no role may UPDATE. actor_id is bounded to an identifier shape, not a PII control (A1-174-2). No policy, role, function, SECURITY DEFINER, grant to anon or authenticated, or service_role use. app_worker still reads and writes no row of the three kernel tables. No provider, credential, network or cost.",
+  "migration_and_data_impact": "One forward migration, 175_outbox_tenant_context.sql, applied on migrate-clean clusters (local and CI) only; declared not applied to the provisioned instance (catalog-snapshot.json), which has never received 050. ADD COLUMN ... NOT NULL with no default fails closed on a table holding a row; no such row exists where it applies.",
+  "compatibility_impact": "Every writer of app.outbox_events must now name actor_kind, actor_id and request_id (the 050 fixture and the isolation suite do); the outbox adapter, not yet written, must too. No contract, catalog or API change.",
   "known_limitations": [
-    "CI's application job with the service container has not run yet (not pushed); the reachability test and the database step were run locally against postgres 17.11 only.",
-    "The adapter file is type-only; no adapter, route or composition code exists yet, so the new packages are installed and not imported (except pg by the reachability test).",
-    "The commit message of 15d9bf55 lists the guard tests it edits but omits test-kits/test-coverage-floor.test.mjs's one-line workspace pin; the manifest, the disposition and this handoff name it.",
-    "foundation-contract's neighbouring test still loops over `[...KERNEL_CREATED, 'adapters/job-store.ts']` (the file is visited twice) and its comment says 'not yet created'; left unedited to keep the hunk minimal (open_blockers[8]).",
-    "The boundary guard refuses the name app_worker_login outside apps/worker/composition/**; the job store's A1R-2 session check will need the name passed from the composition root (open_blockers, FOUND entry)."
+    "The worker still cannot claim, complete, append or record on the three kernel tables: no policy and no broker (open_blockers[5]); the job store and outbox adapters' database tests wait on that.",
+    "The rls-smoke run was local (PostgreSQL 17.11, trust); CI's bootstrap job on the pushed head is owed, and worker-login-authentication runs only on a scram cluster.",
+    "CTR-TEN-001's ids are narrowed on the outbox as on app.jobs (owed to the contract owner with WP-0A-DB-00 open_blockers[202] (2))."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE (RFC-2026-034 §2.2): ci.yml, package.json, package-lock.json, apps/web/package.json, apps/worker/package.json, four guard tests and the integrity manifest. Not additive: test-kits/app-stack.test.mjs widens A1-287-2's allowlist (one pinned services block; DB_TEST_URL and PGPASSWORD on the step-env list) and re-points one existing control. Additive: KERNEL_CREATED gains adapters/job-store.ts. Authority: the Owner's answer of 2026-10-20T03:00:37.969Z, header `Deps + CI` (evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-deps-ci.md; manifest required_human_authorities[4]); A0 may press after C0, A1, Q0 and R0 pass on the final head and CI is green on both jobs. This handoff records no role verdict.",
-    "Q-029-2 is decided as Supabase Cron, while RFC-2026-029 §10 and §2.8 still read Vercel Cron and an environment-held secret; the RFC note and the secret's custody are owed before the dispatcher increment (manifest open_blockers[9]).",
-    "The forward migration (175) is this package's under the `Migration` answer and is owed in its own governance pull request (open_blockers[5]).",
-    "Fix round 1 for PR #305: A1-305-1 (A1 changes_requested on 8b54d83a, a1-review-2026-10-20-pr305.md on branch a1/wp-1a-a0-006-pr305-2026-10-20) is taken in a4905788, and A1-305-I1/C0-305-I1 with it; A1-305-I2 is not (index.ts is outside this package's paths). A1's carry clause asks for its re-read of the changed guard hunk; this handoff records no role verdict.",
-    "Fix round 2 for PR #305: A1-305-2 (A1 changes_requested on ce68efbd, a1-review-2026-10-20-pr305-r2.md on branch a1/wp-1a-a0-006-pr305-r2-2026-10-20) is taken in fe3e8f63; the check also closes the same class in main's A1-287-2 job-key allowlist. A1's carry clause asks for its re-read of the changed guard hunk; this handoff records no role verdict.",
-    "Fix round 3 for PR #305: A1-305-3 (A1 changes_requested on 3f2889d6, a1-review-2026-10-20-pr305-r3.md on branch a1/wp-1a-a0-006-pr305-r3-2026-10-20) is taken in 37cfbaf6, as a class by Unicode category on the raw text and again by space-and-tab-only structure reading; the class is also on main (two of A1's insertions pass main's guard) and is closed there by this change once merged. A1's carry clause asks for its re-read of the changed guard hunk; this handoff records no role verdict."
+    "GOVERNANCE (RFC-2026-034 §2.2): a migration and WP-0A-DB-00's guards and pins (scripts/db/run.mjs, db/foundation/lint/**, test-kits/db/foundation-contract.test.mjs, scripts/test-suite-contract.mjs). Authority: the Owner's answer of 2026-10-20T07:20:50.664Z, header `Mig 175 กด` (evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-mig175.md; manifest required_human_authorities[5]); A0 may press after C0, A1, Q0 and R0 pass on the final head, CI is green on both jobs with the migration applied, and no security finding is open. This handoff records no role verdict.",
+    "STOPPED FOR A0: CARRIED policies TO app_worker on the three kernel tables contradict RFC-2026-022 §5/5; an Owner decision amending it (RFC pull request) or confirming broker-only access is owed (open_blockers[5]).",
+    "OWED: the app_queue broker, waiting on CTR-JOB-001's lifecycle state names and transition policy (open_blockers[5]).",
+    "OWED: R0's acceptance of number 175; the narrowing of WP-0A-DB-00's writable db/foundation/** (a WP-0A-DB-00 pull request) before 175 can be listed in outputs.files; A1-302-I2's closing in WP-1A-A0-004's records."
   ],
-  "rollback_or_forward_fix": "Before merge: close the pull request. After merge: one reviewed revert restores package.json, package-lock.json, apps/web/package.json, removes apps/worker, the application job's service and database step, the guard-test hunks, adapters/job-store.ts with its KERNEL_CREATED entry and the reachability test, and the integrity digests together; nothing depends on them yet.",
+  "rollback_or_forward_fix": "Before merge: close the pull request. After merge: never edit 175; a later forward migration drops the three constraints and columns (after any writer naming them is reverted), with PINNED_CHECKS, PINNED_NOT_NULL, pinned-grants.json, vocabulary-checks.json, the 050 fixture and the isolation builder reverted in the same diff, and the batch-175 test and its floor with them.",
   "recommended_next_work_packages": [
-    "WP-1A-A0-006: the forward migration 175 (policies for the CARRIED statements, the app_queue broker, the outbox tenant_context), governance, all four roles.",
-    "WP-1A-A0-006: the Postgres job store adapter with A1R-2 checks, tested against the CI container, after the migration.",
-    "WP-1A-A0-004: a records pull request recording the D6 answer of 2026-10-20 in its open_blockers."
+    "A0: ask the Owner whether RFC-2026-022 §5/5 is amended (CARRIED policies on the kernel tables) or the worker reaches them through the broker only.",
+    "CTR-JOB-001's owner: restate the lifecycle state names and transition policy, then this package writes the app_queue broker migration.",
+    "WP-0A-DB-00: narrow its writable db/foundation/** to exclude 175_*.sql; WP-1A-A0-004: record A1-302-I2 closed at the schema."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-deps-ci.md against the session transcript (records 913 and 914; question 2026-10-20T02:58:32.953Z, answer 03:00:37.969Z), and its §3 readings as A0's.",
-    "Read the lockfile diff entry by entry against the disposition's §4 table (25 added, none removed; versions, licences, no hasInstallScript, no bin).",
-    "In .github/workflows/ci.yml compare the application job's services block with the bootstrap job's byte for byte, and check no existing application step changed what it runs or its order.",
-    "In test-kits/app-stack.test.mjs read the workflowJobs services split, APPLICATION_SERVICES, servicesProblems (wired into runnerEnvWriteProblems and shellProblems), the step-env allowlist change and the five new negative controls; confirm the redis control still refuses.",
-    "Check adapters/job-store.ts imports no package and that index.ts does not re-export it; check the reachability test fails under CI without DB_TEST_URL.",
-    "Run: npm run check; node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-006; node scripts/db/classify-review-tier.mjs origin/main HEAD --lane; and with npm ci --ignore-scripts: npm run typecheck, npm run test:app, node scripts/verify-app-boundaries.mjs --require-parser.",
-    "Fix round 1 (a4905788): in test-kits/app-stack.test.mjs read workflowJobs' raw-line services reader (blank and `#`-led lines held pending and kept when a further block line follows), servicesProblems' new message, dbEnvProblems (wired into runnerEnvWriteProblems) and the controls after the five services controls; restore the old reader and confirm A1's insertion passes again; manifest open_blockers last entry.",
-    "Fix round 2 (fe3e8f63): in test-kits/app-stack.test.mjs read RAW_LINE_BREAKS and rawLineBreakProblems (first in runnerEnvWriteProblems and shellProblems) and the 25 controls after the DB env controls; make rawLineBreakProblems return [] and confirm A1's three insertions pass again; count the characters in main's ci.yml (0); manifest open_blockers last entry.",
-    "Fix round 3 (37cfbaf6): in test-kits/app-stack.test.mjs read RAW_REFUSED and rawCharacterProblems, YAML_COMMENT_LINE, yamlBlank and yamlTrim and each place they replace \\s or trim(), NO_APPLICATION_JOB, and the 45 controls after the A1-305-2 controls; revert each fix alone and confirm the controls fail; count the refused characters in main's ci.yml (0); manifest open_blockers last entry."
+    "Read evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-mig175.md against the transcript (records 913/914 and 1341/1342), and its §3 (c) reading against RFC-2026-022 §5/5, §7.1/5 and RFC-2026-028 §3.2, §5/10.",
+    "Read db/foundation/migrations/175_outbox_tenant_context.sql beside 174_job_tenant_context.sql: same column shape, bounds and grants; no policy, role or function.",
+    "Run on a fresh PostgreSQL 17 with the shim: make db-migrate-clean, make db-schema-lint, make db-rls-smoke; read the outbox-event-names-its-tenant-context transcript; drift 175 (a nullable column, an UPDATE grant) and see its block refuse it.",
+    "Run: npm run check; node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-006; node scripts/db/classify-review-tier.mjs origin/main HEAD --lane; the three work-package validators."
   ],
   "superseded_by": null,
   "outputs": null

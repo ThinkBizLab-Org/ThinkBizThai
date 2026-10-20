@@ -2727,13 +2727,16 @@ export function buildCases(id) {
   // `event_id` is left to the column default rather than passed: a case may not contain a uuid, and
   // the two catalog symbols name rows that already exist, so an insert that reused one would be
   // refused by the unique constraint instead of by the layer the case is about.
+  // Batch 175 (A1-302-I2): and it names the event's actor and request, NOT NULL with no default and INSERTable by
+  // app_worker, for the reason the enqueue above names the job's: the service's refusal stays row level security's.
   const publishOutboxEvent = (workspace, business) => ({
     sql: 'insert into app.outbox_events'
        + ' (event_type, event_version, occurred_at, producer_module_key,'
        + ' producer_implementation_version, workspace_id, subject_type, subject_id, subject_version,'
-       + ' correlation_id, schema_ref)'
+       + ' correlation_id, schema_ref, actor_kind, actor_id, request_id)'
        + " values ('attempted.outbox.event', 1, now(), 'attempted.module', '0.0.0', $1,"
-       + " 'business_profile', $2, 1, 'attempted-correlation', 'CTR-EVT-001@1.0.0') returning id",
+       + " 'business_profile', $2, 1, 'attempted-correlation', 'CTR-EVT-001@1.0.0',"
+       + " 'system_actor', 'attempted.sweep', 'attempted-request') returning id",
     params: [workspace, business],
   });
 

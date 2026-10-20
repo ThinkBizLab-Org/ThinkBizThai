@@ -114,8 +114,10 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // unpinned behaviours: 98 to 103. RFC-2026-007 Amendment 2026-10-13 (2026-10-13, no migration; the lane walk and the
 // TypeScript files PR #257 added): six tests -- the string-name exceptions pinned; the records lane on the repository as
 // it stands; the records lane once the platform-kernel files exist (R0-259-1); an unexcused mention; an excused namer's
-// import; a stale or malformed entry: 103 to 109.
-  'test-kits/db/foundation-contract.test.mjs': 109,
+// import; a stale or malformed entry: 103 to 109. Batch 175 (2026-10-20, migration 175, A1-302-I2; WP-1A-A0-006): one
+// test -- app.outbox_events' tenant-context columns, every writer naming them, no policy on the three kernel tables, and
+// the outbox-context proof driven by a fake: 109 to 110.
+  'test-kits/db/foundation-contract.test.mjs': 110,
   'test-kits/db/rls-assertions.test.mjs': 20,
 // Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
 // -- 296 to 301 tests and 2101 to 2130 assertions -- and the assertion half moved only
@@ -447,7 +449,7 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   // added, none removed or renamed), and foundation-contract's again with the second (four tests added, none removed or
   // renamed) and the third (five tests added, none removed or renamed). foundation-contract's moves again with RFC-2026-007
   // Amendment 2026-10-13 (six tests added, none removed or renamed).
-  'test-kits/db/foundation-contract.test.mjs': 'f3a2bc18cacb55aa',
+  'test-kits/db/foundation-contract.test.mjs': '8c9581efea6c5749',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
   'tests/db/identity/identity-isolation.test.mjs': '25aa50b576c0925b',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
