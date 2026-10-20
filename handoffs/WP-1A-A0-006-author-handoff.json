@@ -5,14 +5,18 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "f20b731900e94e98a17f92bd0beb70babdfaa823",
-  "head_revision_or_patch_checksum": "a737fde3a87e6095f58f26b30232f8d1bd4cf10a",
+  "head_revision_or_patch_checksum": "cc318f17c2d7157b17edf273c5c2cd07deed862d",
   "task_ids": [
     "WP-1A-A0-006",
     "mig175-2026-10-20"
   ],
   "files_added": [
     "db/foundation/migrations/175_outbox_tenant_context.sql",
-    "evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-mig175.md"
+    "evidence/WP-1A-A0-006/a1-review-2026-10-20-pr307.md",
+    "evidence/WP-1A-A0-006/c0-review-2026-10-20-pr307.md",
+    "evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-mig175.md",
+    "evidence/WP-1A-A0-006/q0-review-2026-10-20-pr307.md",
+    "evidence/WP-1A-A0-006/r0-review-2026-10-20-pr307.md"
   ],
   "files_modified": [
     "db/foundation/lint/catalog-snapshot.json",
