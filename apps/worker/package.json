@@ -1,0 +1,9 @@
+{
+  "name": "@thinkbizthai/worker",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ThinkBizThai job dispatcher (RFC-2026-029 §2.7/3, §2.8, §6.1; MOD-000's job runtime, A0-owned); its own Vercel project, not provisioned",
+  "dependencies": {
+    "pg": "8.23.1"
+  }
+}

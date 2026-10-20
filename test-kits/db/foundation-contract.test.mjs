@@ -7542,8 +7542,9 @@ const RECORDS_PROBE = 'evidence/WP-1A-A0-002/records-transcription-probe.md';
 const KERNEL_DIR = 'src/modules/platform-kernel';
 const kernelPath = (inside) => `${KERNEL_DIR}/${inside}`;
 // The files the module has created, by their paths inside it: each must stay (A1-280-1, Q0-280-1; §C test 2). The pull
-// request that creates the job store adapter (adapters/job-store.ts) adds it here, which is an edit of this test.
-const KERNEL_CREATED = ['application/run.ts', 'index.ts'];
+// request that creates the job store adapter (adapters/job-store.ts) adds it here, which is an edit of this test: done by
+// WP-1A-A0-006's dependencies-and-CI pull request (the Product Owner's answer of 2026-10-20, header `Deps + CI`; A1-300-I2).
+const KERNEL_CREATED = ['adapters/job-store.ts', 'application/run.ts', 'index.ts'];
 // Every file a guard's fixture gives the module, by a fictitious name no pull request creates (§G).
 const KERNEL_FICTITIOUS = ['adapters/probe-store.ts', 'application/probe-run.ts', 'index.tsx'];
 const MENTION = /^governance: ("(?:[^"\\]|\\.)*") names ("(?:[^"\\]|\\.)*"), which resolves to ("(?:[^"\\]|\\.)*"), code node can run and the walk cannot read \(fail closed\)$/;

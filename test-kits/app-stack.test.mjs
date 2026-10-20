@@ -142,23 +142,55 @@ test('the release-age verdict asks only about new entries and refuses a young, u
     'an exception names one version and admits no other');
 });
 
+// A1-305-3. YAML's white space is the space and the tab and nothing else; JavaScript's `\s` and `trim`
+// also take NBSP, U+1680, U+2000-U+200A, U+202F, U+205F, U+3000 and U+FEFF. So every reading here that
+// decides what YAML structure a line of ci.yml has (a comment line, a blank line, a key or block-scalar
+// header with nothing after it, a trailing comment, a value compared as written) uses these, space and
+// tab only, and no `\s` or `trim`: a `<NBSP># ...` line is content to YAML and is read as content
+// here. A `\s` left in a pattern that only REFUSES (YAML_FORMS, CONDITION_KEY, KEY_LINE's first key
+// character, the npm_config_ and bare-dash readings) refuses more than YAML's reading would, so it fails
+// closed; trim() left on text only quoted in a message decides nothing. rawCharacterProblems refuses
+// every such character before any of this is read (belt and braces).
+const YAML_COMMENT_LINE = /^[ \t]*#/;
+const yamlBlank = (line) => /^[ \t]*$/.test(line);
+const yamlTrim = (text) => text.replace(/^[ \t]+|[ \t]+$/g, '');
+
 // The workflow's jobs and steps, read by indentation: a job is a two-space key under `jobs:`, a step a
 // six-space `- ` item in it. Comments are dropped first, so a step quoted in a comment is not a step.
+// WP-1A-A0-006: a job's `services:` block, written plainly as a four-space key with every line under it
+// indented deeper, is read apart from the job's head into `services`, from ci.yml's RAW lines; the
+// application job's is held to APPLICATION_SERVICES byte for byte (servicesProblems). Any other spelling
+// of the key stays in the head, where the key allowlist refuses it. A1-305-1: inside the block, a blank
+// line and a `#`-led line are NOT left out. In a block scalar (`options: >-`) YAML reads both as content
+// (a `#`-led line after a blank one becomes text docker splits into flags), so each is kept in `services`
+// and the block no longer equals the pin. Blank and `#`-led lines are held pending and kept only when a
+// further line of the block follows them; those after the block's last line (`- 5432:5432`, a plain
+// scalar the pin puts last, so no block scalar is open there) are ci.yml's comments and stay free.
 function workflowJobs(ci) {
-  const lines = ci.split('\n').filter((line) => !/^\s*#/.test(line));
+  const lines = ci.split('\n');
   const jobs = new Map();
   let job = null;
   let step = null;
   let inJobs = false;
+  let pending = [];
   for (const line of lines) {
-    if (/^jobs:\s*$/.test(line)) { inJobs = true; continue; }
+    const loose = yamlBlank(line) || YAML_COMMENT_LINE.test(line);
+    if (job?.inServices) {
+      if (loose) { pending.push(line); continue; }
+      if (/^ {6}/.test(line)) { job.services.push(...pending, line); pending = []; continue; }
+      job.inServices = false;
+    }
+    pending = [];
+    if (YAML_COMMENT_LINE.test(line)) continue;
+    if (/^jobs:[ \t]*$/.test(line)) { inJobs = true; continue; }
     if (!inJobs) continue;
-    const key = line.match(/^ {2}([A-Za-z][\w-]*):\s*$/);
+    const key = line.match(/^ {2}([A-Za-z][\w-]*):[ \t]*$/);
     if (key) { job = { name: key[1], head: [], steps: [] }; jobs.set(key[1], job); step = null; continue; }
     if (!job) continue;
     if (/^ {6}- /.test(line)) { step = { text: [line.slice(8)] }; job.steps.push(step); continue; }
-    if (step && (/^ {8}/.test(line) || line.trim() === '')) { step.text.push(line.slice(8)); continue; }
+    if (step && (/^ {8}/.test(line) || yamlBlank(line))) { step.text.push(line.slice(8)); continue; }
     step = null;
+    if (/^ {4}services:[ \t]*$/.test(line)) { job.services = [...(job.services ?? []), line]; job.inServices = true; continue; }
     job.head.push(line);
   }
   for (const each of jobs.values()) {
@@ -258,6 +290,7 @@ test('CI runs the application checks in a job of their own, after every guard of
     ['Verify the application boundaries (parsed)', 'node scripts/verify-app-boundaries.mjs --require-parser'],
     ['Type-check the application', 'npm run typecheck'],
     ['Type-check negative control', 'node scripts/verify-typecheck-control.mjs'],
+    ['Database for the application tests', null],
     ['Application tests', 'npm run test:app'],
     ['Verify the application boundaries again, before the build (parsed)', 'node scripts/verify-app-boundaries.mjs --require-parser'],
     ['Build the web application', 'npm run build --workspace apps/web'],
@@ -276,6 +309,16 @@ test('CI runs the application checks in a job of their own, after every guard of
   assert.match(app.steps[1].run, /EXPECTED_SHA|cannot report on a commit it did not test/);
   assert.match(app.steps[1].raw, /EXPECTED_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
   assert.match(app.steps.find((s) => s.name === 'Release age of new lockfile entries (network)').raw, /if: github\.event_name == 'pull_request'[\s\S]*BASE_SHA: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/, 'the release age is measured against the pull request\'s base');
+  // WP-1A-A0-006: one Postgres service, the bootstrap job's exactly; the migrations applied to it as the
+  // bootstrap job applies them, before the tests; the tests given its URL (no password in it).
+  assert.deepEqual(app.services, APPLICATION_SERVICES, 'the application job starts the pinned postgres:17 container and nothing else');
+  assert.deepEqual(jobs.get('bootstrap').services, APPLICATION_SERVICES, 'the same container as the bootstrap job, written exactly as it is there');
+  const DB_ENV = /env:\n {2}PGPASSWORD: postgres\n {2}DB_TEST_URL: postgresql:\/\/postgres@localhost:5432\/thinkbizthai_test\n/;
+  const database = app.steps.find((s) => s.name === 'Database for the application tests');
+  assert.equal(database.run, 'psql "$DB_TEST_URL" -v ON_ERROR_STOP=1 -q -f db/foundation/ci/supabase-shim.sql\nLC_ALL=C TZ=UTC make db-migrate-clean', 'the shim, then the migrations, as the bootstrap job applies them');
+  assert.match(database.raw, DB_ENV);
+  assert.match(app.steps.find((s) => s.name === 'Application tests').raw, DB_ENV, 'the tests reach the container');
+  assert.ok(!PACKAGE_CODE.test(database.run), 'the database step runs no installed package code');
 
   // Nothing that runs an installed package is left in the bootstrap job, where the RLS guards run.
   const bootstrap = jobs.get('bootstrap').steps.map((s) => s.run ?? '').join('\n');
@@ -288,10 +331,13 @@ test('CI runs the application checks in a job of their own, after every guard of
   }
 });
 
+// Every install-shaped line of every job's run: text, per job (Q0-257-5; hoisted for A1-305-3's controls).
+const ciInstalls = (text) => [...workflowJobs(text).values()].map((job) => [job.name,
+  job.steps.flatMap((s) => (s.run ?? '').split('\n')).filter((line) => /\bnpm (?:ci|install|i|add|update|rebuild)\b|\bnpx\b|\byarn\b|\bpnpm\b/.test(line)).map((line) => line.trim())]);
+
 test('CI installs only with npm ci --ignore-scripts, once per job, and no step may fail without failing the run (Q0-257-5)', async () => {
   const ci = await readFile('.github/workflows/ci.yml', 'utf8');
-  const installs = (text) => [...workflowJobs(text).values()].map((job) => [job.name,
-    job.steps.flatMap((s) => (s.run ?? '').split('\n')).filter((line) => /\bnpm (?:ci|install|i|add|update|rebuild)\b|\bnpx\b|\byarn\b|\bpnpm\b/.test(line)).map((line) => line.trim())]);
+  const installs = ciInstalls;
   assert.deepEqual(installs(ci), [['bootstrap', ['npm ci --ignore-scripts --no-bin-links']], ['application', ['npm ci --ignore-scripts']]],
     'one npm ci --ignore-scripts in each job, and no other install; the bootstrap job links no package bin (A1-257-6)');
   // A1-257-6's negative control: the bootstrap install without --no-bin-links, as it stood at 82a1741f, is seen.
@@ -299,7 +345,7 @@ test('CI installs only with npm ci --ignore-scripts, once per job, and no step m
   assert.notEqual(linked, ci);
   assert.deepEqual(installs(linked)[0], ['bootstrap', ['npm ci --ignore-scripts']], 'a bootstrap install that links bins is seen');
   assert.notDeepEqual(installs(linked), installs(ci));
-  const code = ci.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n');
+  const code = ci.split('\n').filter((line) => !YAML_COMMENT_LINE.test(line)).join('\n');
   assert.doesNotMatch(code, /continue-on-error/, 'no step or job is continue-on-error');
   // The negative controls: Q0's M40 (a second, plain npm ci) and M45 (continue-on-error on the release age).
   const plain = ci.replace('      - name: Verify the application dependencies\n', '      - name: Reinstall\n        run: npm ci\n      - name: Verify the application dependencies\n');
@@ -307,7 +353,7 @@ test('CI installs only with npm ci --ignore-scripts, once per job, and no step m
   const soft = ci.replace("      - name: Release age of new lockfile entries (network)\n        if: github.event_name == 'pull_request'\n",
     "      - name: Release age of new lockfile entries (network)\n        if: github.event_name == 'pull_request'\n        continue-on-error: true\n");
   assert.notEqual(soft, ci);
-  assert.match(soft.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n'), /continue-on-error/, 'a continue-on-error is seen');
+  assert.match(soft.split('\n').filter((line) => !YAML_COMMENT_LINE.test(line)).join('\n'), /continue-on-error/, 'a continue-on-error is seen');
 });
 
 test('CI runs npm audit and the release age straight after the install, before any step that executes package code (A1-AUD1015-1)', async () => {
@@ -348,7 +394,7 @@ test('CI runs npm audit and the release age straight after the install, before a
 // points it at another server. So the audit step carries no `env:` at all, and no key of the application
 // job, at the job or any step, names an `npm_config_*` variable in any letter case. Returns the problems.
 function auditEnvProblems(job) {
-  const problems = job.steps.filter((s) => /\bnpm audit\b/.test(s.run ?? '') && keyLines(s.raw).some((line) => /^\s*["']?env["']?\s*:/.test(line)))
+  const problems = job.steps.filter((s) => /\bnpm audit\b/.test(s.run ?? '') && keyLines(s.raw).some((line) => /^[ \t]*["']?env["']?[ \t]*:/.test(line)))
     .map((s) => `step "${s.name}" runs npm audit with an env: of its own`);
   const lines = [...job.head, ...job.steps.flatMap((s) => keyLines(s.raw))];
   for (const line of lines.filter((l) => /(?:^|[{,]|-\s|\?\s)\s*["']?npm_config_/i.test(l))) problems.push(`the application job sets \`${line.trim()}\``);
@@ -361,10 +407,10 @@ function auditEnvProblems(job) {
 // tagged, anchored, explicit, merged, commented), is refused because it is not one of those lines.
 const TOP_LEVEL = /^(?:name|on|permissions|jobs):(?: [^#]*)?$/;
 function workflowTopLevelProblems(ci) {
-  return ci.split('\n').filter((line) => /^\S/.test(line) && !line.startsWith('#') && !TOP_LEVEL.test(line)).map((line) => `ci.yml has the top-level line \`${line}\``);
+  return ci.split('\n').filter((line) => /^[^ \t]/.test(line) && !line.startsWith('#') && !TOP_LEVEL.test(line)).map((line) => `ci.yml has the top-level line \`${line}\``);
 }
 function workflowNpmConfigProblems(ci) {
-  const lines = keyLines(ci.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n'));
+  const lines = keyLines(ci.split('\n').filter((line) => !YAML_COMMENT_LINE.test(line)).join('\n'));
   return lines.filter((l) => /(?:^|[{[,]|-\s|\?\s)\s*["']?npm_config_/i.test(l)).map((l) => `ci.yml sets \`${l.trim()}\``);
 }
 // Q0-279r2-2 and A1-279-3 read the same text, applicationJobText: the lines of ci.yml from the line after
@@ -379,20 +425,20 @@ function workflowNpmConfigProblems(ci) {
 // both in yamlFormProblems; and every key the job may carry is on an allowlist (applicationKeyProblems).
 function applicationJobText(ci) {
   const lines = ci.split('\n');
-  const start = lines.findIndex((line) => /^ {2}application:\s*$/.test(line));
+  const start = lines.findIndex((line) => /^ {2}application:[ \t]*$/.test(line));
   if (start === -1) return ['(ci.yml has no application job: nothing to read, refused)'];
   const out = [];
   let block = null;
   for (const line of lines.slice(start + 1)) {
     const indent = line.match(/^ */)[0].length;
     if (block !== null) {
-      if (line.trim() === '' || indent > block) { out.push(line); continue; }
+      if (yamlBlank(line) || indent > block) { out.push(line); continue; }
       block = null;
     }
-    if (/^\s*#/.test(line)) continue;
-    if (/^ {2}[A-Za-z][\w-]*:\s*$/.test(line)) break;
+    if (YAML_COMMENT_LINE.test(line)) continue;
+    if (/^ {2}[A-Za-z][\w-]*:[ \t]*$/.test(line)) break;
     out.push(line);
-    if (/:\s*[|>][-+0-9]*\s*$/.test(withoutComment(line))) block = indent;
+    if (/:[ \t]*[|>][-+0-9]*[ \t]*$/.test(withoutComment(line))) block = indent;
   }
   return out;
 }
@@ -408,9 +454,59 @@ const APPLICATION_KEYS = Object.freeze({
   job: Object.freeze(['env', 'needs', 'runs-on', 'steps']),
   'job env': Object.freeze(['NEXT_TELEMETRY_DISABLED', 'NODE_OPTIONS']),
   step: Object.freeze(['env', 'if', 'name', 'run', 'uses', 'with']),
-  'step env': Object.freeze(['BASE_SHA', 'EXPECTED_SHA']),
+  'step env': Object.freeze(['BASE_SHA', 'DB_TEST_URL', 'EXPECTED_SHA', 'PGPASSWORD']),
   'step with': Object.freeze(['check-latest', 'fetch-depth', 'node-version', 'persist-credentials', 'ref']),
 });
+// WP-1A-A0-006 (the Product Owner's answer of 2026-10-20, header `Deps + CI`). A1-287-2 names `services:` as
+// a key that starts more containers, so the job's one service is not a key on the allowlist but a block held
+// line for line: the bootstrap job's postgres:17 container, written exactly as it is there. A second service,
+// another image, an option, a volume, an entrypoint or a port added, removed or changed is refused.
+const APPLICATION_SERVICES = Object.freeze([
+  '    services:',
+  '      postgres:',
+  '        image: postgres:17',
+  '        env:',
+  '          POSTGRES_PASSWORD: postgres',
+  '          POSTGRES_DB: thinkbizthai_test',
+  '        options: >-',
+  '          --health-cmd pg_isready',
+  '          --health-interval 10s',
+  '          --health-timeout 5s',
+  '          --health-retries 5',
+  '        ports:',
+  '          - 5432:5432',
+]);
+function servicesProblems(job) {
+  if (job.services === undefined) return [];
+  if (JSON.stringify(job.services) === JSON.stringify(APPLICATION_SERVICES)) return [];
+  const loose = job.services.filter((l) => yamlBlank(l) || YAML_COMMENT_LINE.test(l));
+  return [`the ${job.name} job's services: block is not the pinned postgres:17 container, byte for byte: \`${job.services.map((l) => JSON.stringify(l)).join(' | ')}\``,
+    ...(loose.length ? [`the ${job.name} job's services: block holds ${loose.length} blank or \`#\`-led line(s) inside it, which YAML reads as content in a block scalar (A1-305-1)`] : [])];
+}
+// A1-305-I1 / C0-305-I1. The two step-env names the service brought (DB_TEST_URL, PGPASSWORD) are on the
+// step env allowlist by key; this holds them by step and by value: they may appear only on the two steps
+// that use them, and there only with the bootstrap job's values (the container's URL with no password,
+// and its throwaway password), so no `${{ secrets.* }}` or other host can ride on either name.
+const DB_ENV_STEPS = Object.freeze(['Database for the application tests', 'Application tests']);
+const DB_ENV_VALUES = Object.freeze({ PGPASSWORD: 'PGPASSWORD: postgres', DB_TEST_URL: 'DB_TEST_URL: postgresql://postgres@localhost:5432/thinkbizthai_test' });
+function dbEnvProblems(job) {
+  const problems = [];
+  job.steps.forEach((step, i) => {
+    const where = `step "${step.name ?? step.uses ?? `step ${i + 1}`}"`;
+    let under = null;
+    for (const line of keyLines(step.raw).filter((l) => !yamlBlank(l))) {
+      const match = line.match(KEY_LINE);
+      if (!match) continue;
+      const indent = match[1].length;
+      const key = unquoted(match[2]);
+      if (indent === 0) { under = key; continue; }
+      if (indent !== 2 || under !== 'env' || !Object.hasOwn(DB_ENV_VALUES, key)) continue;
+      if (!DB_ENV_STEPS.includes(step.name)) problems.push(`${where} sets \`${key}\`, which only ${DB_ENV_STEPS.map((n) => `"${n}"`).join(' and ')} may set: \`${line.trim()}\``);
+      else if (yamlTrim(line) !== DB_ENV_VALUES[key]) problems.push(`${where} sets \`${key}\` to another value than the bootstrap job's: \`${yamlTrim(line)}\``);
+    }
+  });
+  return problems;
+}
 const KEY_LINE = /^( *)(?:-[ ]+)?("(?:[^"\\]|\\.)*"|'(?:[^']|'')*'|[^\s"'#:][^:#]*?)[ ]*:(?:[ ]|$)/;
 const unquoted = (key) => (key.startsWith('"') ? key.slice(1, -1) : key.startsWith("'") ? key.slice(1, -1).replace(/''/g, "'") : key);
 function applicationKeys(job) {
@@ -423,7 +519,7 @@ function applicationKeys(job) {
     return key;
   };
   let parent = null;
-  for (const line of job.head.filter((l) => l.trim() !== '')) {
+  for (const line of job.head.filter((l) => !yamlBlank(l))) {
     const indent = line.match(/^ */)[0].length;
     if (!KEY_LINE.test(line) || (indent !== 4 && indent !== 6)) { problems.push(`the application job has a line the key reading cannot place: \`${line.trim()}\``); continue; }
     if (indent === 4) parent = place('the application job', line, 'job');
@@ -433,7 +529,7 @@ function applicationKeys(job) {
   job.steps.forEach((step, i) => {
     const where = `step "${step.name ?? step.uses ?? `step ${i + 1}`}"`;
     let under = null;
-    for (const line of keyLines(step.raw).filter((l) => l.trim() !== '')) {
+    for (const line of keyLines(step.raw).filter((l) => !yamlBlank(l))) {
       const indent = line.match(/^ */)[0].length;
       if (!KEY_LINE.test(line) || (indent !== 0 && indent !== 2)) { problems.push(`${where} has a line the key reading cannot place: \`${line.trim()}\``); continue; }
       if (indent === 0) under = place(where, line, 'step');
@@ -468,10 +564,46 @@ function applicationKeys(job) {
 // A1-AUD1015-1 (the audit and release age run before any step that executes package code). The bootstrap job is not read: a job's GITHUB_ENV and
 // GITHUB_PATH reach only that job's later steps, never the application job. Returns the problems.
 const RUNNER_ENV_WRITE = /GITHUB_ENV|GITHUB_PATH|_runner_file_commands|ACTIONS_ALLOW_UNSECURE_COMMANDS|::(?:set-env|add-path)\b/i;
+// A1-305-2. Every reader here splits ci.yml on `\n` and drops `#`-led lines, but YAML also breaks a line
+// on a lone `\r` (every version) and YAML 1.1 parsers on NEL U+0085, LS U+2028 and PS U+2029. So one
+// line the reader takes for a comment (`    # note\r        volumes:\r          - ...`) can carry
+// further YAML lines: a service volume, a step env (`DB_TEST_URL: ${{ secrets.* }}`), or a job key
+// past A1-287-2's allowlist. Closed as a CLASS, on the raw text, before any reading: ci.yml holds no
+// `\r` (a CRLF line end included), no U+0085, U+2028 or U+2029, no other C0 or C1 control character
+// but `\n` and `\t`, no DEL and no U+FEFF byte-order mark anywhere. main's ci.yml holds none of them, so
+// nothing legitimate is lost. Returns one problem per character kind found.
+// A1-305-3, the same class a third time: a Unicode space before `#` (NBSP, U+2000-U+200A, U+3000, ...)
+// is white space to JavaScript's `\s` and `trim`, so a reader took `<NBSP># ...` for a comment, but
+// YAML's only white space is the space and the tab, so YAML reads that line as content (a scalar's
+// continuation, a block scalar's body). Closed as a CLASS by Unicode category, not by listing code points:
+// ci.yml holds no character of the categories Cc (controls), Cf (format: U+200B, U+FEFF, U+180E, U+2060,
+// bidi controls, ...), Zl, Zp or Zs (every space separator) but the space U+0020, the tab and `\n`.
+// Graphic characters of any script still pass: ci.yml's comments use the em dash U+2014, the ellipsis
+// U+2026, the section sign U+00A7 and Thai (U+0E00-U+0E7F), none of which is in those categories. The
+// A1-305-2 characters keep their message; the rest are named A1-305-3. YAML_COMMENT_LINE, yamlBlank and
+// yamlTrim read structure with space and tab only, so each fix holds without the other.
+const RAW_REFUSED = /(?![\t\n ])[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Zs}]/gu;
+const RAW_LINE_BREAKS = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u2028\u2029\ufeff]/u;
+const RAW_CATEGORIES = [['Cc', /\p{Cc}/u], ['Cf', /\p{Cf}/u], ['Zl', /\p{Zl}/u], ['Zp', /\p{Zp}/u], ['Zs', /\p{Zs}/u]];
+function rawCharacterProblems(ci) {
+  const counts = new Map();
+  for (const [ch] of ci.matchAll(RAW_REFUSED)) counts.set(ch, (counts.get(ch) ?? 0) + 1);
+  return [...counts].map(([ch, n]) => {
+    const code = `U+${ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')}`;
+    if (RAW_LINE_BREAKS.test(ch)) return `ci.yml holds ${n} ${code} character(s), which YAML can read as a line break or which the line reading does not see; refused before ci.yml is read (A1-305-2)`;
+    const category = RAW_CATEGORIES.find(([, re]) => re.test(ch))[0];
+    return `ci.yml holds ${n} ${code} character(s) (category ${category}), which YAML does not read as white space where JavaScript's \\s and trim do, or reads as content where the line reading sees nothing; refused before ci.yml is read (A1-305-3)`;
+  });
+}
+// A1-305-3: the job is found by its key line read with space and tab only, so a ci.yml whose
+// `  application:` line the reading cannot find (a CRLF file, a Unicode space after the colon) is refused
+// as such, not read as a missing job.
+const NO_APPLICATION_JOB = 'ci.yml has no `  application:` job line the reading can find: nothing to read, refused';
 function runnerEnvWriteProblems(ci) {
   const job = workflowJobs(ci).get('application');
-  return [...applicationJobText(ci).filter((line) => RUNNER_ENV_WRITE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which writes or opens the environment of later steps`),
-    ...yamlFormProblems(job), ...applicationKeys(job).problems];
+  if (!job) return [...rawCharacterProblems(ci), NO_APPLICATION_JOB];
+  return [...rawCharacterProblems(ci), ...applicationJobText(ci).filter((line) => RUNNER_ENV_WRITE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which writes or opens the environment of later steps`),
+    ...yamlFormProblems(job), ...applicationKeys(job).problems, ...servicesProblems(job), ...dbEnvProblems(job)];
 }
 function auditProblems(steps) {
   const lines = steps.flatMap((s) => (s.run ?? '').split('\n')).filter((line) => /\bnpm audit\b/.test(line)).map((line) => line.trim());
@@ -594,6 +726,169 @@ test('CI audits the dev dependencies too, the packages the application job runs 
   // list, and each list is exactly the keys main's ci.yml uses there, so neither side can drift unseen.
   const keys = applicationKeys(workflowJobs(ci).get('application'));
   assert.deepEqual(keys.problems, [], 'every key of the application job is on its allowlist');
+  // WP-1A-A0-006: the job's one service is held line for line. On the head it is the pinned container;
+  // a second service, another image, an entrypoint option or a volume added, or the key quoted (then read
+  // in the head, where the key allowlist refuses it) are each refused.
+  assert.deepEqual(servicesProblems(workflowJobs(ci).get('application')), [], 'the application job\'s service is the pinned container');
+  const SERVICE_PORTS = '        ports:\n          - 5432:5432\n';
+  assert.ok(ci.indexOf(SERVICE_PORTS, ci.indexOf('  application:\n')) !== -1, 'the application service reads as written');
+  const atService = (from, to) => { const i = ci.indexOf(from, ci.indexOf('  application:\n')); return ci.slice(0, i) + to + ci.slice(i + from.length); };
+  for (const [mutated, expected] of [
+    [atService(SERVICE_PORTS, '        ports:\n          - 5432:5432\n      redis:\n        image: redis:7\n'), 'services: block is not the pinned postgres:17 container'],
+    [atService('        image: postgres:17\n', '        image: postgres:latest\n'), 'services: block is not the pinned postgres:17 container'],
+    [atService('          --health-retries 5\n', '          --health-retries 5\n          --entrypoint /bin/sh\n'), 'services: block is not the pinned postgres:17 container'],
+    [atService(SERVICE_PORTS, '        ports:\n          - 5432:5432\n        volumes:\n          - /var/run/docker.sock:/var/run/docker.sock\n'), 'services: block is not the pinned postgres:17 container'],
+    [atService('    services:\n', '    "services":\n'), 'has the job key `services`'],
+  ]) {
+    assert.notEqual(mutated, ci);
+    const problems = runnerEnvWriteProblems(mutated);
+    assert.ok(problems.some((p) => p.includes(expected)), 'refused: ' + expected + ' (found ' + JSON.stringify(problems) + ')');
+  }
+  // A1-305-1: inside the block a blank line and a `#`-led line are content to YAML (in `options: >-` a
+  // blank line then `#x --privileged ...` hands docker real flags), so the block is read from the raw lines
+  // and each such line breaks the byte-for-byte pin. A1's insertion, then its parts alone and its variants:
+  // a `#`-led line at the job's depth, tab-led lines, a CRLF line end and a trailing space. The same in the
+  // bootstrap job's block. A comment after the block's last line is ci.yml's own, and stays free.
+  const HEALTH_CMD = '          --health-cmd pg_isready\n';
+  const PIN = 'services: block is not the pinned postgres:17 container';
+  for (const [mutated, expected] of [
+    [atService(HEALTH_CMD, HEALTH_CMD + '\n          #x --privileged -v /var/run/docker.sock:/var/run/docker.sock\n'), 'blank or `#`-led line(s) inside it'],
+    [atService(HEALTH_CMD, HEALTH_CMD + '\n'), 'blank or `#`-led line(s) inside it'],
+    [atService(HEALTH_CMD, HEALTH_CMD + '   \n'), 'blank or `#`-led line(s) inside it'],
+    [atService(HEALTH_CMD, HEALTH_CMD + '          #x --privileged\n'), 'blank or `#`-led line(s) inside it'],
+    [atService(HEALTH_CMD, HEALTH_CMD + '    # --privileged\n'), 'blank or `#`-led line(s) inside it'],
+    [atService(HEALTH_CMD, HEALTH_CMD + '\n\t#x --privileged\n'), 'blank or `#`-led line(s) inside it'],
+    [atService(HEALTH_CMD, HEALTH_CMD + '          \t--privileged\n'), PIN],
+    [atService(HEALTH_CMD, '          --health-cmd pg_isready\r\n'), PIN],
+    [atService(HEALTH_CMD, '          --health-cmd pg_isready \n'), PIN],
+    [atService('        image: postgres:17\n', '        image: postgres:17\n\n        # x\n'), 'blank or `#`-led line(s) inside it'],
+  ]) {
+    assert.notEqual(mutated, ci);
+    const problems = runnerEnvWriteProblems(mutated);
+    assert.ok(problems.some((p) => p.includes(expected)), 'refused: ' + JSON.stringify(expected) + ' (found ' + JSON.stringify(problems) + ')');
+    assert.ok(problems.some((p) => p.includes(PIN)), 'the block is not the pin');
+  }
+  const bootHealth = ci.indexOf(HEALTH_CMD);
+  assert.ok(bootHealth !== -1 && bootHealth < ci.indexOf('  application:\n'), 'the bootstrap job\'s service reads as written');
+  const bootMutated = ci.slice(0, bootHealth) + HEALTH_CMD + '\n          #x --privileged -v /var/run/docker.sock:/var/run/docker.sock\n' + ci.slice(bootHealth + HEALTH_CMD.length);
+  assert.notDeepEqual(workflowJobs(bootMutated).get('bootstrap').services, APPLICATION_SERVICES, 'A1\'s insertion in the bootstrap job\'s block breaks its pin too');
+  assert.deepEqual(servicesProblems(workflowJobs(atService(SERVICE_PORTS, SERVICE_PORTS + '\n    # a comment after the block\n\n')).get('application')), [], 'a comment after the block is not in it');
+  // A1-305-I1 / C0-305-I1: DB_TEST_URL and PGPASSWORD only on their two steps, and only with the bootstrap
+  // job's values; a `${{ secrets.* }}` or another host on either name, on any step, is refused.
+  const BUILD_STEP = '      - name: Build the web application\n';
+  const TESTS_DB_URL = '          DB_TEST_URL: postgresql://postgres@localhost:5432/thinkbizthai_test\n        run: npm run test:app\n';
+  assert.deepEqual(dbEnvProblems(workflowJobs(ci).get('application')), [], 'the two names are on their two steps, with the bootstrap job\'s values');
+  assert.ok(ci.includes(BUILD_STEP) && ci.includes(TESTS_DB_URL), 'the build and tests steps read as written');
+  for (const [mutated, expected] of [
+    [ci.replace(BUILD_STEP, BUILD_STEP + '        env:\n          DB_TEST_URL: ${{ secrets.X }}\n'), 'step "Build the web application" sets `DB_TEST_URL`, which only'],
+    [ci.replace(BUILD_STEP, BUILD_STEP + "        env:\n          'PGPASSWORD': postgres\n"), 'step "Build the web application" sets `PGPASSWORD`, which only'],
+    [ci.replace(AUDIT_STEP, AUDIT_STEP + '        env:\n          PGPASSWORD: postgres\n'), 'step "Vulnerability audit (network)" sets `PGPASSWORD`, which only'],
+    [ci.replace(TESTS_DB_URL, '          DB_TEST_URL: ${{ secrets.DB_TEST_URL }}\n        run: npm run test:app\n'), 'step "Application tests" sets `DB_TEST_URL` to another value'],
+    [ci.replace(TESTS_DB_URL, '          DB_TEST_URL: postgresql://postgres@db.example.com:5432/thinkbizthai_test\n        run: npm run test:app\n'), 'step "Application tests" sets `DB_TEST_URL` to another value'],
+    [ci.replace(TESTS_DB_URL, TESTS_DB_URL.replace('          DB_TEST_URL', '          "DB_TEST_URL"').replace('thinkbizthai_test\n', 'prod\n')), 'step "Application tests" sets `DB_TEST_URL` to another value'],
+  ]) {
+    assert.notEqual(mutated, ci);
+    const problems = runnerEnvWriteProblems(mutated);
+    assert.ok(problems.some((p) => p.includes(expected)), 'refused: ' + expected + ' (found ' + JSON.stringify(problems) + ')');
+  }
+  // A1-305-2: a line break the line reading does not split on. None in ci.yml; A1's three insertions (a
+  // service volume after `- 5432:5432`, a step env on the build step, and main's job-head `services:` past
+  // the A1-287-2 allowlist), each with a lone `\r` and again with NEL, LS and PS, plus `credentials:`, a
+  // `container:` key, a whole-file CRLF, a BOM and other control characters, are each refused by both
+  // readers, on the raw text, whatever the rest of the reading makes of them.
+  assert.deepEqual(rawCharacterProblems(ci), [], 'ci.yml holds no line break but \\n and no control character but \\n and \\t');
+  const AFTER_NEEDS = '  application:\n    needs: bootstrap\n';
+  assert.ok(ci.includes(AFTER_NEEDS), 'the application job head reads as written');
+  const breaks = [];
+  for (const [br, code] of [['\r', 'U+000D'], ['\u0085', 'U+0085'], ['\u2028', 'U+2028'], ['\u2029', 'U+2029']]) {
+    breaks.push([atService(SERVICE_PORTS, SERVICE_PORTS + `    # note${br}        volumes:${br}          - /var/run/docker.sock:/var/run/docker.sock\n`), code]);
+    breaks.push([atService(SERVICE_PORTS, SERVICE_PORTS + `    # note${br}        credentials:${br}          username: x${br}          password: \${{ secrets.X }}\n`), code]);
+    breaks.push([ci.replace(BUILD_STEP, BUILD_STEP + `        # x${br}        env:${br}          DB_TEST_URL: \${{ secrets.PROD_DB_URL }}\n`), code]);
+    breaks.push([ci.replace(AFTER_NEEDS, AFTER_NEEDS + `    # note${br}    services:${br}      evil:${br}        image: alpine${br}        options: --privileged\n`), code]);
+    breaks.push([ci.replace(AFTER_NEEDS, AFTER_NEEDS + `    # note${br}    container: ubuntu:24.04\n`), code]);
+  }
+  breaks.push([ci.replace(/\n/g, '\r\n'), 'U+000D']);
+  breaks.push(['\ufeff' + ci, 'U+FEFF']);
+  breaks.push([ci.replace(AFTER_NEEDS, AFTER_NEEDS + '    # note\u000b    container: ubuntu:24.04\n'), 'U+000B']);
+  breaks.push([ci.replace(AFTER_NEEDS, AFTER_NEEDS + '    # note\u000c    container: ubuntu:24.04\n'), 'U+000C']);
+  breaks.push([ci.replace(AFTER_NEEDS, AFTER_NEEDS + '    # note\u0000\n'), 'U+0000']);
+  breaks.forEach(([mutated, code], i) => {
+    assert.notEqual(mutated, ci);
+    const expected = `${code} character(s), which YAML can read as a line break`;
+    for (const reader of [runnerEnvWriteProblems, shellProblems]) {
+      const problems = reader(mutated);
+      assert.ok(problems.some((p) => p.includes(expected) && p.endsWith('(A1-305-2)')), `${reader.name} refuses ${code} in control ${i + 1} (found ${JSON.stringify(problems).slice(0, 400)})`);
+    }
+  });
+  {
+  // A1-305-3. A1's five insertions, each a line whose first non-space character is a Unicode space (or a
+  // format character) and then `#`: YAML reads it as content, a reader using `\s` took it for a comment.
+  // Each is spelled with NBSP and U+3000 (A1's) and with U+2000, U+2007, U+200B (Cf), U+202F, U+205F,
+  // U+FEFF and U+180E (Cf). Each must be refused twice over, by each fix alone: (1) rawCharacterProblems
+  // names the character on the raw text; (2) with every raw-character problem set aside, the structure
+  // readers (runnerEnvWriteProblems, shellProblems, the install list) still refuse it, because they read
+  // the line as YAML does. Then the positive control: a comment with Thai, an em dash, an ellipsis and §
+  // passes every reader, as ci.yml's own comments do.
+    const app = ci.indexOf('  application:\n');
+    const after = (find, insert) => { const i = ci.indexOf(find, app); assert.ok(i !== -1, `${JSON.stringify(find)} reads as written`); return ci.slice(0, i + find.length) + insert + ci.slice(i + find.length); };
+    const TESTS_PGPASSWORD = '      - name: Application tests\n        env:\n          PGPASSWORD: postgres\n';
+    const DATABASE_URL = '      - name: Database for the application tests\n        env:\n          PGPASSWORD: postgres\n          DB_TEST_URL: postgresql://postgres@localhost:5432/thinkbizthai_test\n';
+    const DEPENDENCIES = '        run: node scripts/verify-app-dependencies.mjs\n';
+    const TOOLCHAIN_BODY = '      - name: Verify pinned toolchain for the application\n        run: |\n          test "$(node --version)" = "v24.20.0"\n';
+    const PORTS = '        ports:\n          - 5432:5432\n';
+    const baseInstalls = ciInstalls(ci);
+    const notRaw = (problems) => problems.filter((p) => !p.includes('refused before ci.yml is read'));
+    const CHARACTERS = [['\u00a0', 'Zs'], ['\u3000', 'Zs'], ['\u2000', 'Zs'], ['\u2007', 'Zs'], ['\u200b', 'Cf'], ['\u202f', 'Zs'], ['\u205f', 'Zs'], ['\ufeff', 'Cf'], ['\u180e', 'Cf']];
+    let count = 0;
+    for (const [ch, category] of CHARACTERS) {
+      const code = `U+${ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')}`;
+      for (const [what, mutated] of [
+        ['a secret on PGPASSWORD', after(TESTS_PGPASSWORD, `            ${ch}# \${{ secrets.PROD_DB_PASSWORD }}\n`)],
+        ['a secret on DB_TEST_URL', after(DATABASE_URL, `            ${ch}# \${{ secrets.PROD_DB_URL }}\n`)],
+        ['a $GITHUB_ENV write on a run line', after(DEPENDENCIES, '          ' + ch + '# || echo NODE_OPTIONS=--require=/tmp/x.js >> "$GITHUB_ENV"\n')],
+        ['an install in a run: | body', after(TOOLCHAIN_BODY, `          ${ch}# || npm install left-pad\n`)],
+        ['a docker flag on the service port', after(PORTS, `            ${ch}# --privileged\n`)],
+      ]) {
+        count += 1;
+        assert.notEqual(mutated, ci);
+        const label = `${what} behind ${code}`;
+        // (1) the raw text.
+        const raw = rawCharacterProblems(mutated);
+        const named = raw.find((p) => p.includes(`1 ${code} character(s)`));
+        assert.ok(named, `fix (1) refuses ${label} (found ${JSON.stringify(raw)})`);
+        if (ch !== '\ufeff') assert.ok(named.includes(`(category ${category})`) && named.endsWith('(A1-305-3)'), `${label}: ${named}`);
+        for (const reader of [runnerEnvWriteProblems, shellProblems]) assert.ok(reader(mutated).includes(named), `${reader.name} refuses ${label} on the raw text`);
+        // (2) the structure, with every raw-character problem set aside.
+        const structural = [...notRaw(runnerEnvWriteProblems(mutated)), ...notRaw(shellProblems(mutated))];
+        const installs = ciInstalls(mutated);
+        assert.ok(structural.length > 0 || JSON.stringify(installs) !== JSON.stringify(baseInstalls), `fix (2) reads ${label} as content and refuses it (installs ${JSON.stringify(installs)})`);
+      }
+    }
+    assert.equal(count, 45, 'five insertions in nine characters');
+    // The install insertion is refused by the install list, the others by the job readers; named so a
+    // later change cannot move a control onto a reader that no longer reads it.
+    const nbsp = (find, insert) => after(find, insert.replace('<>', '\u00a0'));
+    assert.deepEqual(ciInstalls(nbsp(TOOLCHAIN_BODY, '          <># || npm install left-pad\n'))[1], ['application', ['# || npm install left-pad', 'npm ci --ignore-scripts']], 'the install behind NBSP is in the run text (the list trims it for display)');
+    assert.ok(notRaw(runnerEnvWriteProblems(nbsp(PORTS, '            <># --privileged\n'))).some((p) => p.includes('services: block is not the pinned postgres:17 container')), 'the port line behind NBSP is in the services block');
+    assert.ok(notRaw(runnerEnvWriteProblems(nbsp(DEPENDENCIES, '          <># || echo NODE_OPTIONS=--require=/tmp/x.js >> "$GITHUB_ENV"\n'))).some((p) => p.includes('which writes or opens the environment of later steps')), 'the $GITHUB_ENV line behind NBSP is read');
+    for (const [find, insert] of [[TESTS_PGPASSWORD, '            <># ${{ secrets.PROD_DB_PASSWORD }}\n'], [DATABASE_URL, '            <># ${{ secrets.PROD_DB_URL }}\n']]) {
+      assert.ok(notRaw(runnerEnvWriteProblems(nbsp(find, insert))).some((p) => p.includes('a line the key reading cannot place')), `${JSON.stringify(insert)} is a line the key reading cannot place`);
+    }
+    // A blank-looking line of NBSP only, and a YAML structure line led by U+3000, are not blank or comment.
+    assert.equal(yamlBlank('    \u00a0'), false);
+    assert.equal(YAML_COMMENT_LINE.test('  \u3000# x'), false);
+    assert.equal(yamlTrim('PGPASSWORD: postgres\u00a0'), 'PGPASSWORD: postgres\u00a0');
+    // Positive controls: ci.yml (main's characters: the em dash, the ellipsis, § and Thai in comments) has
+    // none of the refused characters, and a further comment line with each passes every reader.
+    assert.deepEqual(rawCharacterProblems(ci), []);
+    for (const ch of ['—', '…', '§', 'ไ']) assert.ok(ci.includes(ch), `ci.yml's comments use ${JSON.stringify(ch)}`);
+    const graphic = after('  application:\n    needs: bootstrap\n', '    # หมายเหตุ — ดู RFC-2026-029 §3 … ใช้ได้\n');
+    assert.notEqual(graphic, ci);
+    assert.deepEqual(rawCharacterProblems(graphic), [], 'Thai, an em dash, § and an ellipsis are graphic characters');
+    assert.deepEqual(runnerEnvWriteProblems(graphic), [], 'the comment line passes the environment readers');
+    assert.deepEqual(shellProblems(graphic), [], 'and the shell reader');
+    assert.deepEqual(ciInstalls(graphic), baseInstalls, 'and changes no install');
+  }
   for (const [level, allowed] of Object.entries(APPLICATION_KEYS)) assert.deepEqual([...keys.seen[level]].sort(), [...allowed], 'the ' + level + ' allowlist is exactly what the application job uses');
   // A1-287-1: a `#`-led line inside a block-scalar body is shell text, and is read; a quoted scalar that
   // spans lines is refused. Q1 and Q2 are A1's: a shell string opened on one line and closed on a `#`-led
@@ -651,18 +946,18 @@ const RELEASE_AGE_CONDITION = "if: github.event_name == 'pull_request'";
 const CONDITION_KEY = /(?:^|[{,]|-\s)\s*["']?(if|continue-on-error)["']?\s*:/;
 // A trailing comment, `#` at the line start or after whitespace, removed (quotes are not considered: a
 // `#` in a quoted value is refused below as a comment, failing closed).
-const withoutComment = (line) => line.replace(/(?:^|\s)#.*$/, '');
+const withoutComment = (line) => line.replace(/(?:^|[ \t])#.*$/, '');
 function keyLines(text) {
   const out = [];
   let block = null;
   for (const line of text.split('\n')) {
     const indent = line.match(/^ */)[0].length;
     if (block !== null) {
-      if (line.trim() === '' || indent > block) continue;
+      if (yamlBlank(line) || indent > block) continue;
       block = null;
     }
     out.push(line);
-    if (/:\s*[|>][-+0-9]*\s*$/.test(withoutComment(line))) block = indent;
+    if (/:[ \t]*[|>][-+0-9]*[ \t]*$/.test(withoutComment(line))) block = indent;
   }
   return out;
 }
@@ -698,7 +993,7 @@ const withoutExpressions = (line) => line.replace(/\$\{\{[^}]*\}\}/g, '');
 function yamlFormProblems(job) {
   const lines = [...job.head.map((line) => ['the application job', line]),
     ...job.steps.flatMap((step, i) => keyLines(step.raw).map((line) => [`step "${step.name ?? step.uses ?? `step ${i + 1}`}"`, line]))];
-  const bare = job.steps.flatMap((step, i) => (withoutComment(step.raw.split('\n')[0]).trim() === '' ? [`step ${i + 1} is a dash line with no key on it: \`- ${step.raw.split('\n')[0]}\``] : []));
+  const bare = job.steps.flatMap((step, i) => (yamlBlank(withoutComment(step.raw.split('\n')[0])) ? [`step ${i + 1} is a dash line with no key on it: \`- ${step.raw.split('\n')[0]}\``] : []));
   // A dash the step reader does not take for a step (a bare `-`, a `-` and a tab) lands in the job's own
   // lines; it is refused there as a line the reading cannot place.
   bare.push(...job.head.filter((line) => /^\s*-(?:\s|$)/.test(line)).map((line) => `the application job has a dash line the reading cannot place: \`${line.trim()}\``));
@@ -730,19 +1025,22 @@ function applicationConditionProblems(job) {
 // level may hold only name, on, permissions and jobs, so no workflow `defaults:` in any spelling
 // (workflowTopLevelProblems); the YAML forms that could spell the key without its letters, or hide lines
 // in a quoted scalar, are refused by yamlFormProblems; and the job's keys are an allowlist (A1-287-2), so
-// `container:` (another image's shell) and `services:` are refused, as is any key main does not use.
+// `container:` (another image's shell) is refused, as is any key main does not use; `services:` is held to
+// the one pinned postgres:17 block (WP-1A-A0-006, servicesProblems), so another or a further service is refused.
 // THE RESIDUAL, stated plainly: the reader sees ci.yml's text, not what runs or what a `${{ }}`
 // expression evaluates to. A shell chosen by other means (a step that runs `bash +e script.sh` or
 // `sh -c "..."`, or `set +e` in a `run: |` body, which the default `bash -e` honours), a repository or npm
 // script that swallows its own failure, and the pinned actions' own behaviour are not seen; they are held
 // by the review of every ci.yml and script change and by the step list A1-257-4 pins. The bootstrap job
-// is not read here (A1-279-3 named the application job). Returns the problems.
+// is not read here (A1-279-3 named the application job). A1-305-2: a line break the reading does not
+// split on is refused first, on ci.yml's raw text (rawCharacterProblems). Returns the problems.
 const SHELL_CHOICE = /shell|defaults/i;
 function shellProblems(ci) {
   const job = workflowJobs(ci).get('application');
-  return [...workflowTopLevelProblems(ci),
+  if (!job) return [...rawCharacterProblems(ci), ...workflowTopLevelProblems(ci), NO_APPLICATION_JOB];
+  return [...rawCharacterProblems(ci), ...workflowTopLevelProblems(ci),
     ...applicationJobText(ci).filter((line) => SHELL_CHOICE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which can choose the shell a run: is handed to`),
-    ...yamlFormProblems(job), ...applicationKeys(job).problems];
+    ...yamlFormProblems(job), ...applicationKeys(job).problems, ...servicesProblems(job)];
 }
 
 test('no step of the application job runs on a condition or may fail softly, except the release age\'s pull-request condition (A1-270-2)', async () => {
@@ -863,7 +1161,7 @@ test('no step of the application job runs on a condition or may fail softly, exc
   // A1-287-2: job keys that hand every run: to another shell, refused by the allowlist.
   shellCases.push([ci.replace(NEEDS, NEEDS + '    container: ubuntu:24.04\n'), 'has the job key `container`']);
   shellCases.push([ci.replace(NEEDS, NEEDS + '    container:\n      image: ubuntu:24.04\n'), 'has the job key `container`']);
-  shellCases.push([ci.replace(NEEDS, NEEDS + '    services:\n      cache:\n        image: redis:7\n'), 'has the job key `services`']);
+  shellCases.push([ci.replace(NEEDS, NEEDS + '    services:\n      cache:\n        image: redis:7\n'), 'services: block is not the pinned postgres:17 container']);
   shellCases.push([ci.replace(NEEDS, NEEDS + "    'container': ubuntu:24.04\n"), 'has the job key `container`']);
   shellCases.push([ci.replace(TOOLCHAIN_STEP + '        run: |\n', TOOLCHAIN_STEP + '        run: |\n          # shell: x\n'), 'names `# shell: x`']);
   // A YAML comment outside a block body is still a comment, and is not read: ci.yml's own comments stay free.
