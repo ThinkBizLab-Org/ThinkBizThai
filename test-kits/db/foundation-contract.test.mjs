@@ -6142,9 +6142,15 @@ test('batch 175: an outbox event names its actor and request as 174 makes a job 
   // permanently; §5/6's broker waits on CTR-JOB-001's lifecycle vocabulary (§9). Neither is written by 175.
   assert.doesNotMatch(sql.replace(SQL_LINE_COMMENTS, ''), /\bcreate\s+(policy|role|function|or\s+replace)\b|\bsecurity\s+definer\b|\bapp_queue\b/i,
     'no policy, role, function or SECURITY DEFINER: the CARRIED policies would amend RFC-2026-022 §5/5 and the broker is owed');
+  // 2026-10-20, WP-0A-CON-001 CTR-JOB-001 lifecycle increment (declared amendment of this file): the vocabulary
+  // RFC-2026-022 §9 waited on is now named in schema.json x-lifecycle, derived and never stored. 175 still writes no
+  // broker; that stays owed, and this pins the decision the broker will read instead of the reservation it replaced.
   const job = JSON.parse(await readFile('contract-catalog/shared-kernel/ctr-job-001/manifest.json', 'utf8'));
-  assert.match(job.freeze_boundary, /lifecycle state names and transition policy remain subject to source-defined owner review/,
-    'the broker\'s missing term: CTR-JOB-001\'s lifecycle vocabulary is not fixed (RFC-2026-022 §9)');
+  assert.doesNotMatch(job.freeze_boundary, /lifecycle state names and transition policy remain subject to source-defined owner review/,
+    'the reservation was lifted by the contract owner; a boundary reserving it again would contradict x-lifecycle');
+  const jobSchema = JSON.parse(await readFile('contract-catalog/shared-kernel/ctr-job-001/schema.json', 'utf8'));
+  assert.match(String(jobSchema['x-lifecycle']?.stored), /^No state is stored\. The record has no status field and gains none/,
+    'the broker\'s term: CTR-JOB-001\'s lifecycle is derived from timestamps and counters, never stored (x-lifecycle)');
   const [block] = m.applyTimeBlocks(name, sql);
   assert.ok(block, 'one apply-time block, re-run by the post-migrate pass');
   for (const raise of ['tenant-context columns are not text, NOT NULL and default-free', 'tenant-context CHECK(s) missing, unvalidated or not in their text',

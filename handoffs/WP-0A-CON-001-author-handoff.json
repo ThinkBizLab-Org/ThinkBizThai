@@ -4,78 +4,99 @@
   "work_package_id": "WP-0A-CON-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "928afae9ccae3cca9eea2f2f6756e2c9b0f49ad2",
-  "head_revision_or_patch_checksum": "454ed1d0c318bea4db42a5fcaeadbd182bdb0afd",
+  "base_revision": "0a8690de97b2989dd5e08a35e3ece3afcafc0065",
+  "head_revision_or_patch_checksum": "066c406d4dbc479220ed05c0a50445a7d42957d4",
   "task_ids": [
     "WP-0A-CON-001",
-    "r0-acknowledgement-amended-by-0-2026-10-11"
+    "ctr-job-001-lifecycle-2026-10-20"
   ],
   "files_added": [
-    "evidence/WP-0A-CON-001/a1-review-2026-10-11-pr253.md",
-    "evidence/WP-0A-CON-001/q0-review-2026-10-11-pr253.md",
-    "evidence/WP-0A-CON-001/records-transcription-2026-10-11.md",
-    "handoffs/WP-0A-CON-001-author-handoff.json"
+    "evidence/WP-0A-CON-001/a1-review-2026-10-20-pr308.md",
+    "evidence/WP-0A-CON-001/c0-review-2026-10-20-pr308.md",
+    "evidence/WP-0A-CON-001/ctr-job-lifecycle-2026-10-20.md",
+    "evidence/WP-0A-CON-001/product-owner-disposition-2026-10-20-ctr-job-lifecycle.md",
+    "evidence/WP-0A-CON-001/q0-review-2026-10-20-pr308.md",
+    "evidence/WP-0A-CON-001/r0-review-2026-10-20-pr308.md"
   ],
   "files_modified": [
+    "contract-catalog/shared-kernel/ctr-job-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-job-001/schema.json",
+    "handoffs/WP-0A-CON-001-author-handoff.json",
+    "test-kits/contracts/catalog-registry.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "tests/db/identity/identity-isolation.test.mjs",
     "work-packages/WP-0A-CON-001.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "RFC-2026-003",
-    "RFC-2026-025",
+    "RFC-2026-022",
+    "RFC-2026-031",
     "RFC-2026-034"
   ],
   "contracts_consumed": [],
-  "contracts_produced_or_changed": [],
+  "contracts_produced_or_changed": [
+    "CTR-JOB-001"
+  ],
   "assumptions": [
-    "THIS INCREMENT transcribes /claude/r0_steward's acknowledgement of this package's one amended_by entry, WP-0A-A0-002's narrowing of writable_paths under RFC-2026-003 (1873ade0), in R0's words from evidence/WP-0A-A0-001/r0-review-2026-10-11-pr250.md §6, and creates handoffs/WP-0A-CON-001-author-handoff.json, the name the handoff guard reads. Written by /claude/a0_atlas acting as A0 for this package, whose role_assignments.author_agent_run_id stays /root (as WP-0A-A0-001 records the same arrangement), so agent_run_id is /root.",
-    "Records content (not records-only; Risk lane): every recorded word is a role's own, on main in the file cited, with only the placeholders the role named filled from gh and git; A0 decides nothing here. Facts and sources: evidence/WP-0A-CON-001/records-transcription-2026-10-11.md.",
-    "Path: NOT records-only (classify-records-only exits 1: this manifest keeps ownership.amended_by as one object, not a list, which RFC-2026-025 §6.1 rule 4 does not admit). Tier H outside governance, so the RFC-2026-034 §2.2 Risk lane: A1 (Security/Privacy) and Q0 (Tester) on the final head."
+    "THIS INCREMENT (2026-10-20) names CTR-JOB-001's lifecycle in contract-catalog/shared-kernel/ctr-job-001/schema.json x-lifecycle, on the Product Owner's direction of 2026-10-20 (session 5ea77291, transcript records 1601/1605, header `JOB lifecycle`, transcribed byte-exact in evidence/WP-0A-CON-001/product-owner-disposition-2026-10-20-ctr-job-lifecycle.md): seven states derived at an instant from timestamps and counters and never stored, and fourteen transitions with their actor, matching src/modules/platform-kernel/domain/jobs/job-decisions.ts at main f20b7319 (evidence/WP-0A-CON-001/ctr-job-lifecycle-2026-10-20.md section 3). Written by /claude/a0_atlas acting as A0 for this package, as CTR-JOB-001's owner.",
+    "The change lands in WP-0A-CON-001, not WP-0A-CON-008 as the Owner's option text says, because this package owns the contract directory and RFC-2026-031 section 4.5 says so; A0's reading (disposition section 3 item 2).",
+    "The Owner's answer is a direction to drive the freeze, not RFC-2026-031 section 4.4's approval by name at a head; CTR-JOB-001 stays Candidate."
   ],
   "acceptance_results": [
     {
-      "criterion": "Recorded words match their sources; old entries byte-equal; no status, contract, test or script change beyond what is stated",
-      "result": "pass for author self-check: extracted by script from the cited role files"
+      "criterion": "No contract advances from Draft/Candidate to Frozen without the documented owner/reviewer approval",
+      "result": "pass for author self-check: status stays Candidate in the manifest and the index"
+    },
+    {
+      "criterion": "Every cataloged entry cites its baseline Contract ID, owner/producer/consumer, version, status/freeze level and required fixture types without inventing contract semantics",
+      "result": "for C0: the lifecycle names what the merged kernel decides (evidence section 3), on the Owner's direction; the schema's accepted set is unchanged"
     }
   ],
   "tests": [
     {
-      "command": "npm run validate:protocol",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (under the suite lock; commits 8459a340, after the sync of main 0a8690de)",
       "exit_code": 0,
-      "result": "valid"
+      "result": "clean: exit 0 — tests 858, pass 858, fail 0, skipped 0, todo 0"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commit the records commit)",
+      "command": "npm run record:verification (under the suite lock)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 740, pass 740, fail 0"
+      "result": "recorded 858 passing, 0 skipped, 0 todo"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-001",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (under the suite lock; commits bb431cae, before the sync)",
       "exit_code": 0,
-      "result": "every changed path declared, every amendment explains one"
+      "result": "clean: exit 0 — tests 857, pass 857, fail 0, skipped 0"
     },
     {
-      "command": "npm run check:handoff",
+      "command": "node scripts/db/classify-records-only.mjs --sync bb431cae 94c63cf6 origin/main",
       "exit_code": 0,
-      "result": "the handoff cites this branch"
+      "result": "mechanical sync; no conflict inside the PR's own paths; integrity manifest regenerated"
     }
   ],
-  "security_privacy_cost_impact": "Records content (not records-only; Risk lane). No authority is granted or widened; no credential, customer data or provider call.",
-  "migration_and_data_impact": "None.",
-  "compatibility_impact": "No contract changes: records only; no contract-catalog file.",
+  "security_privacy_cost_impact": "Contract text only; no accepted-set change, no credential, customer data, provider call or cost. x-lifecycle.actors states the worker acts only through the app_queue broker (RFC-2026-022 section 5 items 5-6) and the command path only in the job's own workspace; for A1 to read. The open A1 findings on CTR-JOB-001 (WP-0A-CON-005 open_blockers[11]) are unchanged and still block the freeze.",
+  "migration_and_data_impact": "None. No migration; app.jobs (050, 174) unchanged; the broker (migration 176) is not written.",
+  "compatibility_impact": "Contract-catalog changes are additive: CTR-JOB-001 schema.json gains one x- annotation and manifest.json restates freeze_boundary and adds untestable_by_fixture; every fixture keeps its verdict (not breaking under RFC-2026-031 section 3.3). Registry pins in test-kits/contracts/catalog-registry.test.mjs and one assertion each in tests/db/identity/identity-isolation.test.mjs and test-kits/db/foundation-contract.test.mjs (batch 175, arrived with the sync of main 0a8690de) move, declared under amends_without_owning.",
   "known_limitations": [
-    "The catalog-schema acknowledgements R0's §6 names as not reviewed stay pending."
+    "Frozen v1 is not reached: evidence/WP-0A-CON-001/ctr-job-lifecycle-2026-10-20.md section 4 lists each RFC-2026-031 section 4.1 item that blocks it and its owner.",
+    "Comments in WP-1A-A0-004's job code and WP-1A-A0-004 open_blockers[4] still quote the old freeze_boundary; not edited here.",
+    "The lifecycle-to-code mapping is checked by reading, not by a test that pins the kernel's derivation to x-lifecycle.states."
   ],
   "open_risks_or_blockers": [
-    "Risk lane (RFC-2026-034 §2.2): A1 and Q0 pass on the final head; A0 presses under Q-034-1 once bootstrap is green on this exact head containing main, as a true merge commit pinned with --match-head-commit; R0 gives the integration verdict in the round audit."
+    "Governance lane (RFC-2026-034 section 2.2): C0, A1, Q0 and R0 read the final head; per the Owner's answer of 2026-10-20 (`A0 ดัน CTR-JOB-001 ให้ freeze แล้วกดเมื่อ 4 role ผ่าน (Recommended)`, disposition section 2.2) A0 presses once all four pass with CI green on a head containing main. No role verdict is claimed.",
+    "Open for the Owner (disposition section 3 item 5): the `RFC-022 §5/5` option text says migration 176 waits until CTR-JOB-001's lifecycle is frozen; whether the broker may be written against this Candidate lifecycle is not answered here.",
+    "Open for the roles: whether CONTRIBUTING_AGENTS.md's 'Open an RFC before changing ... contract meaning' requires an RFC for this increment (evidence section 5, A0's reading)."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes the records this WP-0A-CON-001 branch appended (r0-acknowledgement-amended-by-0-2026-10-11); nothing depends on them.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores schema.json, manifest.json, the three registry pins, the identity-isolation and batch 175 assertions and this package's manifest; nothing reads x-lifecycle yet.",
   "recommended_next_work_packages": [
-    "WP-0A-A0-002 records PR for R0's other §6 acknowledgement (the record:verification line in package.json)."
+    "WP-0A-CON-001 increments toward Frozen v1: the four string bounds, the tenant_context restatement, the reference-to-tenant binding, a valid fixture per state (evidence section 4).",
+    "WP-1A-A0-006 or WP-0A-DB-00: the app_queue broker (migration 176), once the Owner answers the ordering question."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-CON-001/records-transcription-2026-10-11.md, then git diff origin/main.",
-    "amended_by acknowledgement keys against r0-review-2026-10-11-pr250.md §6, byte for byte."
+    "Read evidence/WP-0A-CON-001/ctr-job-lifecycle-2026-10-20.md, then git diff origin/main.",
+    "Check x-lifecycle state by state against src/modules/platform-kernel/domain/jobs/job-decisions.ts at f20b7319.",
+    "Check the disposition's quotes against transcript records 1601 and 1605 by script."
   ],
   "superseded_by": null
 }
