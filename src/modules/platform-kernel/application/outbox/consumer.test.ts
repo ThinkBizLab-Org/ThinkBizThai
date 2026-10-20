@@ -5,11 +5,11 @@
 // the event's own workspace; and nothing thrown or returned reaches a record, an error or a report.
 import { describe, expect, it } from 'vitest';
 
-import { EVENT_CONSUMER_FAILED, EVENT_ENVELOPE_INVALID, EVENT_LEDGER_UNAVAILABLE, OUTBOX_UNAVAILABLE } from '../../domain/outbox/outbox-errors';
+import { EVENT_CONSUMER_FAILED, EVENT_CONSUMER_REENTRANT, EVENT_ENVELOPE_INVALID, EVENT_LEDGER_UNAVAILABLE, OUTBOX_UNAVAILABLE } from '../../domain/outbox/outbox-errors';
 import type { EventEnvelope } from '../../domain/outbox/event-envelope';
 import { PLATFORM_TEMPORARY } from '../../domain/platform-errors';
 import { stableError } from '../../domain/stable-error';
-import { consumeEvent, type ConsumerOutcome, type EventHandler } from './consumer';
+import { consumeEvent, type ConsumeReport, type ConsumerOutcome, type EventHandler } from './consumer';
 import type { InMemoryConsumerTransaction } from './fakes';
 import type { OutboxPort, PublisherPort } from './outbox-port';
 import { relayOnce } from './relay';
@@ -282,5 +282,48 @@ describe('nothing thrown or returned is kept', () => {
       report = error;
     }
     expect(report).toEqual({ kind: 'rejected', consumer: CONSUMER, code: EVENT_ENVELOPE_INVALID.code });
+  });
+});
+
+describe('re-entrant consume (A1-302-I6)', () => {
+  it('a handler consuming the same event for the same consumer inside its own unit is refused at once, not deadlocked', async () => {
+    const h = await outboxHarness();
+    const event = await produced(h);
+    const inner: ConsumeReport[] = [];
+    let runs = 0;
+    const deps: { ledger: OutboxHarness['ledger']; consumer: string; handler: EventHandler<InMemoryConsumerTransaction> } = {
+      ledger: h.ledger,
+      consumer: CONSUMER,
+      handler: async (delivered, tx) => {
+        runs += 1;
+        inner.push(await consumeEvent(deps, delivered));
+        tx.put('indexed', delivered.event_id);
+        return OK;
+      },
+    };
+    const outer = await Promise.race([
+      consumeEvent(deps, event),
+      new Promise<'HANG'>((resolve) => { setTimeout(() => resolve('HANG'), 500); }),
+    ]);
+    expect(outer).toEqual({ kind: 'applied', consumer: CONSUMER, event_id: event.event_id });
+    expect(inner).toEqual([{ kind: 'failed', consumer: CONSUMER, event_id: event.event_id, code: EVENT_CONSUMER_REENTRANT.code }]);
+    expect(runs).toBe(1);
+    expect(h.ledger.rows()).toHaveLength(1);
+    // Once the unit has committed, a later delivery is an ordinary duplicate.
+    expect(await consumeEvent(deps, event)).toMatchObject({ kind: 'duplicate' });
+  });
+
+  it('inside its unit, a handler may still consume the same event for another consumer', async () => {
+    const h = await outboxHarness();
+    const event = await produced(h);
+    const audit = countingHandler();
+    let inner: ConsumeReport | undefined;
+    const handler: EventHandler<InMemoryConsumerTransaction> = async (delivered) => {
+      inner = await consumeEvent({ ledger: h.ledger, consumer: 'audit-trail', handler: audit.handler }, delivered);
+      return OK;
+    };
+    expect(await consumeEvent({ ledger: h.ledger, consumer: CONSUMER, handler }, event)).toMatchObject({ kind: 'applied' });
+    expect(inner).toMatchObject({ kind: 'applied', consumer: 'audit-trail' });
+    expect(audit.runs).toHaveLength(1);
   });
 });

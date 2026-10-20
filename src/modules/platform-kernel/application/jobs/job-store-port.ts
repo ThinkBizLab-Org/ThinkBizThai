@@ -34,6 +34,12 @@ export interface EnqueueRequest {
 
 // `created: false` when a job with the same dedupe_key already exists in the same workspace: that
 // job is returned and none is created (050's jobs_dedupe_key_unique, (workspace_id, dedupe_key)).
+// The key is per WORKSPACE, not per job_type (A1-301-I5): CTR-JOB-001 states no uniqueness, 050
+// chose the broader key deliberately (a suppressed duplicate is safer than a duplicated side
+// effect), so a hit with another job_type returns that other job. Producers namespace keys by type.
+// A request above the kernel's D6-provisional caps on max_attempts or timeout_seconds
+// (domain/jobs/job-limits.ts; kernel policy, not a contract rule) creates nothing and rejects with a
+// stable error minted from JOB_ENQUEUE_OVER_CAP (A1-301-I3).
 export interface EnqueueResult {
   readonly created: boolean;
   readonly job: JobRecord;

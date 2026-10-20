@@ -10,8 +10,9 @@ import { tenantContextRecordOf } from '../tenant-context';
 import { buildEvent } from './events';
 import { sequentialEventIdSource } from './fakes';
 import type { PublisherPort } from './outbox-port';
+import { mintContext } from '../jobs/test-support';
 import { relayOnce } from './relay';
-import { WORKSPACE_A, WORKSPACE_B, outboxHarness } from './test-support';
+import { LEAK_MARKER, LeakingError, WORKSPACE_A, WORKSPACE_B, outboxHarness } from './test-support';
 
 describe('the producing unit of work', () => {
   it('an event written with its domain state commits with it, and is relayed at least once', async () => {
@@ -216,5 +217,56 @@ describe('tenant scope is carried and never crossed', () => {
     await h.outbox.transaction(h.contextB, (tx) => { tx.put('k', 'b'); return Promise.resolve(); });
     expect(h.outbox.state(WORKSPACE_A).get('k')).toBe('a');
     expect(h.outbox.state(WORKSPACE_B).get('k')).toBe('b');
+  });
+});
+
+describe('Info batch (A1-302-I1, A1-302-I8, Q0-302-4)', () => {
+  it('A1-302-I1: an event built in another minted context of the same workspace is refused by the unit', async () => {
+    const h = await outboxHarness();
+    // A second request in workspace A: same workspace, another request_id and correlation_id.
+    const otherA = await mintContext(WORKSPACE_A);
+    const foreign = h.event(otherA);
+    expect(foreign.tenant_context.workspace_id).toBe(WORKSPACE_A);
+    await expect(h.outbox.transaction(h.contextA, (tx) => { tx.put('k', 'v'); tx.append(foreign); return Promise.resolve(); }))
+      .rejects.toThrow("outbox: an event carries its unit of work's own tenant context");
+    // A hand-built context in the right workspace: another actor.
+    const own = h.event(h.contextA);
+    const handBuilt = { ...own, tenant_context: { ...own.tenant_context, actor: { kind: 'user', id: 'someone_else' } } };
+    await expect(h.outbox.transaction(h.contextA, (tx) => { tx.append(handBuilt as typeof own); return Promise.resolve(); }))
+      .rejects.toThrow("outbox: an event carries its unit of work's own tenant context");
+    expect(h.outbox.entries()).toHaveLength(0);
+    expect(h.outbox.state(WORKSPACE_A).size).toBe(0);
+    // The unit's own context, in full, is accepted.
+    await h.outbox.transaction(h.contextA, (tx) => { tx.append(own); return Promise.resolve(); });
+    expect(h.outbox.entries()).toHaveLength(1);
+  });
+
+  it('A1-302-I8: the limits are read once, and a limits read that throws stops the step, keeping nothing', async () => {
+    const h = await outboxHarness();
+    const event = h.event(h.contextA);
+    await h.outbox.transaction(h.contextA, (tx) => { tx.append(event); return Promise.resolve(); });
+    let reads = 0;
+    const flipping = { get relayBatchSize(): number { reads += 1; return reads === 1 ? 1 : 0; } };
+    expect(await relayOnce({ ...h, limits: flipping })).toEqual({ kind: 'relayed', published: [event.event_id] });
+    expect(reads).toBe(1);
+
+    const throwing = { get relayBatchSize(): number { throw new LeakingError(); } };
+    const report = await relayOnce({ ...h, limits: throwing });
+    expect(report).toEqual({ kind: 'stopped', published: [], code: OUTBOX_UNAVAILABLE.code });
+    expect(JSON.stringify(report)).not.toContain(LEAK_MARKER);
+  });
+
+  it('Q0-302-4: an iterable batch that is not an array (a Set of valid entries) stops the step unpublished', async () => {
+    const h = await outboxHarness();
+    const event = h.event(h.contextA);
+    await h.outbox.transaction(h.contextA, (tx) => { tx.append(event); return Promise.resolve(); });
+    const stored = h.outbox.entries();
+    const outbox = {
+      fetchUnpublished: () => Promise.resolve(new Set(stored) as unknown as typeof stored),
+      markPublished: h.outbox.markPublished,
+    };
+    expect(await relayOnce({ ...h, outbox })).toEqual({ kind: 'stopped', published: [], code: OUTBOX_UNAVAILABLE.code });
+    expect(h.publisher.deliveries()).toHaveLength(0);
+    expect(h.outbox.entries()[0]?.dispatched_at).toBeUndefined();
   });
 });

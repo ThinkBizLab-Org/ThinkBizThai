@@ -35,7 +35,13 @@ export type JobHandlerOutcome =
   | { readonly ok: true; readonly result_ref: string }
   | { readonly ok: false; readonly error: StableError };
 
-export type JobHandler = (job: JobRunInput) => Promise<JobHandlerOutcome>;
+// A1-301-I2: `signal` is aborted when the worker gives up on the attempt at the job's timeout (the
+// moment it records JOB_TIMEOUT and releases the lease), so a handler that listens can stop work a
+// reclaiming worker may repeat. It is advice, not a fence: delivery stays AT LEAST ONCE, a handler
+// that ignores it may still overlap a later attempt, and it must stay idempotent by its dedupe_key.
+// The abort's reason is the platform's own AbortError, carrying nothing from the job; a listener
+// must not throw.
+export type JobHandler = (job: JobRunInput, signal: AbortSignal) => Promise<JobHandlerOutcome>;
 
 export type JobHandlers = { readonly [jobType: string]: JobHandler };
 
@@ -98,9 +104,10 @@ async function attempt(dependencies: WorkerDependencies, claimed: ClaimedJob): P
     attempt: record.attempt,
     dedupe_key: record.dedupe_key,
   });
+  const abort = new AbortController();
   let running: Promise<unknown>;
   try {
-    running = Promise.resolve(handler(input));
+    running = Promise.resolve(handler(input, abort.signal));
   } catch {
     return failure(JOB_HANDLER_FAILED);
   }
@@ -114,7 +121,10 @@ async function attempt(dependencies: WorkerDependencies, claimed: ClaimedJob): P
   }
   // A result that arrives at or after the deadline is a timeout too: the budget is the clock's, not
   // the order the two promises happened to settle in.
-  if (settled === TIMED_OUT || dependencies.clock.now() >= deadline) return failure(JOB_TIMEOUT);
+  if (settled === TIMED_OUT || dependencies.clock.now() >= deadline) {
+    abort.abort();
+    return failure(JOB_TIMEOUT);
+  }
   return readOutcome(settled);
 }
 

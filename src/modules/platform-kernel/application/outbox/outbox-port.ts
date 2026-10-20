@@ -20,7 +20,8 @@ export interface EventIdSource {
 // The producing unit of work, as the outbox sees it. `append` stages an envelope in the SAME unit as
 // the domain state it announces: it becomes visible to the relay when the unit commits, and never if
 // the unit rolls back. An envelope whose tenant context names another workspace than the unit's is
-// refused, and so is any append after the unit has settled.
+// refused, and so is one whose tenant context differs from the unit's minted context in any field
+// (A1-302-I1), and any append after the unit has settled.
 export interface OutboxTransaction {
   append(event: EventEnvelope): void;
 }
