@@ -4,14 +4,25 @@
   "work_package_id": "WP-0A-CON-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "f20b731900e94e98a17f92bd0beb70babdfaa823",
-  "head_revision_or_patch_checksum": "f20b731900e94e98a17f92bd0beb70babdfaa823",
+  "base_revision": "0a8690de97b2989dd5e08a35e3ece3afcafc0065",
+  "head_revision_or_patch_checksum": "94c63cf6b69e1b1fd9fbae91549728efcfa47db0",
   "task_ids": [
     "WP-0A-CON-001",
     "ctr-job-001-lifecycle-2026-10-20"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-CON-001/ctr-job-lifecycle-2026-10-20.md",
+    "evidence/WP-0A-CON-001/product-owner-disposition-2026-10-20-ctr-job-lifecycle.md"
+  ],
+  "files_modified": [
+    "contract-catalog/shared-kernel/ctr-job-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-job-001/schema.json",
+    "handoffs/WP-0A-CON-001-author-handoff.json",
+    "test-kits/contracts/catalog-registry.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "tests/db/identity/identity-isolation.test.mjs",
+    "work-packages/WP-0A-CON-001.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-022",
@@ -39,19 +50,24 @@
   ],
   "tests": [
     {
-      "command": "npm run check (under the suite lock, before the handoff refresh)",
-      "exit_code": 1,
-      "result": "tests 857, pass 852, fail 5: four handoff-drift cases (stale handoff, fixed by the refresh) and the batch 050 lifecycle case, then amended (declared)"
+      "command": "node scripts/commit-when-clean.mjs <message-file> (under the suite lock; commits bb431cae)",
+      "exit_code": 0,
+      "result": "clean: exit 0 — tests 857, pass 857, fail 0, skipped 0 (bb431cae, before the sync)"
     },
     {
-      "command": "node --test test-kits/contracts/catalog-registry.test.mjs and five other contract suites",
+      "command": "npm run check (under the suite lock, before the handoff was first refreshed and before the identity-isolation amendment)",
+      "exit_code": 1,
+      "result": "tests 857, pass 852, fail 5: four handoff-drift cases (stale handoff) and the batch 050 lifecycle case, which the declared amendment then addressed"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-001",
       "exit_code": 0,
-      "result": "56 pass"
+      "result": "see the PR body"
     }
   ],
   "security_privacy_cost_impact": "Contract text only; no accepted-set change, no credential, customer data, provider call or cost. x-lifecycle.actors states the worker acts only through the app_queue broker (RFC-2026-022 section 5 items 5-6) and the command path only in the job's own workspace; for A1 to read. The open A1 findings on CTR-JOB-001 (WP-0A-CON-005 open_blockers[11]) are unchanged and still block the freeze.",
   "migration_and_data_impact": "None. No migration; app.jobs (050, 174) unchanged; the broker (migration 176) is not written.",
-  "compatibility_impact": "CTR-JOB-001 schema.json gains one x- annotation and manifest.json restates freeze_boundary and adds untestable_by_fixture; every fixture keeps its verdict (not breaking under RFC-2026-031 section 3.3). Registry pins in test-kits/contracts/catalog-registry.test.mjs and one assertion in tests/db/identity/identity-isolation.test.mjs move, declared under amends_without_owning.",
+  "compatibility_impact": "Contract-catalog changes are additive: CTR-JOB-001 schema.json gains one x- annotation and manifest.json restates freeze_boundary and adds untestable_by_fixture; every fixture keeps its verdict (not breaking under RFC-2026-031 section 3.3). Registry pins in test-kits/contracts/catalog-registry.test.mjs and one assertion each in tests/db/identity/identity-isolation.test.mjs and test-kits/db/foundation-contract.test.mjs (batch 175, arrived with the sync of main 0a8690de) move, declared under amends_without_owning.",
   "known_limitations": [
     "Frozen v1 is not reached: evidence/WP-0A-CON-001/ctr-job-lifecycle-2026-10-20.md section 4 lists each RFC-2026-031 section 4.1 item that blocks it and its owner.",
     "Comments in WP-1A-A0-004's job code and WP-1A-A0-004 open_blockers[4] still quote the old freeze_boundary; not edited here.",
@@ -62,7 +78,7 @@
     "Open for the Owner (disposition section 3 item 5): the `RFC-022 §5/5` option text says migration 176 waits until CTR-JOB-001's lifecycle is frozen; whether the broker may be written against this Candidate lifecycle is not answered here.",
     "Open for the roles: whether CONTRIBUTING_AGENTS.md's 'Open an RFC before changing ... contract meaning' requires an RFC for this increment (evidence section 5, A0's reading)."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores schema.json, manifest.json, the three registry pins, the identity-isolation assertion and this package's manifest; nothing reads x-lifecycle yet.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores schema.json, manifest.json, the three registry pins, the identity-isolation and batch 175 assertions and this package's manifest; nothing reads x-lifecycle yet.",
   "recommended_next_work_packages": [
     "WP-0A-CON-001 increments toward Frozen v1: the four string bounds, the tenant_context restatement, the reference-to-tenant binding, a valid fixture per state (evidence section 4).",
     "WP-1A-A0-006 or WP-0A-DB-00: the app_queue broker (migration 176), once the Owner answers the ordering question."
