@@ -5,13 +5,17 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "0440c67210921dadaff04b5b170e768651161cbe",
-  "head_revision_or_patch_checksum": "3d911ac238127129fd14e363a69b0f99be9acf51",
+  "head_revision_or_patch_checksum": "ddc6ca51a047e6da1d7757ecb1642ad75a32dc1a",
   "task_ids": [
     "WP-1A-A0-001",
     "rfc029-cron-note-2026-10-20"
   ],
   "files_added": [
-    "evidence/WP-1A-A0-001/product-owner-disposition-2026-10-20-rfc029-cron.md"
+    "evidence/WP-1A-A0-001/a1-review-2026-10-20-pr306.md",
+    "evidence/WP-1A-A0-001/c0-review-2026-10-20-pr306.md",
+    "evidence/WP-1A-A0-001/product-owner-disposition-2026-10-20-rfc029-cron.md",
+    "evidence/WP-1A-A0-001/q0-review-2026-10-20-pr306.md",
+    "evidence/WP-1A-A0-001/r0-review-2026-10-20-pr306.md"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-029-application-tier-stack.md",
