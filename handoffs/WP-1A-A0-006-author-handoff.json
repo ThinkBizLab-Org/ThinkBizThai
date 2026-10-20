@@ -5,10 +5,11 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "f36b23ecd5c0e36c9b593420fd6491f72f3cb114",
-  "head_revision_or_patch_checksum": "f566a980eca6e02e78b4e6a62976f3f702ca7e4c",
+  "head_revision_or_patch_checksum": "bdcfe49cf02cc256a4d0c3018741f240b2d41715",
   "task_ids": [
     "WP-1A-A0-006",
-    "open-2026-10-20"
+    "open-2026-10-20",
+    "fix-round-1-C0-304-1"
   ],
   "files_added": [
     "evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-open.md",
@@ -39,12 +40,17 @@
   "assumptions": [
     "THIS PACKAGE'S OPENING PULL REQUEST: it writes no code. It creates work-packages/WP-1A-A0-006.json (status in_progress, owner A0, branch agent/claude/WP-1A-A0-006-provider-database), adds the package's row to BRANCH_OWNERSHIP in test-kits/branch-identity.test.mjs (that table only; the resolution test's ref list unchanged), regenerates test-kits/integrity-manifest.json (only branch-identity.test.mjs's digest changes), and records the Owner's answers in evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-open.md. The cited range is this branch's own commits on main f36b23ec.",
     "The Product Owner's answers of 2026-10-20 (asked 00:24:13.767Z, answered 01:10:13.792Z UTC; transcript 5ea77291 records 680 and 681), quoted by script: header `งานถัดไป` `WP-1A-A0-006 ต่อฐานข้อมูลจริง (Recommended)`, header `กด PR เปิด` `A0 กดเมื่อ 4 role ผ่าน (Recommended)`, header `D6 ค่าเพดาน` `ใช้ไปก่อน ทบทวนตอน G1 slice (Recommended)`; A0's readings are marked as such in the record's §3.",
-    "Writable paths: src/modules/platform-kernel/adapters/**, apps/worker/** and apps/web/composition/**, with the package's evidence, handoffs and manifest; db/**, domain/**, application/** and apps/web/app/** are read-only. The D6 answer's record in WP-1A-A0-004's manifest is left to a later WP-1A-A0-004 records pull request."
+    "Writable paths: src/modules/platform-kernel/adapters/**, apps/worker/** and apps/web/composition/**, with the package's evidence, handoffs and manifest; db/**, domain/**, application/** and apps/web/app/** are read-only. The D6 answer's record in WP-1A-A0-004's manifest is left to a later WP-1A-A0-004 records pull request.",
+    "FIX ROUND 1 (C0-304-1, evidence on branch c0/wp-1a-a0-006-pr304-2026-10-20): bdcfe49c edits work-packages/WP-1A-A0-006.json only. scope.include[1] and acceptance_criteria[1] now carry RFC-2026-028's A1R-2 checks, as RFC-2026-029 §2.7/3 (lines 132-134) requires: (a) the session check at connect and before `set local role` (current_user = session_user = 'app_worker_login', no pg_db_role_setting row; RFC-2026-028 line 6, A1-173-1); (b) the §5/13 refusal when app.workspace_id is already set after `set local role app_worker` (RFC-2026-028 lines 367-375). Each has a negative control and a check-removed red. open_blockers gains C0's two Info items (Q-029-2 now owed here; the KERNEL_CREATED name). RFC-2026-029 and WP-1A-A0-004 are not edited."
   ],
   "acceptance_results": [
     {
       "criterion": "OPENING PR: the branch resolves to WP-1A-A0-006 alone; BRANCH_OWNERSHIP gains one row; the integrity manifest changes only that file's digest; the manifest validates; no source file changes",
       "result": "pass for author self-check (see tests); independent reading owed"
+    },
+    {
+      "criterion": "FIX ROUND 1: C0-304-1 — A1R-2's session check and §5/13 check named in scope.include[1] and acceptance_criteria[1], each with its negative control; C0's two Info recorded in open_blockers; only the manifest changes",
+      "result": "pass for author self-check (see tests); C0's re-read of the diff from 7212bcc2 owed"
     }
   ],
   "tests": [
@@ -72,6 +78,11 @@
       "command": "node scripts/commit-when-clean.mjs (runs the repository verifier, npm run check)",
       "exit_code": 0,
       "result": "clean: tests 857, pass 857, fail 0 (committed f566a980); test count unchanged from main, so record:verification was not needed"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (runs the repository verifier, npm run check)",
+      "exit_code": 0,
+      "result": "clean: tests 857, pass 857, fail 0 (committed bdcfe49c, fix round 1); regenerate:manifest changed no digest; test count unchanged, so record:verification was not needed"
     }
   ],
   "security_privacy_cost_impact": "None in this pull request: no code, no dependency, no provider, no credential, no data, no cost.",
@@ -93,7 +104,8 @@
   "reviewer_instructions": [
     "Read evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-open.md against the session transcript (records 680 and 681; question 2026-10-20T00:24:13.767Z, answer 01:10:13.792Z), and its §3 readings as A0's.",
     "Check the diff outside evidence/ and handoffs/ is exactly: one new manifest, one BRANCH_OWNERSHIP row, and one changed digest in test-kits/integrity-manifest.json; A1 and Q0 name each guard hunk if confirming it additive.",
-    "Run npm run check, node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-006 and npm run check:handoff on the branch name (not detached)."
+    "Run npm run check, node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-006 and npm run check:handoff on the branch name (not detached).",
+    "Fix round 1: C0 re-reads the diff from 7212bcc2 (work-packages/WP-1A-A0-006.json: scope.include[1], acceptance_criteria[1], the last open_blockers entry) against RFC-2026-029 lines 132-134 and RFC-2026-028 line 6 and lines 367-375."
   ],
   "superseded_by": null,
   "outputs": null
