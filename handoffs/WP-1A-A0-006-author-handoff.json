@@ -5,11 +5,12 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "0fc0e2f1f18f2201d63e3751d3807b4c804b8297",
-  "head_revision_or_patch_checksum": "a490578835386f1cd531fe4174fff062252a21d0",
+  "head_revision_or_patch_checksum": "fe3e8f6373b789a7d9be8019a5dab207ab5bd028",
   "task_ids": [
     "WP-1A-A0-006",
     "deps-ci-2026-10-20",
-    "deps-ci-fix1-2026-10-20"
+    "deps-ci-fix1-2026-10-20",
+    "deps-ci-fix2-2026-10-20"
   ],
   "files_added": [
     "apps/worker/package.json",
@@ -72,6 +73,10 @@
     {
       "criterion": "Fix round 1 (A1-305-1, A1-305-I1/C0-305-I1): the services block is read from ci.yml's raw lines and a blank or `#`-led line inside it breaks the byte-for-byte pin; DB_TEST_URL and PGPASSWORD only on their two steps, with the bootstrap job's values",
       "result": "pass for author self-check: npm run check inside commit-when-clean 857/857 at a4905788; eleven new service controls (eight of which the guard of 8b54d83a passed) and six env controls; every existing control kept; independent reading owed (A1's re-read of the changed guard hunk)"
+    },
+    {
+      "criterion": "Fix round 2 (A1-305-2): ci.yml holds no lone CR (CRLF included), NEL, LS, PS, other C0 or C1 control character but \\n and \\t, DEL or BOM, refused on the raw text before any reading by runnerEnvWriteProblems and shellProblems",
+      "result": "pass for author self-check: npm run check inside commit-when-clean 857/857 at fe3e8f63; 25 new controls (A1's three insertions with CR, NEL, LS and PS, plus credentials and container variants, whole-file CRLF, BOM, VT, FF, NUL), each read by both readers; every existing control kept; independent reading owed (A1's re-read of the changed guard hunk)"
     }
   ],
   "tests": [
@@ -159,6 +164,11 @@
       "command": "node --test test-kits/app-stack.test.mjs",
       "exit_code": 0,
       "result": "21/21 at a4905788 (fix round 1). Mutation proof: with the services reader of 8b54d83a restored, A1's insertion and seven other new service controls pass the guard (the test fails at A1's insertion); with dbEnvProblems unwired, the test fails at the first env control"
+    },
+    {
+      "command": "node --test test-kits/app-stack.test.mjs",
+      "exit_code": 0,
+      "result": "21/21 at fe3e8f63 (fix round 2). Mutation proof: with rawLineBreakProblems returning [], 24 of the 25 new controls pass the rest of both readers with no problem at all and the test fails at the first (A1's service volume via CR); the whole-file CRLF control was already refused by the pins and is kept as a class control"
     }
   ],
   "security_privacy_cost_impact": "Supply chain: 25 new registry packages (pg and 13 transitive, @types/pg, @supabase/supabase-js with 7, @supabase/ssr with cookie), all MIT or ISC, none with an install script or bin, none with telemetry of its own; installed with --ignore-scripts. No credential: DB_TEST_URL and PGPASSWORD name CI's throwaway container, as the bootstrap job does; no provider is bound and no secret is added. CI: the application job starts one more container and applies the migrations (about 15 seconds locally), and the bootstrap job's negative control runs on this pull request because ci.yml is on its surface. The A1-287-2 key allowlist admits one services block, held line for line (A1 reads it).",
@@ -175,7 +185,8 @@
     "GOVERNANCE (RFC-2026-034 §2.2): ci.yml, package.json, package-lock.json, apps/web/package.json, apps/worker/package.json, four guard tests and the integrity manifest. Not additive: test-kits/app-stack.test.mjs widens A1-287-2's allowlist (one pinned services block; DB_TEST_URL and PGPASSWORD on the step-env list) and re-points one existing control. Additive: KERNEL_CREATED gains adapters/job-store.ts. Authority: the Owner's answer of 2026-10-20T03:00:37.969Z, header `Deps + CI` (evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-deps-ci.md; manifest required_human_authorities[4]); A0 may press after C0, A1, Q0 and R0 pass on the final head and CI is green on both jobs. This handoff records no role verdict.",
     "Q-029-2 is decided as Supabase Cron, while RFC-2026-029 §10 and §2.8 still read Vercel Cron and an environment-held secret; the RFC note and the secret's custody are owed before the dispatcher increment (manifest open_blockers[9]).",
     "The forward migration (175) is this package's under the `Migration` answer and is owed in its own governance pull request (open_blockers[5]).",
-    "Fix round 1 for PR #305: A1-305-1 (A1 changes_requested on 8b54d83a, a1-review-2026-10-20-pr305.md on branch a1/wp-1a-a0-006-pr305-2026-10-20) is taken in a4905788, and A1-305-I1/C0-305-I1 with it; A1-305-I2 is not (index.ts is outside this package's paths). A1's carry clause asks for its re-read of the changed guard hunk; this handoff records no role verdict."
+    "Fix round 1 for PR #305: A1-305-1 (A1 changes_requested on 8b54d83a, a1-review-2026-10-20-pr305.md on branch a1/wp-1a-a0-006-pr305-2026-10-20) is taken in a4905788, and A1-305-I1/C0-305-I1 with it; A1-305-I2 is not (index.ts is outside this package's paths). A1's carry clause asks for its re-read of the changed guard hunk; this handoff records no role verdict.",
+    "Fix round 2 for PR #305: A1-305-2 (A1 changes_requested on ce68efbd, a1-review-2026-10-20-pr305-r2.md on branch a1/wp-1a-a0-006-pr305-r2-2026-10-20) is taken in fe3e8f63; the check also closes the same class in main's A1-287-2 job-key allowlist. A1's carry clause asks for its re-read of the changed guard hunk; this handoff records no role verdict."
   ],
   "rollback_or_forward_fix": "Before merge: close the pull request. After merge: one reviewed revert restores package.json, package-lock.json, apps/web/package.json, removes apps/worker, the application job's service and database step, the guard-test hunks, adapters/job-store.ts with its KERNEL_CREATED entry and the reachability test, and the integrity digests together; nothing depends on them yet.",
   "recommended_next_work_packages": [
@@ -190,7 +201,8 @@
     "In test-kits/app-stack.test.mjs read the workflowJobs services split, APPLICATION_SERVICES, servicesProblems (wired into runnerEnvWriteProblems and shellProblems), the step-env allowlist change and the five new negative controls; confirm the redis control still refuses.",
     "Check adapters/job-store.ts imports no package and that index.ts does not re-export it; check the reachability test fails under CI without DB_TEST_URL.",
     "Run: npm run check; node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-006; node scripts/db/classify-review-tier.mjs origin/main HEAD --lane; and with npm ci --ignore-scripts: npm run typecheck, npm run test:app, node scripts/verify-app-boundaries.mjs --require-parser.",
-    "Fix round 1 (a4905788): in test-kits/app-stack.test.mjs read workflowJobs' raw-line services reader (blank and `#`-led lines held pending and kept when a further block line follows), servicesProblems' new message, dbEnvProblems (wired into runnerEnvWriteProblems) and the controls after the five services controls; restore the old reader and confirm A1's insertion passes again; manifest open_blockers last entry."
+    "Fix round 1 (a4905788): in test-kits/app-stack.test.mjs read workflowJobs' raw-line services reader (blank and `#`-led lines held pending and kept when a further block line follows), servicesProblems' new message, dbEnvProblems (wired into runnerEnvWriteProblems) and the controls after the five services controls; restore the old reader and confirm A1's insertion passes again; manifest open_blockers last entry.",
+    "Fix round 2 (fe3e8f63): in test-kits/app-stack.test.mjs read RAW_LINE_BREAKS and rawLineBreakProblems (first in runnerEnvWriteProblems and shellProblems) and the 25 controls after the DB env controls; make rawLineBreakProblems return [] and confirm A1's three insertions pass again; count the characters in main's ci.yml (0); manifest open_blockers last entry."
   ],
   "superseded_by": null,
   "outputs": null
