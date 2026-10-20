@@ -30,7 +30,7 @@
     "architecture/decisions/RFC-2026-019-service-path-connection-corrected.md": "ff7dfb2e2240899482febff83fc44e92ce7d785f22c57271bd6b1435628286db",
     "architecture/decisions/RFC-2026-020-authorization-helper-role.md": "3307410cabe91f1553d660ec055539a7018bd0077c3c217f4b25163a69fc5305",
     "architecture/decisions/RFC-2026-021-client-read-allowlist.md": "b0168e5afbb26ff78c814196e4785c8ad121a17720f7ffd6732673d7215ba203",
-    "architecture/decisions/RFC-2026-022-service-policy-shape.md": "b37643b2edd1ac869f00ed108992d57e4593d9d34a2f3bbc62e6445cc71e7d83",
+    "architecture/decisions/RFC-2026-022-service-policy-shape.md": "04471d4dbc187de01ac6b01a9914ccc12dc525308435b99d5fc0abfb7439796d",
     "architecture/decisions/RFC-2026-023-acting-user-narrowing.md": "683feba2fe9702db9f1d50b4822441de6bd0a653bb3bf1165a383b792951c17a",
     "architecture/decisions/RFC-2026-024-cross-vendor-condition-withdrawn.md": "7b64864cab111a5ddbf6d9c34b4cb71c6241a6e2a6ecb39054455979ac5cb0f6",
     "architecture/decisions/RFC-2026-025-owner-delegated-merge.md": "ac90b8e160b0eb79b902a8e57d841dd8e299c1a4fefdd5b7b223caa6484999b1",
