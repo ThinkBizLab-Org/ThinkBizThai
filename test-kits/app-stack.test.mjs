@@ -145,16 +145,30 @@ test('the release-age verdict asks only about new entries and refuses a young, u
 // The workflow's jobs and steps, read by indentation: a job is a two-space key under `jobs:`, a step a
 // six-space `- ` item in it. Comments are dropped first, so a step quoted in a comment is not a step.
 // WP-1A-A0-006: a job's `services:` block, written plainly as a four-space key with every line under it
-// indented deeper, is read apart from the job's head into `services` (its lines as written, blank lines
-// left out); the application job's is held to APPLICATION_SERVICES exactly (servicesProblems). Any other
-// spelling of the key stays in the head, where the key allowlist refuses it.
+// indented deeper, is read apart from the job's head into `services`, from ci.yml's RAW lines; the
+// application job's is held to APPLICATION_SERVICES byte for byte (servicesProblems). Any other spelling
+// of the key stays in the head, where the key allowlist refuses it. A1-305-1: inside the block, a blank
+// line and a `#`-led line are NOT left out. In a block scalar (`options: >-`) YAML reads both as content
+// (a `#`-led line after a blank one becomes text docker splits into flags), so each is kept in `services`
+// and the block no longer equals the pin. Blank and `#`-led lines are held pending and kept only when a
+// further line of the block follows them; those after the block's last line (`- 5432:5432`, a plain
+// scalar the pin puts last, so no block scalar is open there) are ci.yml's comments and stay free.
 function workflowJobs(ci) {
-  const lines = ci.split('\n').filter((line) => !/^\s*#/.test(line));
+  const lines = ci.split('\n');
   const jobs = new Map();
   let job = null;
   let step = null;
   let inJobs = false;
+  let pending = [];
   for (const line of lines) {
+    const loose = line.trim() === '' || /^\s*#/.test(line);
+    if (job?.inServices) {
+      if (loose) { pending.push(line); continue; }
+      if (/^ {6}/.test(line)) { job.services.push(...pending, line); pending = []; continue; }
+      job.inServices = false;
+    }
+    pending = [];
+    if (/^\s*#/.test(line)) continue;
     if (/^jobs:\s*$/.test(line)) { inJobs = true; continue; }
     if (!inJobs) continue;
     const key = line.match(/^ {2}([A-Za-z][\w-]*):\s*$/);
@@ -164,9 +178,6 @@ function workflowJobs(ci) {
     if (step && (/^ {8}/.test(line) || line.trim() === '')) { step.text.push(line.slice(8)); continue; }
     step = null;
     if (/^ {4}services:\s*$/.test(line)) { job.services = [...(job.services ?? []), line]; job.inServices = true; continue; }
-    if (job.inServices && line.trim() === '') continue;
-    if (job.inServices && /^ {6}/.test(line)) { job.services.push(line); continue; }
-    job.inServices = false;
     job.head.push(line);
   }
   for (const each of jobs.values()) {
@@ -452,7 +463,33 @@ const APPLICATION_SERVICES = Object.freeze([
 function servicesProblems(job) {
   if (job.services === undefined) return [];
   if (JSON.stringify(job.services) === JSON.stringify(APPLICATION_SERVICES)) return [];
-  return [`the ${job.name} job's services: block is not the pinned postgres:17 container, line for line: \`${job.services.map((l) => l.trim()).join(' | ')}\``];
+  const loose = job.services.filter((l) => l.trim() === '' || /^\s*#/.test(l));
+  return [`the ${job.name} job's services: block is not the pinned postgres:17 container, byte for byte: \`${job.services.map((l) => JSON.stringify(l)).join(' | ')}\``,
+    ...(loose.length ? [`the ${job.name} job's services: block holds ${loose.length} blank or \`#\`-led line(s) inside it, which YAML reads as content in a block scalar (A1-305-1)`] : [])];
+}
+// A1-305-I1 / C0-305-I1. The two step-env names the service brought (DB_TEST_URL, PGPASSWORD) are on the
+// step env allowlist by key; this holds them by step and by value: they may appear only on the two steps
+// that use them, and there only with the bootstrap job's values (the container's URL with no password,
+// and its throwaway password), so no `${{ secrets.* }}` or other host can ride on either name.
+const DB_ENV_STEPS = Object.freeze(['Database for the application tests', 'Application tests']);
+const DB_ENV_VALUES = Object.freeze({ PGPASSWORD: 'PGPASSWORD: postgres', DB_TEST_URL: 'DB_TEST_URL: postgresql://postgres@localhost:5432/thinkbizthai_test' });
+function dbEnvProblems(job) {
+  const problems = [];
+  job.steps.forEach((step, i) => {
+    const where = `step "${step.name ?? step.uses ?? `step ${i + 1}`}"`;
+    let under = null;
+    for (const line of keyLines(step.raw).filter((l) => l.trim() !== '')) {
+      const match = line.match(KEY_LINE);
+      if (!match) continue;
+      const indent = match[1].length;
+      const key = unquoted(match[2]);
+      if (indent === 0) { under = key; continue; }
+      if (indent !== 2 || under !== 'env' || !Object.hasOwn(DB_ENV_VALUES, key)) continue;
+      if (!DB_ENV_STEPS.includes(step.name)) problems.push(`${where} sets \`${key}\`, which only ${DB_ENV_STEPS.map((n) => `"${n}"`).join(' and ')} may set: \`${line.trim()}\``);
+      else if (line.trim() !== DB_ENV_VALUES[key]) problems.push(`${where} sets \`${key}\` to another value than the bootstrap job's: \`${line.trim()}\``);
+    }
+  });
+  return problems;
 }
 const KEY_LINE = /^( *)(?:-[ ]+)?("(?:[^"\\]|\\.)*"|'(?:[^']|'')*'|[^\s"'#:][^:#]*?)[ ]*:(?:[ ]|$)/;
 const unquoted = (key) => (key.startsWith('"') ? key.slice(1, -1) : key.startsWith("'") ? key.slice(1, -1).replace(/''/g, "'") : key);
@@ -514,7 +551,7 @@ const RUNNER_ENV_WRITE = /GITHUB_ENV|GITHUB_PATH|_runner_file_commands|ACTIONS_A
 function runnerEnvWriteProblems(ci) {
   const job = workflowJobs(ci).get('application');
   return [...applicationJobText(ci).filter((line) => RUNNER_ENV_WRITE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which writes or opens the environment of later steps`),
-    ...yamlFormProblems(job), ...applicationKeys(job).problems, ...servicesProblems(job)];
+    ...yamlFormProblems(job), ...applicationKeys(job).problems, ...servicesProblems(job), ...dbEnvProblems(job)];
 }
 function auditProblems(steps) {
   const lines = steps.flatMap((s) => (s.run ?? '').split('\n')).filter((line) => /\bnpm audit\b/.test(line)).map((line) => line.trim());
@@ -650,6 +687,53 @@ test('CI audits the dev dependencies too, the packages the application job runs 
     [atService('          --health-retries 5\n', '          --health-retries 5\n          --entrypoint /bin/sh\n'), 'services: block is not the pinned postgres:17 container'],
     [atService(SERVICE_PORTS, '        ports:\n          - 5432:5432\n        volumes:\n          - /var/run/docker.sock:/var/run/docker.sock\n'), 'services: block is not the pinned postgres:17 container'],
     [atService('    services:\n', '    "services":\n'), 'has the job key `services`'],
+  ]) {
+    assert.notEqual(mutated, ci);
+    const problems = runnerEnvWriteProblems(mutated);
+    assert.ok(problems.some((p) => p.includes(expected)), 'refused: ' + expected + ' (found ' + JSON.stringify(problems) + ')');
+  }
+  // A1-305-1: inside the block a blank line and a `#`-led line are content to YAML (in `options: >-` a
+  // blank line then `#x --privileged ...` hands docker real flags), so the block is read from the raw lines
+  // and each such line breaks the byte-for-byte pin. A1's insertion, then its parts alone and its variants:
+  // a `#`-led line at the job's depth, tab-led lines, a CRLF line end and a trailing space. The same in the
+  // bootstrap job's block. A comment after the block's last line is ci.yml's own, and stays free.
+  const HEALTH_CMD = '          --health-cmd pg_isready\n';
+  const PIN = 'services: block is not the pinned postgres:17 container';
+  for (const [mutated, expected] of [
+    [atService(HEALTH_CMD, HEALTH_CMD + '\n          #x --privileged -v /var/run/docker.sock:/var/run/docker.sock\n'), 'blank or `#`-led line(s) inside it'],
+    [atService(HEALTH_CMD, HEALTH_CMD + '\n'), 'blank or `#`-led line(s) inside it'],
+    [atService(HEALTH_CMD, HEALTH_CMD + '   \n'), 'blank or `#`-led line(s) inside it'],
+    [atService(HEALTH_CMD, HEALTH_CMD + '          #x --privileged\n'), 'blank or `#`-led line(s) inside it'],
+    [atService(HEALTH_CMD, HEALTH_CMD + '    # --privileged\n'), 'blank or `#`-led line(s) inside it'],
+    [atService(HEALTH_CMD, HEALTH_CMD + '\n\t#x --privileged\n'), 'blank or `#`-led line(s) inside it'],
+    [atService(HEALTH_CMD, HEALTH_CMD + '          \t--privileged\n'), PIN],
+    [atService(HEALTH_CMD, '          --health-cmd pg_isready\r\n'), PIN],
+    [atService(HEALTH_CMD, '          --health-cmd pg_isready \n'), PIN],
+    [atService('        image: postgres:17\n', '        image: postgres:17\n\n        # x\n'), 'blank or `#`-led line(s) inside it'],
+  ]) {
+    assert.notEqual(mutated, ci);
+    const problems = runnerEnvWriteProblems(mutated);
+    assert.ok(problems.some((p) => p.includes(expected)), 'refused: ' + JSON.stringify(expected) + ' (found ' + JSON.stringify(problems) + ')');
+    assert.ok(problems.some((p) => p.includes(PIN)), 'the block is not the pin');
+  }
+  const bootHealth = ci.indexOf(HEALTH_CMD);
+  assert.ok(bootHealth !== -1 && bootHealth < ci.indexOf('  application:\n'), 'the bootstrap job\'s service reads as written');
+  const bootMutated = ci.slice(0, bootHealth) + HEALTH_CMD + '\n          #x --privileged -v /var/run/docker.sock:/var/run/docker.sock\n' + ci.slice(bootHealth + HEALTH_CMD.length);
+  assert.notDeepEqual(workflowJobs(bootMutated).get('bootstrap').services, APPLICATION_SERVICES, 'A1\'s insertion in the bootstrap job\'s block breaks its pin too');
+  assert.deepEqual(servicesProblems(workflowJobs(atService(SERVICE_PORTS, SERVICE_PORTS + '\n    # a comment after the block\n\n')).get('application')), [], 'a comment after the block is not in it');
+  // A1-305-I1 / C0-305-I1: DB_TEST_URL and PGPASSWORD only on their two steps, and only with the bootstrap
+  // job's values; a `${{ secrets.* }}` or another host on either name, on any step, is refused.
+  const BUILD_STEP = '      - name: Build the web application\n';
+  const TESTS_DB_URL = '          DB_TEST_URL: postgresql://postgres@localhost:5432/thinkbizthai_test\n        run: npm run test:app\n';
+  assert.deepEqual(dbEnvProblems(workflowJobs(ci).get('application')), [], 'the two names are on their two steps, with the bootstrap job\'s values');
+  assert.ok(ci.includes(BUILD_STEP) && ci.includes(TESTS_DB_URL), 'the build and tests steps read as written');
+  for (const [mutated, expected] of [
+    [ci.replace(BUILD_STEP, BUILD_STEP + '        env:\n          DB_TEST_URL: ${{ secrets.X }}\n'), 'step "Build the web application" sets `DB_TEST_URL`, which only'],
+    [ci.replace(BUILD_STEP, BUILD_STEP + "        env:\n          'PGPASSWORD': postgres\n"), 'step "Build the web application" sets `PGPASSWORD`, which only'],
+    [ci.replace(AUDIT_STEP, AUDIT_STEP + '        env:\n          PGPASSWORD: postgres\n'), 'step "Vulnerability audit (network)" sets `PGPASSWORD`, which only'],
+    [ci.replace(TESTS_DB_URL, '          DB_TEST_URL: ${{ secrets.DB_TEST_URL }}\n        run: npm run test:app\n'), 'step "Application tests" sets `DB_TEST_URL` to another value'],
+    [ci.replace(TESTS_DB_URL, '          DB_TEST_URL: postgresql://postgres@db.example.com:5432/thinkbizthai_test\n        run: npm run test:app\n'), 'step "Application tests" sets `DB_TEST_URL` to another value'],
+    [ci.replace(TESTS_DB_URL, TESTS_DB_URL.replace('          DB_TEST_URL', '          "DB_TEST_URL"').replace('thinkbizthai_test\n', 'prod\n')), 'step "Application tests" sets `DB_TEST_URL` to another value'],
   ]) {
     assert.notEqual(mutated, ci);
     const problems = runnerEnvWriteProblems(mutated);
