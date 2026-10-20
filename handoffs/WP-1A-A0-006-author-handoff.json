@@ -5,14 +5,22 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "f36b23ecd5c0e36c9b593420fd6491f72f3cb114",
-  "head_revision_or_patch_checksum": "bdcfe49cf02cc256a4d0c3018741f240b2d41715",
+  "head_revision_or_patch_checksum": "a78a8f7f5af573e6060cf96be6b15bb0bac3d24b",
   "task_ids": [
     "WP-1A-A0-006",
     "open-2026-10-20",
     "fix-round-1-C0-304-1"
   ],
   "files_added": [
+    "evidence/WP-1A-A0-006/a1-review-2026-10-20-pr304-r2.md",
+    "evidence/WP-1A-A0-006/a1-review-2026-10-20-pr304.md",
+    "evidence/WP-1A-A0-006/c0-review-2026-10-20-pr304-r2.md",
+    "evidence/WP-1A-A0-006/c0-review-2026-10-20-pr304.md",
     "evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-open.md",
+    "evidence/WP-1A-A0-006/q0-review-2026-10-20-pr304-r2.md",
+    "evidence/WP-1A-A0-006/q0-review-2026-10-20-pr304.md",
+    "evidence/WP-1A-A0-006/r0-review-2026-10-20-pr304-r2.md",
+    "evidence/WP-1A-A0-006/r0-review-2026-10-20-pr304.md",
     "handoffs/WP-1A-A0-006-author-handoff.json",
     "work-packages/WP-1A-A0-006.json"
   ],
