@@ -730,3 +730,67 @@ press that pull request once C0, A1, Q0 and R0 have passed on its final head and
 §5 item 6's other conditions kept. The Owner's answer of 07:24:27Z says the same of the `typescript` widening above
 (`ใน PR skeleton เดียวกัน และ A0 กดได้เมื่อ 4 role ผ่าน`), so the direction covers that widening too, as it travels in the
 skeleton pull request only. It reaches no other amendment of this RFC.
+
+## Note 2026-10-20 — Q-029-2 decided: Supabase Cron calls the dispatcher; who holds the caller's secret is open (WP-1A-A0-001)
+
+Note 2026-10-20 (the text above, §2.8, §10 and Amendment 2026-10-12 included, is kept whole and is not changed by it).
+Recorded by `/claude/a0_atlas` (A0) under `WP-1A-A0-001`, which owns this RFC. Measured on `main` at `0440c672`. The
+Owner's words below are copied by script from the transcript of session `5ea77291`
+(`~/.claude/projects/-Users-bank-ThinkBizThai/5ea77291-c263-4dfc-83e9-1d395eee5e51.jsonl`) and line-wrapped here; byte
+for byte, with A0's reading, in `evidence/WP-1A-A0-001/product-owner-disposition-2026-10-20-rfc029-cron.md`.
+
+**The decision.** Asked 2026-10-20T02:58:32Z (transcript record 913) and answered 03:00:37Z (record 914), header
+`Q-029-2`, question `Q-029-2: dispatcher จะให้ Cron ตัวไหนเรียก?`; the Owner chose `Supabase Cron เรียก route ทุกนาที
+(Recommended)`, described `ตาม D6 ในแผน 2026-10-08 Cron ระดับนาทีเรียก dispatcher route ที่ claim ด้วย lease
+และจำกัดเวลาต่อรอบ`. Read Q-029-2 as **decided: a once-a-minute Supabase Cron calls the dispatcher route** in
+`apps/worker`. The options he was shown and did not choose were `Vercel Cron` and `ยังไม่ตัดสิน`.
+
+**What it supersedes, and what it leaves.**
+
+1. **§10, Q-029-2.** The recommendation of Vercel Cron in the worker's project is not taken. "Decided by
+   `WP-1A-A0-004`" is read as: decided by the Owner on 2026-10-20 and owed under `WP-1A-A0-006`, which writes the
+   dispatcher route (`work-packages/WP-1A-A0-006.json` `open_blockers[9]` and `[14]`; C0-305-I4). `WP-1A-A0-004`'s own
+   records still name it; correcting them is that package's record, not this note's. The 2026-10-11 paragraph's "Q-029-2
+   … stay with the packages named above" is read the same way.
+2. **§2.8, where the Cron's secret lives.** The sentence "The Cron's secret lives in the worker project's environment
+   beside the worker credential, not in the web project" assumed a caller inside the worker's Vercel project. With
+   Supabase Cron as the caller, the secret the caller presents is held outside that project, so the sentence is
+   superseded by this note as far as the caller's copy goes; §10's remark that Supabase Cron "would need the secret
+   stored in the database" is the open question below, not an answer to it.
+3. **What stays.** The rest of §2.8 stands: `app.jobs` is the queue; the route is in `apps/worker`, its own Vercel
+   project (§2.7/3); it authenticates the caller with a dedicated secret and nothing else, compared in constant time;
+   an unset or empty secret refuses every call; it refuses on any Preview deployment; it claims jobs under a lease and
+   stops within a time budget below the function's maximum duration. The secret stays apart from the worker credential:
+   it authorises a call of the route, never a database login. The web project holds neither.
+
+**Open: who holds the caller's secret.** Not decided by the Owner's answer and not decided here. The Owner's answer of
+2026-10-20T07:20:50Z (header `RFC Cron`, below) has A1 propose it, and it is decided before the dispatcher increment
+(the `WP-1A-A0-006` pull request that adds the route) begins. The realistic options, listed without a preference
+(general knowledge, not measured):
+
+- **Supabase Vault and a `pg_net` header.** The secret is stored in Vault; the `pg_cron` job reads it and sends it in a
+  request header of a `pg_net` call to the route. To be answered: which database roles can read the decrypted secret,
+  the job's command text and `pg_net`'s request and response records, and how it is rotated on both sides.
+- **A Supabase Edge Function relay.** The Cron calls an Edge Function, which holds the route's secret among its own
+  secrets and calls the route. To be answered: how the Cron authenticates to the relay (which is again a secret held by
+  the caller), and what the relay adds to the path.
+- **A signed short-lived token.** The caller presents a token minted per call (for example a signature over a
+  timestamp) that the route verifies and refuses once expired, so a captured request replays only inside its window.
+  To be answered: where the signing key is held, which is the same question for a different secret, and the clock
+  window.
+
+Each needs, for A1's reading: where the secret is kept, who can read it, how it is rotated, and what a reader of the
+database learns. D6's per-round time budget and the lease length stay with `WP-1A-A0-006` (`open_blockers[9]`).
+
+**Who presses.** Asked 2026-10-20T06:43:33Z (record 1341) and answered 07:20:50Z (record 1342), header `RFC Cron`,
+question `RFC-029 ยังเขียนว่าใช้ Vercel Cron และเก็บ secret ไว้ใน env ของ worker แต่คุณเลือก Supabase Cron จะให้ทำ RFC
+note อย่างไร?`; the Owner chose `A0 เขียน note ต่อท้าย RFC-029 แล้วกดเองเมื่อ 4 role ผ่าน (Recommended)`, described
+`เพิ่ม note ต่อท้าย RFC แบบไม่แก้ข้อความเดิม บันทึกว่าใช้ Supabase Cron และให้ A1 เสนอว่าใครถือ secret ที่ใช้เรียก
+dispatcher ทำก่อนเริ่ม increment ของ dispatcher`. A0 presses the pull request that carries this note once C0, A1, Q0
+and R0 pass on its final head and CI is green on it, with `RFC-2026-025` §5 item 6's other conditions kept. It reaches
+this note only, not any other amendment of this RFC.
+
+**What it does not do.** It changes no rule, threshold, guard, test, CI step or allowlist entry, provisions nothing,
+and binds no provider: the Cron job, the secret and the worker project are created only when the worker is provisioned
+(§2.7/3, `WP-1A-A6-001`). **Rollback:** a reviewed revert removes the note; Q-029-2 then reads as §10 wrote it, and the
+Owner's answer stays recorded in the disposition.
