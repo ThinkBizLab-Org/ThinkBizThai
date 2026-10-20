@@ -89,7 +89,7 @@
     "scripts/verify-typecheck-control.mjs": "bd1a203457d7ffd064ef3e6882007b29ecaf763943cc1f79046470540fd0ffa7",
     "test-kits/app-boundaries.test.mjs": "f5945150e6db34b53cc9772d1ae226be6ed610a5dd200636766eaa58e1264749",
     "test-kits/app-dependencies.test.mjs": "da360fc8d596f0c7b9c3c2a2a82076425775a87ed24a8903e1be68f42a7c7e1b",
-    "test-kits/app-stack.test.mjs": "16cb73b2db6b6148c38243b40ed1db7173be9933f7c724bdb3a1b01378eeb766",
+    "test-kits/app-stack.test.mjs": "3de4fb0f6dfaaaf29013049e043dde9fc4b7fdd84c7aa33ed9ef42c64d9affb7",
     "test-kits/authority-dispositions.test.mjs": "1113110b0ce469f041104f13ce68178ae9b66877361ee0ba2bd01fcad10d269c",
     "test-kits/branch-identity.test.mjs": "f7def4ef3afc37c08aa4e3ac3da607002abf6c6eda56ce61b574acb381b1333d",
     "test-kits/branch-scope.test.mjs": "9efecc7314012e3fb28cfc966c90d67eb78aace154fc72a66aee9f53a7194de7",

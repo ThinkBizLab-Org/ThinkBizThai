@@ -548,9 +548,23 @@ function applicationKeys(job) {
 // A1-AUD1015-1 (the audit and release age run before any step that executes package code). The bootstrap job is not read: a job's GITHUB_ENV and
 // GITHUB_PATH reach only that job's later steps, never the application job. Returns the problems.
 const RUNNER_ENV_WRITE = /GITHUB_ENV|GITHUB_PATH|_runner_file_commands|ACTIONS_ALLOW_UNSECURE_COMMANDS|::(?:set-env|add-path)\b/i;
+// A1-305-2. Every reader here splits ci.yml on `\n` and drops `#`-led lines, but YAML also breaks a line
+// on a lone `\r` (every version) and YAML 1.1 parsers on NEL U+0085, LS U+2028 and PS U+2029. So one
+// line the reader takes for a comment (`    # note\r        volumes:\r          - ...`) can carry
+// further YAML lines: a service volume, a step env (`DB_TEST_URL: ${{ secrets.* }}`), or a job key
+// past A1-287-2's allowlist. Closed as a CLASS, on the raw text, before any reading: ci.yml holds no
+// `\r` (a CRLF line end included), no U+0085, U+2028 or U+2029, no other C0 or C1 control character
+// but `\n` and `\t`, no DEL and no U+FEFF byte-order mark anywhere. main's ci.yml holds none of them, so
+// nothing legitimate is lost. Returns one problem per character kind found.
+const RAW_LINE_BREAKS = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u2028\u2029\ufeff]/g;
+function rawLineBreakProblems(ci) {
+  const counts = new Map();
+  for (const [ch] of ci.matchAll(RAW_LINE_BREAKS)) counts.set(ch, (counts.get(ch) ?? 0) + 1);
+  return [...counts].map(([ch, n]) => `ci.yml holds ${n} U+${ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')} character(s), which YAML can read as a line break or which the line reading does not see; refused before ci.yml is read (A1-305-2)`);
+}
 function runnerEnvWriteProblems(ci) {
   const job = workflowJobs(ci).get('application');
-  return [...applicationJobText(ci).filter((line) => RUNNER_ENV_WRITE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which writes or opens the environment of later steps`),
+  return [...rawLineBreakProblems(ci), ...applicationJobText(ci).filter((line) => RUNNER_ENV_WRITE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which writes or opens the environment of later steps`),
     ...yamlFormProblems(job), ...applicationKeys(job).problems, ...servicesProblems(job), ...dbEnvProblems(job)];
 }
 function auditProblems(steps) {
@@ -739,6 +753,35 @@ test('CI audits the dev dependencies too, the packages the application job runs 
     const problems = runnerEnvWriteProblems(mutated);
     assert.ok(problems.some((p) => p.includes(expected)), 'refused: ' + expected + ' (found ' + JSON.stringify(problems) + ')');
   }
+  // A1-305-2: a line break the line reading does not split on. None in ci.yml; A1's three insertions (a
+  // service volume after `- 5432:5432`, a step env on the build step, and main's job-head `services:` past
+  // the A1-287-2 allowlist), each with a lone `\r` and again with NEL, LS and PS, plus `credentials:`, a
+  // `container:` key, a whole-file CRLF, a BOM and other control characters, are each refused by both
+  // readers, on the raw text, whatever the rest of the reading makes of them.
+  assert.deepEqual(rawLineBreakProblems(ci), [], 'ci.yml holds no line break but \\n and no control character but \\n and \\t');
+  const AFTER_NEEDS = '  application:\n    needs: bootstrap\n';
+  assert.ok(ci.includes(AFTER_NEEDS), 'the application job head reads as written');
+  const breaks = [];
+  for (const [br, code] of [['\r', 'U+000D'], ['\u0085', 'U+0085'], ['\u2028', 'U+2028'], ['\u2029', 'U+2029']]) {
+    breaks.push([atService(SERVICE_PORTS, SERVICE_PORTS + `    # note${br}        volumes:${br}          - /var/run/docker.sock:/var/run/docker.sock\n`), code]);
+    breaks.push([atService(SERVICE_PORTS, SERVICE_PORTS + `    # note${br}        credentials:${br}          username: x${br}          password: \${{ secrets.X }}\n`), code]);
+    breaks.push([ci.replace(BUILD_STEP, BUILD_STEP + `        # x${br}        env:${br}          DB_TEST_URL: \${{ secrets.PROD_DB_URL }}\n`), code]);
+    breaks.push([ci.replace(AFTER_NEEDS, AFTER_NEEDS + `    # note${br}    services:${br}      evil:${br}        image: alpine${br}        options: --privileged\n`), code]);
+    breaks.push([ci.replace(AFTER_NEEDS, AFTER_NEEDS + `    # note${br}    container: ubuntu:24.04\n`), code]);
+  }
+  breaks.push([ci.replace(/\n/g, '\r\n'), 'U+000D']);
+  breaks.push(['\ufeff' + ci, 'U+FEFF']);
+  breaks.push([ci.replace(AFTER_NEEDS, AFTER_NEEDS + '    # note\u000b    container: ubuntu:24.04\n'), 'U+000B']);
+  breaks.push([ci.replace(AFTER_NEEDS, AFTER_NEEDS + '    # note\u000c    container: ubuntu:24.04\n'), 'U+000C']);
+  breaks.push([ci.replace(AFTER_NEEDS, AFTER_NEEDS + '    # note\u0000\n'), 'U+0000']);
+  breaks.forEach(([mutated, code], i) => {
+    assert.notEqual(mutated, ci);
+    const expected = `${code} character(s), which YAML can read as a line break`;
+    for (const reader of [runnerEnvWriteProblems, shellProblems]) {
+      const problems = reader(mutated);
+      assert.ok(problems.some((p) => p.includes(expected) && p.endsWith('(A1-305-2)')), `${reader.name} refuses ${code} in control ${i + 1} (found ${JSON.stringify(problems).slice(0, 400)})`);
+    }
+  });
   for (const [level, allowed] of Object.entries(APPLICATION_KEYS)) assert.deepEqual([...keys.seen[level]].sort(), [...allowed], 'the ' + level + ' allowlist is exactly what the application job uses');
   // A1-287-1: a `#`-led line inside a block-scalar body is shell text, and is read; a quoted scalar that
   // spans lines is refused. Q1 and Q2 are A1's: a shell string opened on one line and closed on a `#`-led
@@ -882,11 +925,12 @@ function applicationConditionProblems(job) {
 // `sh -c "..."`, or `set +e` in a `run: |` body, which the default `bash -e` honours), a repository or npm
 // script that swallows its own failure, and the pinned actions' own behaviour are not seen; they are held
 // by the review of every ci.yml and script change and by the step list A1-257-4 pins. The bootstrap job
-// is not read here (A1-279-3 named the application job). Returns the problems.
+// is not read here (A1-279-3 named the application job). A1-305-2: a line break the reading does not
+// split on is refused first, on ci.yml's raw text (rawLineBreakProblems). Returns the problems.
 const SHELL_CHOICE = /shell|defaults/i;
 function shellProblems(ci) {
   const job = workflowJobs(ci).get('application');
-  return [...workflowTopLevelProblems(ci),
+  return [...rawLineBreakProblems(ci), ...workflowTopLevelProblems(ci),
     ...applicationJobText(ci).filter((line) => SHELL_CHOICE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which can choose the shell a run: is handed to`),
     ...yamlFormProblems(job), ...applicationKeys(job).problems, ...servicesProblems(job)];
 }
