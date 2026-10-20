@@ -5,14 +5,18 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "0a8690de97b2989dd5e08a35e3ece3afcafc0065",
-  "head_revision_or_patch_checksum": "8459a3408c2094819913403068a5ea59918e7db4",
+  "head_revision_or_patch_checksum": "066c406d4dbc479220ed05c0a50445a7d42957d4",
   "task_ids": [
     "WP-0A-CON-001",
     "ctr-job-001-lifecycle-2026-10-20"
   ],
   "files_added": [
+    "evidence/WP-0A-CON-001/a1-review-2026-10-20-pr308.md",
+    "evidence/WP-0A-CON-001/c0-review-2026-10-20-pr308.md",
     "evidence/WP-0A-CON-001/ctr-job-lifecycle-2026-10-20.md",
-    "evidence/WP-0A-CON-001/product-owner-disposition-2026-10-20-ctr-job-lifecycle.md"
+    "evidence/WP-0A-CON-001/product-owner-disposition-2026-10-20-ctr-job-lifecycle.md",
+    "evidence/WP-0A-CON-001/q0-review-2026-10-20-pr308.md",
+    "evidence/WP-0A-CON-001/r0-review-2026-10-20-pr308.md"
   ],
   "files_modified": [
     "contract-catalog/shared-kernel/ctr-job-001/manifest.json",
