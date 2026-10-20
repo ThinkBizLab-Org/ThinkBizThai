@@ -139,6 +139,7 @@ const BRANCH_OWNERSHIP = {
   'agent/claude/WP-1A-A0-002-skeleton': 'WP-1A-A0-002',
   'agent/claude/WP-1A-A0-003-tenant-envelope': 'WP-1A-A0-003',
   'agent/claude/WP-1A-A0-004-job-worker-outbox': 'WP-1A-A0-004',
+  'agent/claude/WP-1A-A0-006-provider-database': 'WP-1A-A0-006',
 };
 
 test('the whole branch-to-package mapping is pinned, not four rows of it', async () => {

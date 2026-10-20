@@ -1,0 +1,243 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-1A-A0-006",
+  "title": "Provider and database increment — platform-kernel's Postgres job and outbox stores under app_worker_login, the worker's dispatcher route and entry, and the request-path Supabase session with the real tenant access directory",
+  "gate": "G1",
+  "priority": "P0",
+  "status": "in_progress",
+  "required_skill_profiles": {
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy"
+    ]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
+    "tester_agent_run_id": "/claude/q0_sentinel",
+    "integration_owner_agent_run_id": "/claude/r0_steward",
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
+    "product_reviewer_agent_run_id": null,
+    "product_reviewer_note": "Null because no product step is gated here, not because one was waived: this package writes adapters, the worker's dispatcher route and the web tier's composition root (session cookies, the per-request Supabase client, the tenant access directory), with no page, layout, component, copy or sign-in screen. The Email OTP screens and how a refusal reads to the user belong to the shell (WP-1A-A5-003) and A5's message catalog. A reviewer who reads any of this package's outputs as a product surface should say so; the slot then needs a run, not a note."
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": false,
+    "cross_vendor_exception": "Every assigned run is Anthropic claude-opus. As for WP-1A-A0-002, WP-1A-A0-003 and WP-1A-A0-004, the exception rests on the register's own fallback (docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md:527): when no cross-vendor capacity exists, use an independent agent per run and record the exception. No cross-vendor run is available to this package, and this field is that record. What remains is all of CONTRIBUTING_AGENTS.md § Separation of duties: four distinct agent_run_ids in the four roles plus the conditional Security reviewer, no run approves its own work, and every role file opens with RFC-2026-024 §3/4's disclosure that it is a subagent of the Author's run."
+  },
+  "accountable_owners": [
+    "A0"
+  ],
+  "required_human_authorities": [
+    "Product Owner's answers of 2026-10-20 (asked 2026-10-20T00:24:13.767Z, answered 2026-10-20T01:10:13.792Z UTC, session 5ea77291, transcript records 680 and 681); evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-open.md). Header `งานถัดไป`: `WP-1A-A0-006 ต่อฐานข้อมูลจริง (Recommended)`, whose description reads `เขียน adapters/job-store.ts กับ outbox บน Postgres, dispatcher route ต่อ Cron และ worker login role ของ RFC-028 แล้วปิด tenant-context provider ที่ย้ายมาจาก A0-003 ด้วย เป็นเส้นวิกฤตไปสู่ G1`. Header `กด PR เปิด`: `A0 กดเมื่อ 4 role ผ่าน (Recommended)`, whose description reads `ทำแบบเดียวกับตอนเปิด WP-1A-A0-004 (#299)`. As that record's §3 (a)-(c) reads them (A0's reading): the package is opened, and A0 may press its opening pull request (this manifest, the package's BRANCH_OWNERSHIP row in test-kits/branch-identity.test.mjs with the regenerated test-kits/integrity-manifest.json, the disposition record and the author handoff; no source code) once C0, A1, Q0 and R0 have passed on its final head and CI is green on both jobs, with RFC-2026-025 §5 item 6's other conditions kept. The answer does not repeat #299's risk-lane sentence, so A0 does not press on A1 and Q0 alone. It reaches no dependency, workspace, CI, other guard or guard data, allowlist, migration, RFC, CONTRIBUTING_AGENTS.md, other package's manifest or provisioning.",
+    "Product Owner's answer of 2026-10-20 (asked 2026-10-20T00:24:13.767Z, answered 2026-10-20T01:10:13.792Z UTC, session 5ea77291, transcript records 680 and 681), header `D6 ค่าเพดาน`; evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-open.md §3 (d)): `ใช้ไปก่อน ทบทวนตอน G1 slice (Recommended)`, whose description reads `คงค่า 20 / 900 / 50 และให้ relay หยุดที่ event ที่ส่งไม่ได้ไว้ก่อน จะตัดสินใหม่ตอนทำ WP-1A-A0-005 ที่ต้องวัดผลบน staging`. A0's reading: WP-1A-A0-004's provisional values (max_attempts 20, timeout_seconds 900, relay batch 50) and the relay's stop-at-first policy stay in force; this package's database adapters enforce the same caps and keep that policy; the numbers are re-decided in WP-1A-A0-005 against staging measurements. Lease length, back-off numbers, the per-round time budget and concurrency were not asked and stay owed with D6. The answer's record in WP-1A-A0-004's manifest open_blockers is left to a later WP-1A-A0-004 records pull request.",
+    "Product Owner's standing direction of 2026-10-12 (answered 19:38:08Z UTC; evidence/WP-1A-A0-003/product-owner-disposition-2026-10-13-package-tool-config-press.md §3 (a) 1 and 3): `A0 กดได้เมื่อ 4 role ผ่าน + ครอบคลุมกรณีแบบเดียวกัน (Recommended)`, which already reaches a pull request that is governance only because it creates a WP-1A package's manifest and adds that package's own branch row with the integrity-manifest regeneration the row needs. A0 reads the 2026-10-20 answers as the specific direction for this package and that one as consistent with them; neither reaches anything beyond those edits.",
+    "The package's code increments are risk-lane work under RFC-2026-034 §2.2 (sessions, tenancy, jobs, queues, provider adapters; migrations, RLS and grants): A1 and Q0 pass on the final head and A0 presses (Q-034-1); the round audit (§2.3) carries C0's and R0's readings, and only R0's verdict there moves the package past in_review. An increment that also touches package.json, a lockfile or a workspace, CI, a guard other than as §2.2's additive kinds once A1 and Q0 confirm them, an allowlist, an RFC or CONTRIBUTING_AGENTS.md is governance and is asked again."
+  ],
+  "purpose": "The 2026-10-08 G1/G2 plan's rows WP-1A-A0-003 (\"actor, scope และ correlation ต่อกันได้จาก request ถึง DB ไม่มี raw error รั่ว และ cross-tenant request ต้องถูกปฏิเสธ\") and WP-1A-A0-004 (\"ผ่านเทสต์ crash/restart, duplicate, timeout และ replay ไม่มี event หายที่ขอบ transaction\") are each met end to end only by code that reaches the database. Both packages wrote their provider-free part and moved the rest out: WP-1A-A0-003 moved its provider-bound increment and acceptance_criteria[7] to \"the future package proposed as WP-1A-A0-006\" on 2026-10-18 (its open_blockers[25]); WP-1A-A0-004 excludes the database part (scope.exclude[0]) and says so in acceptance_criteria[6]. This package holds both: the Postgres job store and outbox store under RFC-2026-028's app_worker_login (RFC-2026-029 §2.7/3, `pg` in src/modules/platform-kernel/adapters/** only), the worker's dispatcher route and composition root in apps/worker (§2.8, §6.1), and the request path's Supabase session, per-request client under the user's JWT and real tenant access directory (§2.7/1, §8/7). It is reversible work under RFC-2026-029 §7 and RFC-2026-034 §2.1: synthetic data, the local and CI Postgres container only, no provider account and no credential bound. Its first pull request only opens the package; the decisions each later increment needs are in open_blockers.",
+  "scope": {
+    "include": [
+      "OPENING PR (governance; required_human_authorities[0]): this manifest; this package's BRANCH_OWNERSHIP row in test-kits/branch-identity.test.mjs (that table only; the resolution test's ref list unchanged, as for WP-1A-A0-002, WP-1A-A0-003 and WP-1A-A0-004) and test-kits/integrity-manifest.json regenerated for it; the disposition record and the author handoff. No source code.",
+      "src/modules/platform-kernel/adapters/: the Postgres implementations of WP-1A-A0-004's JobStorePort and of its OutboxPort, PublisherPort target and ConsumerLedgerPort, over app.jobs, app.outbox_events and app.consumer_ledger (050, 174), through `pg` as app_worker_login. Every transaction opens `begin; set local role app_worker;` and, for a carried statement, sets app.workspace_id with set_config(..., true) from the job's or event's tenant context (RFC-2026-028 §3.1); never SET or SET ROLE without LOCAL, never RESET ROLE inside an open transaction. The claim goes through the broker RFC-2026-022 §5/6 names once its migration exists (open_blockers). The adapters enforce WP-1A-A0-004's D6 caps before any row is written (A1-303-I2; required_human_authorities[1]) and read each caller-supplied object once (A1-302-I9, A1-303-I3). The runner carries RFC-2026-028's A1R-2 checks, which RFC-2026-029 §2.7/3 (lines 132-134) requires of the dispatcher (RFC-2026-028 line 6, A1R-2 and A1-173-1; §5/13, lines 367-375): (a) at connect and before `set local role` in every job transaction, it reads current_user, session_user and the role's pg_db_role_setting rows and refuses unless current_user = session_user = 'app_worker_login' and no pg_db_role_setting row exists for the role (the production copy of scripts/db/authz-proofs.mjs's workerSessionStartProblem); (b) at the start of every job transaction, after `set local role app_worker` and before its own set_config(..., true), it refuses when current_setting('app.workspace_id', true) is neither null nor empty. index.ts does not re-export them (RFC-2026-029 §6.3/5).",
+      "apps/worker/: the dispatcher route handler and nothing else in app/, and the composition root in composition/ that reads the worker credential and wires the job store (RFC-2026-029 §2.7/3, §2.8, §6.1, §8/5). The route authenticates the caller by a dedicated secret compared in constant time, refuses every call when the secret is unset or empty, refuses on a Preview deployment, and stops within a per-round time budget below the function's maximum duration (D6). Not deployed and not provisioned.",
+      "apps/web/composition/: the request path's provider wiring (A0's recommendation, open_blockers): the Supabase client created per request with the project's public key and the user's session from cookies (@supabase/ssr), the session cookies HttpOnly, Secure and SameSite=Lax (RFC-2026-029 §2.7/1, §8/7), and the real tenant access directory and principal adapters behind WP-1A-A0-003's ports. Every directory read is an RFC-2026-021 allowlist entry or a database function reviewed with A1; none exists today. No apps/web file outside composition/ is written.",
+      "Tests: the JobStorePort and outbox behaviour WP-1A-A0-004 pins on its fakes, run against the adapters on the local and CI Postgres container (crash, restart, duplicate, timeout, replay, the transaction boundary, tenant isolation), with how they reach Postgres in CI still owed (open_blockers); the dispatcher route and the session cookies on fakes.",
+      "Reversible work only (RFC-2026-034 §2.1, RFC-2026-029 §7): synthetic data; migrations on local and CI databases only; no Supabase or Vercel project, provider account or credential bound."
+    ],
+    "exclude": [
+      "Any dependency, lockfile or workspace change (package.json, package-lock.json, apps/worker as a workspace), CI, guard, guard data or allowlist change, RFC or CONTRIBUTING_AGENTS.md edit: each is governance, asked again (open_blockers). RFC-2026-029 §3.1/§3.2 already allow pg, @supabase/supabase-js, @supabase/ssr and @types/pg by name; installing them is a separate governance pull request.",
+      "Any migration and any db/** change in this manifest as written: the forward migration this package needs (open_blockers) comes in by an amendment of this manifest or by WP-0A-DB-00, decided before the first adapter increment.",
+      "Provisioning: the Supabase staging and production projects, the two Vercel projects, the worker credential and the Cron's secret (WP-1A-A6-001, WP-1A-A1-001; Q-028-3's custody), and any measurement on a hosted instance (Q-029-6, Q-028-12).",
+      "src/modules/platform-kernel/domain/** and application/** (WP-1A-A0-003's and WP-1A-A0-004's code is read, not changed) and src/modules/platform-kernel/index.ts.",
+      "Any apps/web file outside apps/web/composition/** (WP-1A-A0-002's skeleton; A5's pages, components and copy), and any page, sign-in screen or copy.",
+      "contract-catalog/** and docs/**: contract gaps (CTR-API-001's pre-tenant error, CTR-JOB-001's lifecycle vocabulary, CTR-EVT-001's tenant_context storage) go to the contract owner as findings."
+    ]
+  },
+  "decisions_consumed": [
+    "DEC-011",
+    "DEC-021",
+    "DEC-022",
+    "DEC-023"
+  ],
+  "contracts_consumed": [
+    "CTR-JOB-001",
+    "CTR-EVT-001",
+    "CTR-TEN-001",
+    "CTR-API-001",
+    "CTR-ERR-001",
+    "CTR-IDM-001"
+  ],
+  "contracts_produced": [],
+  "dependencies": {
+    "required_work_packages": [
+      "WP-1A-A0-003",
+      "WP-1A-A0-004"
+    ],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "branch": "agent/claude/WP-1A-A0-006-provider-database",
+    "writable_paths": [
+      "src/modules/platform-kernel/adapters/**",
+      "apps/worker/**",
+      "apps/web/composition/**",
+      "evidence/WP-1A-A0-006/**",
+      "handoffs/WP-1A-A0-006-*.json",
+      "work-packages/WP-1A-A0-006.json"
+    ],
+    "read_only_paths": [
+      "README.md",
+      "docs/**",
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "contract-catalog/**",
+      "db/**",
+      "src/modules/platform-kernel/domain/**",
+      "src/modules/platform-kernel/application/**",
+      "apps/web/app/**"
+    ],
+    "forbidden_paths": [
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx",
+      ".npmrc",
+      "apps/web/.npmrc",
+      "apps/worker/.npmrc",
+      "supabase/**",
+      "spikes/**",
+      "migrations/**"
+    ],
+    "amends_without_owning": {
+      "paths": [
+        "test-kits/branch-identity.test.mjs",
+        "test-kits/integrity-manifest.json"
+      ],
+      "rationale": "Each file is another package's output, so each is named here. test-kits/branch-identity.test.mjs (WP-0A-CON-008's): this package's branch added to BRANCH_OWNERSHIP, one row, as WP-1A-A0-002, WP-1A-A0-003 and WP-1A-A0-004 did; the resolution test's ref list is unchanged. test-kits/integrity-manifest.json (WP-0A-A0-002's): regenerated by npm run regenerate:manifest, recording only the changed digest of branch-identity.test.mjs. Both travel in the opening pull request under the Owner's answers of 2026-10-20 (required_human_authorities[0]); RFC-2026-034 §2.2 names a row for a new branch and such a regeneration as additive guard edits."
+    }
+  },
+  "inputs": {
+    "files": [
+      "CONTRIBUTING_AGENTS.md",
+      "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
+      "architecture/decisions/RFC-2026-022-service-policy-shape.md",
+      "architecture/decisions/RFC-2026-026-audit-row-producer.md",
+      "architecture/decisions/RFC-2026-028-worker-identity.md",
+      "architecture/decisions/RFC-2026-029-application-tier-stack.md",
+      "architecture/decisions/RFC-2026-034-fast-lane.md",
+      "contract-catalog/shared-kernel/index.json",
+      "contract-catalog/shared-kernel/ctr-job-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-evt-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-ten-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-api-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-err-001/schema.json",
+      "db/foundation/migrations/050_async_kernel.sql",
+      "db/foundation/migrations/171_workspace_lifecycle_visibility.sql",
+      "db/foundation/migrations/172_acting_user_and_closing_command.sql",
+      "db/foundation/migrations/173_worker_login_identity.sql",
+      "db/foundation/migrations/174_job_tenant_context.sql",
+      "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-08-g0-exit-and-g1-decisions.md",
+      "evidence/WP-1A-A0-003/product-owner-disposition-2026-10-18-provider-split.md",
+      "work-packages/WP-1A-A0-002.json",
+      "work-packages/WP-1A-A0-003.json",
+      "work-packages/WP-1A-A0-004.json",
+      "scripts/app-dependency-allowlist.json",
+      "scripts/app-boundaries.mjs",
+      "test-kits/db/foundation-contract.test.mjs",
+      ".github/workflows/ci.yml",
+      "evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-open.md"
+    ],
+    "fixtures": [
+      "contract-catalog/shared-kernel/ctr-job-001/examples/",
+      "contract-catalog/shared-kernel/ctr-evt-001/examples/",
+      "contract-catalog/shared-kernel/ctr-ten-001/examples/"
+    ]
+  },
+  "outputs": {
+    "files": [
+      "evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-open.md",
+      "work-packages/WP-1A-A0-006.json"
+    ],
+    "contracts": []
+  },
+  "acceptance_criteria": [
+    "OPENING PR: the branch resolves to WP-1A-A0-006 alone; BRANCH_OWNERSHIP gains exactly one row and test-kits/integrity-manifest.json changes only that file's digest; validate-work-packages, validate-work-package-ownership and validate-work-package-role-separation exit 0; npm run check is green; no source file changes.",
+    "Job store adapter, on the local and CI Postgres container against app.jobs: it passes the behaviour WP-1A-A0-004 pins on its in-memory fake (enqueue with an existing dedupe_key in the same workspace returns the existing job and writes no row; two claimers at once get at most one lease; a crash mid-run is reclaimed after lease expiry by another worker; a restart with a new pool resumes; a duplicate enqueue and a duplicate delivery have no second effect; a handler exceeding its timeout is recorded and released). A statement issued before SET LOCAL ROLE fails with 42501; no session-level SET ROLE, SET or RESET ROLE is issued. A1R-2 (RFC-2026-029 §2.7/3, lines 132-134; RFC-2026-028 line 6), through the production runner's code path, not a harness copy: (a) session check — a bare app_worker_login session starts its job; negative controls: a session whose current_user or session_user is not app_worker_login (for example a superuser session, or one under `set session authorization`) is refused before any job statement, and a session after `alter role app_worker_login set role = 'app_worker'` (one pg_db_role_setting row) is refused at connect and at the next job transaction's start, and a runner with the check removed goes red on both; (b) §5/13 (RFC-2026-028 lines 367-375) — two consecutive jobs on one connection, the first setting app.workspace_id with set_config(..., true): the second starts clean; negative control: the first sets it with set_config(..., false), the second refuses to start, and a runner without the check goes red.",
+    "The adapters enforce WP-1A-A0-004's D6 caps (max_attempts 20, timeout_seconds 900 while required_human_authorities[1] holds): an enqueue above either writes no row and rejects with the stable error the fake uses; each caller-supplied object is read once.",
+    "Outbox store adapter, on the container against app.outbox_events and app.consumer_ledger: an event appended in the producing transaction is committed with it or not at all (a rollback after the append leaves no outbox row; a commit leaves exactly one), so no event is lost or invented at the transaction boundary; the relay marks dispatched_at only after the publish resolved and stops at the first entry it cannot publish or mark; a consumer records (workspace_id, consumer, event_id) in the transaction that makes its effect visible, so a replay, a duplicate, or a redelivery after a relay crash between publish and mark has no second effect; the relayed envelope carries the full CTR-TEN-001 tenant_context (A1-302-I2).",
+    "Tenant isolation, on the container, once the forward migration is in place: as app_worker under workspace A's GUC no row of workspace B in any of the three tables is read, updated or inserted; a claim through the broker returns the claimed job's workspace and runs the job's carried statements under it; authenticated and anon read and write nothing; each case has a negative control that fails it (the policy or the broker's owner policy dropped).",
+    "Dispatcher route in apps/worker, on fakes: a missing, wrong or empty secret is refused, with the comparison constant-time; an unset secret refuses every call; a Preview deployment refuses; a round stops within its time budget under a fake clock; apps/worker/app/ serves that route and nothing else; outside apps/worker/composition/** no file reads the worker credential, and nothing under apps/web reaches pg or src/modules/platform-kernel/adapters/** (node scripts/verify-app-boundaries.mjs --require-parser).",
+    "Request path in apps/web/composition, on fakes: the session cookies are HttpOnly, Secure and SameSite=Lax (RFC-2026-029 §8/7), shown by a test on the code that sets them; the Supabase client is created per request with the public key and the user's session, never the service-role key (§8/5); the tenant access directory admits only what an RFC-2026-021 entry or a reviewed database function admits; a cross-tenant or unknown scope is refused with WP-1A-A0-003's uniform error.",
+    "MOVED IN from WP-1A-A0-003 acceptance_criteria[7] and WP-1A-A0-004 acceptance_criteria[6]: actor, scope and correlation chain from the request to the database with no raw error leaked and a cross-tenant request refused, and a durable worker over app.jobs with a transactional outbox on the database. On the CI container these are met by the criteria above; on a hosted Supabase project they are met only after provisioning (WP-1A-A6-001, WP-1A-A1-001) and RFC-2026-034 §2.1's later decision, in WP-1A-A0-005's slice, which this package does not contain.",
+    "No job or event record, error, failure report or log line carries a thrown value's or a driver error's message, name, stack, SQL text or connection string; database failures map to CTR-ERR-001 stable errors; npm run typecheck and npm run test:app pass."
+  ],
+  "required_tests": [
+    "npm run check",
+    "npm run typecheck",
+    "npm run test:app",
+    "node scripts/verify-app-boundaries.mjs --require-parser"
+  ],
+  "deterministic_commands": {
+    "setup": [
+      "npm ci --ignore-scripts"
+    ],
+    "verify": [
+      "npm run check",
+      "node scripts/verify-app-boundaries.mjs --require-parser",
+      "npm run typecheck",
+      "npm run test:app"
+    ],
+    "package_evidence": [
+      "node scripts/validate-work-packages.mjs",
+      "node scripts/validate-work-package-ownership.mjs",
+      "node scripts/validate-work-package-role-separation.mjs work-packages/WP-1A-A0-006.json",
+      "node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-006",
+      "npm run check:handoff"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert through a reviewed revert pull request. Reverting the opening pull request removes this manifest, the agent/claude/WP-1A-A0-006-provider-database row from BRANCH_OWNERSHIP with its integrity-manifest digest restored, and evidence/WP-1A-A0-006/; nothing depends on them. A later code increment is reverted with its tests; a migration it relies on is never edited once integrated and is undone by a forward migration with its pins.",
+  "open_blockers": [
+    "AUTHOR COMPLETE ONLY (opening pull request, 2026-10-20). C0, A1, Q0 and R0 have not read this package. The Author moves it to in_review and no further.",
+    "LANE: the opening pull request edits test-kits/branch-identity.test.mjs and test-kits/integrity-manifest.json, both governance paths under RFC-2026-034 §2.2; both edits are kinds §2.2 lists as additive (a row for a new branch; a regeneration recording only the digest of a file the pull request changes). All four roles read it, and A0 presses under required_human_authorities[0] once they pass and CI is green on both jobs. If A1 and Q0 confirm the guard hunks additive, their confirmations are recorded; under A0's reading of the 2026-10-20 answer they do not shorten who reads it.",
+    "DECISION OWED, dependencies (A0's reading): pg, @supabase/supabase-js and @supabase/ssr (RFC-2026-029 §3.1) and @types/pg (§3.2) are already allowlisted, with where each may be imported, so no RFC amendment is needed for the names. Installing them edits package.json and package-lock.json, and adding apps/worker as a workspace (§4.1) edits package.json again: governance under RFC-2026-034 §2.2, with §8/8's per-name answers before the install, §4.8's release age, and A1 for these names (§3.4/5, /6). Needs its own Owner direction; required_human_authorities[0] does not reach it.",
+    "DECISION OWED, where the request-path adapters live: §3.1 allows @supabase/ssr in apps/web/composition/** only, and §6.3/5 forbids anything under apps/web, its composition root included, from reaching src/modules/platform-kernel/adapters/** (scripts/app-boundaries.mjs enforces it). A0's recommendation: the session, the per-request client and the real tenant access directory live in apps/web/composition/**, and adapters/** holds the pg stores only; no amendment needed. Narrowing §6.3/5 instead would be an RFC amendment (governance).",
+    "OWNERSHIP OVERLAP (WP-1A-A0-003's R4, open_blockers[11] there, which passes here): apps/web/composition/** is inside WP-1A-A0-002's writable apps/web/**. scripts/validate-work-package-ownership.mjs (exit 70) compares one package's writable paths with another's outputs.files, so it passes while this manifest's outputs list no file there. The first increment that lists one needs WP-1A-A0-002's writable_paths narrowed first, in a pull request of that package; not done here. apps/worker/** is forbidden to WP-1A-A0-002 and WP-1A-A0-004 and is no package's output.",
+    "DECISION OWED, a forward migration (A0's reading: needed; none written here; db/** read-only). 050_async_kernel.sql and 173_worker_login_identity.sql leave app_worker with grants and no policy on app.jobs, app.outbox_events and app.consumer_ledger (FORCE RLS, empty policy set), so app_worker reads and writes no row of them. RFC-2026-022 §5/6 makes the job claim a DISCOVERED statement served by a SECURITY DEFINER broker owned by app_queue, which does not exist and needs CTR-JOB-001's lifecycle vocabulary (RFC-2026-028 §3.5/3); the CARRIED statements need policies TO app_worker under the app.workspace_id GUC; app.outbox_events lacks the full tenant_context (A1-302-I2, WP-1A-A0-004 open_blockers[13]); RFC-2026-026's worker half comes first among worker acts (RFC-2026-028 §3.5/1). Owed: who writes it (this package by amendment, or WP-0A-DB-00), its number (next free above 174, as Q-028-9 did, with R0's acceptance of the registry exception), its pins under RFC-2026-034 §2.2's additive rule, and the contract owner's answers it relies on.",
+    "DECISION OWED, how the adapters' tests reach Postgres: CI's bootstrap job runs a postgres:17 service; the application job, which runs npm run test:app, has none (.github/workflows/ci.yml). A CI or database-harness change is governance. Owed before the first adapter increment.",
+    "DEPENDENCY RECORDED, WP-1A-A1-001: no manifest exists on main at f36b23ec (nor for WP-1A-A6-001). The 2026-10-08 plan gives it the hosted migrations and the platform measurements (Q-028-12), and WP-1A-A0-003 open_blockers[9] (Q8) and [25] name it as gating the provider-bound increment. A0's reading: this package's reversible work (code, fakes, the local and CI container) does not need it; anything on a hosted project, any provider credential and the worker's connection route (Q-029-6) do, together with RFC-2026-034 §2.1's later decision opening provider accounts. It is not listed in dependencies.required_work_packages because no manifest exists to point at; it is added when one does.",
+    "DUTY CARRIED, KERNEL_CREATED (A1-300-I2; R0-281-2; WP-1A-A0-003 open_blockers[24]; WP-1A-A0-004 open_blockers[13]): the pull request that creates src/modules/platform-kernel/adapters/job-store.ts adds it to KERNEL_CREATED in test-kits/db/foundation-contract.test.mjs (WP-0A-DB-00's), whose comment reads \"The pull request that creates the job store adapter (adapters/job-store.ts) adds it here, which is an edit of this test.\" That test pins the lane classifier's behaviour, so the pull request is governance unless A1 and Q0 confirm the hunk additive under §2.2 (A0's reading), and its press needs an Owner direction required_human_authorities[0] does not give. R0 of that pull request looks for it.",
+    "DECISION OWED, Q-029-2 (RFC-2026-029 §10, given to WP-1A-A0-004; the dispatcher route is now this package's): which Cron fires the dispatcher. A0's recommendation there is Vercel Cron in the worker's project. Decided before the dispatcher increment, together with D6's per-round time budget and lease length.",
+    "INHERITED FROM WP-1A-A0-003 (its open_blockers[2], [6], [11], [13], [25]): Q1, CTR-API-001 has no error shape before a tenant is known, which blocks the wire form of a request-path refusal (the contract owner's change); Q5, the correlation id stays minted until CTR-OBS-001 says otherwise; R4 (entry above); C0-259-3, the plan row's request-to-DB acceptance is now this package's acceptance_criteria[7], which records what moved and lets WP-1A-A0-003's entry be closed by a records pull request of that package. A real directory read needs an RFC-2026-021 allowlist entry or a reviewed database function; none exists.",
+    "INHERITED FROM WP-1A-A0-004 (its open_blockers[13] and evidence/WP-1A-A0-004/a1-review-2026-10-20-pr303.md §5): A1-303-I2 (caps live in the fake; acceptance_criteria[2] here), A1-302-I9 and A1-303-I3 (check-then-read helpers; an adapter reads once), A1-303-I1 (a database lock in recordOnce self-waits like the fake; a statement timeout is the backstop), A1-302-I4 (head-of-line blocking across workspaces; the D6 question).",
+    "D6 RECORD (required_human_authorities[1]): the Owner's answer is recorded in evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-open.md §3 (d) and here. Its record in WP-1A-A0-004's manifest open_blockers is owed by a later WP-1A-A0-004 records pull request on that package's branch; this pull request edits no other package's manifest.",
+    "NOT PROVISIONED: no Supabase or Vercel project, provider account or credential is bound by this package's reversible work. The worker credential exists only once Q-028-3's custody is answered (RFC-2026-029 §2.7/3); provisioning is WP-1A-A6-001's and WP-1A-A1-001's.",
+    "C0 INFO TAKEN (evidence on branch c0/wp-1a-a0-006-pr304-2026-10-20, c0-review-2026-10-20-pr304.md, checks 3 and 12; fix round 1, 2026-10-20): Q-029-2 (which Cron fires the dispatcher) is now owed by WP-1A-A0-006, which writes the dispatcher route (open_blockers[9]). RFC-2026-029 §10 (line 530, \"Decided by `WP-1A-A0-004`\") and WP-1A-A0-004's open_blockers still name WP-1A-A0-004; neither is edited here, and their wording is left to a later RFC-2026-029 or WP-1A-A0-004 records pull request. Also recorded: WP-1A-A0-003 open_blockers[24] calls the constant PLATFORM_KERNEL_CREATED; the test's name is KERNEL_CREATED (test-kits/db/foundation-contract.test.mjs), as open_blockers[8] here says."
+  ],
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "test_verified",
+    "integration_verified"
+  ]
+}
