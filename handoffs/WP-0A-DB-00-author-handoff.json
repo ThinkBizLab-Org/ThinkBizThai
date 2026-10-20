@@ -5,13 +5,21 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "fc9980348aeb71cb2892844c9ccce05ba479cb3d",
-  "head_revision_or_patch_checksum": "fc9980348aeb71cb2892844c9ccce05ba479cb3d",
+  "head_revision_or_patch_checksum": "bf683d7d58d4a60b63105245b74691d38872d896",
   "task_ids": [
     "WP-0A-DB-00",
     "gov-rfc022-broker-2026-10-20"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-20-rfc022-broker.md"
+  ],
+  "files_modified": [
+    "architecture/decisions/RFC-2026-022-service-policy-shape.md",
+    "db/foundation/lint/audit-coverage-map.json",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-022",
@@ -45,39 +53,19 @@
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 8ccc1786, under the suite lock, after npm run regenerate:manifest)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit bf683d7d, under the suite lock, after npm run regenerate:manifest)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 857, pass 857, fail 0, skipped 0, todo 0"
+      "result": "clean: exit 0 — tests 858, pass 858, fail 0, skipped 0, todo 0"
     },
     {
-      "command": "node --test --test-name-pattern 'RFC-2026-007 Amendment 2026-10-13' test-kits/db/foundation-contract.test.mjs",
-      "exit_code": 0,
-      "result": "6 tests, 6 pass"
+      "command": "npm run check (under the suite lock, before the final fixes)",
+      "exit_code": 1,
+      "result": "red twice and fixed before the commit: the audit coverage map's 34 blocker line pins (shifted by the added authority line) and a handoff sentence the role-language guard read as approval attributed to A1; both corrected, then clean as above"
     },
     {
-      "command": "node --test test-kits/app-boundaries.test.mjs; node --test test-kits/app-stack.test.mjs",
+      "command": "git diff --numstat origin/main -- architecture/decisions/RFC-2026-022-service-policy-shape.md",
       "exit_code": 0,
-      "result": "29/29 and 21/21 pass"
-    },
-    {
-      "command": "node scripts/verify-app-boundaries.mjs --require-parser (after npm ci --ignore-scripts; node_modules removed after)",
-      "exit_code": 0,
-      "result": "28 source files; 54 negative and positive controls held first"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
-      "exit_code": 0,
-      "result": "all 12 changed paths declared, every amendment explains one"
-    },
-    {
-      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
-      "exit_code": 0,
-      "result": "tier H, lane governance (classifier, guards, their tests, guard data, integrity manifest)"
-    },
-    {
-      "command": "node scripts/db/classify-review-tier.mjs 8ccc1786 <throwaway commit editing index.ts and application/run.ts and adding adapters/job-store.ts> --lane",
-      "exit_code": 0,
-      "result": "tier H, lane risk (throwaway worktree removed)"
+      "result": "212 additions, 0 deletions (append-only)"
     }
   ],
   "security_privacy_cost_impact": "Text only: a proposed decision on the queue broker's shape. It widens nothing app_worker can reach until a later migration (176) implements it after approval; it keeps §5/5 (no app_worker policy on the three tables), forbids caller-supplied numbers, instants and tenant fields, and leaves the D6 parameters' home to A1.",
