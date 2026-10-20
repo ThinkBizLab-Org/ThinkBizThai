@@ -1025,6 +1025,85 @@ export async function proveTheJobTenantContext(run, ids) {
 }
 
 // -------------------------------------------------------------------------------------------
+// A1-302-I2: an outbox event names its tenant context (batch 175, migration 175; WP-1A-A0-006).
+// -------------------------------------------------------------------------------------------
+//
+// 174's proof, one table over: app.outbox_events carries no policy, so the CHECKs and the column ACL are executed
+// here, each attempt in its own rolled-back transaction, as the connection role for the shape and as app_worker for
+// the grants, and each refusal has a control that removes the one thing named. And the state 175 leaves in place,
+// executed rather than asserted (RFC-2026-022 §5/5; RFC-2026-028 §3.2): with app.workspace_id set (set_config(...,
+// true), as RFC-2026-022 §5/7 says the worker sets it) to the very workspace the fixture's rows belong to, app_worker
+// still reads ZERO rows of app.jobs, app.outbox_events and app.consumer_ledger -- the setting admits nothing where no
+// policy reads it -- and a permissive policy dropped in turns each zero into the fixture's rows, so the zero is row level
+// security's. anon and authenticated are refused (RFC-2026-021 §7/4; 050: no client privilege).
+const outboxInsert = (workspace, context) => {
+  const cols = Object.keys(context);
+  return 'insert into app.outbox_events (event_type, event_version, occurred_at, producer_module_key,'
+    + ' producer_implementation_version, workspace_id, subject_type, subject_id, subject_version, correlation_id, schema_ref'
+    + `${cols.map((c) => `, ${c}`).join('')})`
+    + ` values ('proof.outbox.event', 1, now(), 'jobs.kernel', '0.0.0', '${workspace}', 'business_profile', 'proof-175', 1,`
+    + ` 'proof-175-correlation', 'CTR-EVT-001@1.0.0'${cols.map((c) => `, ${context[c] === null ? 'null' : `'${context[c]}'`}`).join('')})`;
+};
+export const OUTBOX_CONTEXT_COLUMNS = Object.freeze(['actor_kind', 'actor_id', 'request_id']);
+export const KERNEL_TABLES = Object.freeze(['app.jobs', 'app.outbox_events', 'app.consumer_ledger']);
+export async function proveTheOutboxTenantContext(run, ids) {
+  const p = proof('outbox-event-names-its-tenant-context', 'A1-302-I2; RFC-2026-028 §3.4; RFC-2026-022 §5/5');
+  const ws = ids.workspace;
+  const valid = { actor_kind: 'system_actor', actor_id: 'proof.sweep', request_id: 'proof-175-request' };
+  const withField = (k, v) => outboxInsert(ws, { ...valid, [k]: v });
+  const UPDATE_REQUEST = `update app.outbox_events set request_id = 'proof-175-moved' where workspace_id = '${ws}'`;
+  const scoped = `select pg_catalog.set_config('app.workspace_id', '${ws}', true);`;
+  const checks = [
+    ['baseline, every field, as the connection role', { statement: outboxInsert(ws, valid) }, 'ok 1'],
+    ['a user\'s request', { statement: outboxInsert(ws, { ...valid, actor_kind: 'user', actor_id: ids.owner }) }, 'ok 1'],
+    ['no tenant context: the database mints none', { statement: outboxInsert(ws, {}) }, 'raised 23502'],
+    ['request_id null', { statement: withField('request_id', null) }, 'raised 23502'],
+    ['actor_kind outside CTR-TEN-001\'s enum', { statement: withField('actor_kind', 'admin') }, 'raised 23514'],
+    ['actor_id empty', { statement: withField('actor_id', '') }, 'raised 23514'],
+    ['actor_id holding an @ (an e-mail\'s shape)', { statement: withField('actor_id', 'owner@fixture') }, 'raised 23514'],
+    ['request_id of 128 characters (the bound)', { statement: withField('request_id', 'r'.repeat(128)) }, 'ok 1'],
+    ['request_id of 129 characters', { statement: withField('request_id', 'r'.repeat(129)) }, 'raised 23514'],
+    ['control: actor_id\'s CHECK dropped, the @ admitted', { setup: ['alter table app.outbox_events drop constraint outbox_events_actor_id_bounded;'], statement: withField('actor_id', 'owner@fixture') }, 'ok 1'],
+    ['as app_worker, scoped: an append naming the three', { setup: [scoped], role: 'app_worker', statement: outboxInsert(ws, valid) }, 'raised 42501 rls'],
+    ['control: as app_worker, the INSERT on actor_id revoked', { setup: [scoped, 'revoke insert (actor_id) on app.outbox_events from app_worker;'], role: 'app_worker', statement: outboxInsert(ws, valid) }, 'raised 42501 grant'],
+    ['as app_worker: the request moved', { setup: [`${outboxInsert(ws, valid)};`], role: 'app_worker', statement: UPDATE_REQUEST }, 'raised 42501 grant'],
+    ['control: app_worker granted UPDATE (request_id)', { setup: [`${outboxInsert(ws, valid)};`, 'grant update (request_id) on app.outbox_events to app_worker;'], role: 'app_worker', statement: UPDATE_REQUEST }, 'ok 0'],
+  ];
+  for (const t of KERNEL_TABLES) {
+    const read = `select 1 from ${t} where workspace_id = '${ws}'`;
+    checks.push(
+      [`the fixture's row, as the connection role: ${t}`, { statement: read }, 'ok 1'],
+      [`as app_worker, scoped to that workspace: ${t}`, { setup: [scoped], role: 'app_worker', statement: read }, 'ok 0'],
+      [`control: a permissive select policy on ${t}`, { setup: [scoped, `create policy proof_175_admits on ${t} for select to app_worker using (true);`], role: 'app_worker', statement: read }, 'ok 1'],
+      [`as authenticated: ${t}`, { role: 'authenticated', statement: read }, 'raised 42501 grant'],
+      [`as anon: ${t}`, { role: 'anon', statement: read }, 'raised 42501'],
+    );
+  }
+  const lines = [];
+  const problems = [];
+  for (const [label, c, want] of checks) {
+    const seen = await jobContextProbe(run, c);
+    if (seen.error) {
+      lines.push(`${label.padEnd(66)}: probe error ${seen.error.code}: ${seen.error.message}`);
+      problems.push(`${label}: the probe itself failed (${seen.error.code}: ${seen.error.message})`);
+      continue;
+    }
+    lines.push(`${label.padEnd(66)}: ${seen.got}`);
+    if (seen.got !== want) problems.push(`${label}: ${JSON.stringify(seen.got)}, should be ${JSON.stringify(want)}`);
+  }
+  p.transcript = lines.join('\n');
+  if (problems.length > 0) { p.detail = problems.join('; '); return p; }
+  p.ok = true;
+  p.detail = 'an outbox event carries its actor and the producing request, each NOT NULL with no default, actor_kind '
+    + 'CTR-TEN-001\'s enum and the two ids 1-128 of [A-Za-z0-9._:-] (the bound admitted, one past it refused, the refusal '
+    + 'the CHECK\'s by its control); app_worker may append them (its refusal is row level security\'s, a revoked column '
+    + 'makes it the grant\'s) and no role may move the request (the grant\'s refusal, by its control). With app.workspace_id '
+    + 'set to the fixture\'s own workspace, app_worker reads zero rows of app.jobs, app.outbox_events and app.consumer_ledger '
+    + '(no policy reads the setting; a permissive policy, the control, admits the row), and anon and authenticated are refused.';
+  return p;
+}
+
+// -------------------------------------------------------------------------------------------
 // RFC-2026-028 §5/7-10, §5/12-13: the worker's login identity, logged in as (batch 173, migration 173).
 // -------------------------------------------------------------------------------------------
 //
@@ -1384,6 +1463,7 @@ export async function runProofs(run, runOne, ids, expectedRoster) {
     await proveTheClosingCommand(run, ids),
     await provePoliciesContainTheClose(run, ids),
     await proveTheJobTenantContext(run, ids),
+    await proveTheOutboxTenantContext(run, ids),
     ...await proveTheWorkerLogin(run, runOne, ids),
   ];
 
