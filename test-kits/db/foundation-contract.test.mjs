@@ -678,7 +678,10 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   '173_worker_login_identity.sql',
   // Batch 174's migration: app.jobs' tenant-context columns (RFC-2026-028 §3.4, Q-028-5). It alters 050's table, which
   // the instance has never received, and sorts after 173.
-  '174_job_tenant_context.sql'];
+  '174_job_tenant_context.sql',
+  // Batch 175's migration: app.outbox_events' tenant-context columns (A1-302-I2, WP-1A-A0-006). It alters 050's table,
+  // which the instance has never received, and sorts after 174.
+  '175_outbox_tenant_context.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -3267,6 +3270,12 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // Batch 174's review round (Q0 F3): pinned check 3ba8cd283ac50444 to 792a2204f6d7a5da (the correlation drift re-bounds
   // to {1,255}, a bound PostgreSQL can run; {1,256} exceeds its repetition maximum, so no row could pass it). Every
   // other digest stays.
+  // Batch 175 (migration 175; A1-302-I2, WP-1A-A0-006): pinned check 792a2204f6d7a5da to 9b8ea529090b360d (PINNED_CHECKS
+  // gains app.outbox_events' three tenant-context CHECKs and PINNED_NOT_NULL its three columns; the CHECK drift also
+  // re-bounds an outbox event's request id and drops its actor_kind CHECK, the NOT NULL drift drops its request id's);
+  // pinned grant 2f5a4bfb2897d642 to 79f1db3d74961fb9 (pinned-grants.json gains app_worker's SELECT and INSERT on the
+  // three columns); vocabulary check 471593a8ce1de34d to 972762eb17eb37e6 (vocabulary-checks.json gains
+  // outbox_events_actor_kind_known). No rule changed. Every other digest stays.
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -3282,17 +3291,17 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'client schema probe': '6c400e229948cda6',
     'client membership probe': 'ebe66b570210169e',
     'system object fingerprint probe': 'f75c1e00bd908cd5',
-    'pinned check probe': '792a2204f6d7a5da',
+    'pinned check probe': '9b8ea529090b360d',
     'pinned policy probe': 'a7be93780c68245a',
     'security definer probe': '475c89fbab0f2fc9',
     'policy helper probe': '39249ae657cfd196',
     'trigger probe': '6bb73ce79c56f132',
     'pinned trigger probe': '8412a302b7f190a7',
-    'pinned grant probe': '2f5a4bfb2897d642',
+    'pinned grant probe': '79f1db3d74961fb9',
     'read allowlist probe': 'a97a58b338e52627',
     'data classification probe': 'a848ca33af3460e3',
     'pinned shape probe': '11ba1271ffc00d70',
-    'vocabulary check probe': '471593a8ce1de34d',
+    'vocabulary check probe': '972762eb17eb37e6',
     'policy set probe': 'd4c82a795a93f485',
     'index coverage probe': '2d47460e43a5c68e',
     'pinned default probe': '570796093410bc0a',
@@ -3587,8 +3596,9 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   }
   assert.match(m.PINNED_CHECK_PROBE_SQL, /con\.convalidated\s+and pg_catalog\.pg_get_constraintdef\(con\.oid\) = pin\.def/, 'CHECKs compared by TEXT and validated (Q0 on 123, F1)');
   assert.deepEqual(Object.keys(m.PINNED_CHECKS).sort(), ['approval_requests.approval_requests_decided_after_created', 'approval_requests.approval_requests_decider_is_a_pair', 'approval_requests.approval_requests_decision_has_a_decider',
-    'jobs.jobs_actor_id_bounded', 'jobs.jobs_actor_kind_known', 'jobs.jobs_correlation_id_bounded', 'jobs.jobs_request_id_bounded'],
-    '090\'s equivalence and 123\'s pair, which together make a cancelled, pending or expired request name no decider, and 126\'s order of creation and decision; and (batch 174) a job\'s tenant context');
+    'jobs.jobs_actor_id_bounded', 'jobs.jobs_actor_kind_known', 'jobs.jobs_correlation_id_bounded', 'jobs.jobs_request_id_bounded',
+    'outbox_events.outbox_events_actor_id_bounded', 'outbox_events.outbox_events_actor_kind_known', 'outbox_events.outbox_events_request_id_bounded'],
+    '090\'s equivalence and 123\'s pair, which together make a cancelled, pending or expired request name no decider, and 126\'s order of creation and decision; and (batch 174) a job\'s tenant context; and (batch 175) an outbox event\'s');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /where p\.prosecdef and \(n\.nspname not in \('pg_catalog', 'information_schema'\) or p\.oid >= 16384\)\n\s+and not exists \(select 1 from pg_catalog\.pg_depend d/, 'every schema (A1 F3, Q0 F3), and a function made after initdb in a system one (C0 X5, Q0 ISF on 128)');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /md5\(p\.prosrc\) <> pin\.digest/, 'body digests (A1 F2)');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /has_function_privilege\('public', p\.oid, 'EXECUTE'\)/, 'no EXECUTE for PUBLIC (A1 F3)');
@@ -3606,8 +3616,9 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.match(m.PINNED_TRIGGER_PROBE_SQL, /pg_get_userbyid\(p\.proowner\) <> case when pin\.owner = 'migration owner' then current_user::text else pin\.owner end\n\s+then ' \[owner is not the pinned owner\]'/,
     'and by owner (Q0 F8 on 126)');
   assert.ok(m.PINNED_TRIGGER_FUNCTIONS.every((row) => row.length === 4 && row[3].length > 0), 'every pinned trigger function names its owner');
-  assert.deepEqual(m.PINNED_NOT_NULL, ['app.approval_requests.created_at', 'app.jobs.actor_kind', 'app.jobs.actor_id', 'app.jobs.request_id', 'app.jobs.correlation_id'],
-    'the column 126\'s order CHECK reads that must never be NULL (Q0 F8 on 126), and (batch 174) the four tenant-context columns of app.jobs, whose CHECKs pass a NULL');
+  assert.deepEqual(m.PINNED_NOT_NULL, ['app.approval_requests.created_at', 'app.jobs.actor_kind', 'app.jobs.actor_id', 'app.jobs.request_id', 'app.jobs.correlation_id',
+    'app.outbox_events.actor_kind', 'app.outbox_events.actor_id', 'app.outbox_events.request_id'],
+    'the column 126\'s order CHECK reads that must never be NULL (Q0 F8 on 126), and (batch 174) the four tenant-context columns of app.jobs, whose CHECKs pass a NULL, and (batch 175) the three of app.outbox_events');
   assert.match(m.PINNED_CHECK_PROBE_SQL, /and a\.attname = split_part\(pin\.k, '\.', 3\) and a\.attnum > 0 and not a\.attisdropped and a\.attnotnull\);/, 'read from attnotnull');
   assert.match(m.REWRITE_RULE_PROBE_SQL, /where n\.nspname in \('app', 'private'\)\n\s+and not \(r\.rulename = '_RETURN' and c\.relkind in \('v', 'm'\)\);/,
     'no rewrite rule in app or private but a view\'s _RETURN (Q0 F5 on 126)');
@@ -4072,7 +4083,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     const file = JSON.parse(await readFile(m.VOCABULARY_CHECKS_FILE, 'utf8'));
     assert.deepEqual(m.VOCABULARY_CHECKS, file.checks, 'the probe reads the lint file and nothing else');
     const keys = Object.keys(m.VOCABULARY_CHECKS);
-    assert.equal(keys.length, 61, 'sixty vocabulary CHECKs, measured at 1319042, and (batch 174) app.jobs\' jobs_actor_kind_known, CTR-TEN-001\'s actor.kind enum');
+    assert.equal(keys.length, 62, 'sixty vocabulary CHECKs, measured at 1319042, and (batch 174) app.jobs\' jobs_actor_kind_known, CTR-TEN-001\'s actor.kind enum, and (batch 175) app.outbox_events\' outbox_events_actor_kind_known, the same enum');
     assert.deepEqual(keys, [...keys].sort(), 'sorted');
     const all = (await Promise.all((await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql')).map((n) => readFile(`db/foundation/migrations/${n}`, 'utf8')))).join('\n');
     for (const [k, def] of Object.entries(m.VOCABULARY_CHECKS)) {
@@ -6095,6 +6106,111 @@ test('batch 174: a job names its actor and request, NOT NULL with no default, bo
   assert.equal(minted.ok, false);
   assert.match(minted.detail, /no tenant context: the database mints none: "ok 1"/);
   assert.match(await readFile('scripts/db/authz-proofs.mjs', 'utf8'), /await proveTheJobTenantContext\(run, ids\),\n/, 'runProofs runs it');
+});
+
+// BATCH 175 (migration 175; A1-302-I2; WP-1A-A0-006, the Owner's answers of 2026-10-20): an outbox event names its
+// actor and the producing request, NOT NULL and bounded exactly as 174 bounds a job's, and every writer of
+// app.outbox_events names them; app_worker still holds no policy on the three kernel tables (RFC-2026-022 §5/5). The
+// live half is the rls-smoke proof outbox-event-names-its-tenant-context, driven here by a fake.
+test('batch 175: an outbox event names its actor and request as 174 makes a job name them, every writer names them, and the kernel tables still hold no policy', async () => {
+  const m = await import('../../scripts/db/run.mjs');
+  const proofs = await import('../../scripts/db/authz-proofs.mjs');
+  const name = '175_outbox_tenant_context.sql';
+  const sql = await readFile(`db/foundation/migrations/${name}`, 'utf8');
+  const statements = canonicalStatements(sql.replace(SQL_LINE_COMMENTS, '')).filter((s) => s.depth === 0).map((s) => s.text);
+  const SHAPE = "'^[A-Za-z0-9._:-]{1,128}$'";
+  assert.equal(statements[0].replace(/\s+/g, ' '), 'alter table app . outbox_events '
+    + 'add column actor_kind text not null , add column actor_id text not null , add column request_id text not null , '
+    + "add constraint outbox_events_actor_kind_known check ( actor_kind in ( '' , '' ) ) , "
+    + "add constraint outbox_events_actor_id_bounded check ( actor_id ~ '' ) , "
+    + "add constraint outbox_events_request_id_bounded check ( request_id ~ '' )",
+  'one ALTER: three text columns, NOT NULL, no DEFAULT (the database mints none of them), and three CHECKs; no correlation_id column (050\'s is the correlation)');
+  assert.match(sql, /add constraint outbox_events_actor_kind_known check \(actor_kind in \('user', 'system_actor'\)\),/);
+  for (const c of ['actor_id', 'request_id']) {
+    assert.ok(sql.includes(`add constraint outbox_events_${c}_bounded check (${c} ~ ${SHAPE})`), `${c}: 174's bound`);
+  }
+  const jobs = await readFile('db/foundation/migrations/174_job_tenant_context.sql', 'utf8');
+  for (const c of ['actor_id', 'request_id']) assert.ok(jobs.includes(`check (${c} ~ ${SHAPE})`), `the same text 174 gives a job's ${c}`);
+  assert.deepEqual(statements.slice(1).map((s) => s.replace(/ is ''$/, ' is')), [
+    'comment on column app . outbox_events . actor_kind is', 'comment on column app . outbox_events . actor_id is',
+    'comment on column app . outbox_events . request_id is',
+    'grant select ( actor_kind , actor_id , request_id ) on app . outbox_events to app_worker',
+    'grant insert ( actor_kind , actor_id , request_id ) on app . outbox_events to app_worker',
+    "do ''",
+  ], 'and nothing else: three comments, SELECT and INSERT for app_worker alone, no UPDATE, NO POLICY, NO ROLE, NO FUNCTION, one block');
+  // RFC-2026-022 §5/5 (approved): app_worker holds no policy on app.jobs, app.outbox_events or app.consumer_ledger,
+  // permanently; §5/6's broker waits on CTR-JOB-001's lifecycle vocabulary (§9). Neither is written by 175.
+  assert.doesNotMatch(sql.replace(SQL_LINE_COMMENTS, ''), /\bcreate\s+(policy|role|function|or\s+replace)\b|\bsecurity\s+definer\b|\bapp_queue\b/i,
+    'no policy, role, function or SECURITY DEFINER: the CARRIED policies would amend RFC-2026-022 §5/5 and the broker is owed');
+  const job = JSON.parse(await readFile('contract-catalog/shared-kernel/ctr-job-001/manifest.json', 'utf8'));
+  assert.match(job.freeze_boundary, /lifecycle state names and transition policy remain subject to source-defined owner review/,
+    'the broker\'s missing term: CTR-JOB-001\'s lifecycle vocabulary is not fixed (RFC-2026-022 §9)');
+  const [block] = m.applyTimeBlocks(name, sql);
+  assert.ok(block, 'one apply-time block, re-run by the post-migrate pass');
+  for (const raise of ['tenant-context columns are not text, NOT NULL and default-free', 'tenant-context CHECK(s) missing, unvalidated or not in their text',
+    'not exactly app_worker\'\'s to read and append and nobody\'\'s to update']) {
+    assert.ok(block.sql.includes(raise), `the block raises: ${raise}`);
+  }
+  for (const [k, def] of Object.entries(m.PINNED_CHECKS).filter(([key]) => key.startsWith('outbox_events.'))) {
+    assert.ok(block.sql.includes(`('${k.split('.')[1]}', '${def.replace(/'/g, "''")}')`), `${k}: the block and the probe pin one text`);
+  }
+  assert.equal(Object.keys(m.PINNED_CHECKS).filter((k) => k.startsWith('outbox_events.')).length, 3);
+  // EVERY WRITER names the three: the 050 fixture and the isolation suite's publish (a writer that omits one is refused
+  // with 23502, so a missed writer fails a live target; this fails it before a database). Any spelling of the target.
+  const OUTBOX_INSERT = /\binsert\s+into\s+(?:"app"|app)\s*\.\s*(?:"outbox_events"|outbox_events\b)/i;
+  const OUTBOX_INSERT_G = new RegExp(OUTBOX_INSERT.source, 'gi');
+  for (const spelling of ['insert into app.outbox_events', 'INSERT  INTO "app" . "outbox_events"', 'insert\ninto app."outbox_events"']) assert.match(spelling, OUTBOX_INSERT, `a writer spelled ${spelling} is read`);
+  assert.doesNotMatch('insert into app.outbox_events_archive', OUTBOX_INSERT);
+  const writers = ['tests/db/identity/fixtures/050-async-kernel-fixture.sql', 'tests/db/identity/isolation-cases.mjs'];
+  for (const w of writers) {
+    const text = await readFile(w, 'utf8');
+    const at = [...text.matchAll(OUTBOX_INSERT_G)].map((x) => x.index);
+    assert.ok(at.length >= 1, `${w} writes app.outbox_events`);
+    for (const i of at) for (const c of proofs.OUTBOX_CONTEXT_COLUMNS) assert.match(text.slice(i, i + 700), new RegExp(`\\b${c}\\b`), `${w}: its insert names ${c}`);
+  }
+  const fed = await m.fedSqlSources();
+  const otherWriters = fed.filter((f) => OUTBOX_INSERT.test(f.sql.replace(SQL_LINE_COMMENTS, '')) && !writers.includes(f.name)).map((f) => f.name);
+  assert.deepEqual(otherWriters, [], 'no other fed source writes app.outbox_events');
+  // THE LIVE PROOF, driven by a fake answering as the shipped schema does (measured on a local PostgreSQL 17.11), and
+  // three broken ones: a loosened bound, a minted context, and a policy that admits app_worker to a kernel table.
+  assert.deepEqual(proofs.OUTBOX_CONTEXT_COLUMNS, ['actor_kind', 'actor_id', 'request_id']);
+  assert.deepEqual(proofs.KERNEL_TABLES, ['app.jobs', 'app.outbox_events', 'app.consumer_ledger']);
+  const answers = ['ok 1', 'ok 1', 'raised 23502', 'raised 23502', 'raised 23514', 'raised 23514', 'raised 23514', 'ok 1', 'raised 23514', 'ok 1',
+    'raised 42501 rls', 'raised 42501 grant', 'raised 42501 grant', 'ok 0',
+    ...[0, 1, 2].flatMap(() => ['ok 1', 'ok 0', 'ok 1', 'raised 42501 grant', 'raised 42501'])];
+  const fake = (seen) => {
+    const calls = [];
+    return { calls, run: async (q) => { calls.push(q); return { rows: [{ v: seen[calls.length - 1] }] }; } };
+  };
+  const ids = { workspace: 'c4840acc-0323-5e13-b1d3-c18d7eb615cb', owner: '6a3f2e7c-0000-5000-8000-000000000001' };
+  const good = fake(answers);
+  const p = await proofs.proveTheOutboxTenantContext(good.run, ids);
+  assert.equal(p.ok, true, p.detail);
+  assert.equal(good.calls.length, answers.length, 'twenty-nine attempts, each its own');
+  for (const q of good.calls) {
+    assert.equal(q.prelude[0], 'begin;');
+    assert.deepEqual(q.epilogue, ['rollback;'], 'each attempt rolled back');
+  }
+  assert.match(good.calls[0].prelude.at(-1), /, actor_kind, actor_id, request_id\) values \([^$]*'c4840acc-0323-5e13-b1d3-c18d7eb615cb'[^$]*'system_actor', 'proof\.sweep', 'proof-175-request'\)/,
+    'the baseline names all three');
+  assert.ok(good.calls[8].prelude.at(-1).includes(`'${'r'.repeat(129)}'`), 'one past the bound');
+  assert.ok(good.calls[10].prelude.includes("select pg_catalog.set_config('app.workspace_id', 'c4840acc-0323-5e13-b1d3-c18d7eb615cb', true);"),
+    'the worker\'s cases run with the setting scoped to the transaction (set_config(..., true), RFC-2026-022 §5/7)');
+  assert.match(good.calls[10].prelude.at(-1), /set_config\('role', 'app_worker', true\)/, 'the grant cases run as app_worker');
+  assert.ok(good.calls[11].prelude.includes('revoke insert (actor_id) on app.outbox_events from app_worker;'), 'the INSERT control revokes one column');
+  assert.ok(good.calls[16].prelude.includes('create policy proof_175_admits on app.jobs for select to app_worker using (true);'), 'the zero\'s control adds a policy');
+  assert.match(good.calls[17].prelude.at(-1), /set_config\('role', 'authenticated', true\)/);
+  assert.match(good.calls[18].prelude.at(-1), /set_config\('role', 'anon', true\)/);
+  const loose = await proofs.proveTheOutboxTenantContext(fake(answers.map((a, i) => (i === 8 ? 'ok 1' : a))).run, ids);
+  assert.equal(loose.ok, false);
+  assert.match(loose.detail, /request_id of 129 characters: "ok 1", should be "raised 23514"/);
+  const minted = await proofs.proveTheOutboxTenantContext(fake(answers.map((a, i) => (i === 2 ? 'ok 1' : a))).run, ids);
+  assert.equal(minted.ok, false);
+  assert.match(minted.detail, /no tenant context: the database mints none: "ok 1"/);
+  const admitted = await proofs.proveTheOutboxTenantContext(fake(answers.map((a, i) => (i === 20 ? 'ok 1' : a))).run, ids);
+  assert.equal(admitted.ok, false);
+  assert.match(admitted.detail, /as app_worker, scoped to that workspace: app\.outbox_events: "ok 1", should be "ok 0"/);
+  assert.match(await readFile('scripts/db/authz-proofs.mjs', 'utf8'), /await proveTheOutboxTenantContext\(run, ids\),\n/, 'runProofs runs it');
 });
 
 // RFC-2026-025 §6 (PROPOSED 2026-10-07, the Owner's `ข้อ 4 mw`): the records-only classifier and the mechanical sync
