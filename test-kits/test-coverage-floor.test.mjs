@@ -458,7 +458,9 @@ test('package.json carries no field nobody declared', async () => {
   // WP-1A-A0-002 (RFC-2026-029 §4.1, §3.2): `workspaces` names apps/web, and `devDependencies` holds the
   // application's development tools; both are reviewed lines, and the dependency guard reads them.
   assert.deepEqual(Object.keys(manifest).sort(), ["description", "devDependencies", "engines", "name", "packageManager", "private", "scripts", "version", "workspaces"]);
-  assert.deepEqual(manifest.workspaces, ['apps/web'], 'the one workspace is apps/web; apps/worker joins when its first code lands');
+  // WP-1A-A0-006 (the Product Owner's answer of 2026-10-20, header `Deps + CI`): apps/worker joins as the dispatcher's
+  // workspace, holding pg, the worker driver (RFC-2026-029 §2.7/3, §6.1); still no other field.
+  assert.deepEqual(manifest.workspaces, ['apps/web', 'apps/worker'], 'the two workspaces are apps/web and apps/worker (RFC-2026-029 §4.1)');
 });
 
 

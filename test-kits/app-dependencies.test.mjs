@@ -105,10 +105,21 @@ test('the copy and the RFC are held to each other: a row, a cell, a glob, a colu
 
 test('every package.json names only allowlisted packages, at exact versions, in their column', async () => {
   const { manifests, allowlist } = await repository();
-  assert.deepEqual(Object.keys(manifests).sort(), ['apps/web/package.json', 'package.json']);
+  assert.deepEqual(Object.keys(manifests).sort(), ['apps/web/package.json', 'apps/worker/package.json', 'package.json']);
   assert.deepEqual(checkPackageManifests(manifests, allowlist), []);
-  assert.deepEqual(manifests['package.json'].workspaces, ['apps/web']);
+  assert.deepEqual(manifests['package.json'].workspaces, ['apps/web', 'apps/worker']);
   assert.equal(manifests['package.json'].dependencies, undefined, 'the root holds no runtime dependency');
+  // WP-1A-A0-006 (the Product Owner's answer of 2026-10-20, header `Deps + CI`): apps/worker is the
+  // dispatcher's workspace (RFC-2026-029 §2.7/3, §6.1). It declares no script (workspaceScripts names
+  // none for it) and one runtime package, pg, the worker driver (§3.1); apps/web, whose composition root
+  // is where @supabase/ssr may be imported, holds the Supabase packages and never pg (§6.3/5).
+  const worker = manifests['apps/worker/package.json'];
+  assert.equal(worker.scripts, undefined, 'apps/worker declares no script');
+  assert.deepEqual(Object.keys(worker.dependencies ?? {}), ['pg'], 'apps/worker depends on pg alone');
+  assert.equal(worker.devDependencies, undefined, 'apps/worker holds no development package');
+  const web = manifests['apps/web/package.json'];
+  assert.equal(web.dependencies?.pg, undefined, 'apps/web does not depend on pg');
+  assert.ok(web.dependencies?.['@supabase/ssr'] && web.dependencies?.['@supabase/supabase-js'], 'apps/web holds the request path\'s Supabase packages');
 });
 
 test('a package outside the allowlist, a range, a moved column, a lifecycle script or a stray package.json fails', async () => {
@@ -143,7 +154,7 @@ test('the lockfile is registry-only with sha512 integrity, and its root entries 
   const entries = Object.entries(lock.packages).filter(([key]) => key.startsWith('node_modules/'));
   assert.ok(entries.length > 100, `the installed tree is in the lockfile (${entries.length} entries)`);
   for (const [key, value] of entries) {
-    if (value.link) assert.equal(value.resolved, 'apps/web', `${key} links only the workspace`);
+    if (value.link) assert.ok(['apps/web', 'apps/worker'].includes(value.resolved), `${key} links only a workspace (apps/worker: WP-1A-A0-006)`);
   }
 });
 

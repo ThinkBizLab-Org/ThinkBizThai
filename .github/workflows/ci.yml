@@ -1293,7 +1293,8 @@ jobs:
   #     step stands where §2.1/4's lint step stands until it lands;
   #   §8/3: `tsc --noEmit` with the §2.1 flags, and its negative control, which must FAIL on a
   #     deliberately mistyped fixture with one marked error per flag;
-  #   RFC-2026-034 §8 item 4: the application tests (`vitest run`) on every head;
+  #   RFC-2026-034 §8 item 4: the application tests (`vitest run`) on every head, with a Postgres
+  #     service container beside them (WP-1A-A0-006, below);
   #   the web build, which needs no network (fonts are not fetched, telemetry is off below);
   #   §4.6: `npm audit`, dev dependencies included (A1-270-1), and §4.8 / §8/9: the publish age of
   #     every lockfile entry the pull request adds or changes. Both read the registry, so they need the
@@ -1305,6 +1306,25 @@ jobs:
   application:
     needs: bootstrap
     runs-on: ubuntu-24.04
+    # WP-1A-A0-006 (the Product Owner's answer of 2026-10-20, header `Deps + CI`): the platform-kernel
+    # adapters are tested against Postgres (RFC-2026-029 §7: migrations on CI's throwaway service-container
+    # database only). This is the bootstrap job's service container, written exactly as it is there and for
+    # the same reasons: per run, isolated, holding nothing, reachable from nowhere else, and not Supabase
+    # (db/foundation/ci/supabase-shim.sql). It is the only service this job starts, and its shape is pinned
+    # by test-kits/app-stack.test.mjs (A1-287-2's key allowlist reads every other key of this job).
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: thinkbizthai_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     # RFC-2026-029 §4.7: Next.js telemetry is off in CI. Every step sees it, so no build, test or
     # type check run here can send it.
     # A1-257-9: NODE_OPTIONS is set, empty, for every step. Next.js adopts a key from a `.env` file only
@@ -1365,7 +1385,27 @@ jobs:
         run: npm run typecheck
       - name: Type-check negative control
         run: node scripts/verify-typecheck-control.mjs
+      # WP-1A-A0-006: the foundation migrations applied to the service container, the way the bootstrap
+      # job's "Database foundation" step applies them (the shim first, then `make db-migrate-clean`), so
+      # the application tests that reach Postgres read the schema main holds. It runs repository code
+      # only (psql and scripts/db/run.mjs, which import no package), after the audit and the release age.
+      # DB_TEST_URL names the container and carries no password; PGPASSWORD is the container's throwaway
+      # credential, read from the environment by psql and by `pg` alike, so neither the URL nor this file
+      # holds a secret shape (the bootstrap job's note on the same two lines).
+      - name: Database for the application tests
+        env:
+          PGPASSWORD: postgres
+          DB_TEST_URL: postgresql://postgres@localhost:5432/thinkbizthai_test
+        run: |
+          psql "$DB_TEST_URL" -v ON_ERROR_STOP=1 -q -f db/foundation/ci/supabase-shim.sql
+          LC_ALL=C TZ=UTC make db-migrate-clean
+      # The same two variables for the tests: the reachability test under
+      # src/modules/platform-kernel/adapters/ requires DB_TEST_URL whenever CI is set, so this step cannot
+      # pass with the database left out.
       - name: Application tests
+        env:
+          PGPASSWORD: postgres
+          DB_TEST_URL: postgresql://postgres@localhost:5432/thinkbizthai_test
         run: npm run test:app
       # A1-257-10: the boundary guard again, as the step immediately before the build. The steps above
       # run repository code (the type-check control, the application tests) after the guard's first

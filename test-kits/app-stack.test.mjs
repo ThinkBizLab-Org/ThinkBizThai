@@ -144,6 +144,10 @@ test('the release-age verdict asks only about new entries and refuses a young, u
 
 // The workflow's jobs and steps, read by indentation: a job is a two-space key under `jobs:`, a step a
 // six-space `- ` item in it. Comments are dropped first, so a step quoted in a comment is not a step.
+// WP-1A-A0-006: a job's `services:` block, written plainly as a four-space key with every line under it
+// indented deeper, is read apart from the job's head into `services` (its lines as written, blank lines
+// left out); the application job's is held to APPLICATION_SERVICES exactly (servicesProblems). Any other
+// spelling of the key stays in the head, where the key allowlist refuses it.
 function workflowJobs(ci) {
   const lines = ci.split('\n').filter((line) => !/^\s*#/.test(line));
   const jobs = new Map();
@@ -159,6 +163,10 @@ function workflowJobs(ci) {
     if (/^ {6}- /.test(line)) { step = { text: [line.slice(8)] }; job.steps.push(step); continue; }
     if (step && (/^ {8}/.test(line) || line.trim() === '')) { step.text.push(line.slice(8)); continue; }
     step = null;
+    if (/^ {4}services:\s*$/.test(line)) { job.services = [...(job.services ?? []), line]; job.inServices = true; continue; }
+    if (job.inServices && line.trim() === '') continue;
+    if (job.inServices && /^ {6}/.test(line)) { job.services.push(line); continue; }
+    job.inServices = false;
     job.head.push(line);
   }
   for (const each of jobs.values()) {
@@ -258,6 +266,7 @@ test('CI runs the application checks in a job of their own, after every guard of
     ['Verify the application boundaries (parsed)', 'node scripts/verify-app-boundaries.mjs --require-parser'],
     ['Type-check the application', 'npm run typecheck'],
     ['Type-check negative control', 'node scripts/verify-typecheck-control.mjs'],
+    ['Database for the application tests', null],
     ['Application tests', 'npm run test:app'],
     ['Verify the application boundaries again, before the build (parsed)', 'node scripts/verify-app-boundaries.mjs --require-parser'],
     ['Build the web application', 'npm run build --workspace apps/web'],
@@ -276,6 +285,16 @@ test('CI runs the application checks in a job of their own, after every guard of
   assert.match(app.steps[1].run, /EXPECTED_SHA|cannot report on a commit it did not test/);
   assert.match(app.steps[1].raw, /EXPECTED_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
   assert.match(app.steps.find((s) => s.name === 'Release age of new lockfile entries (network)').raw, /if: github\.event_name == 'pull_request'[\s\S]*BASE_SHA: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/, 'the release age is measured against the pull request\'s base');
+  // WP-1A-A0-006: one Postgres service, the bootstrap job's exactly; the migrations applied to it as the
+  // bootstrap job applies them, before the tests; the tests given its URL (no password in it).
+  assert.deepEqual(app.services, APPLICATION_SERVICES, 'the application job starts the pinned postgres:17 container and nothing else');
+  assert.deepEqual(jobs.get('bootstrap').services, APPLICATION_SERVICES, 'the same container as the bootstrap job, written exactly as it is there');
+  const DB_ENV = /env:\n {2}PGPASSWORD: postgres\n {2}DB_TEST_URL: postgresql:\/\/postgres@localhost:5432\/thinkbizthai_test\n/;
+  const database = app.steps.find((s) => s.name === 'Database for the application tests');
+  assert.equal(database.run, 'psql "$DB_TEST_URL" -v ON_ERROR_STOP=1 -q -f db/foundation/ci/supabase-shim.sql\nLC_ALL=C TZ=UTC make db-migrate-clean', 'the shim, then the migrations, as the bootstrap job applies them');
+  assert.match(database.raw, DB_ENV);
+  assert.match(app.steps.find((s) => s.name === 'Application tests').raw, DB_ENV, 'the tests reach the container');
+  assert.ok(!PACKAGE_CODE.test(database.run), 'the database step runs no installed package code');
 
   // Nothing that runs an installed package is left in the bootstrap job, where the RLS guards run.
   const bootstrap = jobs.get('bootstrap').steps.map((s) => s.run ?? '').join('\n');
@@ -408,9 +427,33 @@ const APPLICATION_KEYS = Object.freeze({
   job: Object.freeze(['env', 'needs', 'runs-on', 'steps']),
   'job env': Object.freeze(['NEXT_TELEMETRY_DISABLED', 'NODE_OPTIONS']),
   step: Object.freeze(['env', 'if', 'name', 'run', 'uses', 'with']),
-  'step env': Object.freeze(['BASE_SHA', 'EXPECTED_SHA']),
+  'step env': Object.freeze(['BASE_SHA', 'DB_TEST_URL', 'EXPECTED_SHA', 'PGPASSWORD']),
   'step with': Object.freeze(['check-latest', 'fetch-depth', 'node-version', 'persist-credentials', 'ref']),
 });
+// WP-1A-A0-006 (the Product Owner's answer of 2026-10-20, header `Deps + CI`). A1-287-2 names `services:` as
+// a key that starts more containers, so the job's one service is not a key on the allowlist but a block held
+// line for line: the bootstrap job's postgres:17 container, written exactly as it is there. A second service,
+// another image, an option, a volume, an entrypoint or a port added, removed or changed is refused.
+const APPLICATION_SERVICES = Object.freeze([
+  '    services:',
+  '      postgres:',
+  '        image: postgres:17',
+  '        env:',
+  '          POSTGRES_PASSWORD: postgres',
+  '          POSTGRES_DB: thinkbizthai_test',
+  '        options: >-',
+  '          --health-cmd pg_isready',
+  '          --health-interval 10s',
+  '          --health-timeout 5s',
+  '          --health-retries 5',
+  '        ports:',
+  '          - 5432:5432',
+]);
+function servicesProblems(job) {
+  if (job.services === undefined) return [];
+  if (JSON.stringify(job.services) === JSON.stringify(APPLICATION_SERVICES)) return [];
+  return [`the ${job.name} job's services: block is not the pinned postgres:17 container, line for line: \`${job.services.map((l) => l.trim()).join(' | ')}\``];
+}
 const KEY_LINE = /^( *)(?:-[ ]+)?("(?:[^"\\]|\\.)*"|'(?:[^']|'')*'|[^\s"'#:][^:#]*?)[ ]*:(?:[ ]|$)/;
 const unquoted = (key) => (key.startsWith('"') ? key.slice(1, -1) : key.startsWith("'") ? key.slice(1, -1).replace(/''/g, "'") : key);
 function applicationKeys(job) {
@@ -471,7 +514,7 @@ const RUNNER_ENV_WRITE = /GITHUB_ENV|GITHUB_PATH|_runner_file_commands|ACTIONS_A
 function runnerEnvWriteProblems(ci) {
   const job = workflowJobs(ci).get('application');
   return [...applicationJobText(ci).filter((line) => RUNNER_ENV_WRITE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which writes or opens the environment of later steps`),
-    ...yamlFormProblems(job), ...applicationKeys(job).problems];
+    ...yamlFormProblems(job), ...applicationKeys(job).problems, ...servicesProblems(job)];
 }
 function auditProblems(steps) {
   const lines = steps.flatMap((s) => (s.run ?? '').split('\n')).filter((line) => /\bnpm audit\b/.test(line)).map((line) => line.trim());
@@ -594,6 +637,24 @@ test('CI audits the dev dependencies too, the packages the application job runs 
   // list, and each list is exactly the keys main's ci.yml uses there, so neither side can drift unseen.
   const keys = applicationKeys(workflowJobs(ci).get('application'));
   assert.deepEqual(keys.problems, [], 'every key of the application job is on its allowlist');
+  // WP-1A-A0-006: the job's one service is held line for line. On the head it is the pinned container;
+  // a second service, another image, an entrypoint option or a volume added, or the key quoted (then read
+  // in the head, where the key allowlist refuses it) are each refused.
+  assert.deepEqual(servicesProblems(workflowJobs(ci).get('application')), [], 'the application job\'s service is the pinned container');
+  const SERVICE_PORTS = '        ports:\n          - 5432:5432\n';
+  assert.ok(ci.indexOf(SERVICE_PORTS, ci.indexOf('  application:\n')) !== -1, 'the application service reads as written');
+  const atService = (from, to) => { const i = ci.indexOf(from, ci.indexOf('  application:\n')); return ci.slice(0, i) + to + ci.slice(i + from.length); };
+  for (const [mutated, expected] of [
+    [atService(SERVICE_PORTS, '        ports:\n          - 5432:5432\n      redis:\n        image: redis:7\n'), 'services: block is not the pinned postgres:17 container'],
+    [atService('        image: postgres:17\n', '        image: postgres:latest\n'), 'services: block is not the pinned postgres:17 container'],
+    [atService('          --health-retries 5\n', '          --health-retries 5\n          --entrypoint /bin/sh\n'), 'services: block is not the pinned postgres:17 container'],
+    [atService(SERVICE_PORTS, '        ports:\n          - 5432:5432\n        volumes:\n          - /var/run/docker.sock:/var/run/docker.sock\n'), 'services: block is not the pinned postgres:17 container'],
+    [atService('    services:\n', '    "services":\n'), 'has the job key `services`'],
+  ]) {
+    assert.notEqual(mutated, ci);
+    const problems = runnerEnvWriteProblems(mutated);
+    assert.ok(problems.some((p) => p.includes(expected)), 'refused: ' + expected + ' (found ' + JSON.stringify(problems) + ')');
+  }
   for (const [level, allowed] of Object.entries(APPLICATION_KEYS)) assert.deepEqual([...keys.seen[level]].sort(), [...allowed], 'the ' + level + ' allowlist is exactly what the application job uses');
   // A1-287-1: a `#`-led line inside a block-scalar body is shell text, and is read; a quoted scalar that
   // spans lines is refused. Q1 and Q2 are A1's: a shell string opened on one line and closed on a `#`-led
@@ -730,7 +791,8 @@ function applicationConditionProblems(job) {
 // level may hold only name, on, permissions and jobs, so no workflow `defaults:` in any spelling
 // (workflowTopLevelProblems); the YAML forms that could spell the key without its letters, or hide lines
 // in a quoted scalar, are refused by yamlFormProblems; and the job's keys are an allowlist (A1-287-2), so
-// `container:` (another image's shell) and `services:` are refused, as is any key main does not use.
+// `container:` (another image's shell) is refused, as is any key main does not use; `services:` is held to
+// the one pinned postgres:17 block (WP-1A-A0-006, servicesProblems), so another or a further service is refused.
 // THE RESIDUAL, stated plainly: the reader sees ci.yml's text, not what runs or what a `${{ }}`
 // expression evaluates to. A shell chosen by other means (a step that runs `bash +e script.sh` or
 // `sh -c "..."`, or `set +e` in a `run: |` body, which the default `bash -e` honours), a repository or npm
@@ -742,7 +804,7 @@ function shellProblems(ci) {
   const job = workflowJobs(ci).get('application');
   return [...workflowTopLevelProblems(ci),
     ...applicationJobText(ci).filter((line) => SHELL_CHOICE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which can choose the shell a run: is handed to`),
-    ...yamlFormProblems(job), ...applicationKeys(job).problems];
+    ...yamlFormProblems(job), ...applicationKeys(job).problems, ...servicesProblems(job)];
 }
 
 test('no step of the application job runs on a condition or may fail softly, except the release age\'s pull-request condition (A1-270-2)', async () => {
@@ -863,7 +925,7 @@ test('no step of the application job runs on a condition or may fail softly, exc
   // A1-287-2: job keys that hand every run: to another shell, refused by the allowlist.
   shellCases.push([ci.replace(NEEDS, NEEDS + '    container: ubuntu:24.04\n'), 'has the job key `container`']);
   shellCases.push([ci.replace(NEEDS, NEEDS + '    container:\n      image: ubuntu:24.04\n'), 'has the job key `container`']);
-  shellCases.push([ci.replace(NEEDS, NEEDS + '    services:\n      cache:\n        image: redis:7\n'), 'has the job key `services`']);
+  shellCases.push([ci.replace(NEEDS, NEEDS + '    services:\n      cache:\n        image: redis:7\n'), 'services: block is not the pinned postgres:17 container']);
   shellCases.push([ci.replace(NEEDS, NEEDS + "    'container': ubuntu:24.04\n"), 'has the job key `container`']);
   shellCases.push([ci.replace(TOOLCHAIN_STEP + '        run: |\n', TOOLCHAIN_STEP + '        run: |\n          # shell: x\n'), 'names `# shell: x`']);
   // A YAML comment outside a block body is still a comment, and is not read: ci.yml's own comments stay free.

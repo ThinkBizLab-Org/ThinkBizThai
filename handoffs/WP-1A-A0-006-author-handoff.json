@@ -4,30 +4,14 @@
   "work_package_id": "WP-1A-A0-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "f36b23ecd5c0e36c9b593420fd6491f72f3cb114",
-  "head_revision_or_patch_checksum": "a78a8f7f5af573e6060cf96be6b15bb0bac3d24b",
+  "base_revision": "0fc0e2f1f18f2201d63e3751d3807b4c804b8297",
+  "head_revision_or_patch_checksum": "0fc0e2f1f18f2201d63e3751d3807b4c804b8297",
   "task_ids": [
     "WP-1A-A0-006",
-    "open-2026-10-20",
-    "fix-round-1-C0-304-1"
+    "deps-ci-2026-10-20"
   ],
-  "files_added": [
-    "evidence/WP-1A-A0-006/a1-review-2026-10-20-pr304-r2.md",
-    "evidence/WP-1A-A0-006/a1-review-2026-10-20-pr304.md",
-    "evidence/WP-1A-A0-006/c0-review-2026-10-20-pr304-r2.md",
-    "evidence/WP-1A-A0-006/c0-review-2026-10-20-pr304.md",
-    "evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-open.md",
-    "evidence/WP-1A-A0-006/q0-review-2026-10-20-pr304-r2.md",
-    "evidence/WP-1A-A0-006/q0-review-2026-10-20-pr304.md",
-    "evidence/WP-1A-A0-006/r0-review-2026-10-20-pr304-r2.md",
-    "evidence/WP-1A-A0-006/r0-review-2026-10-20-pr304.md",
-    "handoffs/WP-1A-A0-006-author-handoff.json",
-    "work-packages/WP-1A-A0-006.json"
-  ],
-  "files_modified": [
-    "test-kits/branch-identity.test.mjs",
-    "test-kits/integrity-manifest.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "RFC-2026-022",
