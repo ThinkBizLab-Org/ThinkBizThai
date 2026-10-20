@@ -142,6 +142,19 @@ test('the release-age verdict asks only about new entries and refuses a young, u
     'an exception names one version and admits no other');
 });
 
+// A1-305-3. YAML's white space is the space and the tab and nothing else; JavaScript's `\s` and `trim`
+// also take NBSP, U+1680, U+2000-U+200A, U+202F, U+205F, U+3000 and U+FEFF. So every reading here that
+// decides what YAML structure a line of ci.yml has (a comment line, a blank line, a key or block-scalar
+// header with nothing after it, a trailing comment, a value compared as written) uses these, space and
+// tab only, and no `\s` or `trim`: a `<NBSP># ...` line is content to YAML and is read as content
+// here. A `\s` left in a pattern that only REFUSES (YAML_FORMS, CONDITION_KEY, KEY_LINE's first key
+// character, the npm_config_ and bare-dash readings) refuses more than YAML's reading would, so it fails
+// closed; trim() left on text only quoted in a message decides nothing. rawCharacterProblems refuses
+// every such character before any of this is read (belt and braces).
+const YAML_COMMENT_LINE = /^[ \t]*#/;
+const yamlBlank = (line) => /^[ \t]*$/.test(line);
+const yamlTrim = (text) => text.replace(/^[ \t]+|[ \t]+$/g, '');
+
 // The workflow's jobs and steps, read by indentation: a job is a two-space key under `jobs:`, a step a
 // six-space `- ` item in it. Comments are dropped first, so a step quoted in a comment is not a step.
 // WP-1A-A0-006: a job's `services:` block, written plainly as a four-space key with every line under it
@@ -161,23 +174,23 @@ function workflowJobs(ci) {
   let inJobs = false;
   let pending = [];
   for (const line of lines) {
-    const loose = line.trim() === '' || /^\s*#/.test(line);
+    const loose = yamlBlank(line) || YAML_COMMENT_LINE.test(line);
     if (job?.inServices) {
       if (loose) { pending.push(line); continue; }
       if (/^ {6}/.test(line)) { job.services.push(...pending, line); pending = []; continue; }
       job.inServices = false;
     }
     pending = [];
-    if (/^\s*#/.test(line)) continue;
-    if (/^jobs:\s*$/.test(line)) { inJobs = true; continue; }
+    if (YAML_COMMENT_LINE.test(line)) continue;
+    if (/^jobs:[ \t]*$/.test(line)) { inJobs = true; continue; }
     if (!inJobs) continue;
-    const key = line.match(/^ {2}([A-Za-z][\w-]*):\s*$/);
+    const key = line.match(/^ {2}([A-Za-z][\w-]*):[ \t]*$/);
     if (key) { job = { name: key[1], head: [], steps: [] }; jobs.set(key[1], job); step = null; continue; }
     if (!job) continue;
     if (/^ {6}- /.test(line)) { step = { text: [line.slice(8)] }; job.steps.push(step); continue; }
-    if (step && (/^ {8}/.test(line) || line.trim() === '')) { step.text.push(line.slice(8)); continue; }
+    if (step && (/^ {8}/.test(line) || yamlBlank(line))) { step.text.push(line.slice(8)); continue; }
     step = null;
-    if (/^ {4}services:\s*$/.test(line)) { job.services = [...(job.services ?? []), line]; job.inServices = true; continue; }
+    if (/^ {4}services:[ \t]*$/.test(line)) { job.services = [...(job.services ?? []), line]; job.inServices = true; continue; }
     job.head.push(line);
   }
   for (const each of jobs.values()) {
@@ -318,10 +331,13 @@ test('CI runs the application checks in a job of their own, after every guard of
   }
 });
 
+// Every install-shaped line of every job's run: text, per job (Q0-257-5; hoisted for A1-305-3's controls).
+const ciInstalls = (text) => [...workflowJobs(text).values()].map((job) => [job.name,
+  job.steps.flatMap((s) => (s.run ?? '').split('\n')).filter((line) => /\bnpm (?:ci|install|i|add|update|rebuild)\b|\bnpx\b|\byarn\b|\bpnpm\b/.test(line)).map((line) => line.trim())]);
+
 test('CI installs only with npm ci --ignore-scripts, once per job, and no step may fail without failing the run (Q0-257-5)', async () => {
   const ci = await readFile('.github/workflows/ci.yml', 'utf8');
-  const installs = (text) => [...workflowJobs(text).values()].map((job) => [job.name,
-    job.steps.flatMap((s) => (s.run ?? '').split('\n')).filter((line) => /\bnpm (?:ci|install|i|add|update|rebuild)\b|\bnpx\b|\byarn\b|\bpnpm\b/.test(line)).map((line) => line.trim())]);
+  const installs = ciInstalls;
   assert.deepEqual(installs(ci), [['bootstrap', ['npm ci --ignore-scripts --no-bin-links']], ['application', ['npm ci --ignore-scripts']]],
     'one npm ci --ignore-scripts in each job, and no other install; the bootstrap job links no package bin (A1-257-6)');
   // A1-257-6's negative control: the bootstrap install without --no-bin-links, as it stood at 82a1741f, is seen.
@@ -329,7 +345,7 @@ test('CI installs only with npm ci --ignore-scripts, once per job, and no step m
   assert.notEqual(linked, ci);
   assert.deepEqual(installs(linked)[0], ['bootstrap', ['npm ci --ignore-scripts']], 'a bootstrap install that links bins is seen');
   assert.notDeepEqual(installs(linked), installs(ci));
-  const code = ci.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n');
+  const code = ci.split('\n').filter((line) => !YAML_COMMENT_LINE.test(line)).join('\n');
   assert.doesNotMatch(code, /continue-on-error/, 'no step or job is continue-on-error');
   // The negative controls: Q0's M40 (a second, plain npm ci) and M45 (continue-on-error on the release age).
   const plain = ci.replace('      - name: Verify the application dependencies\n', '      - name: Reinstall\n        run: npm ci\n      - name: Verify the application dependencies\n');
@@ -337,7 +353,7 @@ test('CI installs only with npm ci --ignore-scripts, once per job, and no step m
   const soft = ci.replace("      - name: Release age of new lockfile entries (network)\n        if: github.event_name == 'pull_request'\n",
     "      - name: Release age of new lockfile entries (network)\n        if: github.event_name == 'pull_request'\n        continue-on-error: true\n");
   assert.notEqual(soft, ci);
-  assert.match(soft.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n'), /continue-on-error/, 'a continue-on-error is seen');
+  assert.match(soft.split('\n').filter((line) => !YAML_COMMENT_LINE.test(line)).join('\n'), /continue-on-error/, 'a continue-on-error is seen');
 });
 
 test('CI runs npm audit and the release age straight after the install, before any step that executes package code (A1-AUD1015-1)', async () => {
@@ -378,7 +394,7 @@ test('CI runs npm audit and the release age straight after the install, before a
 // points it at another server. So the audit step carries no `env:` at all, and no key of the application
 // job, at the job or any step, names an `npm_config_*` variable in any letter case. Returns the problems.
 function auditEnvProblems(job) {
-  const problems = job.steps.filter((s) => /\bnpm audit\b/.test(s.run ?? '') && keyLines(s.raw).some((line) => /^\s*["']?env["']?\s*:/.test(line)))
+  const problems = job.steps.filter((s) => /\bnpm audit\b/.test(s.run ?? '') && keyLines(s.raw).some((line) => /^[ \t]*["']?env["']?[ \t]*:/.test(line)))
     .map((s) => `step "${s.name}" runs npm audit with an env: of its own`);
   const lines = [...job.head, ...job.steps.flatMap((s) => keyLines(s.raw))];
   for (const line of lines.filter((l) => /(?:^|[{,]|-\s|\?\s)\s*["']?npm_config_/i.test(l))) problems.push(`the application job sets \`${line.trim()}\``);
@@ -391,10 +407,10 @@ function auditEnvProblems(job) {
 // tagged, anchored, explicit, merged, commented), is refused because it is not one of those lines.
 const TOP_LEVEL = /^(?:name|on|permissions|jobs):(?: [^#]*)?$/;
 function workflowTopLevelProblems(ci) {
-  return ci.split('\n').filter((line) => /^\S/.test(line) && !line.startsWith('#') && !TOP_LEVEL.test(line)).map((line) => `ci.yml has the top-level line \`${line}\``);
+  return ci.split('\n').filter((line) => /^[^ \t]/.test(line) && !line.startsWith('#') && !TOP_LEVEL.test(line)).map((line) => `ci.yml has the top-level line \`${line}\``);
 }
 function workflowNpmConfigProblems(ci) {
-  const lines = keyLines(ci.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n'));
+  const lines = keyLines(ci.split('\n').filter((line) => !YAML_COMMENT_LINE.test(line)).join('\n'));
   return lines.filter((l) => /(?:^|[{[,]|-\s|\?\s)\s*["']?npm_config_/i.test(l)).map((l) => `ci.yml sets \`${l.trim()}\``);
 }
 // Q0-279r2-2 and A1-279-3 read the same text, applicationJobText: the lines of ci.yml from the line after
@@ -409,20 +425,20 @@ function workflowNpmConfigProblems(ci) {
 // both in yamlFormProblems; and every key the job may carry is on an allowlist (applicationKeyProblems).
 function applicationJobText(ci) {
   const lines = ci.split('\n');
-  const start = lines.findIndex((line) => /^ {2}application:\s*$/.test(line));
+  const start = lines.findIndex((line) => /^ {2}application:[ \t]*$/.test(line));
   if (start === -1) return ['(ci.yml has no application job: nothing to read, refused)'];
   const out = [];
   let block = null;
   for (const line of lines.slice(start + 1)) {
     const indent = line.match(/^ */)[0].length;
     if (block !== null) {
-      if (line.trim() === '' || indent > block) { out.push(line); continue; }
+      if (yamlBlank(line) || indent > block) { out.push(line); continue; }
       block = null;
     }
-    if (/^\s*#/.test(line)) continue;
-    if (/^ {2}[A-Za-z][\w-]*:\s*$/.test(line)) break;
+    if (YAML_COMMENT_LINE.test(line)) continue;
+    if (/^ {2}[A-Za-z][\w-]*:[ \t]*$/.test(line)) break;
     out.push(line);
-    if (/:\s*[|>][-+0-9]*\s*$/.test(withoutComment(line))) block = indent;
+    if (/:[ \t]*[|>][-+0-9]*[ \t]*$/.test(withoutComment(line))) block = indent;
   }
   return out;
 }
@@ -463,7 +479,7 @@ const APPLICATION_SERVICES = Object.freeze([
 function servicesProblems(job) {
   if (job.services === undefined) return [];
   if (JSON.stringify(job.services) === JSON.stringify(APPLICATION_SERVICES)) return [];
-  const loose = job.services.filter((l) => l.trim() === '' || /^\s*#/.test(l));
+  const loose = job.services.filter((l) => yamlBlank(l) || YAML_COMMENT_LINE.test(l));
   return [`the ${job.name} job's services: block is not the pinned postgres:17 container, byte for byte: \`${job.services.map((l) => JSON.stringify(l)).join(' | ')}\``,
     ...(loose.length ? [`the ${job.name} job's services: block holds ${loose.length} blank or \`#\`-led line(s) inside it, which YAML reads as content in a block scalar (A1-305-1)`] : [])];
 }
@@ -478,7 +494,7 @@ function dbEnvProblems(job) {
   job.steps.forEach((step, i) => {
     const where = `step "${step.name ?? step.uses ?? `step ${i + 1}`}"`;
     let under = null;
-    for (const line of keyLines(step.raw).filter((l) => l.trim() !== '')) {
+    for (const line of keyLines(step.raw).filter((l) => !yamlBlank(l))) {
       const match = line.match(KEY_LINE);
       if (!match) continue;
       const indent = match[1].length;
@@ -486,7 +502,7 @@ function dbEnvProblems(job) {
       if (indent === 0) { under = key; continue; }
       if (indent !== 2 || under !== 'env' || !Object.hasOwn(DB_ENV_VALUES, key)) continue;
       if (!DB_ENV_STEPS.includes(step.name)) problems.push(`${where} sets \`${key}\`, which only ${DB_ENV_STEPS.map((n) => `"${n}"`).join(' and ')} may set: \`${line.trim()}\``);
-      else if (line.trim() !== DB_ENV_VALUES[key]) problems.push(`${where} sets \`${key}\` to another value than the bootstrap job's: \`${line.trim()}\``);
+      else if (yamlTrim(line) !== DB_ENV_VALUES[key]) problems.push(`${where} sets \`${key}\` to another value than the bootstrap job's: \`${yamlTrim(line)}\``);
     }
   });
   return problems;
@@ -503,7 +519,7 @@ function applicationKeys(job) {
     return key;
   };
   let parent = null;
-  for (const line of job.head.filter((l) => l.trim() !== '')) {
+  for (const line of job.head.filter((l) => !yamlBlank(l))) {
     const indent = line.match(/^ */)[0].length;
     if (!KEY_LINE.test(line) || (indent !== 4 && indent !== 6)) { problems.push(`the application job has a line the key reading cannot place: \`${line.trim()}\``); continue; }
     if (indent === 4) parent = place('the application job', line, 'job');
@@ -513,7 +529,7 @@ function applicationKeys(job) {
   job.steps.forEach((step, i) => {
     const where = `step "${step.name ?? step.uses ?? `step ${i + 1}`}"`;
     let under = null;
-    for (const line of keyLines(step.raw).filter((l) => l.trim() !== '')) {
+    for (const line of keyLines(step.raw).filter((l) => !yamlBlank(l))) {
       const indent = line.match(/^ */)[0].length;
       if (!KEY_LINE.test(line) || (indent !== 0 && indent !== 2)) { problems.push(`${where} has a line the key reading cannot place: \`${line.trim()}\``); continue; }
       if (indent === 0) under = place(where, line, 'step');
@@ -556,15 +572,37 @@ const RUNNER_ENV_WRITE = /GITHUB_ENV|GITHUB_PATH|_runner_file_commands|ACTIONS_A
 // `\r` (a CRLF line end included), no U+0085, U+2028 or U+2029, no other C0 or C1 control character
 // but `\n` and `\t`, no DEL and no U+FEFF byte-order mark anywhere. main's ci.yml holds none of them, so
 // nothing legitimate is lost. Returns one problem per character kind found.
-const RAW_LINE_BREAKS = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u2028\u2029\ufeff]/g;
-function rawLineBreakProblems(ci) {
+// A1-305-3, the same class a third time: a Unicode space before `#` (NBSP, U+2000-U+200A, U+3000, ...)
+// is white space to JavaScript's `\s` and `trim`, so a reader took `<NBSP># ...` for a comment, but
+// YAML's only white space is the space and the tab, so YAML reads that line as content (a scalar's
+// continuation, a block scalar's body). Closed as a CLASS by Unicode category, not by listing code points:
+// ci.yml holds no character of the categories Cc (controls), Cf (format: U+200B, U+FEFF, U+180E, U+2060,
+// bidi controls, ...), Zl, Zp or Zs (every space separator) but the space U+0020, the tab and `\n`.
+// Graphic characters of any script still pass: ci.yml's comments use the em dash U+2014, the ellipsis
+// U+2026, the section sign U+00A7 and Thai (U+0E00-U+0E7F), none of which is in those categories. The
+// A1-305-2 characters keep their message; the rest are named A1-305-3. YAML_COMMENT_LINE, yamlBlank and
+// yamlTrim read structure with space and tab only, so each fix holds without the other.
+const RAW_REFUSED = /(?![\t\n ])[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Zs}]/gu;
+const RAW_LINE_BREAKS = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u2028\u2029\ufeff]/u;
+const RAW_CATEGORIES = [['Cc', /\p{Cc}/u], ['Cf', /\p{Cf}/u], ['Zl', /\p{Zl}/u], ['Zp', /\p{Zp}/u], ['Zs', /\p{Zs}/u]];
+function rawCharacterProblems(ci) {
   const counts = new Map();
-  for (const [ch] of ci.matchAll(RAW_LINE_BREAKS)) counts.set(ch, (counts.get(ch) ?? 0) + 1);
-  return [...counts].map(([ch, n]) => `ci.yml holds ${n} U+${ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')} character(s), which YAML can read as a line break or which the line reading does not see; refused before ci.yml is read (A1-305-2)`);
+  for (const [ch] of ci.matchAll(RAW_REFUSED)) counts.set(ch, (counts.get(ch) ?? 0) + 1);
+  return [...counts].map(([ch, n]) => {
+    const code = `U+${ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')}`;
+    if (RAW_LINE_BREAKS.test(ch)) return `ci.yml holds ${n} ${code} character(s), which YAML can read as a line break or which the line reading does not see; refused before ci.yml is read (A1-305-2)`;
+    const category = RAW_CATEGORIES.find(([, re]) => re.test(ch))[0];
+    return `ci.yml holds ${n} ${code} character(s) (category ${category}), which YAML does not read as white space where JavaScript's \\s and trim do, or reads as content where the line reading sees nothing; refused before ci.yml is read (A1-305-3)`;
+  });
 }
+// A1-305-3: the job is found by its key line read with space and tab only, so a ci.yml whose
+// `  application:` line the reading cannot find (a CRLF file, a Unicode space after the colon) is refused
+// as such, not read as a missing job.
+const NO_APPLICATION_JOB = 'ci.yml has no `  application:` job line the reading can find: nothing to read, refused';
 function runnerEnvWriteProblems(ci) {
   const job = workflowJobs(ci).get('application');
-  return [...rawLineBreakProblems(ci), ...applicationJobText(ci).filter((line) => RUNNER_ENV_WRITE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which writes or opens the environment of later steps`),
+  if (!job) return [...rawCharacterProblems(ci), NO_APPLICATION_JOB];
+  return [...rawCharacterProblems(ci), ...applicationJobText(ci).filter((line) => RUNNER_ENV_WRITE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which writes or opens the environment of later steps`),
     ...yamlFormProblems(job), ...applicationKeys(job).problems, ...servicesProblems(job), ...dbEnvProblems(job)];
 }
 function auditProblems(steps) {
@@ -758,7 +796,7 @@ test('CI audits the dev dependencies too, the packages the application job runs 
   // the A1-287-2 allowlist), each with a lone `\r` and again with NEL, LS and PS, plus `credentials:`, a
   // `container:` key, a whole-file CRLF, a BOM and other control characters, are each refused by both
   // readers, on the raw text, whatever the rest of the reading makes of them.
-  assert.deepEqual(rawLineBreakProblems(ci), [], 'ci.yml holds no line break but \\n and no control character but \\n and \\t');
+  assert.deepEqual(rawCharacterProblems(ci), [], 'ci.yml holds no line break but \\n and no control character but \\n and \\t');
   const AFTER_NEEDS = '  application:\n    needs: bootstrap\n';
   assert.ok(ci.includes(AFTER_NEEDS), 'the application job head reads as written');
   const breaks = [];
@@ -782,6 +820,75 @@ test('CI audits the dev dependencies too, the packages the application job runs 
       assert.ok(problems.some((p) => p.includes(expected) && p.endsWith('(A1-305-2)')), `${reader.name} refuses ${code} in control ${i + 1} (found ${JSON.stringify(problems).slice(0, 400)})`);
     }
   });
+  {
+  // A1-305-3. A1's five insertions, each a line whose first non-space character is a Unicode space (or a
+  // format character) and then `#`: YAML reads it as content, a reader using `\s` took it for a comment.
+  // Each is spelled with NBSP and U+3000 (A1's) and with U+2000, U+2007, U+200B (Cf), U+202F, U+205F,
+  // U+FEFF and U+180E (Cf). Each must be refused twice over, by each fix alone: (1) rawCharacterProblems
+  // names the character on the raw text; (2) with every raw-character problem set aside, the structure
+  // readers (runnerEnvWriteProblems, shellProblems, the install list) still refuse it, because they read
+  // the line as YAML does. Then the positive control: a comment with Thai, an em dash, an ellipsis and §
+  // passes every reader, as ci.yml's own comments do.
+    const app = ci.indexOf('  application:\n');
+    const after = (find, insert) => { const i = ci.indexOf(find, app); assert.ok(i !== -1, `${JSON.stringify(find)} reads as written`); return ci.slice(0, i + find.length) + insert + ci.slice(i + find.length); };
+    const TESTS_PGPASSWORD = '      - name: Application tests\n        env:\n          PGPASSWORD: postgres\n';
+    const DATABASE_URL = '      - name: Database for the application tests\n        env:\n          PGPASSWORD: postgres\n          DB_TEST_URL: postgresql://postgres@localhost:5432/thinkbizthai_test\n';
+    const DEPENDENCIES = '        run: node scripts/verify-app-dependencies.mjs\n';
+    const TOOLCHAIN_BODY = '      - name: Verify pinned toolchain for the application\n        run: |\n          test "$(node --version)" = "v24.20.0"\n';
+    const PORTS = '        ports:\n          - 5432:5432\n';
+    const baseInstalls = ciInstalls(ci);
+    const notRaw = (problems) => problems.filter((p) => !p.includes('refused before ci.yml is read'));
+    const CHARACTERS = [['\u00a0', 'Zs'], ['\u3000', 'Zs'], ['\u2000', 'Zs'], ['\u2007', 'Zs'], ['\u200b', 'Cf'], ['\u202f', 'Zs'], ['\u205f', 'Zs'], ['\ufeff', 'Cf'], ['\u180e', 'Cf']];
+    let count = 0;
+    for (const [ch, category] of CHARACTERS) {
+      const code = `U+${ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')}`;
+      for (const [what, mutated] of [
+        ['a secret on PGPASSWORD', after(TESTS_PGPASSWORD, `            ${ch}# \${{ secrets.PROD_DB_PASSWORD }}\n`)],
+        ['a secret on DB_TEST_URL', after(DATABASE_URL, `            ${ch}# \${{ secrets.PROD_DB_URL }}\n`)],
+        ['a $GITHUB_ENV write on a run line', after(DEPENDENCIES, '          ' + ch + '# || echo NODE_OPTIONS=--require=/tmp/x.js >> "$GITHUB_ENV"\n')],
+        ['an install in a run: | body', after(TOOLCHAIN_BODY, `          ${ch}# || npm install left-pad\n`)],
+        ['a docker flag on the service port', after(PORTS, `            ${ch}# --privileged\n`)],
+      ]) {
+        count += 1;
+        assert.notEqual(mutated, ci);
+        const label = `${what} behind ${code}`;
+        // (1) the raw text.
+        const raw = rawCharacterProblems(mutated);
+        const named = raw.find((p) => p.includes(`1 ${code} character(s)`));
+        assert.ok(named, `fix (1) refuses ${label} (found ${JSON.stringify(raw)})`);
+        if (ch !== '\ufeff') assert.ok(named.includes(`(category ${category})`) && named.endsWith('(A1-305-3)'), `${label}: ${named}`);
+        for (const reader of [runnerEnvWriteProblems, shellProblems]) assert.ok(reader(mutated).includes(named), `${reader.name} refuses ${label} on the raw text`);
+        // (2) the structure, with every raw-character problem set aside.
+        const structural = [...notRaw(runnerEnvWriteProblems(mutated)), ...notRaw(shellProblems(mutated))];
+        const installs = ciInstalls(mutated);
+        assert.ok(structural.length > 0 || JSON.stringify(installs) !== JSON.stringify(baseInstalls), `fix (2) reads ${label} as content and refuses it (installs ${JSON.stringify(installs)})`);
+      }
+    }
+    assert.equal(count, 45, 'five insertions in nine characters');
+    // The install insertion is refused by the install list, the others by the job readers; named so a
+    // later change cannot move a control onto a reader that no longer reads it.
+    const nbsp = (find, insert) => after(find, insert.replace('<>', '\u00a0'));
+    assert.deepEqual(ciInstalls(nbsp(TOOLCHAIN_BODY, '          <># || npm install left-pad\n'))[1], ['application', ['# || npm install left-pad', 'npm ci --ignore-scripts']], 'the install behind NBSP is in the run text (the list trims it for display)');
+    assert.ok(notRaw(runnerEnvWriteProblems(nbsp(PORTS, '            <># --privileged\n'))).some((p) => p.includes('services: block is not the pinned postgres:17 container')), 'the port line behind NBSP is in the services block');
+    assert.ok(notRaw(runnerEnvWriteProblems(nbsp(DEPENDENCIES, '          <># || echo NODE_OPTIONS=--require=/tmp/x.js >> "$GITHUB_ENV"\n'))).some((p) => p.includes('which writes or opens the environment of later steps')), 'the $GITHUB_ENV line behind NBSP is read');
+    for (const [find, insert] of [[TESTS_PGPASSWORD, '            <># ${{ secrets.PROD_DB_PASSWORD }}\n'], [DATABASE_URL, '            <># ${{ secrets.PROD_DB_URL }}\n']]) {
+      assert.ok(notRaw(runnerEnvWriteProblems(nbsp(find, insert))).some((p) => p.includes('a line the key reading cannot place')), `${JSON.stringify(insert)} is a line the key reading cannot place`);
+    }
+    // A blank-looking line of NBSP only, and a YAML structure line led by U+3000, are not blank or comment.
+    assert.equal(yamlBlank('    \u00a0'), false);
+    assert.equal(YAML_COMMENT_LINE.test('  \u3000# x'), false);
+    assert.equal(yamlTrim('PGPASSWORD: postgres\u00a0'), 'PGPASSWORD: postgres\u00a0');
+    // Positive controls: ci.yml (main's characters: the em dash, the ellipsis, § and Thai in comments) has
+    // none of the refused characters, and a further comment line with each passes every reader.
+    assert.deepEqual(rawCharacterProblems(ci), []);
+    for (const ch of ['—', '…', '§', 'ไ']) assert.ok(ci.includes(ch), `ci.yml's comments use ${JSON.stringify(ch)}`);
+    const graphic = after('  application:\n    needs: bootstrap\n', '    # หมายเหตุ — ดู RFC-2026-029 §3 … ใช้ได้\n');
+    assert.notEqual(graphic, ci);
+    assert.deepEqual(rawCharacterProblems(graphic), [], 'Thai, an em dash, § and an ellipsis are graphic characters');
+    assert.deepEqual(runnerEnvWriteProblems(graphic), [], 'the comment line passes the environment readers');
+    assert.deepEqual(shellProblems(graphic), [], 'and the shell reader');
+    assert.deepEqual(ciInstalls(graphic), baseInstalls, 'and changes no install');
+  }
   for (const [level, allowed] of Object.entries(APPLICATION_KEYS)) assert.deepEqual([...keys.seen[level]].sort(), [...allowed], 'the ' + level + ' allowlist is exactly what the application job uses');
   // A1-287-1: a `#`-led line inside a block-scalar body is shell text, and is read; a quoted scalar that
   // spans lines is refused. Q1 and Q2 are A1's: a shell string opened on one line and closed on a `#`-led
@@ -839,18 +946,18 @@ const RELEASE_AGE_CONDITION = "if: github.event_name == 'pull_request'";
 const CONDITION_KEY = /(?:^|[{,]|-\s)\s*["']?(if|continue-on-error)["']?\s*:/;
 // A trailing comment, `#` at the line start or after whitespace, removed (quotes are not considered: a
 // `#` in a quoted value is refused below as a comment, failing closed).
-const withoutComment = (line) => line.replace(/(?:^|\s)#.*$/, '');
+const withoutComment = (line) => line.replace(/(?:^|[ \t])#.*$/, '');
 function keyLines(text) {
   const out = [];
   let block = null;
   for (const line of text.split('\n')) {
     const indent = line.match(/^ */)[0].length;
     if (block !== null) {
-      if (line.trim() === '' || indent > block) continue;
+      if (yamlBlank(line) || indent > block) continue;
       block = null;
     }
     out.push(line);
-    if (/:\s*[|>][-+0-9]*\s*$/.test(withoutComment(line))) block = indent;
+    if (/:[ \t]*[|>][-+0-9]*[ \t]*$/.test(withoutComment(line))) block = indent;
   }
   return out;
 }
@@ -886,7 +993,7 @@ const withoutExpressions = (line) => line.replace(/\$\{\{[^}]*\}\}/g, '');
 function yamlFormProblems(job) {
   const lines = [...job.head.map((line) => ['the application job', line]),
     ...job.steps.flatMap((step, i) => keyLines(step.raw).map((line) => [`step "${step.name ?? step.uses ?? `step ${i + 1}`}"`, line]))];
-  const bare = job.steps.flatMap((step, i) => (withoutComment(step.raw.split('\n')[0]).trim() === '' ? [`step ${i + 1} is a dash line with no key on it: \`- ${step.raw.split('\n')[0]}\``] : []));
+  const bare = job.steps.flatMap((step, i) => (yamlBlank(withoutComment(step.raw.split('\n')[0])) ? [`step ${i + 1} is a dash line with no key on it: \`- ${step.raw.split('\n')[0]}\``] : []));
   // A dash the step reader does not take for a step (a bare `-`, a `-` and a tab) lands in the job's own
   // lines; it is refused there as a line the reading cannot place.
   bare.push(...job.head.filter((line) => /^\s*-(?:\s|$)/.test(line)).map((line) => `the application job has a dash line the reading cannot place: \`${line.trim()}\``));
@@ -926,11 +1033,12 @@ function applicationConditionProblems(job) {
 // script that swallows its own failure, and the pinned actions' own behaviour are not seen; they are held
 // by the review of every ci.yml and script change and by the step list A1-257-4 pins. The bootstrap job
 // is not read here (A1-279-3 named the application job). A1-305-2: a line break the reading does not
-// split on is refused first, on ci.yml's raw text (rawLineBreakProblems). Returns the problems.
+// split on is refused first, on ci.yml's raw text (rawCharacterProblems). Returns the problems.
 const SHELL_CHOICE = /shell|defaults/i;
 function shellProblems(ci) {
   const job = workflowJobs(ci).get('application');
-  return [...rawLineBreakProblems(ci), ...workflowTopLevelProblems(ci),
+  if (!job) return [...rawCharacterProblems(ci), ...workflowTopLevelProblems(ci), NO_APPLICATION_JOB];
+  return [...rawCharacterProblems(ci), ...workflowTopLevelProblems(ci),
     ...applicationJobText(ci).filter((line) => SHELL_CHOICE.test(line)).map((line) => `the application job names \`${line.trim()}\`, which can choose the shell a run: is handed to`),
     ...yamlFormProblems(job), ...applicationKeys(job).problems, ...servicesProblems(job)];
 }
