@@ -102,6 +102,228 @@
       "minLength": 1
     }
   },
+  "x-lifecycle": {
+    "decided": "2026-10-20, by the contract owner A0 in WP-0A-CON-001, on the Product Owner's direction of 2026-10-20 (evidence/WP-0A-CON-001/product-owner-disposition-2026-10-20-ctr-job-lifecycle.md): the lifecycle is what platform-kernel's job decisions already decide (src/modules/platform-kernel/domain/jobs/job-decisions.ts at main f20b7319), named. While this contract is Candidate it may change; once it is Frozen, changing a state, the order of `states` or a transition is a breaking change (RFC-2026-031 section 3.3).",
+    "stored": "No state is stored. The record has no status field and gains none (additionalProperties is false). A job's state is derived at an instant `now` that its reader supplies, from the record's timestamps and counters, as the FIRST entry of `states` whose condition holds. The same record can therefore be in different states at different instants: time alone moves a job (`by: clock`), with no write.",
+    "lease_held": "lease_owner and lease_expires_at are both present and lease_expires_at > now. A lease whose lease_expires_at <= now is expired: it protects nothing, and its two fields stay on the record until the next claim replaces them.",
+    "states": [
+      {
+        "state": "completed",
+        "when": "result_ref is present",
+        "terminal": true
+      },
+      {
+        "state": "cancelling",
+        "when": "cancel_requested_at is present and the lease is held",
+        "terminal": false
+      },
+      {
+        "state": "cancelled",
+        "when": "cancel_requested_at is present",
+        "terminal": true
+      },
+      {
+        "state": "leased",
+        "when": "the lease is held",
+        "terminal": false
+      },
+      {
+        "state": "dead_lettered",
+        "when": "attempt >= max_attempts",
+        "terminal": true
+      },
+      {
+        "state": "waiting",
+        "when": "available_at > now",
+        "terminal": false
+      },
+      {
+        "state": "ready",
+        "when": "none of the above: no result, no cancellation, no held lease, attempt < max_attempts and available_at <= now; the only state a claim is granted from",
+        "terminal": false
+      }
+    ],
+    "actors": {
+      "command": "The command path, inside the job's own workspace only: enqueue, with a tenant context the resolver minted, and cancel. How the database admits the command path is not settled here.",
+      "worker": "A worker, only through the queue broker in the database (RFC-2026-022 section 5 items 5 and 6: functions owned by app_queue; app_worker holds no policy on app.jobs) and through JobStorePort on fakes. Every act after a claim presents the lease the claim returned (job_id, workspace_id, lease_owner, attempt), and is refused with nothing written (lease_lost) unless that lease is held and is the record's current one.",
+      "clock": "No actor and no write: the instant reaching available_at or lease_expires_at."
+    },
+    "transitions": [
+      {
+        "act": "enqueue",
+        "by": "command",
+        "from": [
+          "(none)"
+        ],
+        "to": [
+          "ready",
+          "waiting"
+        ],
+        "writes": "A new record: attempt 0, progress_percent 0, no lease, no cancel_requested_at, no result_ref, no last_error_code. available_at is the requested instant, or now when absent or earlier, so the job is ready at now or waiting until later. When a job with the same dedupe_key exists in the same workspace, nothing is written and that job is returned in whatever state it is."
+      },
+      {
+        "act": "due",
+        "by": "clock",
+        "from": [
+          "waiting"
+        ],
+        "to": [
+          "ready"
+        ],
+        "writes": "Nothing; available_at is reached."
+      },
+      {
+        "act": "claim",
+        "by": "worker",
+        "from": [
+          "ready"
+        ],
+        "to": [
+          "leased"
+        ],
+        "writes": "attempt + 1; lease_owner; lease_expires_at = now + timeout_seconds + the lease grace. Refused, with nothing written, from every other state."
+      },
+      {
+        "act": "heartbeat",
+        "by": "worker",
+        "from": [
+          "leased",
+          "cancelling"
+        ],
+        "to": [
+          "(unchanged)"
+        ],
+        "writes": "lease_expires_at = the later of its current value and now + the heartbeat extension; progress_percent and progress_stage when given, with no requirement that progress increase."
+      },
+      {
+        "act": "complete",
+        "by": "worker",
+        "from": [
+          "leased",
+          "cancelling"
+        ],
+        "to": [
+          "completed"
+        ],
+        "writes": "result_ref; the lease is removed."
+      },
+      {
+        "act": "fail",
+        "by": "worker",
+        "from": [
+          "leased"
+        ],
+        "to": [
+          "waiting"
+        ],
+        "when": "attempt < max_attempts",
+        "writes": "last_error_code, the code of a stable error defined in code; the lease is removed; available_at = now + min(maximum delay, base delay * factor ^ (attempt - 1)). Every failure is retried while attempts remain, whatever its error's `retryable`."
+      },
+      {
+        "act": "fail",
+        "by": "worker",
+        "from": [
+          "leased"
+        ],
+        "to": [
+          "dead_lettered"
+        ],
+        "when": "attempt >= max_attempts",
+        "writes": "last_error_code; the lease is removed; available_at is unchanged."
+      },
+      {
+        "act": "fail",
+        "by": "worker",
+        "from": [
+          "cancelling"
+        ],
+        "to": [
+          "cancelled"
+        ],
+        "writes": "As the two rows above, by attempt; the cancellation decides the state."
+      },
+      {
+        "act": "lease expiry",
+        "by": "clock",
+        "from": [
+          "leased"
+        ],
+        "to": [
+          "ready",
+          "dead_lettered"
+        ],
+        "writes": "Nothing. ready when attempt < max_attempts, otherwise dead_lettered. This is how a crashed worker's job is taken again, so a handler may run more than once (at least once)."
+      },
+      {
+        "act": "lease expiry",
+        "by": "clock",
+        "from": [
+          "cancelling"
+        ],
+        "to": [
+          "cancelled"
+        ],
+        "writes": "Nothing."
+      },
+      {
+        "act": "cancel",
+        "by": "command",
+        "from": [
+          "ready",
+          "waiting",
+          "dead_lettered"
+        ],
+        "to": [
+          "cancelled"
+        ],
+        "writes": "cancel_requested_at = now."
+      },
+      {
+        "act": "cancel",
+        "by": "command",
+        "from": [
+          "leased"
+        ],
+        "to": [
+          "cancelling"
+        ],
+        "writes": "cancel_requested_at = now. The held lease runs to its end, and heartbeats may extend it."
+      },
+      {
+        "act": "cancel",
+        "by": "command",
+        "from": [
+          "completed"
+        ],
+        "to": [
+          "(unchanged)"
+        ],
+        "writes": "cancel_requested_at = now; the result stands."
+      },
+      {
+        "act": "cancel",
+        "by": "command",
+        "from": [
+          "cancelling",
+          "cancelled"
+        ],
+        "to": [
+          "(unchanged)"
+        ],
+        "writes": "Nothing; the first instant is kept."
+      }
+    ],
+    "never": "No act changes the state of a completed or cancelled job, and only cancel moves a dead_lettered one. After enqueue: only claim writes attempt and lease_owner; only claim and heartbeat write lease_expires_at; only complete and fail remove the lease; only heartbeat writes progress_percent and progress_stage; only complete writes result_ref; only fail writes last_error_code and available_at; only cancel writes cancel_requested_at. No replay is defined.",
+    "not_settled": [
+      "The numbers: the lease grace, the heartbeat extension, the back-off base, factor and maximum, and the enqueue caps on max_attempts and timeout_seconds are D6 provisional kernel parameters (src/modules/platform-kernel/domain/jobs/job-limits.ts), not contract values.",
+      "A retry taxonomy by error category (Contracts/Events/Jobs Workstream JB-005: validation and auth errors not retried, Retry-After honoured) is not adopted: every failure is retried while attempts remain.",
+      "Cancellation does not reach a running handler: the worker aborts a handler at its timeout only (JB-006 asks for a safe point).",
+      "Progress is not required to be monotonic (JB-007).",
+      "Dead-letter triage and replay (JB-009), and the controlled replay JB-001 excepts from terminal immutability.",
+      "The order in which ready jobs are claimed (the direction of priority, and ties).",
+      "Retention, archival and cleanup of terminal jobs (JB-010)."
+    ]
+  },
   "x-amended-by": [
     {
       "work_package_id": "WP-0A-CON-002",

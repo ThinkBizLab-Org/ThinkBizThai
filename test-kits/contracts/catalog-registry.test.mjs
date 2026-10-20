@@ -246,8 +246,10 @@ test('every contract directory on disk is in the pinned registry', async () => {
 // Deleting one does not fail a test; it makes the contract look better than it is. So the SET of
 // contracts carrying each caveat is pinned by name, the same way untested constraints are: a
 // count can be paid for by adding a caveat somewhere cheap, a name cannot.
+// 2026-10-20, WP-0A-CON-001 CTR-JOB-001 lifecycle increment: CTR-JOB-001 gains
+// untestable_by_fixture (a state is derived from a record and an instant, so no fixture shows one).
 const DECLARES_UNTESTABLE_BY_FIXTURE = [
-  'CTR-AUD-001', 'CTR-FLG-001', 'CTR-MOD-001', 'CTR-NTF-001',
+  'CTR-AUD-001', 'CTR-FLG-001', 'CTR-JOB-001', 'CTR-MOD-001', 'CTR-NTF-001',
   'CTR-OBS-001', 'CTR-PAG-001', 'CTR-SEC-001', 'CTR-USG-001',
 ];
 const DECLARES_UNTESTABLE_BY_SCHEMA = [
@@ -316,7 +318,9 @@ const CAVEAT_DIGESTS = {
   'ctr-evt-001': { freeze_boundary: '236e75aeda851184' },
   'ctr-flg-001': { freeze_boundary: '4eac2ca0f49b152b', untestable_by_fixture: 'a33afe671089ceac' },
   'ctr-idm-001': { freeze_boundary: '5cba1fd899632d41' },
-  'ctr-job-001': { freeze_boundary: '05243c910b16d414' },
+  // 2026-10-20, WP-0A-CON-001 CTR-JOB-001 lifecycle increment: freeze_boundary restated (the lifecycle is
+  // decided, not frozen; was 05243c910b16d414) and untestable_by_fixture added.
+  'ctr-job-001': { freeze_boundary: '8cda307ca093a3c7', untestable_by_fixture: '195c14336bf4a6a4' },
   'ctr-mod-001': { freeze_boundary: '22314a6d0c859d81', untestable_by_fixture: '8053ad9e74ea24fd' },
   // 2026-10-10, WP-0A-CON-006 SC-2 increment: ctr-ntf-001 untestable_by_schema gains (4), whose permission the
   // deep link checks and when (A1's SC-2, WP-0A-CON-006 open_blockers[19]); was 7c05ce2b6365a50e.
@@ -453,7 +457,9 @@ const ANNOTATION_DIGESTS = {
   'ctr-evt-001': { count: 12, digest: '1d3766091e62de86' },
   'ctr-flg-001': { count: 19, digest: '627b839672f67d8b' },
   'ctr-idm-001': { count: 8, digest: '651b5e5ef2e84103' },
-  'ctr-job-001': { count: 8, digest: 'b374d6bd002c3ad4' },
+  // 2026-10-20, WP-0A-CON-001 CTR-JOB-001 lifecycle increment: one top-level x-lifecycle (the derived
+  // states and their transitions) moves ctr-job-001 8 -> 9; was b374d6bd002c3ad4.
+  'ctr-job-001': { count: 9, digest: '2a64652073962c96' },
   'ctr-mod-001': { count: 20, digest: '29985bb8dcd4186c' },
   // 2026-10-10, WP-0A-CON-006 A5 owner-decision increment: dedupe_key x-pii-shape and x-bound-note and notification_id
   // x-bound-note reworded in A5's exact words (a5-ntf-assessment-2026-10-10.md OD-4); count unchanged; was 6676c9e55382b076.

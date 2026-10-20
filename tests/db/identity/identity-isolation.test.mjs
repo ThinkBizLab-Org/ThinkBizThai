@@ -3193,10 +3193,16 @@ test('both natural keys are workspace-scoped, because a retry may not reach acro
 test('batch 050 invents no lifecycle vocabulary, in a column, in a CHECK or in an index predicate', async () => {
   const job = JSON.parse(await readFile(JOB_CONTRACT, 'utf8'));
   const manifest = JSON.parse(await readFile('contract-catalog/shared-kernel/ctr-job-001/manifest.json', 'utf8'));
-  assert.match(manifest.freeze_boundary, /lifecycle state names and transition policy remain subject to/,
-    'the contract reserves the lifecycle to an owner review. If that sentence has been lifted, the refusals '
-    + 'below are the ones to revisit — and revisiting them is a decision, which is what this assertion makes '
-    + 'someone do.');
+  // 2026-10-20, WP-0A-CON-001 CTR-JOB-001 lifecycle increment (declared amendment of this WP-0A-DB-00
+  // file): the owner review happened. The contract now names its lifecycle in schema.json x-lifecycle,
+  // and decides that no state is STORED -- each is derived from the timestamps and counters this batch
+  // keeps. That is the decision this assertion asked someone to make, and it leaves every refusal below
+  // standing, so the assertion now pins that decision instead of the reservation it replaced.
+  assert.doesNotMatch(manifest.freeze_boundary, /lifecycle state names and transition policy remain subject to/,
+    'the reservation was lifted by the contract owner; a boundary reserving it again would contradict x-lifecycle');
+  assert.match(String(job['x-lifecycle']?.stored), /^No state is stored\. The record has no status field and gains none/,
+    'the contract decides its lifecycle is derived, never stored. If that sentence changes, the refusals below '
+    + 'are the ones to revisit — and revisiting them is a decision, which is what this assertion makes someone do.');
   assert.equal(job.properties.status, undefined,
     'CTR-JOB-001 has no status field at all, which is why this batch has no status column');
 

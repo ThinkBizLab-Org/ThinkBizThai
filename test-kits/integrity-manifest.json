@@ -97,7 +97,7 @@
     "test-kits/ci-guard-behaviour.test.mjs": "bf78049980c98cddfcb63321261bc2f4fd04de7f89fc04633f126abb3c5607e2",
     "test-kits/contracts/catalog-groups.test.mjs": "98d740f69ffb890a6092a1453430f1e0bf83da56f967806a68e8e7569246b9c8",
     "test-kits/contracts/catalog-reference-integrity.test.mjs": "8c6a843db46f2435ae1c87cd87de0a5e2390319f6ca69ebfa6f7d6de4cd3de19",
-    "test-kits/contracts/catalog-registry.test.mjs": "4942e3ac9ce0aea020771f84ca29677fc2f903011316da39f58b676ddc5570de",
+    "test-kits/contracts/catalog-registry.test.mjs": "dafe83b277fb18df64376799182b83a40bbdadbe628bb328459dcbb4c19b5479",
     "test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs": "cf9a5325c1c970e63a57bc1ae5c7c313fef2a6f49b0038698cbb3f0eda03b40b",
     "test-kits/contracts/ctr-job-001-reference-hardening.test.mjs": "66e9d40cb286cacfae3ab022f74aa6b0b4280cc6da073a78c9945e9b4eb689cb",
     "test-kits/contracts/json-schema-subset.mjs": "9037cc0a7ef19b0d230d4a56018a686c50456e24a05d4e665fbf0e04ebc75632",
@@ -125,7 +125,7 @@
     "test-kits/verification-record.test.mjs": "b4bfae315b847ca26ac4d1020e1b27400965a13ee6e2f8bf3fdd154981470ff2",
     "test-kits/work-package-discovery.test.mjs": "e9b443efeb85e3c88c943ac94ab4d6f9deaa10a190dc5e405c290eb95eb34e7a",
     "test-kits/work-package-ownership.test.mjs": "e54f48423e8dff19e7ed0ea296649f1c9991b6914958c4df928497fe4b3c69fe",
-    "tests/db/identity/identity-isolation.test.mjs": "902679e108727dd74d71aa9cade5a2f2f9e1eb431115d151c82113197cd619ae",
+    "tests/db/identity/identity-isolation.test.mjs": "012c4128046bc8996cf5006ead6e46cffc8a995972270099050a4896b5c61b60",
     "tests/db/identity/isolation-cases.mjs": "bac0e46ce5ed241dcbf26e46f56a6e48c4bd3ca554e8c244e91ef1ebe2576fc7",
     "tests/db/identity/run-isolation.mjs": "b7df49228d82af244ba7a5ec14508ed674d11293082014cc265275fbe7823d9b",
     "work-packages/WP-0A-CON-008.json": "76f340a83b15a9b039cee1cb215ddbb3825172256096d424b31cae2bd90dcb5f"
