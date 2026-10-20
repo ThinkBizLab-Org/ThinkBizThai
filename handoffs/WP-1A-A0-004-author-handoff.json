@@ -5,12 +5,15 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "290dc9195034f976c017d131d1392e4e121c1862",
-  "head_revision_or_patch_checksum": "ca1285c6ebf79119f70d275d81e3243ed192f834",
+  "head_revision_or_patch_checksum": "45f829c93cb30773b7248449d8831200d717a9f0",
   "task_ids": [
     "WP-1A-A0-004",
     "info-batch-301-302-2026-10-20"
   ],
-  "files_added": [],
+  "files_added": [
+    "evidence/WP-1A-A0-004/a1-review-2026-10-20-pr303.md",
+    "evidence/WP-1A-A0-004/q0-review-2026-10-20-pr303.md"
+  ],
   "files_modified": [
     "handoffs/WP-1A-A0-004-author-handoff.json",
     "src/modules/platform-kernel/application/jobs/fakes.ts",
