@@ -671,3 +671,215 @@ Delete this file, the measurements file, and the decision-register row that cite
 the database or in any migration depends on either. If §7's lint rules or `service-policy-map.json`
 have already landed, reverting them restores the present state — every `S` cell denied, `app_worker`
 holding grants and no policy — which is strictly narrower and still passes.
+
+---
+
+## Amendment 2026-10-20 — the broker's shape: a closed set of pinned `app_queue` functions, one per worker act (WP-0A-DB-00, for WP-1A-A0-006's migration 176)
+
+Status of this amendment: **PROPOSED, not in effect.** Everything above, §5, §7 and the Rollback included, is kept
+whole and is not changed by it; where this section supersedes a sentence above it says which, and the sentence stays
+where it is. Written by `/claude/a0_atlas` (A0) under `WP-0A-DB-00`, which owns this RFC, measured on `main` at
+`fc998034`. The Product Owner's answers below are authority to **propose** it; they are not its approval. It is
+approved only when the Product Owner, having read it after C0, A1, Q0 and R0, merges its pull request himself
+(`RFC-2026-025` §5 item 6; §5/9 above: amending an approved decision is the Product Owner's act). The Owner's words are
+copied by script from the transcript of session `5ea77291`
+(`~/.claude/projects/-Users-bank-ThinkBizThai/5ea77291-c263-4dfc-83e9-1d395eee5e51.jsonl`) and line-wrapped here; byte
+for byte, with A0's reading, in `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-20-rfc022-broker.md`.
+
+**The authority.** Asked 2026-10-20T16:42:45Z (record 2323, tool use `toolu_011rspDmdJLHXCahAncywkW9`) and answered
+16:43:53Z (record 2324): header `Broker shape`, the Owner chose `แก้ RFC-022 ก่อน แล้วค่อยเขียน 176 (Recommended)`,
+described `A0 เขียน RFC PR: broker มีหลาย function หนึ่งตัวต่อหนึ่ง action ทุกตัว pin ไว้ ยังคง §5/5 (ไม่มี policy
+ให้ worker) ตามที่คุณเลือก claim เริ่มตอน workspace ว่างแล้ว broker ตั้งเอง (ตาม §5/7) action หลัง claim ต้องถือ lease
+และ workspace ตรงกัน ส่วน relay ของ outbox ได้ function claim ของตัวเอง และ A1 เสนอว่าค่า D6 ควร hard-code หรือเก็บในตาราง
+kernel parameter`; header `RFC กด`, he chose `Owner อ่านและอนุมัติเอง (Recommended)`. Earlier the same day (record 1601,
+tool use `toolu_01A4oZHk8r4sCZJowJsszD6H`, header `RFC-022 §5/5`) he chose `คง §5/5 ใช้ broker เท่านั้น (Recommended)`;
+§5/5 is therefore not reopened here, and nothing below gives `app_worker` a policy.
+
+### A. Why §5 and §7 cannot be implemented as written
+
+Three sentences above, read together, leave the worker no lawful route to most of what it must do:
+
+1. **§5/5**: `app_worker` holds no policy on `app.jobs`, `app.outbox_events` or `app.consumer_ledger`, permanently.
+   So no worker statement, DISCOVERED or CARRIED, reaches a row of those tables except through a function owned by
+   another role.
+2. **§6's DISCOVERED shape and §5/6** describe the broker for the DISCOVERED cell, the claim. A heartbeat, a completion
+   or a failure names its job and its workspace (§3's test: adding the confinement term changes nothing about the work),
+   so each is CARRIED — and §6's CARRIED shape is a policy `TO app_worker`, which (1) forbids on these tables.
+3. **§7.1/4**: every function owned by `app_queue` is a pinned `SECURITY DEFINER` function "**and there is exactly one
+   of them**", while §9 leaves open "whether one function serves all DISCOVERED cells or one per family".
+
+`CTR-JOB-001`'s `x-lifecycle` (merged in PR #308) already reads the worker's acts as "functions owned by app_queue"
+(`actors.worker`). Implementing the worker under the text above would mean either a policy §5/5 forbids, or a single
+function taking the name of an act as a parameter — a signature invented without a decision, whose one body the pin
+would hold but no reviewer could read as one act. This amendment decides the shape instead.
+
+### B. What is decided
+
+**B1. §7.1/4's "exactly one" is replaced by a closed, enumerated set: one `app_queue` function per worker act.**
+§4 F's reason for the broker is that "the boundary is one function body, pinnable by `pg_get_functiondef`", and its
+warning is that "an unpinned function body is option B wearing a function". Both are kept at the grain of one act: each
+function's body is one act of `CTR-JOB-001`'s transition table (or of the outbox and ledger contracts), pinned on its
+own, so a widening shows as a change to the pin of the act it widens. The set is **closed**: the lint asserts that the
+functions owned by `app_queue` are exactly these, by name and count, not "at least these".
+
+| # | act | class (§3's test) | the port it serves | what the caller may supply |
+|---|---|---|---|---|
+| 1 | claim a job | DISCOVERED | `JobStorePort.claim(leaseOwner)` | the lease owner only |
+| 2 | heartbeat | CARRIED, through the broker | `JobStorePort.heartbeat` | the lease; progress percent and stage |
+| 3 | complete | CARRIED, through the broker | `JobStorePort.complete` | the lease; the result reference |
+| 4 | fail | CARRIED, through the broker | `JobStorePort.fail` | the lease; the stable error's code |
+| 5 | append an outbox event in a job's transaction | CARRIED, through the broker | `OutboxTransaction.append` | the lease; the envelope's own fields (C4) |
+| 6 | fetch unpublished outbox events (the relay's claim) | DISCOVERED | `OutboxPort.fetchUnpublished(limit)` | the batch limit only |
+| 7 | mark an outbox event dispatched | CARRIED, through the broker | `OutboxPort.markPublished(ref)` | the entry's reference |
+| 8 | record a consumed event | CARRIED, through the broker | `ConsumerLedgerPort.recordOnce` | the consumer and the event id |
+| 9 | ask whether a consumed event is recorded | CARRIED, through the broker | `ConsumerLedgerPort.isRecorded` | the consumer and the event id |
+
+Act 5 is in the set because nothing else can do it: `app_worker` has no policy on `app.outbox_events` (§5/5), so a job
+cannot stage its event in its own transaction otherwise, and the outbox's whole property is that the event commits with
+the state it announces. Act 9 is in the set because the port reads it and §5/5 leaves no other read. **Nothing else is
+in the set.** In particular there is no function for enqueue, cancel, `get`, or lease expiry: `x-lifecycle` gives
+enqueue and cancel to the command path and lease expiry to the clock, and `JobStorePort.get` and `requestCancel` are
+command-path reads and writes inside one workspace. How the database admits the command path is not settled here
+(`x-lifecycle.actors.command` says the same); it is not the broker's.
+
+Each function: `SECURITY DEFINER`, `search_path = ''`, owned by `app_queue`, every object it names schema-qualified;
+`EXECUTE` revoked from `PUBLIC` and granted to `app_worker` alone (§7.4/12, applied to each); its
+`pg_get_functiondef` pinned in `catalog-snapshot.json`. `app_worker` gains `EXECUTE` on exactly these and no other
+privilege; `anon`, `authenticated`, `service_role` and `PUBLIC` gain nothing. §7.1/1-3 stand unchanged: `app_queue` is
+`NOLOGIN NOBYPASSRLS NOINHERIT`, granted to nobody, owning no table.
+
+**B2. What `app_queue` may touch is exactly what the nine acts write.** §5/6 says `app_queue` "holds exactly the
+policies the broker needs on the queue tables and nothing else"; this amendment applies the same word to its grants.
+Its table and column privileges on the three tables are those the nine bodies need and no more, read from
+`x-lifecycle.never` for `app.jobs`: claim writes `attempt`, `lease_owner`, `lease_expires_at`; heartbeat
+`lease_expires_at`, `progress_percent`, `progress_stage`; complete `result_ref` and removes the lease; fail
+`last_error_code`, `available_at` and removes the lease. So `app_queue` holds **no** `INSERT` on `app.jobs` and **no**
+`UPDATE` of `cancel_requested_at`, of any tenant-context column, of `max_attempts` or of `timeout_seconds`: a body
+edited to enqueue or cancel fails at the grant layer as well as at its pin. On `app.outbox_events` it may insert (act 5)
+and update `dispatched_at` alone (act 7); on `app.consumer_ledger` it may insert and read (acts 8, 9). Its policies on
+the three tables admit every row (the claim must see every tenant's ready rows; §4 F), so each is an exemption with an
+`rls-exemption-register.json` row (§7.1/6, and C3 below); M7's rule holds for the claim (a `SELECT` and an `UPDATE`
+policy on `app.jobs`).
+
+**B3. The workspace rule: a claim starts with `app.workspace_id` unset and the broker sets it; every act after a claim
+requires it set and equal to the lease's workspace.** This is §5/7 applied act by act, and §4 F's "it converts
+DISCOVERED into CARRIED inside the database".
+
+- **Acts 1 and 6 (DISCOVERED)** refuse, with nothing written, when `app.workspace_id` is already set (neither null
+  nor empty) at the call. They select across workspaces, as a queue must (§4 C is why they may not be per-workspace),
+  and before returning set `app.workspace_id` with `set_config('app.workspace_id', <the row's workspace>, true)` —
+  `true`, transaction-local, never `false` (§5/7). Act 6 therefore returns the oldest unpublished events **of one
+  workspace** — the workspace of the oldest unpublished event — up to the limit, not a batch spanning tenants: a batch
+  across tenants would leave the relay's marks without a setting the broker chose, and setting it from a fetched row in
+  the relay's own code would be a third setter, which §5/7 calls a finding. A transaction therefore holds at most one
+  claim and one tenant, which is §5/4's "it confines one transaction to one tenant".
+- **Acts 2-5 and 7-9 (CARRIED, through the broker)** refuse, with nothing written, unless `app.workspace_id` is set and
+  equals the workspace of the row they act on, and — for acts 2-5 — unless the lease presented (`job_id`,
+  `workspace_id`, `lease_owner`, `attempt`, `x-lifecycle.actors.worker`) is held and is the record's current one
+  (`holdsLease`). Inside the claim's own transaction the setting is the broker's. In a later transaction it is set by
+  the worker's preamble from the job's tenant context — §5/7's first setter, the shape `RFC-2026-028` §3.1 writes
+  (`set_config('app.workspace_id', $1, true)` "from the job's tenant context") — and for act 7 from the stored entry's
+  tenant context (175's columns), and for acts 8 and 9 from the consumed envelope's tenant context.
+- **The setting is containment, not the fence** (§5/4, unchanged): the worker can set it to anything. The fence for
+  acts 2-5 is the lease, checked against the row; for act 7 the entry's three-part reference (position, event id,
+  workspace; `OutboxPort.markPublished`); for acts 8 and 9 the ledger's unique key. No artefact may cite the setting as
+  tenant isolation of the worker path.
+- **Consistency with `RFC-2026-028`'s A1R-2 and §5/13.** The production runner refuses a job transaction whose
+  `app.workspace_id` is set at its start (after `set local role app_worker`). Acts 1 and 6 refusing a set setting is the
+  same rule held a second time inside the database: a claim cannot run in a transaction that already carries a tenant,
+  whether the runner forgot the check or a session-level `set_config(…, false)` leaked from the previous job. Neither
+  check replaces the other.
+
+**B4. No caller-supplied number, instant or tenant field.** Each act reads the database's clock inside its body — never
+an instant the caller passes — so a worker cannot backdate a lease, extend one past its rule or schedule its own retry.
+The caller supplies only the column "what the caller may supply" in B1 names, and each body checks its shape against
+050's and 175's constraints. Which database clock function the bodies read (statement or wall-clock time) is 176's to
+pin and state, with the reason.
+
+### C. What is decided as a consequence, and what is not decided
+
+**C1. The D6 numbers — not decided; A1 chooses in its review of this amendment.** Lease grace, heartbeat extension and
+retry back-off base, factor and maximum are D6-provisional kernel parameters (`job-limits.ts`; `x-lifecycle.not_settled`
+says they are not contract values). The broker needs them, and **a caller-supplied value is never admitted** (B4). Two
+options, stated without a preference:
+
+- **(a) Constants in the function bodies.** The values sit in the pinned `pg_get_functiondef` text; changing one is a
+  forward migration and a new pin, read by the four roles. The kernel's `D6_PROVISIONAL_JOB_LIMITS` and the bodies must
+  then be held equal by a test, or the fakes and the database decide differently.
+- **(b) A kernel-parameter table.** One row of named values in a table `app_queue` may read and no client or service
+  role may write (`app_worker` holds no privilege on it); changing a value is a reviewed data change by the migration
+  owner, recorded like a migration. The bodies stay fixed when a number changes; the table, its grants and its single
+  row become further pins.
+
+Whichever A1 chooses, a change of a number is a reviewed migration or a reviewed parameter change and never a worker's
+act. The caps on `max_attempts` and `timeout_seconds` are enqueue's (the command path) and are not the broker's.
+
+**C2. Outbox actor and request on append — decided: taken from the leased job, not from the caller.** Act 5 writes
+`workspace_id` from `app.workspace_id` (which B3 has already held equal to the lease's workspace) and `actor_kind`,
+`actor_id`, `request_id` and `correlation_id` from the `app.jobs` row the presented lease holds (174's columns). The
+reasons are the RFC's own: §4 F has every statement after a claim operate "under a setting the broker — not the
+worker — chose"; `RFC-2026-026` §3.5's worker producer takes the actor and the request ids from "the job's
+`tenant_context`"; and the kernel's `OutboxTransaction.append` already refuses an envelope whose tenant context differs
+from the unit's minted context in any field (A1-302-I1). The caller supplies the envelope's own fields (type, version,
+subject, schema reference, idempotency key, occurred-at as data). **Not decided:** `causation_id` (the job's id, the
+enqueuing event, or the caller's) — 176 reads `CTR-EVT-001` and states its reading for C0; and an append outside a job's
+lease (a consumer producing an event, or the command path), which this amendment does not admit through the broker.
+
+**C3. The lint and the registries — what 176 must do.** Each is an obligation on the migration that writes the broker,
+stated here so that it is not discovered there:
+
+1. `scripts/db/run.mjs`: `app_queue` joins `SERVICE_ROLES` and `SERVICE_ROLES_NOT_FOR_THE_REQUEST_PATH` (§7.1/1-2);
+   `KNOWN_BYPASS` unchanged.
+2. §7.1/4 as amended: every function owned by `app_queue` is `prosecdef` with `search_path = ''`, the set equals B1's
+   nine by name and count, and each body is pinned in `catalog-snapshot.json`, with a drift per rule (an extra function,
+   a missing one, a changed body, a definer function without the pinned `search_path`).
+3. `db/foundation/lint/rls-exemption-register.json`: a row for each `app_queue` policy, with its reason, owner and review
+   date (§5/6, §7.1/6).
+4. `db/foundation/lint/service-policy-map.json`: rows for the claim (`app.jobs`, discovered) and for each act through
+   the broker, carrying `role: null` and `broker_owner: "app_queue"` as §7.2's example writes them. The file's `_shape`
+   has no `broker_owner` today, so 176 adds it, and the both-directions rule of §7.1/6 learns that a row with a
+   `broker_owner` is satisfied by that owner's pinned function and never by a policy `TO app_worker`. §7.1/5's
+   negative stands as written.
+5. `roleScopedCompleteness`: 176 writes no CARRIED policy, so §7.1/8's narrow amendment is not needed by it; the
+   register rows of item 3 are what the rule already demands. §7.1/8 stays A0's for the first batch that writes a
+   CARRIED policy.
+6. `pinned-grants.json` and the catalog snapshot record `app_queue`'s grants (B2) and `app_worker`'s nine `EXECUTE`s.
+7. §7.3 (b) and (c) and §7.4 cases 11-13 are executed by 176's proofs, for every act: the broker not inlined; the pair
+   (the act through the broker succeeds while the same statement issued directly by `app_worker` returns zero rows or
+   is refused); `EXECUTE` held by `app_worker` alone; and, as the negative control, each act failing once `app_queue`'s
+   policy is dropped.
+8. A machine test that each act's body and the kernel's decision functions implement `x-lifecycle`'s worker
+   transitions and no other (Q0-308-I1, C0-308-I2), owed by whichever package owns the test file.
+
+**C4. Claim order — what the sources decide, and what stays open.** `x-lifecycle.not_settled` leaves "the order in
+which ready jobs are claimed (the direction of priority, and ties)" open, and `application/jobs/fakes.ts`'s
+`claimOrder` is labelled "A0's inference, D6" with "the adapter's ORDER BY … set with the other D6 limits". Decided
+only as far as that goes: act 1 orders as `claimOrder` does — higher `priority` first, then earlier `available_at` —
+D6-provisional, and changed with it. **Open:** the tie after those two keys (the fake's comment names "the earlier
+enqueue", its code does not compare it), owed with D6 by `WP-1A-A0-006` before the dispatcher increment.
+
+**C5. Jobs of a workspace that is `Closing` or `AccessBlocked` — not decided.** `RFC-2026-028` §3.5 gives "which jobs
+of a workspace in which state may be claimed" to "the broker batch", with `CTR-JOB-001`'s vocabulary; `x-lifecycle`
+does not mention a workspace's lifecycle. Act 1 as 176 writes it claims by `x-lifecycle`'s `ready` alone. The rule is
+**owed before any workspace can reach `Closing` in an environment where the worker runs**, by the batch that writes
+§11.4's purge job (`RFC-2026-028` §3.5/2), which also owns the cancellation of a closing workspace's jobs; 176 records
+it as open and claims nothing about it.
+
+**C6. What other records need, not edited here.** `RFC-2026-016` §2: §6's proposed replacement says a DISCOVERED
+operation goes through "a `SECURITY DEFINER` function" and is silent on CARRIED acts on a DISCOVERED table; when §6 is
+next taken up, its owner adds "and a CARRIED act on a table §5/5 closes goes through the same owner's pinned function".
+`RFC-2026-017` §3: the fifth role row (`app_queue`), A0's edit, owed already by §8 above. `RFC-2026-028`: §3.5/3's
+"Waits on … its broker" and §8's "The broker … its signature" are answered in shape by this amendment once approved;
+its A1R-2 is unchanged (B3). `CTR-JOB-001`: `x-lifecycle.actors.worker` already reads as B1 does; nothing owed.
+The kernel (`WP-1A-A0-004`'s `application/**`): `OutboxPort.fetchUnpublished` and its fake return a batch across
+workspaces today, oldest first; B3 makes the database's batch one workspace's, so the port's comment and the fake
+follow (oldest first still, within the oldest event's workspace), and A1-308-I1's split of `JobStorePort` into a worker
+port (claim, heartbeat, complete, fail) and a command port (enqueue, cancel, get) is owed by the same package.
+
+### D. What it does not do
+
+It writes no migration, policy, grant, function, lint rule, registry row or test; migration 176 is a later pull request
+of `WP-1A-A0-006`, written against this amendment once it is approved. It does not reopen §5/5, §5/4 or §5/7, and it
+widens nothing `app_worker` can reach today: until 176 lands, the worker still reads and writes no row of the three
+tables. **Rollback:** a reviewed revert removes this section; §7.1/4's "exactly one" then reads as written and 176
+cannot be written, which is the state before this amendment.

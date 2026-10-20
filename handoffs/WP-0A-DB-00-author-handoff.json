@@ -4,116 +4,91 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
-  "base_revision": "94f8e5e501a8adfb69c25b2ff603cdac6c84f091",
-  "head_revision_or_patch_checksum": "102aefea211562919d4aa2ba49605a362c24ed1c",
+  "base_revision": "fc9980348aeb71cb2892844c9ccce05ba479cb3d",
+  "head_revision_or_patch_checksum": "bf683d7d58d4a60b63105245b74691d38872d896",
   "task_ids": [
     "WP-0A-DB-00",
-    "gov-kguard-2026-10-19"
+    "gov-rfc022-broker-2026-10-20"
   ],
   "files_added": [
-    "evidence/WP-0A-DB-00/a1-review-2026-10-19-pr300.md",
-    "evidence/WP-0A-DB-00/c0-review-2026-10-19-pr300.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-19-kernel-guard-names.md",
-    "evidence/WP-0A-DB-00/q0-review-2026-10-19-pr300.md",
-    "evidence/WP-0A-DB-00/r0-review-2026-10-19-pr300.md"
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-20-rfc022-broker.md"
   ],
   "files_modified": [
-    "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
+    "architecture/decisions/RFC-2026-022-service-policy-shape.md",
     "db/foundation/lint/audit-coverage-map.json",
     "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/db/classify-review-tier.mjs",
-    "scripts/verify-app-boundaries.mjs",
-    "scripts/verify-app-build-graph.mjs",
-    "test-kits/app-boundaries.test.mjs",
-    "test-kits/app-stack.test.mjs",
-    "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "RFC-2026-007",
+    "RFC-2026-022",
     "RFC-2026-025",
-    "RFC-2026-029",
+    "RFC-2026-026",
+    "RFC-2026-028",
     "RFC-2026-034"
   ],
-  "contracts_consumed": [],
+  "contracts_consumed": [
+    "CTR-JOB-001",
+    "CTR-EVT-001"
+  ],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT (gov-kguard 2026-10-19) does what the Product Owner's answer of 2026-10-18T15:36:54Z (header `ลด gov`, option `แก้ 1 PR governance + A0 กดเมื่อ 4 role ผ่าน (Recommended)`) directs, on A0's reading in evidence/WP-0A-DB-00/product-owner-disposition-2026-10-19-kernel-guard-names.md: no guard or guard test names a real platform-kernel file (src/modules/platform-kernel/index.ts, application/run.ts, adapters/job-store.ts) by a string, so a pull request that edits or creates one is not governance through the lane's walk.",
-    "The boundary rules the renamed fixtures exercise read only a path's shape (src/modules/<key>/index.ts or index.tsx, RFC-2026-029 §6.3/1; the platform-kernel adapters/ directory, §6.3/5 and the pg cell), so the fictitious names index.tsx, adapters/probe-store.ts and application/probe-run.ts keep every control proving what it did.",
-    "A1-280-1's pin of the created kernel files stays in RFC-2026-007 §C test 2 as KERNEL_CREATED, written as paths inside the module joined to its directory at run time: the check reads existence only, never content, so a content edit of a kernel file cannot change what the test does (RFC-2026-007 §G item 4)."
+    "THIS INCREMENT (gov-rfc022-broker 2026-10-20) appends RFC-2026-022 Amendment 2026-10-20, PROPOSED, under the Product Owner's answers of 2026-10-20 (record 2323/2324, headers `Broker shape` -> `แก้ RFC-022 ก่อน แล้วค่อยเขียน 176 (Recommended)` and `RFC กด` -> `Owner อ่านและอนุมัติเอง (Recommended)`; record 1601, `RFC-022 §5/5` -> `คง §5/5 ใช้ broker เท่านั้น (Recommended)`), quoted by script in evidence/WP-0A-DB-00/product-owner-disposition-2026-10-20-rfc022-broker.md. They are authority to propose; the approval is the Owner's own merge.",
+    "The amendment follows the Owner's described shape and the RFC's own text: §4 F (one pinned body per boundary), §5/4 (the setting is containment), §5/5 (no app_worker policy, kept), §5/7 (two setters), §7.1 (pins, closed sets); CTR-JOB-001 x-lifecycle (merged in PR #308) for the worker's acts and the columns each writes; RFC-2026-028 §3.1 and A1R-2 for the preamble and the unset-at-start rule; RFC-2026-026 §3.5 for where a worker producer's actor and request come from."
   ],
   "acceptance_results": [
     {
-      "criterion": "No guard or guard test names a real platform-kernel file, and a change to any kernel file at the head prints the risk lane",
-      "result": "pass for author self-check: §C test 2 asserts no kernel file in governanceClosure's modules or mentions and laneOf over every kernel file at the head = risk; a fixture renamed back to index.ts fails test 2 (mutation run locally)."
+      "criterion": "The amendment is append-only",
+      "result": "pass for author self-check: git diff origin/main -- the RFC shows additions only after its last line (0 deletions)."
     },
     {
-      "criterion": "The guards are not weakened",
-      "result": "pass for author self-check: app-boundaries 29/29, app-stack 21/21, verify-app-boundaries --require-parser exit 0 with 54 controls held; deleting index.ts and index.test.ts fails test 2; the classifier's run-time check on absent entries fails tests 3 and 6; never excusing fails test 3. Not a role verdict."
+      "criterion": "Every choice the coordinator listed is decided with a trace to the RFC's principles or listed open with its owner",
+      "result": "pass for author self-check: §B1-§B4 decide the function set, grants, workspace rule and no caller-supplied values; §C1 leaves D6's home to A1 with two options; §C2 decides the append's actor and request; §C3 lists 176's lint and registry obligations; §C4-§C5 decide only what fakes.ts and x-lifecycle decide and name owners for the rest; §C6 notes RFC-016/017/028 and WP-1A-A0-004 without editing them."
     },
     {
-      "criterion": "Owner's words quoted byte for byte",
-      "result": "pass for author self-check: the disposition's code blocks compared by script with transcript lines 9933 and 9946."
+      "criterion": "Owner quotes are byte-exact",
+      "result": "pass for author self-check: the disposition's §2 is generated by script from records 2323/2324 and 1601/1605 (input.questions and toolUseResult.answers)."
     }
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (commit 8ccc1786, under the suite lock, after npm run regenerate:manifest)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (commit bf683d7d, under the suite lock, after npm run regenerate:manifest)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 857, pass 857, fail 0, skipped 0, todo 0"
+      "result": "clean: exit 0 — tests 858, pass 858, fail 0, skipped 0, todo 0"
     },
     {
-      "command": "node --test --test-name-pattern 'RFC-2026-007 Amendment 2026-10-13' test-kits/db/foundation-contract.test.mjs",
-      "exit_code": 0,
-      "result": "6 tests, 6 pass"
+      "command": "npm run check (under the suite lock, before the final fixes)",
+      "exit_code": 1,
+      "result": "red twice and fixed before the commit: the audit coverage map's 34 blocker line pins (shifted by the added authority line) and a handoff sentence the role-language guard read as approval attributed to A1; both corrected, then clean as above"
     },
     {
-      "command": "node --test test-kits/app-boundaries.test.mjs; node --test test-kits/app-stack.test.mjs",
+      "command": "git diff --numstat origin/main -- architecture/decisions/RFC-2026-022-service-policy-shape.md",
       "exit_code": 0,
-      "result": "29/29 and 21/21 pass"
-    },
-    {
-      "command": "node scripts/verify-app-boundaries.mjs --require-parser (after npm ci --ignore-scripts; node_modules removed after)",
-      "exit_code": 0,
-      "result": "28 source files; 54 negative and positive controls held first"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
-      "exit_code": 0,
-      "result": "all 12 changed paths declared, every amendment explains one"
-    },
-    {
-      "command": "node scripts/db/classify-review-tier.mjs origin/main HEAD --lane",
-      "exit_code": 0,
-      "result": "tier H, lane governance (classifier, guards, their tests, guard data, integrity manifest)"
-    },
-    {
-      "command": "node scripts/db/classify-review-tier.mjs 8ccc1786 <throwaway commit editing index.ts and application/run.ts and adding adapters/job-store.ts> --lane",
-      "exit_code": 0,
-      "result": "tier H, lane risk (throwaway worktree removed)"
+      "result": "212 additions, 0 deletions (append-only)"
     }
   ],
-  "security_privacy_cost_impact": "None: test fixtures, an exception list and their tests; no credential, personal data, customer content or provider call. The lane change it causes (kernel files from governance to risk) keeps the Security/Privacy reviewer and the Tester on every such pull request (RFC-2026-034 §2.2).",
-  "migration_and_data_impact": "None. audit-coverage-map.json changes only line numbers of its pins into this manifest (+8).",
-  "compatibility_impact": "No contract changes; no contract-catalog file. STRING_NAME_EXCEPTIONS 48 to 36 pairs; classifier code unchanged; test count unchanged (857).",
+  "security_privacy_cost_impact": "Text only: a proposed decision on the queue broker's shape. It widens nothing app_worker can reach until a later migration (176) implements it after approval; it keeps §5/5 (no app_worker policy on the three tables), forbids caller-supplied numbers, instants and tenant fields, and leaves the D6 parameters' home to A1.",
+  "migration_and_data_impact": "None. No migration, policy, grant or function. audit-coverage-map.json changes only the line numbers of its 34 pins into this manifest (+1).",
+  "compatibility_impact": "No contract changes; no contract-catalog file. RFC-2026-022 §7.1/4's 'exactly one' is superseded only once the amendment is approved. Test count unchanged (858).",
   "known_limitations": [
-    "Once adapters/job-store.ts exists, pinning it in KERNEL_CREATED (test-kits/db/foundation-contract.test.mjs) is a governance edit; creating the file is not. Until pinned, deleting it passes test 2, as before (RFC-2026-007 Note 2026-10-17 item 3, now §G item 4).",
-    "The CI lane on this pull request is printed by the base's classifier (Amendment 2026-10-11 §A item 1), so the effect reaches the lanes from the first pull request opened on a base carrying it."
+    "The D6 parameters' home (constants or a kernel-parameter table) is for A1 to choose in its review; 176 waits for that choice and for the Owner's own merge of the amendment.",
+    "Left open with owners named in the amendment: causation_id on an outbox append, appends outside a job's lease, the claim tie-break, jobs of a Closing/AccessBlocked workspace.",
+    "The relay batch becomes one workspace's (§B3); WP-1A-A0-004's OutboxPort comment and fake follow in that package, with A1-308-I1's port split."
   ],
   "open_risks_or_blockers": [
-    "GOVERNANCE LANE (classifier, guards and their tests). PRESS AUTHORITY: the Product Owner's answer of 2026-10-18T15:36:54Z (header `ลด gov`): `แก้ 1 PR governance + A0 กดเมื่อ 4 role ผ่าน (Recommended)`, before this pull request existed (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-19-kernel-guard-names.md; required_human_authorities). A0 presses only after C0, A1, Q0 and R0 pass on the final head with CI green on both jobs. This handoff claims no role verdict."
+    "GOVERNANCE LANE (an RFC amendment). APPROVAL OWED: the Product Owner's answer of 2026-10-20T16:43:53Z (header `RFC กด`): `Owner อ่านและอนุมัติเอง (Recommended)` — the Owner reads the amendment and the Thai summary after C0, A1, Q0 and R0 have read the final head and merges it himself (RFC-2026-025 §5 item 6; evidence/WP-0A-DB-00/product-owner-disposition-2026-10-20-rfc022-broker.md; required_human_authorities[5]). A0 does not press it. This handoff claims no role verdict."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores the twelve pairs, the fixtures' real names, the §C tests' earlier bodies, removes RFC-2026-007 §G, the disposition and the authority entry, and lowers the 34 pins by eight; every pull request touching a kernel file is governance again.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR removes Amendment 2026-10-20, the disposition and required_human_authorities[5] with its open_blockers entry, and lowers the 34 coverage-map pins by one; §7.1/4 then reads 'exactly one' again and 176 cannot be written.",
   "recommended_next_work_packages": [
-    "WP-1A-A0-003 or WP-1A-A0-004: the pull request that creates src/modules/platform-kernel/adapters/job-store.ts adds adapters/job-store.ts to KERNEL_CREATED in test-kits/db/foundation-contract.test.mjs (a governance edit, or a later one)."
+    "WP-1A-A0-006: migration 176, the app_queue broker, written once the Owner has merged the amendment and the D6 parameters' home (§C1) is chosen, with §C3's obligations.",
+    "WP-1A-A0-004: the relay port's one-workspace batch and the JobStorePort worker/command split (A1-308-I1)."
   ],
   "reviewer_instructions": [
-    "Read RFC-2026-007 §G and the disposition, then git diff origin/main -- scripts test-kits.",
-    "Run node --test --test-name-pattern 'RFC-2026-007 Amendment 2026-10-13' test-kits/db/foundation-contract.test.mjs, test-kits/app-boundaries.test.mjs, test-kits/app-stack.test.mjs; and with typescript installed node scripts/verify-app-boundaries.mjs --require-parser.",
-    "Mutate: rename one fixture back to src/modules/platform-kernel/index.ts (test 2 fails); delete index.ts and index.test.ts (test 2 fails).",
-    "Lane of a kernel-only change on this head: node scripts/db/classify-review-tier.mjs <this head> <a commit touching src/modules/platform-kernel/index.ts> --lane."
+    "Read RFC-2026-022 §4 F, §5, §7 and §9, then Amendment 2026-10-20 at the end of the file, and the disposition.",
+    "git diff origin/main -- architecture/decisions/RFC-2026-022-service-policy-shape.md must show additions only.",
+    "Check each §B choice against the cited sentence; A1: choose §C1's option (a) or (b), or say what else.",
+    "Check the Owner quotes against the transcript records 2323/2324 and 1601/1605 by script."
   ],
   "superseded_by": null
 }
