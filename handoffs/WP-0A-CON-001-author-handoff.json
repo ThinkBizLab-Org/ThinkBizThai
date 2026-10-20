@@ -5,7 +5,7 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "0a8690de97b2989dd5e08a35e3ece3afcafc0065",
-  "head_revision_or_patch_checksum": "94c63cf6b69e1b1fd9fbae91549728efcfa47db0",
+  "head_revision_or_patch_checksum": "8459a3408c2094819913403068a5ea59918e7db4",
   "task_ids": [
     "WP-0A-CON-001",
     "ctr-job-001-lifecycle-2026-10-20"
@@ -19,6 +19,7 @@
     "contract-catalog/shared-kernel/ctr-job-001/schema.json",
     "handoffs/WP-0A-CON-001-author-handoff.json",
     "test-kits/contracts/catalog-registry.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
     "tests/db/identity/identity-isolation.test.mjs",
     "work-packages/WP-0A-CON-001.json"
@@ -50,19 +51,24 @@
   ],
   "tests": [
     {
-      "command": "node scripts/commit-when-clean.mjs <message-file> (under the suite lock; commits bb431cae)",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (under the suite lock; commits 8459a340, after the sync of main 0a8690de)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 857, pass 857, fail 0, skipped 0 (bb431cae, before the sync)"
+      "result": "clean: exit 0 — tests 858, pass 858, fail 0, skipped 0, todo 0"
     },
     {
-      "command": "npm run check (under the suite lock, before the handoff was first refreshed and before the identity-isolation amendment)",
-      "exit_code": 1,
-      "result": "tests 857, pass 852, fail 5: four handoff-drift cases (stale handoff) and the batch 050 lifecycle case, which the declared amendment then addressed"
+      "command": "npm run record:verification (under the suite lock)",
+      "exit_code": 0,
+      "result": "recorded 858 passing, 0 skipped, 0 todo"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-CON-001",
+      "command": "node scripts/commit-when-clean.mjs <message-file> (under the suite lock; commits bb431cae, before the sync)",
       "exit_code": 0,
-      "result": "see the PR body"
+      "result": "clean: exit 0 — tests 857, pass 857, fail 0, skipped 0"
+    },
+    {
+      "command": "node scripts/db/classify-records-only.mjs --sync bb431cae 94c63cf6 origin/main",
+      "exit_code": 0,
+      "result": "mechanical sync; no conflict inside the PR's own paths; integrity manifest regenerated"
     }
   ],
   "security_privacy_cost_impact": "Contract text only; no accepted-set change, no credential, customer data, provider call or cost. x-lifecycle.actors states the worker acts only through the app_queue broker (RFC-2026-022 section 5 items 5-6) and the command path only in the job's own workspace; for A1 to read. The open A1 findings on CTR-JOB-001 (WP-0A-CON-005 open_blockers[11]) are unchanged and still block the freeze.",
