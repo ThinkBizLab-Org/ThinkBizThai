@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-1A-A0-006",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "author_complete",
+  "base_revision": "f36b23ecd5c0e36c9b593420fd6491f72f3cb114",
+  "head_revision_or_patch_checksum": "f36b23ecd5c0e36c9b593420fd6491f72f3cb114",
+  "task_ids": [
+    "WP-1A-A0-006",
+    "open-2026-10-20"
+  ],
+  "files_added": [],
+  "files_modified": [],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "RFC-2026-022",
+    "RFC-2026-025",
+    "RFC-2026-028",
+    "RFC-2026-029",
+    "RFC-2026-034"
+  ],
+  "contracts_consumed": [
+    "CTR-JOB-001",
+    "CTR-EVT-001",
+    "CTR-TEN-001",
+    "CTR-API-001",
+    "CTR-ERR-001",
+    "CTR-IDM-001"
+  ],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "THIS PACKAGE'S OPENING PULL REQUEST: it writes no code. It creates work-packages/WP-1A-A0-006.json (status in_progress, owner A0, branch agent/claude/WP-1A-A0-006-provider-database), adds the package's row to BRANCH_OWNERSHIP in test-kits/branch-identity.test.mjs (that table only; the resolution test's ref list unchanged), regenerates test-kits/integrity-manifest.json (only branch-identity.test.mjs's digest changes), and records the Owner's answers in evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-open.md. The cited range is this branch's own commits on main f36b23ec.",
+    "The Product Owner's answers of 2026-10-20 (asked 00:24:13.767Z, answered 01:10:13.792Z UTC; transcript 5ea77291 records 680 and 681), quoted by script: header `งานถัดไป` `WP-1A-A0-006 ต่อฐานข้อมูลจริง (Recommended)`, header `กด PR เปิด` `A0 กดเมื่อ 4 role ผ่าน (Recommended)`, header `D6 ค่าเพดาน` `ใช้ไปก่อน ทบทวนตอน G1 slice (Recommended)`; A0's readings are marked as such in the record's §3.",
+    "Writable paths: src/modules/platform-kernel/adapters/**, apps/worker/** and apps/web/composition/**, with the package's evidence, handoffs and manifest; db/**, domain/**, application/** and apps/web/app/** are read-only. The D6 answer's record in WP-1A-A0-004's manifest is left to a later WP-1A-A0-004 records pull request."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "OPENING PR: the branch resolves to WP-1A-A0-006 alone; BRANCH_OWNERSHIP gains one row; the integrity manifest changes only that file's digest; the manifest validates; no source file changes",
+      "result": "pass for author self-check (see tests); independent reading owed"
+    }
+  ],
+  "tests": [
+    {
+      "command": "node scripts/validate-work-packages.mjs",
+      "exit_code": 0,
+      "result": "manifests valid"
+    },
+    {
+      "command": "node scripts/validate-work-package-ownership.mjs",
+      "exit_code": 0,
+      "result": "two amended paths named with rationale; no writable/output overlap (outputs list no source file)"
+    },
+    {
+      "command": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-1A-A0-006.json",
+      "exit_code": 0,
+      "result": "four distinct role runs"
+    },
+    {
+      "command": "npm run regenerate:manifest",
+      "exit_code": 0,
+      "result": "rebuilt 128 digests; only test-kits/branch-identity.test.mjs's changed"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (runs the repository verifier, npm run check)",
+      "exit_code": 0,
+      "result": "pending"
+    }
+  ],
+  "security_privacy_cost_impact": "None in this pull request: no code, no dependency, no provider, no credential, no data, no cost.",
+  "migration_and_data_impact": "None in this pull request. The package records that a forward migration is needed before its adapters can read or write a row (open_blockers); none is written here.",
+  "compatibility_impact": "None: no contract-catalog, source or tool-configuration change.",
+  "known_limitations": [
+    "npm run typecheck and npm run test:app were not run locally (no source file changes; disk is limited); CI's application job runs them.",
+    "The opening pull request decides none of the package's owed decisions (dependencies install, request-path adapter placement, WP-1A-A0-002 narrowing, the forward migration, CI's Postgres reach, Q-029-2, the KERNEL_CREATED duty); each is recorded in the manifest's open_blockers."
+  ],
+  "open_risks_or_blockers": [
+    "GOVERNANCE: the two guard hunks (the BRANCH_OWNERSHIP row in test-kits/branch-identity.test.mjs; the regenerated digest in test-kits/integrity-manifest.json) are kinds RFC-2026-034 §2.2 lists as additive. Authority: the Owner's answers of 2026-10-20T01:10:13.792Z (evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-open.md §3 (b)): A0 presses once C0, A1, Q0 and R0 pass and CI is green on both jobs, RFC-2026-025 §5 item 6's other conditions kept. No role verdict is claimed here.",
+    "Owed by the package, not decided here: the dependency install (governance), the forward migration (RFC-2026-022's broker, CARRIED policies, the outbox tenant_context), CI's Postgres reach for the adapters' tests, WP-1A-A0-002's narrowing for apps/web/composition/**, Q-029-2, the KERNEL_CREATED duty, and WP-1A-A1-001, which has no manifest."
+  ],
+  "rollback_or_forward_fix": "Before merge: close the pull request and delete the branch. After merge: a reviewed revert removes work-packages/WP-1A-A0-006.json, evidence/WP-1A-A0-006/, the agent/claude/WP-1A-A0-006-provider-database row from BRANCH_OWNERSHIP with its integrity digest restored; nothing yet depends on any of them.",
+  "recommended_next_work_packages": [
+    "WP-1A-A0-004: a records pull request recording the D6 answer of 2026-10-20 in its open_blockers.",
+    "WP-1A-A0-006: the Owner's decisions on the dependency install and the forward migration (who writes it), then the first adapter increment."
+  ],
+  "reviewer_instructions": [
+    "Read evidence/WP-1A-A0-006/product-owner-disposition-2026-10-20-open.md against the session transcript (records 680 and 681; question 2026-10-20T00:24:13.767Z, answer 01:10:13.792Z), and its §3 readings as A0's.",
+    "Check the diff outside evidence/ and handoffs/ is exactly: one new manifest, one BRANCH_OWNERSHIP row, and one changed digest in test-kits/integrity-manifest.json; A1 and Q0 name each guard hunk if confirming it additive.",
+    "Run npm run check, node scripts/verify-branch-scope.mjs origin/main WP-1A-A0-006 and npm run check:handoff on the branch name (not detached)."
+  ],
+  "superseded_by": null,
+  "outputs": null
+}
